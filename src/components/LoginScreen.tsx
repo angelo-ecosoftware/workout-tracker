@@ -13,7 +13,12 @@ export const LoginScreen: React.FC = () => {
     try {
       await loginWithGoogle();
     } catch (err: any) {
-      setErrorMsg(err.message || 'Authentication error. Please check configuration.');
+      if (err?.code === 'auth/popup-closed-by-user') {
+        // Just ignore if the user closes the popup
+        setErrorMsg(null);
+      } else {
+        setErrorMsg(err.message || 'Authentication error. Please check configuration.');
+      }
     } finally {
       setLoggingIn(false);
     }

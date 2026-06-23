@@ -44,8 +44,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       await signInWithPopup(auth, googleAuthProvider);
-    } catch (err) {
-      console.error("Google login failed:", err);
+    } catch (err: any) {
+      if (err?.code !== 'auth/popup-closed-by-user') {
+        console.error("Google login failed:", err);
+      }
       throw err;
     } finally {
       setLoading(false);
