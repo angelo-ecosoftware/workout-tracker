@@ -1,5 +1,5 @@
 {
-  "name": "Minimal Gym Tracker",
+  "name": "Workout Tracker",
   "description": "A minimal, friction-free personal gym tracking app focused on physique progression. Log static workouts, track sets with RIR and pain score, compute auto progression weights, and track body logs.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
