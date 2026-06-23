@@ -79,7 +79,7 @@ export const WorkoutDayTracker: React.FC = () => {
 
     } catch (err: any) {
       console.error("loadWorkflowState ERROR:", err);
-      setErrorMsg("Failed to synchronize active workout progression.");
+      setErrorMsg(`Failed to synchronize active workout progression. ERROR: ${err.message}`);
     } finally {
       console.log("loadWorkflowState FINALLY reached - setting loading to false");
       setLoading(false);

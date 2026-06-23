@@ -1,10 +1,10 @@
 {
-  "projectId": "regal-nebula-jd2jw",
-  "appId": "1:571593365792:web:b6cc01bd5cfb36fe415f45",
-  "apiKey": "AIzaSyB2nyaeU1d5yCRMzh9cd3QhI6BlZ4ZfmE4",
-  "authDomain": "regal-nebula-jd2jw.firebaseapp.com",
+  "projectId": "workout-tracker-9cdd4",
+  "appId": "1:852520107681:web:11ab9be3244e73bb5fbae0",
+  "apiKey": "AIzaSyCveN4lgX83Aq9xOB7Y78q3QDidwHFLO68",
+  "authDomain": "workout-tracker-9cdd4.firebaseapp.com",
   "firestoreDatabaseId": "ai-studio-fddbd90c-ea13-4f79-b7d0-bff96da7058a",
-  "storageBucket": "regal-nebula-jd2jw.firebasestorage.app",
-  "messagingSenderId": "571593365792",
+  "storageBucket": "workout-tracker-9cdd4.firebasestorage.app",
+  "messagingSenderId": "852520107681",
   "measurementId": ""
 }
