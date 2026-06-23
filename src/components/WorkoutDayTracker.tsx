@@ -5,6 +5,118 @@ import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, seedTemp
 import { SessionEngine, ProgressionEngine } from '../engine.ts';
 import { Dumbbell, Calendar, Zap, AlertTriangle, ChevronRight, CheckCircle2, ChevronLeft, Plus, Minus, Loader2, Eye, EyeOff } from 'lucide-react';
 
+const WGER_EXACT_MATCHES: Record<string, number> = {
+  "Lat Pulldown": 158,
+  "Bench Press": 192,
+  "Plank": 227,
+  "Chest-Supported Row": 1486,
+  "Incline Machine Press": 20,
+  "Cable Lateral Raise": 1807,
+  "Rear Delt Pec Deck": 1691,
+  "Rope Triceps Pushdown": 50,
+  "Side Plank (Left)": 1911,
+  "Side Plank (Right)": 1911,
+  "Dead Bug": 1605,
+  "Romanian Deadlift": 1700,
+  "Leg Curl": 1192,
+  "Hip Thrust / Glute Bridge": 294,
+  "Calf Raise": 1466,
+  "Incline Dumbbell Press": 20,
+  "Seated Shoulder Press": 20,
+  "Seated Cable Row": 1486,
+  "Cable Curl": 1531
+};
+
+const WgerExerciseInfo: React.FC<{ exerciseName: string }> = ({ exerciseName }) => {
+  const [description, setDescription] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchDescription = async () => {
+      setLoading(true);
+      try {
+        let exerciseId = WGER_EXACT_MATCHES[exerciseName];
+
+        if (!exerciseId) {
+          // If we want to attempt an autocomplete from the web endpoint (often 404s depending on Wger version)
+          try {
+            const searchRes = await fetch(`https://wger.de/api/v2/exercise/search/?term=${encodeURIComponent(exerciseName)}`);
+            if (searchRes.ok) {
+              const searchData = await searchRes.json();
+              if (searchData.suggestions && searchData.suggestions.length > 0) {
+                exerciseId = searchData.suggestions[0].data.base_id || searchData.suggestions[0].data.id;
+              }
+            }
+          } catch (e) {
+            console.warn("Wger search failed, falling back", e);
+          }
+        }
+        
+        if (exerciseId) {
+          const infoRes = await fetch(`https://wger.de/api/v2/exerciseinfo/${exerciseId}/`);
+          if (!infoRes.ok) throw new Error("Failed fetching exercise info");
+          const infoData = await infoRes.json();
+          
+          const translations = infoData.translations || [];
+          const englishTranslation = translations.find((t: any) => t.language === 2);
+          const anyTranslation = translations[0];
+          
+          if (englishTranslation && englishTranslation.description) {
+            setDescription(englishTranslation.description);
+          } else if (anyTranslation && anyTranslation.description) {
+            setDescription(anyTranslation.description);
+          } else {
+            setDescription("No detailed description available for this exercise.");
+          }
+        } else {
+          setDescription("Exercise not found in wger database.");
+        }
+      } catch (e) {
+        console.error("Wger API Error:", e);
+        setDescription("Failed to fetch details.");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchDescription();
+  }, [exerciseName]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono animate-pulse p-3 bg-[#161616] rounded-xl border border-[#222] mb-3">
+        <Loader2 className="w-3 h-3 animate-spin" />
+        Loading instructions...
+      </div>
+    );
+  }
+
+  if (!description) return null;
+
+  return (
+    <div className="bg-[#161616] border border-[#2d2d2d] rounded-xl text-xs text-gray-300 font-sans shadow-none mb-3 overflow-hidden transition-all duration-200">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-3 text-[10px] font-black font-mono text-gray-400 uppercase tracking-widest hover:bg-[#1a1a1a] transition-colors"
+      >
+        <span className="flex items-center gap-2">
+          <Eye className="w-3 h-3" />
+          How to perform
+        </span>
+        <ChevronRight className={`w-3 h-3 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} />
+      </button>
+      
+      {isOpen && (
+        <div 
+          className="wger-content p-4 pt-0 border-t border-[#2d2d2d] mt-2 text-gray-400 [&>p]:mb-2 [&>ul]:list-disc [&>ul]:ml-4 [&>ul]:mb-2 [&>ol]:list-decimal [&>ol]:ml-4" 
+          dangerouslySetInnerHTML={{ __html: description }} 
+        />
+      )}
+    </div>
+  );
+};
+
 export const WorkoutDayTracker: React.FC = () => {
   const { getAuthHeaders, user } = useAuth();
   
@@ -517,6 +629,7 @@ export const WorkoutDayTracker: React.FC = () => {
 
                   {isExpanded && (
                     <>
+                      <WgerExerciseInfo exerciseName={ex.name} />
                       {/* Previous Historical Reference sub-line */}
                   {cachedEx && (
                     <div className="bg-[#1a1a1a] rounded-xl border border-[#222] p-3 flex flex-col gap-2 text-[10px] font-mono text-gray-400">

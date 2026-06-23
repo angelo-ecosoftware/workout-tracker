@@ -184,8 +184,8 @@ export async function fetchWorkoutHistory(userId: string) {
   const sessions = sessionsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Session));
   // Sort descending by completedAt
   sessions.sort((a, b) => {
-    const tA = a.completedAt?.toMillis() || 0;
-    const tB = b.completedAt?.toMillis() || 0;
+    const tA = a.completedAt?.getTime() || 0;
+    const tB = b.completedAt?.getTime() || 0;
     return tB - tA;
   });
   return sessions;
