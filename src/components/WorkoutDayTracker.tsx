@@ -7,24 +7,9 @@ import { Dumbbell, Calendar, Zap, AlertTriangle, ChevronRight, CheckCircle2, Che
 
 const WGER_EXACT_MATCHES: Record<string, number> = {
   "Lat Pulldown": 158,
-  "Bench Press": 192,
-  "Plank": 227,
-  "Chest-Supported Row": 1486,
-  "Incline Machine Press": 20,
-  "Cable Lateral Raise": 1807,
-  "Rear Delt Pec Deck": 1691,
-  "Rope Triceps Pushdown": 50,
-  "Side Plank (Left)": 1911,
-  "Side Plank (Right)": 1911,
-  "Dead Bug": 1605,
+  "Bench Press": 163,
   "Romanian Deadlift": 1700,
-  "Leg Curl": 1192,
-  "Hip Thrust / Glute Bridge": 294,
-  "Calf Raise": 1466,
-  "Incline Dumbbell Press": 20,
-  "Seated Shoulder Press": 20,
-  "Seated Cable Row": 1486,
-  "Cable Curl": 1531
+  "Plank": 1911,
 };
 
 const WgerExerciseInfo: React.FC<{ exerciseName: string }> = ({ exerciseName }) => {
@@ -39,13 +24,18 @@ const WgerExerciseInfo: React.FC<{ exerciseName: string }> = ({ exerciseName }) 
         let exerciseId = WGER_EXACT_MATCHES[exerciseName];
 
         if (!exerciseId) {
-          // If we want to attempt an autocomplete from the web endpoint (often 404s depending on Wger version)
+          // Attempt an autocomplete from the web endpoint using search
           try {
-            const searchRes = await fetch(`https://wger.de/api/v2/exercise/search/?term=${encodeURIComponent(exerciseName)}`);
+            const searchRes = await fetch(`https://wger.de/api/v2/exercise/?name=${encodeURIComponent(exerciseName)}&language=2`);
             if (searchRes.ok) {
               const searchData = await searchRes.json();
-              if (searchData.suggestions && searchData.suggestions.length > 0) {
-                exerciseId = searchData.suggestions[0].data.base_id || searchData.suggestions[0].data.id;
+              if (searchData.results && searchData.results.length > 0) {
+                const exactMatch = searchData.results.find((r: any) => r.name.toLowerCase() === exerciseName.toLowerCase());
+                if (exactMatch) {
+                  exerciseId = exactMatch.id;
+                } else {
+                  // Only use exact string match from search endpoint
+                }
               }
             }
           } catch (e) {
@@ -54,27 +44,34 @@ const WgerExerciseInfo: React.FC<{ exerciseName: string }> = ({ exerciseName }) 
         }
         
         if (exerciseId) {
-          const infoRes = await fetch(`https://wger.de/api/v2/exerciseinfo/${exerciseId}/`);
-          if (!infoRes.ok) throw new Error("Failed fetching exercise info");
-          const infoData = await infoRes.json();
-          
-          const translations = infoData.translations || [];
-          const englishTranslation = translations.find((t: any) => t.language === 2);
-          const anyTranslation = translations[0];
-          
-          if (englishTranslation && englishTranslation.description) {
-            setDescription(englishTranslation.description);
-          } else if (anyTranslation && anyTranslation.description) {
-            setDescription(anyTranslation.description);
-          } else {
+          try {
+            const infoRes = await fetch(`https://wger.de/api/v2/exerciseinfo/${exerciseId}/`);
+            if (!infoRes.ok) {
+              setDescription("No detailed description available for this exercise.");
+              setLoading(false);
+              return;
+            }
+            const infoData = await infoRes.json();
+            
+            const translations = infoData.translations || [];
+            const englishTranslation = translations.find((t: any) => t.language === 2);
+            const anyTranslation = translations[0];
+            
+            if (englishTranslation && englishTranslation.description) {
+              setDescription(englishTranslation.description);
+            } else if (anyTranslation && anyTranslation.description) {
+              setDescription(anyTranslation.description);
+            } else {
+              setDescription("No detailed description available for this exercise.");
+            }
+          } catch (e) {
             setDescription("No detailed description available for this exercise.");
           }
         } else {
-          setDescription("Exercise not found in wger database.");
+          setDescription("No detailed description available for this exercise.");
         }
       } catch (e) {
-        console.error("Wger API Error:", e);
-        setDescription("Failed to fetch details.");
+        setDescription("No detailed description available for this exercise.");
       } finally {
         setLoading(false);
       }
@@ -608,7 +605,7 @@ export const WorkoutDayTracker: React.FC = () => {
                             {advice.details}
                           </span>
                         </div>
-                      ) : advice.action === 'keep' && cachedEx ? (
+                      ) : advice.action === 'keep' && cachedEx && isExpanded ? (
                         <div className="bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-xl px-2.5 py-1 flex items-center gap-1.5 shrink-0">
                           <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wide text-gray-400">
                             {advice.details}
