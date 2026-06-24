@@ -1,4 +1,4 @@
-import express, { Response } from "express";
+import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
@@ -13,7 +13,7 @@ async function startServer() {
   app.use(express.json());
 
   // API 1: Healthcheck
-  app.get("/api/health", (req, res) => {
+  app.get("/api/health", (_req, res) => {
     res.json({ status: "healthy", timestamp: new Date().toISOString() });
   });
 
@@ -28,7 +28,7 @@ async function startServer() {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     // SPA catch-all for React frontend routers
-    app.get("*", (req, res) => {
+    app.get("*", (_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
     });
   }

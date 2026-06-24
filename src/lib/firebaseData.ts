@@ -1,7 +1,7 @@
 import { collection, doc, getDoc, getDocs, setDoc, query, where, addDoc, orderBy, limit, serverTimestamp, writeBatch, deleteDoc } from 'firebase/firestore';
 import { db, auth } from './firebase.ts';
 import { UserProfile, Workout, Session, WorkoutSet, Exercise, LastSetSummary } from '../models.ts';
-import { SessionEngine, SetLogger, ProgressionEngine } from '../engine.ts';
+import { SessionEngine, SetLogger } from '../engine.ts';
 
 // Get or create user profile
 export async function initializeUser(userId: string, email: string) {

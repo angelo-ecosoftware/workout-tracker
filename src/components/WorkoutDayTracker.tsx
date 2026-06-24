@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { Workout, Exercise, UserProfile, WorkoutSet } from '../models.ts';
+import { Workout, Exercise, UserProfile } from '../models.ts';
 import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, seedTemplatesIfMissing } from '../lib/firebaseData.ts';
 import { SessionEngine, ProgressionEngine } from '../engine.ts';
-import { Dumbbell, Calendar, Zap, AlertTriangle, ChevronRight, CheckCircle2, ChevronLeft, Plus, Minus, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff } from 'lucide-react';
 
 const WGER_EXACT_MATCHES: Record<string, number> = {
   "Lat Pulldown": 158,
@@ -115,7 +115,7 @@ const WgerExerciseInfo: React.FC<{ exerciseName: string }> = ({ exerciseName }) 
 };
 
 export const WorkoutDayTracker: React.FC = () => {
-  const { getAuthHeaders, user } = useAuth();
+  const { user } = useAuth();
   
   // App/workflow state
   const [workouts, setWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);

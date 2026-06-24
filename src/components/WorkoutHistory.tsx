@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate } from '../lib/firebaseData.ts';
-import { Session, WorkoutSet, Workout, Exercise } from '../models.ts';
-import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
+import { Session, WorkoutSet, Exercise } from '../models.ts';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase.ts';
 import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal.tsx';
