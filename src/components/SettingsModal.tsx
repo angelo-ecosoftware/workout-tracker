@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
+import { usePWA } from '../context/PWAContext.tsx';
 import { X, Download, Upload, Trash2, LogOut, Loader2, AlertTriangle, Smartphone } from 'lucide-react';
 import { exportAllLogs, deleteAllLogs, importAllLogs } from '../lib/firebaseData.ts';
 
@@ -10,6 +11,7 @@ interface Props {
 
 export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
+  const { installPrompt, setInstallPrompt } = usePWA();
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -19,14 +21,26 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   if (!isOpen || !user) return null;
 
   const handleInstallApp = async () => {
-    if (window.deferredPrompt) {
-      window.deferredPrompt.prompt();
-      const { outcome } = await window.deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        window.deferredPrompt = null;
+    // Check if running in an iframe (AI Studio preview)
+    const isIframe = window.self !== window.top;
+    
+    if (isIframe) {
+      alert("Install prompt is blocked inside the preview window.\n\nPlease click the 'Open in New Tab' icon at the top right of the preview first, then try installing again!");
+      return;
+    }
+
+    if (installPrompt) {
+      try {
+        installPrompt.prompt();
+        const { outcome } = await installPrompt.userChoice;
+        if (outcome === 'accepted') {
+          setInstallPrompt(null);
+        }
+      } catch (err) {
+        console.error("Failed to prompt install:", err);
       }
     } else {
-      alert("To install the app:\n\nOn iOS Safari: Tap the Share button at the bottom and select 'Add to Home Screen'.\n\nOn Android Chrome: Tap the menu (3 dots) and select 'Install app' or 'Add to Home screen'.");
+      alert("The install prompt is not available. This usually means:\n\n1. The app is already installed\n2. Your browser doesn't support the native prompt (like Safari - use the Share > Add to Home Screen button instead)\n3. You are in a private browsing window");
     }
   };
 
@@ -104,18 +118,20 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         </div>
 
         <div className="p-4 flex flex-col gap-3">
-          <button
-            onClick={handleInstallApp}
-            className="flex items-center gap-3 w-full p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#333] rounded-xl text-left transition-colors"
-          >
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-              <Smartphone className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="font-bold text-sm text-white">Install App</div>
-              <div className="text-xs text-gray-500">Add to your home screen for easy access</div>
-            </div>
-          </button>
+          {installPrompt && (
+            <button
+              onClick={handleInstallApp}
+              className="flex items-center gap-3 w-full p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#333] rounded-xl text-left transition-colors"
+            >
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                <Smartphone className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-bold text-sm text-white">Install App</div>
+                <div className="text-xs text-gray-500">Add to your home screen for easy access</div>
+              </div>
+            </button>
+          )}
 
           <button
             onClick={handleExport}

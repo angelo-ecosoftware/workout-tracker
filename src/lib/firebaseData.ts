@@ -158,6 +158,11 @@ export async function getUserProgressState(userId: string) {
   return user;
 }
 
+export async function updateSessionDate(sessionId: string, newDate: Date) {
+  const sessionRef = doc(db, 'sessions', sessionId);
+  await setDoc(sessionRef, { completedAt: newDate }, { merge: true });
+}
+
 export async function deleteSessions(sessionIds: string[]) {
   // We should do this in a batch or multiple promises
   // Because it's firestore, might just map over and delete
@@ -189,11 +194,11 @@ export async function fetchWorkoutHistory(userId: string) {
       completedAt: typeof data.completedAt?.toDate === 'function' ? data.completedAt.toDate() : (data.completedAt ? new Date(data.completedAt) : null)
     } as Session;
   });
-  // Sort descending by completedAt
+  // Sort ascending by completedAt
   sessions.sort((a, b) => {
     const tA = a.completedAt?.getTime() || 0;
     const tB = b.completedAt?.getTime() || 0;
-    return tB - tA;
+    return tA - tB;
   });
   return sessions;
 }
@@ -209,7 +214,7 @@ export async function fetchSetsForSession(sessionId: string) {
   return sets;
 }
 
-export async function logSessionCompletion(userId: string, workoutId: string, setsData: any[], exercisesList: Exercise[]) {
+export async function logSessionCompletion(userId: string, workoutId: string, setsData: any[], exercisesList: Exercise[], sessionCompletedAt?: Date) {
   const userProfile = await initializeUser(userId, auth.currentUser?.email || '');
   const workoutSnap = await getDoc(doc(db, 'workouts', workoutId));
   const workoutData = workoutSnap.data() as Workout;
@@ -219,7 +224,7 @@ export async function logSessionCompletion(userId: string, workoutId: string, se
   const sessionRef = await addDoc(collection(db, 'sessions'), {
     ...sessionData,
     status: 'completed',
-    completedAt: serverTimestamp(),
+    completedAt: sessionCompletedAt ? sessionCompletedAt : serverTimestamp(),
   });
   const sessionId = sessionRef.id;
 

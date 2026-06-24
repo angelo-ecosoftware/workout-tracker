@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions } from '../lib/firebaseData.ts';
+import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate } from '../lib/firebaseData.ts';
 import { Session, WorkoutSet, Workout, Exercise } from '../models.ts';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase.ts';
-import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle } from 'lucide-react';
+import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal.tsx';
 
 interface PopulatedSession extends Session {
@@ -22,6 +22,52 @@ export const WorkoutHistory: React.FC = () => {
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [editingDateSessionId, setEditingDateSessionId] = useState<string | null>(null);
+  const [editingDateValue, setEditingDateValue] = useState<string>("");
+
+  const startEditingDate = (session: PopulatedSession) => {
+    setEditingDateSessionId(session.id);
+    if (session.completedAt) {
+      // Format to YYYY-MM-DDTHH:mm for datetime-local input
+      const d = session.completedAt;
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const formatted = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+      setEditingDateValue(formatted);
+    } else {
+      setEditingDateValue("");
+    }
+  };
+
+  const saveDateEdit = async (session: PopulatedSession) => {
+    if (!editingDateValue) {
+      setEditingDateSessionId(null);
+      return;
+    }
+    
+    try {
+      const newDate = new Date(editingDateValue);
+      await updateSessionDate(session.id, newDate);
+      
+      // Update local state
+      setSessions(prev => 
+        prev.map(s => 
+          s.id === session.id 
+            ? { ...s, completedAt: newDate } 
+            : s
+        ).sort((a, b) => (a.completedAt?.getTime() || 0) - (b.completedAt?.getTime() || 0))
+      );
+      
+      setEditingDateSessionId(null);
+    } catch (err) {
+      console.error("Failed to update date:", err);
+      alert("Failed to update date.");
+    }
+  };
+
+  const cancelDateEdit = () => {
+    setEditingDateSessionId(null);
+    setEditingDateValue("");
+  };
 
   const toggleSelection = (id: string) => {
     const newSet = new Set(selectedIds);
@@ -218,15 +264,43 @@ export const WorkoutHistory: React.FC = () => {
                 <h3 className="font-display font-black text-lg text-[#C0FF00] uppercase tracking-tight">
                   {session.workoutName}
                 </h3>
-                <div className="flex items-center gap-4 text-xs font-mono text-gray-500 mt-2">
-                  <span className="flex items-center gap-1.5 bg-[#1a1a1a] px-2.5 py-1 rounded-lg">
-                    <Calendar className="w-3.5 h-3.5" />
-                    {session.completedAt ? session.completedAt.toLocaleDateString() : 'N/A'}
-                  </span>
-                  <span className="flex items-center gap-1.5 bg-[#1a1a1a] px-2.5 py-1 rounded-lg">
-                    <Clock className="w-3.5 h-3.5" />
-                    {session.completedAt ? session.completedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                  </span>
+                <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-gray-500 mt-2">
+                  {editingDateSessionId === session.id ? (
+                    <div className="flex items-center gap-2 bg-[#1a1a1a] p-1.5 rounded-lg border border-[#333]">
+                      <input
+                        type="datetime-local"
+                        value={editingDateValue}
+                        onChange={(e) => setEditingDateValue(e.target.value)}
+                        className="bg-transparent text-white focus:outline-none focus:ring-1 focus:ring-[#C0FF00] rounded px-2 py-1 text-xs"
+                      />
+                      <button onClick={(e) => { e.stopPropagation(); saveDateEdit(session); }} className="p-1 text-green-500 hover:bg-green-500/20 rounded">
+                        <Save className="w-4 h-4" />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); cancelDateEdit(); }} className="p-1 text-red-500 hover:bg-red-500/20 rounded">
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="flex items-center gap-1.5 bg-[#1a1a1a] px-2.5 py-1 rounded-lg">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {session.completedAt ? session.completedAt.toLocaleDateString() : 'N/A'}
+                      </span>
+                      <span className="flex items-center gap-1.5 bg-[#1a1a1a] px-2.5 py-1 rounded-lg">
+                        <Clock className="w-3.5 h-3.5" />
+                        {session.completedAt ? session.completedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                      </span>
+                      {!isDeleteMode && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); startEditingDate(session); }}
+                          className="p-1 hover:text-[#C0FF00] transition-colors rounded-lg hover:bg-[#1a1a1a]"
+                          title="Edit Date"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -279,10 +353,36 @@ export const WorkoutHistory: React.FC = () => {
                   <h3 className="font-display font-black text-base text-[#C0FF00] uppercase tracking-tight">
                     {session.workoutName}
                   </h3>
-                  <p className="text-[11px] font-mono text-gray-500 mt-1.5 flex items-center gap-2">
-                    <Calendar className="w-3.5 h-3.5" />
-                    {session.completedAt ? session.completedAt.toLocaleDateString() : 'N/A'} at {session.completedAt ? session.completedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                  </p>
+                  {editingDateSessionId === session.id ? (
+                    <div className="mt-2 flex flex-wrap items-center gap-2 bg-[#1a1a1a] p-1.5 rounded-lg border border-[#333]">
+                      <input
+                        type="datetime-local"
+                        value={editingDateValue}
+                        onChange={(e) => setEditingDateValue(e.target.value)}
+                        className="bg-transparent text-white focus:outline-none focus:ring-1 focus:ring-[#C0FF00] rounded px-2 py-1 text-xs w-full"
+                      />
+                      <div className="flex items-center gap-2 w-full justify-end mt-1">
+                        <button onClick={(e) => { e.stopPropagation(); saveDateEdit(session); }} className="p-1.5 text-green-500 hover:bg-green-500/20 rounded bg-[#222]">
+                          <Save className="w-4 h-4" />
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); cancelDateEdit(); }} className="p-1.5 text-red-500 hover:bg-red-500/20 rounded bg-[#222]">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-[11px] font-mono text-gray-500 mt-1.5 flex items-center gap-2">
+                      <Calendar className="w-3.5 h-3.5" />
+                      {session.completedAt ? session.completedAt.toLocaleDateString() : 'N/A'} at {session.completedAt ? session.completedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); startEditingDate(session); }}
+                        className="p-1 ml-auto hover:text-[#C0FF00] transition-colors rounded-lg hover:bg-[#1a1a1a]"
+                        title="Edit Date"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-3">

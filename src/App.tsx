@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
+import { PWAProvider } from './context/PWAContext.tsx';
 import { LoginScreen } from './components/LoginScreen.tsx';
 import { Header } from './components/Header.tsx';
 import { WorkoutDayTracker } from './components/WorkoutDayTracker.tsx';
@@ -57,8 +58,10 @@ const GymAppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <GymAppContent />
-    </AuthProvider>
+    <PWAProvider>
+      <AuthProvider>
+        <GymAppContent />
+      </AuthProvider>
+    </PWAProvider>
   );
 }

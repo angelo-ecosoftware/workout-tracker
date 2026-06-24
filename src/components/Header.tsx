@@ -27,7 +27,8 @@ export const Header: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Desktop User Pill */}
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1a] border border-[#222] rounded-xl">
               {user.photoURL ? (
                 <img 
@@ -44,10 +45,24 @@ export const Header: React.FC = () => {
               </span>
             </div>
 
+            {/* Mobile User Icon */}
+            <div className="sm:hidden flex items-center justify-center w-8 h-8 border border-[#333] bg-[#1a1a1a] rounded-xl">
+              {user.photoURL ? (
+                <img 
+                  referrerPolicy="no-referrer"
+                  src={user.photoURL} 
+                  alt={user.displayName || 'Profile'} 
+                  className="w-5 h-5 rounded-full object-cover"
+                />
+              ) : (
+                <User className="w-4 h-4 text-gray-400" />
+              )}
+            </div>
+
             <button
               onClick={() => setIsSettingsOpen(true)}
               title="Settings"
-              className="p-2 border border-[#333] hover:border-[#555] hover:bg-neutral-900 rounded-xl text-gray-400 transition-all duration-200 cursor-pointer"
+              className="w-8 h-8 flex items-center justify-center border border-[#333] hover:border-[#555] hover:bg-neutral-900 rounded-xl text-gray-400 transition-all duration-200 cursor-pointer"
             >
               <Settings className="w-4 h-4" />
             </button>

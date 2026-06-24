@@ -412,7 +412,15 @@ export const WorkoutDayTracker: React.FC = () => {
         }
       }
 
-      await logSessionCompletion(user!.uid, activeWorkout.id, finalSetsPayload, activeWorkout.exercises);
+      let completedAtDate = undefined;
+      if (sessionDate) {
+         // Create a date in local time using the provided date, but current time to keep it accurate
+         const now = new Date();
+         const [y, m, d] = sessionDate.split('-');
+         completedAtDate = new Date(parseInt(y), parseInt(m)-1, parseInt(d), now.getHours(), now.getMinutes(), now.getSeconds());
+      }
+
+      await logSessionCompletion(user!.uid, activeWorkout.id, finalSetsPayload, activeWorkout.exercises, completedAtDate);
 
       setSuccessMsg(`Workout successfully saved! Next workout Day updated.`);
       
