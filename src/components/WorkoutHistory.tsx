@@ -221,11 +221,11 @@ export const WorkoutHistory: React.FC = () => {
                 <div className="flex items-center gap-4 text-xs font-mono text-gray-500 mt-2">
                   <span className="flex items-center gap-1.5 bg-[#1a1a1a] px-2.5 py-1 rounded-lg">
                     <Calendar className="w-3.5 h-3.5" />
-                    {session.completedAt ? session.completedAt.toDate().toLocaleDateString() : 'N/A'}
+                    {session.completedAt ? session.completedAt.toLocaleDateString() : 'N/A'}
                   </span>
                   <span className="flex items-center gap-1.5 bg-[#1a1a1a] px-2.5 py-1 rounded-lg">
                     <Clock className="w-3.5 h-3.5" />
-                    {session.completedAt ? session.completedAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                    {session.completedAt ? session.completedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                   </span>
                 </div>
               </div>
@@ -281,7 +281,7 @@ export const WorkoutHistory: React.FC = () => {
                   </h3>
                   <p className="text-[11px] font-mono text-gray-500 mt-1.5 flex items-center gap-2">
                     <Calendar className="w-3.5 h-3.5" />
-                    {session.completedAt ? session.completedAt.toDate().toLocaleDateString() : 'N/A'} at {session.completedAt ? session.completedAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                    {session.completedAt ? session.completedAt.toLocaleDateString() : 'N/A'} at {session.completedAt ? session.completedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                   </p>
                 </div>
                 
@@ -339,7 +339,7 @@ export const WorkoutHistory: React.FC = () => {
                 {session.workoutName}
               </h3>
               <p className="text-[9px] font-mono text-gray-500 uppercase text-right mt-1 w-full flex-shrink-0">
-                {session.completedAt ? session.completedAt.toDate().toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' }) : 'N/A'}
+                {session.completedAt ? session.completedAt.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' }) : 'N/A'}
               </p>
             </div>
           ))}

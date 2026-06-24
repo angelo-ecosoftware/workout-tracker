@@ -30,7 +30,7 @@ const WgerExerciseInfo: React.FC<{ exerciseName: string }> = ({ exerciseName }) 
             if (searchRes.ok) {
               const searchData = await searchRes.json();
               if (searchData.results && searchData.results.length > 0) {
-                const exactMatch = searchData.results.find((r: any) => r.name.toLowerCase() === exerciseName.toLowerCase());
+                const exactMatch = searchData.results.find((r: any) => r.name?.toLowerCase() === exerciseName?.toLowerCase());
                 if (exactMatch) {
                   exerciseId = exactMatch.id;
                 } else {

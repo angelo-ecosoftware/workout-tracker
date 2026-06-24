@@ -181,7 +181,14 @@ export async function fetchWorkoutHistory(userId: string) {
     limit(20)
   ));
   
-  const sessions = sessionsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Session));
+  const sessions = sessionsSnap.docs.map(d => {
+    const data = d.data();
+    return { 
+      id: d.id, 
+      ...data,
+      completedAt: typeof data.completedAt?.toDate === 'function' ? data.completedAt.toDate() : (data.completedAt ? new Date(data.completedAt) : null)
+    } as Session;
+  });
   // Sort descending by completedAt
   sessions.sort((a, b) => {
     const tA = a.completedAt?.getTime() || 0;
@@ -262,6 +269,73 @@ export async function logSessionCompletion(userId: string, workoutId: string, se
     lastCompletedWorkoutOrder: workoutData.order,
     lastSetSummaryPerExercise: updatedCache
   });
+
+  await batch.commit();
+}
+
+export async function exportAllLogs(userId: string) {
+  const sessionsSnap = await getDocs(query(collection(db, 'sessions'), where('userId', '==', userId)));
+  const sessions = sessionsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+  
+  const setsSnap = await getDocs(query(collection(db, 'sets'), where('userId', '==', userId)));
+  const sets = setsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+  return { sessions, sets };
+}
+
+export async function deleteAllLogs(userId: string) {
+  const sessionsSnap = await getDocs(query(collection(db, 'sessions'), where('userId', '==', userId)));
+  const setsSnap = await getDocs(query(collection(db, 'sets'), where('userId', '==', userId)));
+  
+  const batch = writeBatch(db);
+  
+  sessionsSnap.docs.forEach(d => batch.delete(d.ref));
+  setsSnap.docs.forEach(d => batch.delete(d.ref));
+  
+  await batch.commit();
+}
+
+export async function importAllLogs(userId: string, data: any) {
+  if (!data || !Array.isArray(data.sessions) || !Array.isArray(data.sets)) {
+    throw new Error('Invalid JSON structure');
+  }
+
+  const batch = writeBatch(db);
+
+  for (const session of data.sessions) {
+    const { id, ...sessionData } = session;
+    if (sessionData.userId !== userId) continue;
+    
+    // Attempt to fix timestamps if they are serialized as objects
+    if (sessionData.completedAt && sessionData.completedAt.seconds) {
+      sessionData.completedAt = new Date(sessionData.completedAt.seconds * 1000);
+    } else if (sessionData.completedAt && typeof sessionData.completedAt === 'string') {
+      sessionData.completedAt = new Date(sessionData.completedAt);
+    }
+    
+    if (sessionData.startedAt && sessionData.startedAt.seconds) {
+      sessionData.startedAt = new Date(sessionData.startedAt.seconds * 1000);
+    } else if (sessionData.startedAt && typeof sessionData.startedAt === 'string') {
+      sessionData.startedAt = new Date(sessionData.startedAt);
+    }
+
+    const ref = doc(db, 'sessions', id);
+    batch.set(ref, sessionData);
+  }
+
+  for (const set of data.sets) {
+    const { id, ...setData } = set;
+    if (setData.userId !== userId) continue;
+
+    if (setData.loggedAt && setData.loggedAt.seconds) {
+      setData.loggedAt = new Date(setData.loggedAt.seconds * 1000);
+    } else if (setData.loggedAt && typeof setData.loggedAt === 'string') {
+      setData.loggedAt = new Date(setData.loggedAt);
+    }
+
+    const ref = doc(db, 'sets', id);
+    batch.set(ref, setData);
+  }
 
   await batch.commit();
 }
