@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { Workout, Exercise, UserProfile } from '../models.ts';
-import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, seedTemplatesIfMissing } from '../lib/firebaseData.ts';
+import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, seedTemplatesIfMissing } from '../lib/supabaseData.ts';
 import { SessionEngine, ProgressionEngine } from '../engine.ts';
 import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff } from 'lucide-react';
 
@@ -350,7 +350,7 @@ export const WorkoutDayTracker: React.FC = () => {
     try {
       // Consolidate sets values from input map
       const finalSetsPayload: Array<{
-        exerciseId: number;
+        exerciseId: string;
         setNumber: number;
         weight?: number | null;
         reps?: number | null;

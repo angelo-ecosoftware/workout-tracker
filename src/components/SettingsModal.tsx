@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { usePWA } from '../context/PWAContext.tsx';
 import { X, Download, Upload, Trash2, LogOut, Loader2, AlertTriangle, Smartphone } from 'lucide-react';
-import { exportAllLogs, deleteAllLogs, importAllLogs } from '../lib/firebaseData.ts';
+import { exportAllLogs, deleteAllLogs, importAllLogs } from '../lib/supabaseData.ts';
 
 interface Props {
   isOpen: boolean;

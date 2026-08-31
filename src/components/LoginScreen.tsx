@@ -51,7 +51,7 @@ export const LoginScreen: React.FC = () => {
               <div className="text-xs text-red-200">
                 <span className="font-bold text-red-400">Sign-In Failed:</span> {errorMsg}
                 <div className="mt-1 text-[10px] text-red-500 font-mono">
-                  Check if authorized in Firebase Authentication Console.
+                  Check if Google Auth is enabled in Supabase Authentication Dashboard.
                 </div>
               </div>
             </div>

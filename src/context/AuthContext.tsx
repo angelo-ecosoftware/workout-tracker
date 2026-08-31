@@ -1,9 +1,17 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth, googleAuthProvider } from '../lib/firebase.ts';
-import { signInWithPopup, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { supabase } from '../lib/supabase.ts';
+import { User, Session } from '@supabase/supabase-js';
+
+export interface AuthUser {
+  id: string;
+  uid: string;
+  email?: string;
+  displayName?: string;
+  photoURL?: string;
+}
 
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   token: string | null;
   loading: boolean;
   loginWithGoogle: () => Promise<void>;
@@ -12,41 +20,52 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function mapSupabaseUser(user: User | null): AuthUser | null {
+  if (!user) return null;
+  return {
+    id: user.id,
+    uid: user.id,
+    email: user.email,
+    displayName: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0],
+    photoURL: user.user_metadata?.avatar_url || user.user_metadata?.picture,
+  };
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setLoading(true);
-      if (currentUser) {
-        setUser(currentUser);
-        try {
-          const idToken = await currentUser.getIdToken();
-          setToken(idToken);
-        } catch (err) {
-          console.error("Failed to retrieve user ID token:", err);
-          setToken(null);
-        }
-      } else {
-        setUser(null);
-        setToken(null);
-      }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(mapSupabaseUser(session?.user ?? null));
+      setToken(session?.access_token ?? null);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session: Session | null) => {
+      setUser(mapSupabaseUser(session?.user ?? null));
+      setToken(session?.access_token ?? null);
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loginWithGoogle = async () => {
     setLoading(true);
     try {
-      await signInWithPopup(auth, googleAuthProvider);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) throw error;
     } catch (err: any) {
-      if (err?.code !== 'auth/popup-closed-by-user') {
-        console.error("Google login failed:", err);
-      }
+      console.error("Google login failed:", err);
       throw err;
     } finally {
       setLoading(false);
@@ -56,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = async () => {
     setLoading(true);
     try {
-      await signOut(auth);
+      await supabase.auth.signOut();
       setUser(null);
       setToken(null);
     } catch (err) {

@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate } from '../lib/firebaseData.ts';
+import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate, fetchWorkoutsData } from '../lib/supabaseData.ts';
 import { Session, WorkoutSet, Exercise } from '../models.ts';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../lib/firebase.ts';
 import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal.tsx';
 
@@ -112,47 +110,27 @@ export const WorkoutHistory: React.FC = () => {
         const historySessions = await fetchWorkoutHistory(user.uid);
         
         // Fetch workout details and sets for each session in parallel
-        const populated: PopulatedSession[] = [];
-        
+        const { workoutsList, exercisesList } = await fetchWorkoutsData();
+        const workoutMap = new Map(workoutsList.map(w => [w.id, w]));
+        const exerciseMap = new Map(exercisesList.map(e => [e.id, e]));
+
         const promises = historySessions.map(async (session) => {
           if (!session.completedAt) return null;
           
-          let workoutName = 'Unknown Workout';
-          let order = 0;
-          try {
-            const wDoc = await getDoc(doc(db, 'workouts', session.workoutId));
-            if (wDoc.exists()) {
-              workoutName = wDoc.data().name;
-              order = wDoc.data().order;
-            }
-          } catch (e) {
-            console.warn(e);
-          }
+          const workout = workoutMap.get(session.workoutId);
+          const workoutName = workout?.name || 'Unknown Workout';
+          const order = workout?.order || 0;
           
           const rawSets = await fetchSetsForSession(session.id);
           
-          // Fetch exercise names
-          const exerciseCache: Record<string, Exercise> = {};
-          const populatedSets = [];
-          
-          const exIds = Array.from(new Set(rawSets.map(s => s.exerciseId)));
-          const exPromises = exIds.map(async (id) => {
-            const eDoc = await getDoc(doc(db, 'exercises', id));
-            if (eDoc.exists()) {
-              exerciseCache[id] = { id: eDoc.id, ...eDoc.data() } as Exercise;
-            }
-          });
-          
-          await Promise.all(exPromises);
-          
-          for (const s of rawSets) {
-            const ex = exerciseCache[s.exerciseId];
-            populatedSets.push({
+          const populatedSets = rawSets.map((s) => {
+            const ex = exerciseMap.get(s.exerciseId);
+            return {
               ...s,
               exerciseName: ex ? ex.name : 'Unknown Exercise',
               type: ex ? ex.type : 'strength'
-            });
-          }
+            };
+          });
           
           return {
             ...session,
@@ -163,9 +141,7 @@ export const WorkoutHistory: React.FC = () => {
         });
         
         const results = await Promise.all(promises);
-        results.forEach(res => {
-          if (res) populated.push(res);
-        });
+        const populated = results.filter((res): res is PopulatedSession => res !== null);
         
         setSessions(populated);
       } catch (err: any) {
