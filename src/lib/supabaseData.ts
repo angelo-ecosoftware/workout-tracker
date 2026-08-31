@@ -9,7 +9,7 @@ export async function initializeUser(userId: string, email: string) {
   const { data, error } = await supabase
     .from('users')
     .select('*')
-    .or(`user_id.eq.${userId},id.eq.${userId}`)
+    .eq('user_id', userId)
     .maybeSingle();
 
   if (!data) {
@@ -36,7 +36,7 @@ export async function initializeUser(userId: string, email: string) {
       onboarding_completed: isV9User ? true : false,
       training_days_per_week: isV9User ? 4 : null,
       created_at: newUser.createdAt.toISOString(),
-    }, { onConflict: 'id' });
+    }, { onConflict: 'user_id' });
 
     if (insertError) {
       console.warn('initializeUser upsert warning:', insertError);
@@ -45,9 +45,9 @@ export async function initializeUser(userId: string, email: string) {
     return newUser;
   }
 
-  const isV9 = (data.user_id === '2b4bd23c-ceff-460d-a73b-2c531686e3b2' || data.id === '2b4bd23c-ceff-460d-a73b-2c531686e3b2');
+  const isV9 = data.user_id === '2b4bd23c-ceff-460d-a73b-2c531686e3b2';
   return {
-    userId: data.user_id || data.id || userId,
+    userId: data.user_id || userId,
     email: data.email,
     name: data.name || data.email?.split('@')[0] || '',
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
@@ -287,8 +287,8 @@ export async function getUserProgressState(userId: string) {
   const { data } = await supabase
     .from('users')
     .select('*')
-    .or(`user_id.eq.${userId},id.eq.${userId}`)
-    .single();
+    .eq('user_id', userId)
+    .maybeSingle();
 
   if (!data) {
     await seedTemplatesIfMissing(userId);
@@ -296,17 +296,17 @@ export async function getUserProgressState(userId: string) {
     return await initializeUser(userId, authUser?.user?.email || '');
   }
 
-  const isV9User = (data.user_id === '2b4bd23c-ceff-460d-a73b-2c531686e3b2' || data.id === '2b4bd23c-ceff-460d-a73b-2c531686e3b2');
+  const isV9 = data.user_id === '2b4bd23c-ceff-460d-a73b-2c531686e3b2';
 
   return {
-    userId: data.user_id || data.id || userId,
+    userId: data.user_id || userId,
     email: data.email,
     name: data.name || data.email?.split('@')[0] || '',
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
-    maxWorkoutOrder: data.max_workout_order ?? (isV9User ? 4 : 3),
+    maxWorkoutOrder: data.max_workout_order ?? (isV9 ? 4 : 3),
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
-    onboardingCompleted: data.onboarding_completed ?? (isV9User ? true : false),
-    trainingDaysPerWeek: data.training_days_per_week ?? (isV9User ? 4 : undefined),
+    onboardingCompleted: data.onboarding_completed ?? (isV9 ? true : false),
+    trainingDaysPerWeek: data.training_days_per_week ?? (isV9 ? 4 : undefined),
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
   } as UserProfile;
 }
@@ -315,7 +315,6 @@ export async function saveUserOnboarding(userId: string, daysPerWeek: number) {
   const { data: authUser } = await supabase.auth.getUser();
   const email = authUser?.user?.email || '';
 
-  // Upsert ensures that both id and user_id are set and satisfy not-null constraints
   const { error } = await supabase
     .from('users')
     .upsert({
@@ -329,18 +328,17 @@ export async function saveUserOnboarding(userId: string, daysPerWeek: number) {
       max_workout_order: userId === '2b4bd23c-ceff-460d-a73b-2c531686e3b2' ? 4 : 3,
       last_set_summary_per_exercise: {},
       created_at: new Date().toISOString(),
-    }, { onConflict: 'id' });
+    }, { onConflict: 'user_id' });
 
   if (error) {
     console.error('Error saving onboarding data:', error);
-    // Fallback attempt by updating user_id or id
     const { error: fallbackError } = await supabase
       .from('users')
       .update({
         onboarding_completed: true,
         training_days_per_week: daysPerWeek,
       })
-      .or(`user_id.eq.${userId},id.eq.${userId}`);
+      .eq('user_id', userId);
 
     if (fallbackError) {
       console.error('Fallback update error:', fallbackError);
