@@ -85,7 +85,11 @@ export async function seedTemplatesIfMissing(userId?: string) {
       { id: 'd4_e6_v9', user_id: userId, name: 'Conditioning Block (10 min)', type: 'timed', target_sets: 10, target_rep_min: 30, target_rep_max: 30 },
     ];
 
-    await supabase.from('exercises').upsert(exercisesV9);
+    try {
+      await supabase.from('exercises').upsert(exercisesV9);
+    } catch (e) {
+      console.warn('Exercises upsert warning:', e);
+    }
 
     const workoutsV9 = [
       {
@@ -118,7 +122,11 @@ export async function seedTemplatesIfMissing(userId?: string) {
       },
     ];
 
-    await supabase.from('workouts').upsert(workoutsV9);
+    try {
+      await supabase.from('workouts').upsert(workoutsV9);
+    } catch (e) {
+      console.warn('Workouts upsert warning:', e);
+    }
     return;
   }
 
@@ -182,61 +190,141 @@ export async function seedTemplatesIfMissing(userId?: string) {
 }
 
 export async function fetchWorkoutsData(userId?: string) {
-  let query = supabase
-    .from('workouts')
-    .select('*')
-    .order('order', { ascending: true });
+  // Hardcoded fallback definitions for v9_spartan
+  const v9FallbackWorkouts: Workout[] = [
+    {
+      id: 'v9_w1',
+      name: 'Day 1 - Upper Body A',
+      order: 1,
+      exerciseIds: ['d1_e1_v9', 'd1_e2_v9', 'd1_e3_v9', 'd1_e4_v9', 'd1_e5_v9', 'd1_e6_v9', 'd1_e7_v9'],
+    },
+    {
+      id: 'v9_w2',
+      name: 'Day 2 - Lower Body A + Abs',
+      order: 2,
+      exerciseIds: ['d2_e1_v9', 'd2_e2_v9', 'd2_e3_v9', 'd2_e4_v9', 'd2_e5_v9', 'd2_e6_v9', 'd2_e7_v9'],
+    },
+    {
+      id: 'v9_w3',
+      name: 'Day 3 - Upper Body B',
+      order: 3,
+      exerciseIds: ['d3_e1_v9', 'd3_e2_v9', 'd3_e3_v9', 'd3_e4_v9', 'd3_e5_v9', 'd3_e6_v9', 'd3_e7_v9'],
+    },
+    {
+      id: 'v9_w4',
+      name: 'Day 4 - Lower Body B + Abs',
+      order: 4,
+      exerciseIds: ['d4_e1_v9', 'd4_e2_v9', 'd4_e3_v9', 'd4_e4_v9', 'd4_e5_v9', 'd4_e6_v9'],
+    },
+  ];
 
-  if (userId) {
-    query = query.or(`user_id.eq.${userId},user_id.is.null`);
-  }
+  const v9FallbackExercises: Exercise[] = [
+    { id: 'd1_e1_v9', name: 'Bench Press (barbell or dumbbell)', type: 'strength', targetSets: 4, targetRepMin: 6, targetRepMax: 10 },
+    { id: 'd1_e2_v9', name: 'Pull-ups / Lat Pulldown', type: 'strength', targetSets: 4, targetRepMin: 6, targetRepMax: 10 },
+    { id: 'd1_e3_v9', name: 'Overhead Press', type: 'strength', targetSets: 3, targetRepMin: 6, targetRepMax: 10 },
+    { id: 'd1_e4_v9', name: 'Seated Cable Row / Dumbbell Row', type: 'strength', targetSets: 3, targetRepMin: 8, target_rep_max: 12 } as any,
+    { id: 'd1_e5_v9', name: 'Lateral Raises', type: 'strength', targetSets: 4, targetRepMin: 12, targetRepMax: 20 },
+    { id: 'd1_e6_v9', name: 'Push-up Ladder', type: 'strength', targetSets: 4, targetRepMin: 12, targetRepMax: 15 },
+    { id: 'd1_e7_v9', name: 'Triceps Pushdown or Dips', type: 'strength', targetSets: 3, targetRepMin: 8, targetRepMax: 12 },
+    { id: 'd2_e1_v9', name: 'Back Squat or Goblet Squat', type: 'strength', targetSets: 4, targetRepMin: 6, targetRepMax: 10 },
+    { id: 'd2_e2_v9', name: 'Romanian Deadlift', type: 'strength', targetSets: 3, targetRepMin: 8, targetRepMax: 10 },
+    { id: 'd2_e3_v9', name: 'Bulgarian Split Squat', type: 'strength', targetSets: 3, targetRepMin: 8, targetRepMax: 12 },
+    { id: 'd2_e4_v9', name: 'Leg Curl (machine or Nordic)', type: 'strength', targetSets: 3, targetRepMin: 10, targetRepMax: 15 },
+    { id: 'd2_e5_v9', name: 'Hanging Knee Raises', type: 'strength', targetSets: 3, targetRepMin: 10, targetRepMax: 15 },
+    { id: 'd2_e6_v9', name: 'Plank', type: 'timed', targetSets: 3, targetRepMin: 45, targetRepMax: 60 },
+    { id: 'd2_e7_v9', name: 'Conditioning Block (10 min)', type: 'timed', targetSets: 10, targetRepMin: 30, targetRepMax: 30 },
+    { id: 'd3_e1_v9', name: 'Incline Dumbbell Press', type: 'strength', targetSets: 4, targetRepMin: 8, targetRepMax: 12 },
+    { id: 'd3_e2_v9', name: 'Pull-ups / Lat Pulldown', type: 'strength', targetSets: 4, targetRepMin: 8, targetRepMax: 12 },
+    { id: 'd3_e3_v9', name: 'Dumbbell Shoulder Press', type: 'strength', targetSets: 3, targetRepMin: 8, targetRepMax: 12 },
+    { id: 'd3_e4_v9', name: 'Chest-Supported Row or Rear-Delt Fly', type: 'strength', targetSets: 3, targetRepMin: 12, targetRepMax: 20 },
+    { id: 'd3_e5_v9', name: 'Lateral Raises', type: 'strength', targetSets: 4, targetRepMin: 12, targetRepMax: 20 },
+    { id: 'd3_e6_v9', name: 'Hammer Curls', type: 'strength', targetSets: 3, targetRepMin: 8, targetRepMax: 12 },
+    { id: 'd3_e7_v9', name: 'Push-up Ladder', type: 'strength', targetSets: 4, targetRepMin: 12, targetRepMax: 15 },
+    { id: 'd4_e1_v9', name: 'Deadlift or Romanian Deadlift', type: 'strength', targetSets: 3, targetRepMin: 5, targetRepMax: 8 },
+    { id: 'd4_e2_v9', name: 'Front Squat or Leg Press', type: 'strength', targetSets: 3, targetRepMin: 8, targetRepMax: 12 },
+    { id: 'd4_e3_v9', name: 'Walking Lunges', type: 'strength', targetSets: 3, targetRepMin: 10, targetRepMax: 10 },
+    { id: 'd4_e4_v9', name: 'Calf Raises', type: 'strength', targetSets: 3, targetRepMin: 10, targetRepMax: 15 },
+    { id: 'd4_e5_v9', name: 'Ab-Wheel Rollout or Hanging Leg Raises', type: 'strength', targetSets: 3, targetRepMin: 6, targetRepMax: 15 },
+    { id: 'd4_e6_v9', name: 'Conditioning Block (10 min)', type: 'timed', targetSets: 10, targetRepMin: 30, targetRepMax: 30 },
+  ].map((e: any) => ({
+    id: e.id,
+    name: e.name,
+    type: e.type,
+    targetSets: e.targetSets,
+    targetRepMin: e.targetRepMin,
+    targetRepMax: e.targetRepMax || 12,
+  }));
 
-  const { data: workoutsRaw, error: wError } = await query;
-  if (wError) {
-    console.warn('fetchWorkoutsData: scoped query returned error, trying fallback select all:', wError);
-  }
+  let workoutsList: Workout[] = [];
+  let exercisesList: Exercise[] = [];
 
-  // Fallback to fetching all workouts if user-scoped returned nothing or errored
-  let rawList = workoutsRaw;
-  if (!rawList || rawList.length === 0) {
-    const { data: allWorkoutsData } = await supabase
+  try {
+    let query = supabase
       .from('workouts')
       .select('*')
       .order('order', { ascending: true });
-    rawList = allWorkoutsData || [];
+
+    if (userId) {
+      query = query.or(`user_id.eq.${userId},user_id.is.null`);
+    }
+
+    const { data: workoutsRaw } = await query;
+    let rawList = workoutsRaw;
+    if (!rawList || rawList.length === 0) {
+      const { data: allWorkoutsData } = await supabase
+        .from('workouts')
+        .select('*')
+        .order('order', { ascending: true });
+      rawList = allWorkoutsData || [];
+    }
+
+    const allWorkouts: Workout[] = (rawList || []).map((w: any) => ({
+      id: String(w.id),
+      name: w.name,
+      order: w.order ?? w.day_number ?? 0,
+      exerciseIds: w.exercise_ids || [],
+    }));
+
+    workoutsList = allWorkouts.filter((w, i, self) =>
+      i === self.findIndex((t) => t.order === w.order)
+    );
+  } catch (e) {
+    console.warn('Error fetching workouts from supabase:', e);
   }
 
-  const allWorkouts: Workout[] = (rawList || []).map((w: any) => ({
-    id: String(w.id),
-    name: w.name,
-    order: w.order ?? w.day_number ?? 0,
-    exerciseIds: w.exercise_ids || [],
-  }));
+  try {
+    let exQuery = supabase.from('exercises').select('*');
+    if (userId) {
+      exQuery = exQuery.or(`user_id.eq.${userId},user_id.is.null`);
+    }
+    let { data: exercisesRaw } = await exQuery;
 
-  const workoutsList = allWorkouts.filter((w, i, self) =>
-    i === self.findIndex((t) => t.order === w.order)
-  );
+    if (!exercisesRaw || exercisesRaw.length === 0) {
+      const { data: allEx } = await supabase.from('exercises').select('*');
+      exercisesRaw = allEx || [];
+    }
 
-  let exQuery = supabase.from('exercises').select('*');
-  if (userId) {
-    exQuery = exQuery.or(`user_id.eq.${userId},user_id.is.null`);
+    exercisesList = (exercisesRaw || []).map((e: any) => ({
+      id: String(e.id),
+      name: e.name,
+      type: e.type || 'strength',
+      targetSets: e.target_sets ?? e.targetSets ?? 3,
+      targetRepMin: e.target_rep_min ?? e.targetRepMin ?? 8,
+      targetRepMax: e.target_rep_max ?? e.targetRepMax ?? 12,
+    }));
+  } catch (e) {
+    console.warn('Error fetching exercises from supabase:', e);
   }
-  let { data: exercisesRaw } = await exQuery;
 
-  // Fallback to all exercises if user-scoped returned nothing
-  if (!exercisesRaw || exercisesRaw.length === 0) {
-    const { data: allEx } = await supabase.from('exercises').select('*');
-    exercisesRaw = allEx || [];
+  // If specific v9 user and database returned empty, use fallback templates directly
+  if (userId === '2b4bd23c-ceff-460d-a73b-2c531686e3b2') {
+    if (workoutsList.length === 0) {
+      workoutsList = v9FallbackWorkouts;
+    }
+    if (exercisesList.length === 0) {
+      exercisesList = v9FallbackExercises;
+    }
   }
-
-  const exercisesList: Exercise[] = (exercisesRaw || []).map((e: any) => ({
-    id: String(e.id),
-    name: e.name,
-    type: e.type || 'strength',
-    targetSets: e.target_sets ?? e.targetSets ?? 3,
-    targetRepMin: e.target_rep_min ?? e.targetRepMin ?? 8,
-    targetRepMax: e.target_rep_max ?? e.targetRepMax ?? 12,
-  }));
 
   const combinedWorkouts = workoutsList.map((w) => {
     const wExercises = (w.exerciseIds || [])
