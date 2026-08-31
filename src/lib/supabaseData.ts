@@ -130,63 +130,8 @@ export async function seedTemplatesIfMissing(userId?: string) {
     return;
   }
 
-  const { data: existingWorkouts } = await supabase.from('workouts').select('id').limit(1);
-  if (existingWorkouts && existingWorkouts.length > 0) {
-    return;
-  }
-
-  // Seed default exercises
-  const exercisesToSeed = [
-    // Day 1
-    { id: 'd1_e1_v7', name: 'Lat Pulldown', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
-    { id: 'd1_e2_v7', name: 'Chest-Supported Row', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
-    { id: 'd1_e3_v7', name: 'Incline Machine Press', type: 'strength', target_sets: 2, target_rep_min: 8, target_rep_max: 12 },
-    { id: 'd1_e4_v7', name: 'Cable Lateral Raise', type: 'strength', target_sets: 4, target_rep_min: 12, target_rep_max: 15 },
-    { id: 'd1_e5_v7', name: 'Rear Delt Pec Deck', type: 'strength', target_sets: 3, target_rep_min: 10, target_rep_max: 15 },
-    { id: 'd1_e6_v7', name: 'Rope Triceps Pushdown', type: 'strength', target_sets: 2, target_rep_min: 10, target_rep_max: 15 },
-    // Day 2
-    { id: 'd2_e1_v7', name: 'Plank', type: 'timed', target_sets: 3, target_rep_min: 30, target_rep_max: 60 },
-    { id: 'd2_e2_v7', name: 'Side Plank (Left)', type: 'timed', target_sets: 2, target_rep_min: 30, target_rep_max: 45 },
-    { id: 'd2_e3_v7', name: 'Side Plank (Right)', type: 'timed', target_sets: 2, target_rep_min: 30, target_rep_max: 45 },
-    { id: 'd2_e4_v7', name: 'Dead Bug', type: 'timed', target_sets: 3, target_rep_min: 30, target_rep_max: 60 },
-    { id: 'd2_e5_v7', name: 'Romanian Deadlift', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
-    { id: 'd2_e6_v7', name: 'Leg Curl', type: 'strength', target_sets: 3, target_rep_min: 10, target_rep_max: 15 },
-    { id: 'd2_e7_v7', name: 'Hip Thrust / Glute Bridge', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
-    { id: 'd2_e8_v7', name: 'Calf Raise', type: 'strength', target_sets: 3, target_rep_min: 12, target_rep_max: 20 },
-    // Day 3
-    { id: 'd3_e1_v7', name: 'Bench Press', type: 'strength', target_sets: 3, target_rep_min: 5, target_rep_max: 8 },
-    { id: 'd3_e2_v7', name: 'Incline Dumbbell Press', type: 'strength', target_sets: 2, target_rep_min: 8, target_rep_max: 12 },
-    { id: 'd3_e3_v7', name: 'Seated Shoulder Press', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
-    { id: 'd3_e4_v7', name: 'Cable Lateral Raise', type: 'strength', target_sets: 3, target_rep_min: 12, target_rep_max: 15 },
-    { id: 'd3_e5_v7', name: 'Seated Cable Row', type: 'strength', target_sets: 2, target_rep_min: 8, target_rep_max: 12 },
-    { id: 'd3_e6_v7', name: 'Cable Curl', type: 'strength', target_sets: 2, target_rep_min: 10, target_rep_max: 15 },
-    { id: 'd3_e7_v7', name: 'Rope Triceps Pushdown', type: 'strength', target_sets: 2, target_rep_min: 10, target_rep_max: 15 },
-  ];
-
-  await supabase.from('exercises').upsert(exercisesToSeed);
-
-  const workoutsToSeed = [
-    {
-      id: 'v7_w1',
-      name: 'Upper (V-Taper Width)',
-      order: 1,
-      exercise_ids: ['d1_e1_v7', 'd1_e2_v7', 'd1_e3_v7', 'd1_e4_v7', 'd1_e5_v7', 'd1_e6_v7'],
-    },
-    {
-      id: 'v7_w2',
-      name: 'Core + Light Lower (Tendon Safe)',
-      order: 2,
-      exercise_ids: ['d2_e1_v7', 'd2_e2_v7', 'd2_e3_v7', 'd2_e4_v7', 'd2_e5_v7', 'd2_e6_v7', 'd2_e7_v7', 'd2_e8_v7'],
-    },
-    {
-      id: 'v7_w3',
-      name: 'Upper (Chest + Bench)',
-      order: 3,
-      exercise_ids: ['d3_e1_v7', 'd3_e2_v7', 'd3_e3_v7', 'd3_e4_v7', 'd3_e5_v7', 'd3_e6_v7', 'd3_e7_v7'],
-    },
-  ];
-
-  await supabase.from('workouts').upsert(workoutsToSeed);
+  // For other/new users: do not automatically seed default workouts or exercises (keep empty)
+  return;
 }
 
 export async function fetchWorkoutsData(userId?: string) {
@@ -257,76 +202,23 @@ export async function fetchWorkoutsData(userId?: string) {
     targetRepMax: e.targetRepMax || 12,
   }));
 
-  // Standard 3-day default workouts for other users
-  const standardFallbackWorkouts: Workout[] = [
-    {
-      id: 'v7_w1',
-      name: 'Upper (V-Taper Width)',
-      order: 1,
-      exerciseIds: ['d1_e1_v7', 'd1_e2_v7', 'd1_e3_v7', 'd1_e4_v7', 'd1_e5_v7', 'd1_e6_v7'],
-    },
-    {
-      id: 'v7_w2',
-      name: 'Core + Light Lower (Tendon Safe)',
-      order: 2,
-      exerciseIds: ['d2_e1_v7', 'd2_e2_v7', 'd2_e3_v7', 'd2_e4_v7', 'd2_e5_v7', 'd2_e6_v7', 'd2_e7_v7', 'd2_e8_v7'],
-    },
-    {
-      id: 'v7_w3',
-      name: 'Upper (Chest + Bench)',
-      order: 3,
-      exerciseIds: ['d3_e1_v7', 'd3_e2_v7', 'd3_e3_v7', 'd3_e4_v7', 'd3_e5_v7', 'd3_e6_v7', 'd3_e7_v7'],
-    },
-  ];
-
-  const standardFallbackExercises: Exercise[] = [
-    { id: 'd1_e1_v7', name: 'Lat Pulldown', type: 'strength', targetSets: 3, targetRepMin: 8, targetRepMax: 12 },
-    { id: 'd1_e2_v7', name: 'Chest-Supported Row', type: 'strength', targetSets: 3, targetRepMin: 8, targetRepMax: 12 },
-    { id: 'd1_e3_v7', name: 'Incline Machine Press', type: 'strength', targetSets: 2, targetRepMin: 8, targetRepMax: 12 },
-    { id: 'd1_e4_v7', name: 'Cable Lateral Raise', type: 'strength', targetSets: 4, targetRepMin: 12, targetRepMax: 15 },
-    { id: 'd1_e5_v7', name: 'Rear Delt Pec Deck', type: 'strength', targetSets: 3, targetRepMin: 10, targetRepMax: 15 },
-    { id: 'd1_e6_v7', name: 'Rope Triceps Pushdown', type: 'strength', targetSets: 2, targetRepMin: 10, targetRepMax: 15 },
-    { id: 'd2_e1_v7', name: 'Plank', type: 'timed', targetSets: 3, targetRepMin: 30, targetRepMax: 60 },
-    { id: 'd2_e2_v7', name: 'Side Plank (Left)', type: 'timed', targetSets: 2, targetRepMin: 30, targetRepMax: 45 },
-    { id: 'd2_e3_v7', name: 'Side Plank (Right)', type: 'timed', targetSets: 2, targetRepMin: 30, targetRepMax: 45 },
-    { id: 'd2_e4_v7', name: 'Dead Bug', type: 'timed', targetSets: 3, targetRepMin: 30, targetRepMax: 60 },
-    { id: 'd2_e5_v7', name: 'Romanian Deadlift', type: 'strength', targetSets: 3, targetRepMin: 8, targetRepMax: 12 },
-    { id: 'd2_e6_v7', name: 'Leg Curl', type: 'strength', targetSets: 3, targetRepMin: 10, targetRepMax: 15 },
-    { id: 'd2_e7_v7', name: 'Hip Thrust / Glute Bridge', type: 'strength', targetSets: 3, targetRepMin: 8, targetRepMax: 12 },
-    { id: 'd2_e8_v7', name: 'Calf Raise', type: 'strength', targetSets: 3, targetRepMin: 12, targetRepMax: 20 },
-    { id: 'd3_e1_v7', name: 'Bench Press', type: 'strength', targetSets: 3, targetRepMin: 5, targetRepMax: 8 },
-    { id: 'd3_e2_v7', name: 'Incline Dumbbell Press', type: 'strength', targetSets: 2, targetRepMin: 8, targetRepMax: 12 },
-    { id: 'd3_e3_v7', name: 'Seated Shoulder Press', type: 'strength', targetSets: 3, targetRepMin: 8, targetRepMax: 12 },
-    { id: 'd3_e4_v7', name: 'Cable Lateral Raise', type: 'strength', targetSets: 3, targetRepMin: 12, targetRepMax: 15 },
-    { id: 'd3_e5_v7', name: 'Seated Cable Row', type: 'strength', targetSets: 2, targetRepMin: 8, targetRepMax: 12 },
-    { id: 'd3_e6_v7', name: 'Cable Curl', type: 'strength', targetSets: 2, targetRepMin: 10, targetRepMax: 15 },
-    { id: 'd3_e7_v7', name: 'Rope Triceps Pushdown', type: 'strength', targetSets: 2, targetRepMin: 10, targetRepMax: 15 },
-  ];
-
   let workoutsList: Workout[] = [];
   let exercisesList: Exercise[] = [];
+
+  // For any non-v9 user / new user: keep workouts and exercises empty/null
+  if (!isV9TargetUser) {
+    return { combinedWorkouts: [], workoutsList: [], exercisesList: [] };
+  }
 
   try {
     let query = supabase
       .from('workouts')
       .select('*')
-      .order('order', { ascending: true });
-
-    if (isV9TargetUser) {
-      query = query.eq('user_id', userId);
-    } else if (userId) {
-      query = query.or(`user_id.eq.${userId},user_id.is.null`);
-    } else {
-      query = query.is('user_id', null);
-    }
+      .order('order', { ascending: true })
+      .eq('user_id', userId);
 
     const { data: workoutsRaw } = await query;
     let rawList = workoutsRaw;
-
-    // Filter out v9 routines for non-v9 users
-    if (!isV9TargetUser && rawList) {
-      rawList = rawList.filter((w: any) => w.user_id !== '2b4bd23c-ceff-460d-a73b-2c531686e3b2' && !String(w.id).startsWith('v9_'));
-    }
 
     const allWorkouts: Workout[] = (rawList || []).map((w: any) => ({
       id: String(w.id),
@@ -343,20 +235,8 @@ export async function fetchWorkoutsData(userId?: string) {
   }
 
   try {
-    let exQuery = supabase.from('exercises').select('*');
-    if (isV9TargetUser) {
-      exQuery = exQuery.eq('user_id', userId);
-    } else if (userId) {
-      exQuery = exQuery.or(`user_id.eq.${userId},user_id.is.null`);
-    } else {
-      exQuery = exQuery.is('user_id', null);
-    }
+    let exQuery = supabase.from('exercises').select('*').eq('user_id', userId);
     let { data: exercisesRaw } = await exQuery;
-
-    // Filter out v9 exercises for non-v9 users
-    if (!isV9TargetUser && exercisesRaw) {
-      exercisesRaw = exercisesRaw.filter((e: any) => e.user_id !== '2b4bd23c-ceff-460d-a73b-2c531686e3b2' && !String(e.id).endsWith('_v9'));
-    }
 
     exercisesList = (exercisesRaw || []).map((e: any) => ({
       id: String(e.id),
@@ -370,21 +250,12 @@ export async function fetchWorkoutsData(userId?: string) {
     console.warn('Error fetching exercises from supabase:', e);
   }
 
-  // Assign appropriate fallbacks if DB returns empty
-  if (isV9TargetUser) {
-    if (workoutsList.length === 0) {
-      workoutsList = v9FallbackWorkouts;
-    }
-    if (exercisesList.length === 0) {
-      exercisesList = v9FallbackExercises;
-    }
-  } else {
-    if (workoutsList.length === 0) {
-      workoutsList = standardFallbackWorkouts;
-    }
-    if (exercisesList.length === 0) {
-      exercisesList = standardFallbackExercises;
-    }
+  // Fallback ONLY for v9 user if DB returns empty
+  if (workoutsList.length === 0) {
+    workoutsList = v9FallbackWorkouts;
+  }
+  if (exercisesList.length === 0) {
+    exercisesList = v9FallbackExercises;
   }
 
   const combinedWorkouts = workoutsList.map((w) => {

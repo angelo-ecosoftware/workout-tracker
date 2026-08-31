@@ -431,6 +431,19 @@ export const WorkoutDayTracker: React.FC = () => {
     );
   }
 
+  if (workouts.length === 0) {
+    return (
+      <div className="bg-[#111] border border-[#222] rounded-[24px] p-8 text-center shadow-xl space-y-3">
+        <h3 className="font-display font-black italic text-lg text-white uppercase tracking-tight">
+          No Routines Configured
+        </h3>
+        <p className="text-gray-400 text-xs font-sans max-w-sm mx-auto">
+          You currently have no routines or exercises assigned to your account.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Routine split selector */}
