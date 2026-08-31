@@ -8,13 +8,27 @@ export class EngineError extends Error {
 }
 
 export const SessionEngine = {
-  calculateNextWorkoutOrder(user: UserProfile): number {
-    if (typeof user.lastCompletedWorkoutOrder !== 'number' || typeof user.maxWorkoutOrder !== 'number') {
+  calculateNextWorkoutOrder(user: UserProfile, availableWorkouts?: Workout[]): number {
+    if (typeof user.lastCompletedWorkoutOrder !== 'number') {
       throw new EngineError('WORKOUT_ORDER_CORRUPTION', 'Missing or invalid workout order sequence');
     }
     
+    // Relational/Dynamic calculation based on available user workouts
+    if (availableWorkouts && availableWorkouts.length > 0) {
+      const sortedOrders = availableWorkouts.map(w => w.order).sort((a, b) => a - b);
+      const currentIndex = sortedOrders.indexOf(user.lastCompletedWorkoutOrder);
+      
+      // If last completed order is not found or it was the last workout in the cycle -> loop back to the first
+      if (currentIndex === -1 || currentIndex === sortedOrders.length - 1) {
+        return sortedOrders[0];
+      }
+      return sortedOrders[currentIndex + 1];
+    }
+
+    // Fallback if workouts are not passed
+    const maxOrder = user.maxWorkoutOrder || 3;
     let nextOrder = user.lastCompletedWorkoutOrder + 1;
-    if (nextOrder > user.maxWorkoutOrder) {
+    if (nextOrder > maxOrder) {
       nextOrder = 1;
     }
     

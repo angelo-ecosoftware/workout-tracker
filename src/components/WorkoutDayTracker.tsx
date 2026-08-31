@@ -172,7 +172,7 @@ export const WorkoutDayTracker: React.FC = () => {
       setWorkouts(wData.combinedWorkouts);
       setUserProfile(progressState);
 
-      const computedNextDay = SessionEngine.calculateNextWorkoutOrder(progressState);
+      const computedNextDay = SessionEngine.calculateNextWorkoutOrder(progressState, wData.combinedWorkouts);
       setSuggestedDay(computedNextDay);
       
       if (progressState.lastCompletedWorkoutOrder) {
