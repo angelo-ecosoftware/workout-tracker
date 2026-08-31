@@ -2,7 +2,12 @@
 -- INSERT PROFILE FOR USER & ENSURE RLS POLICIES
 -- ==============================================================================
 
--- 1. Ensure onboarding columns exist on public.users
+-- 1. Ensure id column has a default generator or allow text/serial
+DO $$ BEGIN
+  ALTER TABLE public.users ALTER COLUMN id DROP NOT NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
 ALTER TABLE public.users 
   ADD COLUMN IF NOT EXISTS user_id TEXT,
   ADD COLUMN IF NOT EXISTS name TEXT,
@@ -11,6 +16,12 @@ ALTER TABLE public.users
   ADD COLUMN IF NOT EXISTS last_set_summary_per_exercise JSONB DEFAULT '{}'::jsonb,
   ADD COLUMN IF NOT EXISTS onboarding_completed BOOLEAN DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS training_days_per_week INTEGER DEFAULT NULL;
+
+-- Make user_id unique if not already
+DO $$ BEGIN
+  ALTER TABLE public.users ADD CONSTRAINT users_user_id_unique UNIQUE (user_id);
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 -- 2. Insert/Upsert profile for user 2b4bd23c-ceff-460d-a73b-2c531686e3b2
 INSERT INTO public.users (
@@ -46,7 +57,7 @@ ON CONFLICT (user_id) DO UPDATE SET
   training_days_per_week = 4,
   last_completed_workout_order = 1;
 
--- 3. Configure permissive/authenticated RLS on public.users
+-- 3. Configure permissive RLS on public.users
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Users can view profile" ON public.users;
