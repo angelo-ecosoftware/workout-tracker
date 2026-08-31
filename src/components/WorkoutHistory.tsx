@@ -131,6 +131,21 @@ export const WorkoutHistory: React.FC = () => {
               type: ex ? ex.type : 'strength'
             };
           });
+
+          // Sort sets by exercise appearance (in workout template or first logged order), then by setNumber
+          const exerciseOrderMap = new Map<string, number>();
+          if (workout?.exerciseIds) {
+            workout.exerciseIds.forEach((id, idx) => exerciseOrderMap.set(id, idx));
+          }
+
+          populatedSets.sort((a, b) => {
+            const orderA = exerciseOrderMap.has(a.exerciseId) ? exerciseOrderMap.get(a.exerciseId)! : 999;
+            const orderB = exerciseOrderMap.has(b.exerciseId) ? exerciseOrderMap.get(b.exerciseId)! : 999;
+            if (orderA !== orderB) {
+              return orderA - orderB;
+            }
+            return a.setNumber - b.setNumber;
+          });
           
           return {
             ...session,
@@ -291,17 +306,31 @@ export const WorkoutHistory: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#222]">
-                  {session.sets.map((set, i) => (
-                    <tr key={i} className="hover:bg-[#1a1a1a] transition-colors">
-                      <td className="py-3 pr-4 text-white font-medium">{set.exerciseName}</td>
-                      <td className="py-3 text-center text-gray-400 font-mono">{set.setNumber}</td>
-                      <td className="py-3 text-center text-white font-mono font-bold">
-                        {set.type === 'strength' 
-                          ? `${set.weight} kg × ${set.reps}`
-                          : `${set.durationSeconds}s`}
-                      </td>
-                    </tr>
-                  ))}
+                  {session.sets.map((set, i) => {
+                    const prevSet = i > 0 ? session.sets[i - 1] : null;
+                    const isNewExerciseGroup = prevSet && prevSet.exerciseId !== set.exerciseId;
+
+                    return (
+                      <tr 
+                        key={i} 
+                        className={`hover:bg-[#1a1a1a] transition-colors ${isNewExerciseGroup ? 'border-t-2 border-[#333]' : ''}`}
+                      >
+                        <td className="py-3 pr-4 text-white font-medium">
+                          {isNewExerciseGroup || i === 0 ? (
+                            <span className="text-white font-bold">{set.exerciseName}</span>
+                          ) : (
+                            <span className="text-gray-500 text-xs pl-2">↳ {set.exerciseName}</span>
+                          )}
+                        </td>
+                        <td className="py-3 text-center text-gray-400 font-mono">{set.setNumber}</td>
+                        <td className="py-3 text-center text-white font-mono font-bold">
+                          {set.type === 'strength' 
+                            ? `${set.weight} kg × ${set.reps}`
+                            : `${set.durationSeconds}s`}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

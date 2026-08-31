@@ -315,7 +315,7 @@ export async function fetchWorkoutHistory(userId: string) {
     .from('sessions')
     .select('*')
     .eq('user_id', userId)
-    .order('completed_at', { ascending: true })
+    .order('completed_at', { ascending: false })
     .limit(50);
 
   const sessions: Session[] = (data || []).map((d: any) => ({
