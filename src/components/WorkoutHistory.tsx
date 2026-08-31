@@ -109,8 +109,8 @@ export const WorkoutHistory: React.FC = () => {
         setErrorMsg(null);
         const historySessions = await fetchWorkoutHistory(user.uid);
         
-        // Fetch workout details and sets for each session in parallel
-        const { workoutsList, exercisesList } = await fetchWorkoutsData();
+        // Fetch workout details and sets for each session in parallel, passing user.uid for custom routines
+        const { workoutsList, exercisesList } = await fetchWorkoutsData(user.uid);
         const workoutMap = new Map(workoutsList.map(w => [w.id, w]));
         const exerciseMap = new Map(exercisesList.map(e => [e.id, e]));
 
