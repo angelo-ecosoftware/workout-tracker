@@ -306,17 +306,39 @@ export async function getUserProgressState(userId: string) {
 }
 
 export async function saveUserOnboarding(userId: string, daysPerWeek: number) {
+  const { data: authUser } = await supabase.auth.getUser();
+  const email = authUser?.user?.email || '';
+
+  // Upsert ensures that even if user row doesn't exist yet, it gets created with the onboarding attributes
   const { error } = await supabase
     .from('users')
-    .update({
+    .upsert({
+      user_id: userId,
+      email,
+      name: email.split('@')[0] || 'User',
       onboarding_completed: true,
       training_days_per_week: daysPerWeek,
-    })
-    .or(`user_id.eq.${userId},id.eq.${userId}`);
+      last_completed_workout_order: 0,
+      max_workout_order: userId === '2b4bd23c-ceff-460d-a73b-2c531686e3b2' ? 4 : 3,
+      last_set_summary_per_exercise: {},
+      created_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
 
   if (error) {
     console.error('Error saving onboarding data:', error);
-    throw error;
+    // Fallback attempt by id column if user_id conflict is structured differently
+    const { error: fallbackError } = await supabase
+      .from('users')
+      .update({
+        onboarding_completed: true,
+        training_days_per_week: daysPerWeek,
+      })
+      .or(`user_id.eq.${userId},id.eq.${userId}`);
+
+    if (fallbackError) {
+      console.error('Fallback update error:', fallbackError);
+      throw fallbackError;
+    }
   }
 }
 
