@@ -137,6 +137,7 @@ export const WorkoutDayTracker: React.FC = () => {
     const today = new Date();
     return today.toISOString().split('T')[0];
   });
+  const [lastAutoSavedTime, setLastAutoSavedTime] = useState<string | null>(null);
 
   // Active workout entry inputs state
   // Key format: `${exerciseId}-${setNumber}` (setNumber starts from 1)
@@ -146,6 +147,44 @@ export const WorkoutDayTracker: React.FC = () => {
     durationSeconds?: string;
     difficulty?: string;
   }>>({});
+
+  // LocalStorage keys for draft preservation
+  const getDraftKey = (workoutId?: string) => {
+    if (!user) return null;
+    return `workout_draft_${user.uid}_${workoutId || activeWorkout?.id || 'default'}`;
+  };
+
+  // Helper to save current draft checkpoint to localStorage
+  const saveDraftCheckpoint = (newInputs: Record<string, any>, workoutId?: string, curDate?: string, curSleep?: number, curEnergy?: number) => {
+    const key = getDraftKey(workoutId);
+    if (!key) return;
+    try {
+      const payload = {
+        workoutId: workoutId || activeWorkout?.id,
+        inputs: newInputs,
+        sessionDate: curDate ?? sessionDate,
+        sleepHours: curSleep ?? sleepHours,
+        energyScore: curEnergy ?? energyScore,
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem(key, JSON.stringify(payload));
+      setLastAutoSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    } catch (e) {
+      console.warn('Could not save draft checkpoint to localStorage', e);
+    }
+  };
+
+  // Helper to clear draft once workout is successfully completed & logged
+  const clearDraftCheckpoint = (workoutId?: string) => {
+    const key = getDraftKey(workoutId);
+    if (!key) return;
+    try {
+      localStorage.removeItem(key);
+      setLastAutoSavedTime(null);
+    } catch (e) {
+      console.warn('Could not remove draft checkpoint', e);
+    }
+  };
 
   // 1. Initial configuration load
   const loadWorkflowState = async () => {
@@ -209,6 +248,30 @@ export const WorkoutDayTracker: React.FC = () => {
     }
 
     const prepopulateInputs = () => {
+      // Check if user has an existing saved draft checkpoint in device localStorage
+      const draftKey = getDraftKey(activeWorkout.id);
+      if (draftKey) {
+        try {
+          const rawDraft = localStorage.getItem(draftKey);
+          if (rawDraft) {
+            const parsedDraft = JSON.parse(rawDraft);
+            if (parsedDraft && parsedDraft.inputs && Object.keys(parsedDraft.inputs).length > 0) {
+              setInputs(parsedDraft.inputs);
+              if (parsedDraft.sessionDate) setSessionDate(parsedDraft.sessionDate);
+              if (parsedDraft.sleepHours != null) setSleepHours(parsedDraft.sleepHours);
+              if (parsedDraft.energyScore != null) setEnergyScore(parsedDraft.energyScore);
+              if (parsedDraft.savedAt) {
+                const dateObj = new Date(parsedDraft.savedAt);
+                setLastAutoSavedTime(dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+              }
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to parse draft from localStorage', e);
+        }
+      }
+
       const newInputs: Record<string, { weight: string; reps: string; durationSeconds: string; difficulty: string }> = {};
 
       activeWorkout.exercises.forEach((ex) => {
@@ -264,26 +327,36 @@ export const WorkoutDayTracker: React.FC = () => {
       // Format weights to 1 decimal point if float, clean reps
       const formatted = field === 'weight' ? (Math.round(nextVal * 10) / 10).toString() : Math.round(nextVal).toString();
 
-      return {
+      const updated = {
         ...prev,
         [key]: {
           ...current,
           [field]: formatted
         }
       };
+
+      // Auto-save checkpoint immediately on any click / step modification
+      saveDraftCheckpoint(updated);
+
+      return updated;
     });
   };
 
   const handleTextChange = (key: string, field: 'weight' | 'reps' | 'durationSeconds' | 'difficulty', value: string) => {
     setInputs(prev => {
       const current = prev[key] || { weight: '20', reps: '10', durationSeconds: '30', difficulty: '7' };
-      return {
+      const updated = {
         ...prev,
         [key]: {
           ...current,
           [field]: value
         }
       };
+
+      // Auto-save checkpoint on every keystroke
+      saveDraftCheckpoint(updated);
+
+      return updated;
     });
   };
 
@@ -409,6 +482,9 @@ export const WorkoutDayTracker: React.FC = () => {
 
       await logSessionCompletion(user!.uid, activeWorkout.id, finalSetsPayload, activeWorkout.exercises, completedAtDate);
 
+      // Clear local auto-save draft checkpoint upon successful log
+      clearDraftCheckpoint(activeWorkout.id);
+
       setSuccessMsg(`Workout successfully saved! Next workout Day updated.`);
       
       // Fast refresh and scroll up
@@ -516,9 +592,17 @@ export const WorkoutDayTracker: React.FC = () => {
           <div className="bg-[#111111] border border-[#222] rounded-[24px] p-5 shadow-xl space-y-5">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#222] pb-4 gap-3">
               <div className="min-w-0">
-                <h3 className="font-display font-black italic text-lg text-white uppercase tracking-tight">
-                  {activeWorkout.name}
-                </h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-display font-black italic text-lg text-white uppercase tracking-tight">
+                    {activeWorkout.name}
+                  </h3>
+                  {lastAutoSavedTime && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold bg-[#C0FF00]/10 text-[#C0FF00] border border-[#C0FF00]/20">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#C0FF00] animate-pulse"></span>
+                      Auto-saved ({lastAutoSavedTime})
+                    </span>
+                  )}
+                </div>
                 <div className="h-[2px] bg-gradient-to-r from-[#C0FF00] to-transparent w-36 mt-1 opacity-50"></div>
               </div>
 
@@ -526,7 +610,10 @@ export const WorkoutDayTracker: React.FC = () => {
                 <input
                   type="date"
                   value={sessionDate}
-                  onChange={(e) => setSessionDate(e.target.value)}
+                  onChange={(e) => {
+                    setSessionDate(e.target.value);
+                    saveDraftCheckpoint(inputs, activeWorkout.id, e.target.value, sleepHours, energyScore);
+                  }}
                   className="w-full sm:w-auto pl-8 pr-3 py-1.5 text-xs border border-[#333] rounded-xl bg-[#1a1a1a] text-white font-mono focus:outline-none focus:border-[#C0FF00]"
                 />
                 <Calendar className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-2.5" />
@@ -548,7 +635,11 @@ export const WorkoutDayTracker: React.FC = () => {
                   max="12"
                   step="0.5"
                   value={sleepHours}
-                  onChange={(e) => setSleepHours(parseFloat(e.target.value))}
+                  onChange={(e) => {
+                    const val = parseFloat(e.target.value);
+                    setSleepHours(val);
+                    saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, val, energyScore);
+                  }}
                   className="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#C0FF00]"
                 />
               </div>
@@ -566,7 +657,11 @@ export const WorkoutDayTracker: React.FC = () => {
                   max="10"
                   step="1"
                   value={energyScore}
-                  onChange={(e) => setEnergyScore(parseInt(e.target.value, 10))}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    setEnergyScore(val);
+                    saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, sleepHours, val);
+                  }}
                   className="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#C0FF00]"
                 />
               </div>
