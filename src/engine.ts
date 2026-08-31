@@ -61,9 +61,7 @@ export const SetLogger = {
       setNumber: payload.setNumber,
       weight: payload.weight ?? null,
       reps: payload.reps ?? null,
-      rir: payload.rir ?? null,
       durationSeconds: payload.durationSeconds ?? null,
-      painScore: payload.painScore ?? null,
       loggedAt: new Date()
     };
   }

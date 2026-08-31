@@ -288,7 +288,6 @@ export const WorkoutHistory: React.FC = () => {
                     <th className="pb-3 font-semibold uppercase tracking-wider text-xs">Exercise</th>
                     <th className="pb-3 text-center font-semibold uppercase tracking-wider text-xs">Set</th>
                     <th className="pb-3 text-center font-semibold uppercase tracking-wider text-xs">Volume</th>
-                    <th className="pb-3 text-center font-semibold uppercase tracking-wider text-xs">RIR / Diff</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#222]">
@@ -300,9 +299,6 @@ export const WorkoutHistory: React.FC = () => {
                         {set.type === 'strength' 
                           ? `${set.weight} kg × ${set.reps}`
                           : `${set.durationSeconds}s`}
-                      </td>
-                      <td className="py-3 text-center text-gray-400 font-mono">
-                        {set.type === 'strength' ? `RIR: ${set.rir ?? '-'}` : `Diff: ${set.painScore ?? '-'}`}
                       </td>
                     </tr>
                   ))}
@@ -379,9 +375,6 @@ export const WorkoutHistory: React.FC = () => {
                              <span className="text-gray-500 font-sans font-medium text-[11px] uppercase w-12">Set {set.setNumber}</span>
                              <span className="text-white font-bold flex-1 text-right">
                                {set.type === 'strength' ? `${set.weight}kg × ${set.reps}` : `${set.durationSeconds}s`}
-                             </span>
-                             <span className="text-gray-500 min-w-[50px] text-right ml-3">
-                               {set.type === 'strength' ? `RIR: ${set.rir ?? '-'}` : `Df: ${set.painScore ?? '-'}`}
                              </span>
                            </div>
                         ))}

@@ -142,10 +142,8 @@ export const WorkoutDayTracker: React.FC = () => {
   const [inputs, setInputs] = useState<Record<string, {
     weight: string;
     reps: string;
-    rir: string;
     durationSeconds?: string;
     difficulty?: string;
-    painScore: string;
   }>>({});
 
   // 1. Initial configuration load
@@ -210,7 +208,7 @@ export const WorkoutDayTracker: React.FC = () => {
     }
 
     const prepopulateInputs = () => {
-      const newInputs: Record<string, { weight: string; reps: string; rir: string; durationSeconds: string; difficulty: string; painScore: string }> = {};
+      const newInputs: Record<string, { weight: string; reps: string; durationSeconds: string; difficulty: string }> = {};
 
       activeWorkout.exercises.forEach((ex) => {
         const cachedEx = ProgressionEngine.evaluateProgression(ex.id, userProfile.lastSetSummaryPerExercise);
@@ -225,10 +223,8 @@ export const WorkoutDayTracker: React.FC = () => {
             newInputs[`${ex.id}-${i}`] = {
               weight: '',
               reps: '',
-              rir: '',
               durationSeconds: dsVal,
               difficulty: '7',
-              painScore: '0',
             };
           } else {
             const wtVal = cachedEx && cachedEx.lastWeight != null
@@ -241,10 +237,8 @@ export const WorkoutDayTracker: React.FC = () => {
             newInputs[`${ex.id}-${i}`] = {
               weight: wtVal,
               reps: rpVal,
-              rir: '2',
               durationSeconds: '',
               difficulty: '',
-              painScore: '0',
             };
           }
         }
@@ -259,7 +253,7 @@ export const WorkoutDayTracker: React.FC = () => {
   // Utility to handle incrementing/decrementing numeric inputs easily
   const updateInputValue = (key: string, field: 'weight' | 'reps' | 'durationSeconds' | 'difficulty', step: number) => {
     setInputs(prev => {
-      const current = prev[key] || { weight: '20', reps: '10', rir: '2', durationSeconds: '30', difficulty: '7', painScore: '0' };
+      const current = prev[key] || { weight: '20', reps: '10', durationSeconds: '30', difficulty: '7' };
       const baseNum = parseFloat(current[field] || '0');
       if (isNaN(baseNum)) return prev;
 
@@ -279,9 +273,9 @@ export const WorkoutDayTracker: React.FC = () => {
     });
   };
 
-  const handleTextChange = (key: string, field: 'weight' | 'reps' | 'rir' | 'painScore' | 'durationSeconds' | 'difficulty', value: string) => {
+  const handleTextChange = (key: string, field: 'weight' | 'reps' | 'durationSeconds' | 'difficulty', value: string) => {
     setInputs(prev => {
-      const current = prev[key] || { weight: '20', reps: '10', rir: '2', durationSeconds: '30', difficulty: '7', painScore: '0' };
+      const current = prev[key] || { weight: '20', reps: '10', durationSeconds: '30', difficulty: '7' };
       return {
         ...prev,
         [key]: {
@@ -354,10 +348,8 @@ export const WorkoutDayTracker: React.FC = () => {
         setNumber: number;
         weight?: number | null;
         reps?: number | null;
-        rir?: number | null;
         durationSeconds?: number | null;
         difficulty?: number | null;
-        painScore: number;
       }> = [];
 
       for (const ex of activeWorkout.exercises) {
@@ -365,11 +357,10 @@ export const WorkoutDayTracker: React.FC = () => {
           const key = `${ex.id}-${i}`;
           const isTimed = ex.type === 'timed';
           const defaultInput = isTimed
-            ? { weight: '', reps: '', rir: '', durationSeconds: (ex.targetRepMin?.toString() || '30'), difficulty: '7', painScore: '0' }
-            : { weight: '20', reps: '10', rir: '2', durationSeconds: '', difficulty: '', painScore: '0' };
+            ? { weight: '', reps: '', durationSeconds: (ex.targetRepMin?.toString() || '30'), difficulty: '7' }
+            : { weight: '20', reps: '10', durationSeconds: '', difficulty: '' };
 
           const inputValues = inputs[key] || defaultInput;
-          const painNum = parseInt(inputValues.painScore || '0', 10);
 
           if (isTimed) {
             const secNum = parseInt(inputValues.durationSeconds || '', 10);
@@ -384,15 +375,12 @@ export const WorkoutDayTracker: React.FC = () => {
               setNumber: i,
               weight: null,
               reps: null,
-              rir: null,
               durationSeconds: secNum,
               difficulty: isNaN(diffNum) ? null : diffNum,
-              painScore: painNum
             });
           } else {
             const weightNum = parseFloat(inputValues.weight || '');
             const repsNum = parseInt(inputValues.reps || '', 10);
-            const rirNum = parseInt(inputValues.rir || '', 10);
 
             if (isNaN(weightNum) || isNaN(repsNum)) {
               throw new Error(`Invalid weight or reps detected on "${ex.name}" Set #${i}. Please correct.`);
@@ -403,10 +391,8 @@ export const WorkoutDayTracker: React.FC = () => {
               setNumber: i,
               weight: weightNum,
               reps: repsNum,
-              rir: isNaN(rirNum) ? 0 : rirNum,
               durationSeconds: null,
               difficulty: null,
-              painScore: painNum
             });
           }
         }
@@ -663,18 +649,16 @@ export const WorkoutDayTracker: React.FC = () => {
                   <div className="space-y-3">
                     {/* Rows header */}
                     <div className="hidden sm:grid grid-cols-12 gap-3 text-[9px] font-black text-gray-500 uppercase tracking-widest px-2 pb-1.5 font-mono">
-                      <div className="col-span-2">SET</div>
+                      <div className="col-span-3">SET</div>
                       <div className="col-span-5 text-center">{ex.type === 'timed' ? 'DURATION (SECONDS)' : 'WEIGHT (KG)'}</div>
-                      <div className="col-span-3 text-center">{ex.type === 'timed' ? 'DIFFICULTY (1-10)' : 'REPS'}</div>
-                      <div className="col-span-1 text-center">{ex.type === 'timed' ? '' : 'RIR'}</div>
-                      <div className="col-span-1 text-right">PAIN</div>
+                      <div className="col-span-4 text-center">{ex.type === 'timed' ? 'DIFFICULTY (1-10)' : 'REPS'}</div>
                     </div>
 
                     {/* Entry sets lines */}
                     {Array.from({ length: ex.targetSets }).map((_, index) => {
                       const setNum = index + 1;
                       const inputKey = `${ex.id}-${setNum}`;
-                      const values = inputs[inputKey] || { weight: '20', reps: '10', rir: '2', durationSeconds: '30', difficulty: '7', painScore: '0' };
+                      const values = inputs[inputKey] || { weight: '20', reps: '10', durationSeconds: '30', difficulty: '7' };
 
                       return (
                         <div 
@@ -682,7 +666,7 @@ export const WorkoutDayTracker: React.FC = () => {
                           className="flex flex-col sm:grid sm:grid-cols-12 gap-3 items-stretch sm:items-center bg-[#1a1a1a] border border-[#222] p-4 sm:p-2 rounded-xl hover:border-[#333] transition-colors"
                         >
                           {/* Label set number */}
-                          <div className="col-span-2 flex items-center justify-between sm:justify-start gap-1 font-mono text-xs font-bold text-gray-300 border-b border-[#2d2d2d] sm:border-0 pb-1.5 sm:pb-0 mb-1.5 sm:mb-0">
+                          <div className="col-span-3 flex items-center justify-between sm:justify-start gap-1 font-mono text-xs font-bold text-gray-300 border-b border-[#2d2d2d] sm:border-0 pb-1.5 sm:pb-0 mb-1.5 sm:mb-0">
                             <span className="uppercase tracking-wider text-[#C0FF00]">SET {setNum}</span>
                             <span className="sm:hidden font-sans font-semibold text-[10px] text-gray-500">
                               TARGET: {ex.targetRepMin}-{ex.targetRepMax} {ex.type === 'timed' ? 's' : 'reps'}
@@ -733,7 +717,7 @@ export const WorkoutDayTracker: React.FC = () => {
                               </div>
 
                               {/* Difficulty Rating */}
-                              <div className="col-span-3 flex items-center justify-center gap-1.5 mt-2 sm:mt-0">
+                              <div className="col-span-4 flex items-center justify-center gap-1.5 mt-2 sm:mt-0">
                                 <button
                                   type="button"
                                   onClick={() => updateInputValue(inputKey, 'difficulty', -1)}
@@ -756,9 +740,6 @@ export const WorkoutDayTracker: React.FC = () => {
                                   +1
                                 </button>
                               </div>
-
-                              {/* Invisible spacer for RIR column alignment on desktop */}
-                              <div className="col-span-1 hidden sm:block"></div>
                             </>
                           ) : (
                             <>
@@ -803,7 +784,7 @@ export const WorkoutDayTracker: React.FC = () => {
                               </div>
 
                               {/* Reps selector */}
-                              <div className="col-span-3 flex items-center justify-center gap-1.5 mt-2 sm:mt-0">
+                              <div className="col-span-4 flex items-center justify-center gap-1.5 mt-2 sm:mt-0">
                                 <button
                                   type="button"
                                   onClick={() => updateInputValue(inputKey, 'reps', -1)}
@@ -825,39 +806,8 @@ export const WorkoutDayTracker: React.FC = () => {
                                   +1
                                 </button>
                               </div>
-
-                              {/* RIR Selection */}
-                              <div className="col-span-1 flex items-center justify-between sm:justify-center gap-1.5 mt-2 sm:mt-0">
-                                <label className="sm:hidden text-[10px] font-bold text-gray-500 uppercase font-mono">RIR</label>
-                                <select
-                                  value={values.rir}
-                                  onChange={(e) => handleTextChange(inputKey, 'rir', e.target.value)}
-                                  className="px-1 py-1 border border-[#333] bg-[#111] text-white rounded-lg text-xs font-mono focus:outline-none"
-                                >
-                                  <option value="0">0 (Limit)</option>
-                                  <option value="1">1 RIR</option>
-                                  <option value="2">2 RIR</option>
-                                  <option value="3">3 RIR</option>
-                                  <option value="4">4 RIR</option>
-                                  <option value="5">5+ RIR</option>
-                                </select>
-                              </div>
                             </>
                           )}
-
-                          {/* Pain Score Selection */}
-                          <div className="col-span-1 flex items-center justify-between sm:justify-end gap-1.5 mt-2 sm:mt-0">
-                            <label className="sm:hidden text-[10px] font-bold text-gray-500 uppercase font-mono">PAIN</label>
-                            <select
-                              value={values.painScore}
-                              onChange={(e) => handleTextChange(inputKey, 'painScore', e.target.value)}
-                              className="px-1 py-1 border border-[#333] bg-[#111] text-white rounded-lg text-xs font-mono cursor-pointer"
-                            >
-                              {Array.from({ length: 11 }).map((_, p) => (
-                                <option key={p} value={p}>{p}</option>
-                              ))}
-                            </select>
-                          </div>
                         </div>
                       );
                     })}

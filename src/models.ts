@@ -50,8 +50,6 @@ export interface WorkoutSet {
   setNumber: number;
   weight: number | null;
   reps: number | null;
-  rir: number | null;
   durationSeconds: number | null;
-  painScore: number | null;
   loggedAt: Date;
 }

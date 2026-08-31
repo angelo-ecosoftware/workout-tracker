@@ -21,7 +21,11 @@ DO $$ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
--- 2. Insert/Upsert the Session for user 2b4bd23c-ceff-460d-a73b-2c531686e3b2
+-- 2. Clean/Erase previous workout logs ONLY for this user
+DELETE FROM public.sets WHERE user_id = '2b4bd23c-ceff-460d-a73b-2c531686e3b2';
+DELETE FROM public.sessions WHERE user_id = '2b4bd23c-ceff-460d-a73b-2c531686e3b2';
+
+-- 3. Insert/Upsert the Session for user 2b4bd23c-ceff-460d-a73b-2c531686e3b2
 INSERT INTO public.sessions (
   id,
   user_id,
