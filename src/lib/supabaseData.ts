@@ -4,8 +4,6 @@ import { SessionEngine, SetLogger } from '../engine.ts';
 
 // Get or create user profile
 export async function initializeUser(userId: string, email: string) {
-  const isV9User = userId === '2b4bd23c-ceff-460d-a73b-2c531686e3b2';
-
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -18,23 +16,22 @@ export async function initializeUser(userId: string, email: string) {
       email,
       name: email.split('@')[0] || 'Athlete',
       lastCompletedWorkoutOrder: 0,
-      maxWorkoutOrder: isV9User ? 4 : 3,
+      maxWorkoutOrder: 3,
       lastSetSummaryPerExercise: {},
-      onboardingCompleted: isV9User ? true : false,
-      trainingDaysPerWeek: isV9User ? 4 : undefined,
+      onboardingCompleted: false,
+      trainingDaysPerWeek: undefined,
       createdAt: new Date(),
     };
 
     const { error: insertError } = await supabase.from('users').upsert({
-      id: userId,
       user_id: userId,
       email,
       name: newUser.name,
       last_completed_workout_order: 0,
-      max_workout_order: isV9User ? 4 : 3,
+      max_workout_order: 3,
       last_set_summary_per_exercise: {},
-      onboarding_completed: isV9User ? true : false,
-      training_days_per_week: isV9User ? 4 : null,
+      onboarding_completed: false,
+      training_days_per_week: null,
       created_at: newUser.createdAt.toISOString(),
     }, { onConflict: 'user_id' });
 
@@ -45,16 +42,15 @@ export async function initializeUser(userId: string, email: string) {
     return newUser;
   }
 
-  const isV9 = data.user_id === '2b4bd23c-ceff-460d-a73b-2c531686e3b2';
   return {
     userId: data.user_id || userId,
     email: data.email,
     name: data.name || data.email?.split('@')[0] || '',
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
-    maxWorkoutOrder: data.max_workout_order ?? (isV9 ? 4 : 3),
+    maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
-    onboardingCompleted: data.onboarding_completed ?? (isV9 ? true : false),
-    trainingDaysPerWeek: data.training_days_per_week ?? (isV9 ? 4 : undefined),
+    onboardingCompleted: data.onboarding_completed ?? false,
+    trainingDaysPerWeek: data.training_days_per_week ?? undefined,
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
   } as UserProfile;
 }
@@ -296,17 +292,15 @@ export async function getUserProgressState(userId: string) {
     return await initializeUser(userId, authUser?.user?.email || '');
   }
 
-  const isV9 = data.user_id === '2b4bd23c-ceff-460d-a73b-2c531686e3b2';
-
   return {
     userId: data.user_id || userId,
     email: data.email,
     name: data.name || data.email?.split('@')[0] || '',
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
-    maxWorkoutOrder: data.max_workout_order ?? (isV9 ? 4 : 3),
+    maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
-    onboardingCompleted: data.onboarding_completed ?? (isV9 ? true : false),
-    trainingDaysPerWeek: data.training_days_per_week ?? (isV9 ? 4 : undefined),
+    onboardingCompleted: data.onboarding_completed ?? false,
+    trainingDaysPerWeek: data.training_days_per_week ?? undefined,
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
   } as UserProfile;
 }
@@ -318,14 +312,13 @@ export async function saveUserOnboarding(userId: string, daysPerWeek: number) {
   const { error } = await supabase
     .from('users')
     .upsert({
-      id: userId,
       user_id: userId,
       email,
       name: email.split('@')[0] || 'Athlete',
       onboarding_completed: true,
       training_days_per_week: daysPerWeek,
       last_completed_workout_order: 0,
-      max_workout_order: userId === '2b4bd23c-ceff-460d-a73b-2c531686e3b2' ? 4 : 3,
+      max_workout_order: 3,
       last_set_summary_per_exercise: {},
       created_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
