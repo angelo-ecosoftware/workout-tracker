@@ -234,124 +234,20 @@ export const WorkoutHistory: React.FC = () => {
         )}
       </div>
       
-      <div className="space-y-6 hidden sm:block">
-        {sessions.map(session => (
-          <div 
-            key={session.id} 
-            className={`bg-[#111] border ${isDeleteMode && selectedIds.has(session.id) ? 'border-red-500' : 'border-[#222]'} ${isDeleteMode ? 'cursor-pointer hover:border-red-500/50' : ''} rounded-[24px] p-6 shadow-xl relative transition-colors`}
-            onClick={() => {
-              if (isDeleteMode) {
-                toggleSelection(session.id);
-              }
-            }}
+      {expandedSessionId ? (
+        <div>
+          <button 
+            onClick={() => setExpandedSessionId(null)}
+            className="mb-4 text-[#C0FF00] font-sans font-bold text-sm flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            {isDeleteMode && (
-              <div className="absolute top-6 right-6">
-                {selectedIds.has(session.id) ? <CheckCircle2 className="w-5 h-5 text-red-500" /> : <Circle className="w-5 h-5 text-gray-500" />}
-              </div>
-            )}
-            <div className="flex items-center justify-between xl:mr-10 mb-6 pb-4 border-b border-[#222]">
-              <div>
-                <h3 className="font-display font-black text-lg text-[#C0FF00] uppercase tracking-tight">
-                  {session.workoutName}
-                </h3>
-                <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-gray-500 mt-2">
-                  {editingDateSessionId === session.id ? (
-                    <div className="flex items-center gap-2 bg-[#1a1a1a] p-1.5 rounded-lg border border-[#333]">
-                      <input
-                        type="datetime-local"
-                        value={editingDateValue}
-                        onChange={(e) => setEditingDateValue(e.target.value)}
-                        className="bg-transparent text-white focus:outline-none focus:ring-1 focus:ring-[#C0FF00] rounded px-2 py-1 text-xs"
-                      />
-                      <button onClick={(e) => { e.stopPropagation(); saveDateEdit(session); }} className="p-1 text-green-500 hover:bg-green-500/20 rounded">
-                        <Save className="w-4 h-4" />
-                      </button>
-                      <button onClick={(e) => { e.stopPropagation(); cancelDateEdit(); }} className="p-1 text-red-500 hover:bg-red-500/20 rounded">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <span className="flex items-center gap-1.5 bg-[#1a1a1a] px-2.5 py-1 rounded-lg">
-                        <Calendar className="w-3.5 h-3.5" />
-                        {session.completedAt ? session.completedAt.toLocaleDateString() : 'N/A'}
-                      </span>
-                      <span className="flex items-center gap-1.5 bg-[#1a1a1a] px-2.5 py-1 rounded-lg">
-                        <Clock className="w-3.5 h-3.5" />
-                        {session.completedAt ? session.completedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                      </span>
-                      {!isDeleteMode && (
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); startEditingDate(session); }}
-                          className="p-1 hover:text-[#C0FF00] transition-colors rounded-lg hover:bg-[#1a1a1a]"
-                          title="Edit Date"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full text-left font-sans text-sm border-collapse">
-                <thead>
-                  <tr className="border-b border-[#333] text-gray-400">
-                    <th className="pb-3 font-semibold uppercase tracking-wider text-xs">Exercise</th>
-                    <th className="pb-3 text-center font-semibold uppercase tracking-wider text-xs">Set</th>
-                    <th className="pb-3 text-center font-semibold uppercase tracking-wider text-xs">Volume</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#222]">
-                  {session.sets.map((set, i) => {
-                    const prevSet = i > 0 ? session.sets[i - 1] : null;
-                    const isNewExerciseGroup = prevSet && prevSet.exerciseId !== set.exerciseId;
-
-                    return (
-                      <tr 
-                        key={i} 
-                        className={`hover:bg-[#1a1a1a] transition-colors ${isNewExerciseGroup ? 'border-t-2 border-[#333]' : ''}`}
-                      >
-                        <td className="py-3 pr-4 text-white font-medium">
-                          {isNewExerciseGroup || i === 0 ? (
-                            <span className="text-white font-bold">{set.exerciseName}</span>
-                          ) : (
-                            <span className="text-gray-500 text-xs pl-2">↳ {set.exerciseName}</span>
-                          )}
-                        </td>
-                        <td className="py-3 text-center text-gray-400 font-mono">{set.setNumber}</td>
-                        <td className="py-3 text-center text-white font-mono font-bold">
-                          {set.type === 'strength' 
-                            ? `${set.weight} kg × ${set.reps}`
-                            : `${set.durationSeconds}s`}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="sm:hidden">
-        {expandedSessionId ? (
-          <div>
-            <button 
-              onClick={() => setExpandedSessionId(null)}
-              className="mb-4 text-[#C0FF00] font-sans font-bold text-sm flex items-center gap-2 hover:opacity-80 transition-opacity"
-            >
-              <ChevronLeft className="w-5 h-5" />
-              BACK TO LOGS
-            </button>
-            {sessions.filter(s => s.id === expandedSessionId).map(session => (
-              <div key={session.id} className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl">
-                <div className="mb-4 pb-4 border-b border-[#222]">
-                  <h3 className="font-display font-black text-base text-[#C0FF00] uppercase tracking-tight">
+            <ChevronLeft className="w-5 h-5" />
+            BACK TO ALL SESSIONS
+          </button>
+          {sessions.filter(s => s.id === expandedSessionId).map(session => (
+            <div key={session.id} className="bg-[#111] border border-[#222] rounded-[24px] p-6 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 pb-4 border-b border-[#222] gap-3">
+                <div>
+                  <h3 className="font-display font-black text-xl text-[#C0FF00] uppercase tracking-tight">
                     {session.workoutName}
                   </h3>
                   {editingDateSessionId === session.id ? (
@@ -360,9 +256,9 @@ export const WorkoutHistory: React.FC = () => {
                         type="datetime-local"
                         value={editingDateValue}
                         onChange={(e) => setEditingDateValue(e.target.value)}
-                        className="bg-transparent text-white focus:outline-none focus:ring-1 focus:ring-[#C0FF00] rounded px-2 py-1 text-xs w-full"
+                        className="bg-transparent text-white focus:outline-none focus:ring-1 focus:ring-[#C0FF00] rounded px-2 py-1 text-xs"
                       />
-                      <div className="flex items-center gap-2 w-full justify-end mt-1">
+                      <div className="flex items-center gap-2">
                         <button onClick={(e) => { e.stopPropagation(); saveDateEdit(session); }} className="p-1.5 text-green-500 hover:bg-green-500/20 rounded bg-[#222]">
                           <Save className="w-4 h-4" />
                         </button>
@@ -372,12 +268,18 @@ export const WorkoutHistory: React.FC = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="text-[11px] font-mono text-gray-500 mt-1.5 flex items-center gap-2">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {session.completedAt ? session.completedAt.toLocaleDateString() : 'N/A'} at {session.completedAt ? session.completedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-gray-500 mt-2">
+                      <span className="flex items-center gap-1.5 bg-[#1a1a1a] px-2.5 py-1 rounded-lg">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {session.completedAt ? session.completedAt.toLocaleDateString() : 'N/A'}
+                      </span>
+                      <span className="flex items-center gap-1.5 bg-[#1a1a1a] px-2.5 py-1 rounded-lg">
+                        <Clock className="w-3.5 h-3.5" />
+                        {session.completedAt ? session.completedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                      </span>
                       <button 
                         onClick={(e) => { e.stopPropagation(); startEditingDate(session); }}
-                        className="p-1 ml-auto hover:text-[#C0FF00] transition-colors rounded-lg hover:bg-[#1a1a1a]"
+                        className="p-1 hover:text-[#C0FF00] transition-colors rounded-lg hover:bg-[#1a1a1a]"
                         title="Edit Date"
                       >
                         <Edit2 className="w-3.5 h-3.5" />
@@ -385,41 +287,84 @@ export const WorkoutHistory: React.FC = () => {
                     </div>
                   )}
                 </div>
-                
-                <div className="space-y-3">
-                  {session.sets.reduce((acc, set) => {
-                    const exIdx = acc.findIndex(g => g.exerciseName === set.exerciseName);
-                    if (exIdx > -1) {
-                      acc[exIdx].sets.push(set);
-                    } else {
-                      acc.push({ exerciseName: set.exerciseName, sets: [set] });
-                    }
-                    return acc;
-                  }, [] as any[]).map((group, idx) => (
-                    <div key={idx} className="bg-[#1a1a1a] rounded-xl p-3 border border-[#2a2a2a]">
-                      <h4 className="text-white text-[13px] font-bold mb-2 uppercase tracking-wide">{group.exerciseName}</h4>
-                      <div className="space-y-2">
-                        {group.sets.map((set: any, sIdx: number) => (
-                           <div key={sIdx} className="flex justify-between items-center text-[12px] font-mono">
-                             <span className="text-gray-500 font-sans font-medium text-[11px] uppercase w-12">Set {set.setNumber}</span>
-                             <span className="text-white font-bold flex-1 text-right">
-                               {set.type === 'strength' ? `${set.weight}kg × ${set.reps}` : `${set.durationSeconds}s`}
-                             </span>
-                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
-            ))}
-          </div>
-        ) : (
-        <div className="grid grid-cols-4 gap-2">
+
+              {/* Desktop Table view for Detail */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-left font-sans text-sm border-collapse">
+                  <thead>
+                    <tr className="border-b border-[#333] text-gray-400">
+                      <th className="pb-3 font-semibold uppercase tracking-wider text-xs">Exercise</th>
+                      <th className="pb-3 text-center font-semibold uppercase tracking-wider text-xs">Set</th>
+                      <th className="pb-3 text-center font-semibold uppercase tracking-wider text-xs">Volume</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[#222]">
+                    {session.sets.map((set, i) => {
+                      const prevSet = i > 0 ? session.sets[i - 1] : null;
+                      const isNewExerciseGroup = prevSet && prevSet.exerciseId !== set.exerciseId;
+
+                      return (
+                        <tr 
+                          key={i} 
+                          className={`hover:bg-[#1a1a1a] transition-colors ${isNewExerciseGroup ? 'border-t-2 border-[#333]' : ''}`}
+                        >
+                          <td className="py-3 pr-4 text-white font-medium">
+                            {isNewExerciseGroup || i === 0 ? (
+                              <span className="text-white font-bold">{set.exerciseName}</span>
+                            ) : (
+                              <span className="text-gray-500 text-xs pl-2">↳ {set.exerciseName}</span>
+                            )}
+                          </td>
+                          <td className="py-3 text-center text-gray-400 font-mono">{set.setNumber}</td>
+                          <td className="py-3 text-center text-white font-mono font-bold">
+                            {set.type === 'strength' 
+                              ? `${set.weight} kg × ${set.reps}`
+                              : `${set.durationSeconds}s`}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card Groups view for Detail */}
+              <div className="sm:hidden space-y-3">
+                {session.sets.reduce((acc, set) => {
+                  const exIdx = acc.findIndex(g => g.exerciseName === set.exerciseName);
+                  if (exIdx > -1) {
+                    acc[exIdx].sets.push(set);
+                  } else {
+                    acc.push({ exerciseName: set.exerciseName, sets: [set] });
+                  }
+                  return acc;
+                }, [] as any[]).map((group, idx) => (
+                  <div key={idx} className="bg-[#1a1a1a] rounded-xl p-3 border border-[#2a2a2a]">
+                    <h4 className="text-white text-[13px] font-bold mb-2 uppercase tracking-wide">{group.exerciseName}</h4>
+                    <div className="space-y-2">
+                      {group.sets.map((set: any, sIdx: number) => (
+                         <div key={sIdx} className="flex justify-between items-center text-[12px] font-mono">
+                           <span className="text-gray-500 font-sans font-medium text-[11px] uppercase w-12">Set {set.setNumber}</span>
+                           <span className="text-white font-bold flex-1 text-right">
+                             {set.type === 'strength' ? `${set.weight}kg × ${set.reps}` : `${set.durationSeconds}s`}
+                           </span>
+                         </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Global Grid Master View (Responsive: 4 cols mobile/tablet, 6 cols desktop) */
+        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
           {sessions.map(session => (
             <div 
               key={session.id} 
-              className={`relative bg-[#111] border ${isDeleteMode && selectedIds.has(session.id) ? 'border-red-500 bg-red-500/[0.05]' : 'border-[#222]'} ${!isDeleteMode ? 'hover:border-[#C0FF00]' : ''} rounded-[16px] p-2.5 flex flex-col justify-between cursor-pointer transition-colors shadow-sm min-h-[85px] aspect-square`}
+              className={`relative bg-[#111] border ${isDeleteMode && selectedIds.has(session.id) ? 'border-red-500 bg-red-500/[0.05]' : 'border-[#222]'} ${!isDeleteMode ? 'hover:border-[#C0FF00] hover:bg-[#161616]' : ''} rounded-[20px] p-4 flex flex-col justify-between cursor-pointer transition-all shadow-sm min-h-[110px] aspect-square group`}
               onClick={() => {
                 if (isDeleteMode) {
                   toggleSelection(session.id);
@@ -429,21 +374,30 @@ export const WorkoutHistory: React.FC = () => {
               }}
             >
               {isDeleteMode && (
-                <div className="absolute top-1 right-1 pointer-events-none">
+                <div className="absolute top-2 right-2 pointer-events-none">
                   {selectedIds.has(session.id) ? <CheckCircle2 className="w-4 h-4 text-red-500" /> : <Circle className="w-4 h-4 text-gray-500" />}
                 </div>
               )}
-              <h3 className={`font-display font-black text-[10px] sm:text-[11px] ${isDeleteMode && selectedIds.has(session.id) ? 'text-white' : 'text-[#C0FF00]'} uppercase tracking-tight leading-tight line-clamp-3 text-left w-full pr-4`}>
-                {session.workoutName}
-              </h3>
-              <p className="text-[9px] font-mono text-gray-500 uppercase text-right mt-1 w-full flex-shrink-0">
-                {session.completedAt ? session.completedAt.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' }) : 'N/A'}
-              </p>
+              <div>
+                <h3 className={`font-display font-black text-xs sm:text-sm ${isDeleteMode && selectedIds.has(session.id) ? 'text-white' : 'text-[#C0FF00]'} uppercase tracking-tight leading-snug line-clamp-2 text-left w-full pr-3 group-hover:text-white transition-colors`}>
+                  {session.workoutName}
+                </h3>
+                <span className="inline-block mt-2 text-[10px] font-mono text-gray-400 bg-[#1c1c1c] px-2 py-0.5 rounded">
+                  {session.sets.length} sets
+                </span>
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-[#1f1f1f] mt-2">
+                <span className="text-[10px] font-mono text-gray-500 uppercase">
+                  {session.completedAt ? session.completedAt.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric' }) : 'N/A'}
+                </span>
+                <span className="text-[9px] font-mono text-gray-600">
+                  {session.completedAt ? session.completedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                </span>
+              </div>
             </div>
           ))}
         </div>
-        )}
-      </div>
+      )}
       
       <ConfirmModal 
         isOpen={isConfirmOpen}
