@@ -160,7 +160,7 @@ export const WorkoutDayTracker: React.FC = () => {
       }
 
       console.log("Starting seedTemplatesIfMissing...");
-      await seedTemplatesIfMissing();
+      await seedTemplatesIfMissing(user.uid);
       console.log("Finished seedTemplatesIfMissing.");
 
       console.log("Starting Promise.all for fetching data...");

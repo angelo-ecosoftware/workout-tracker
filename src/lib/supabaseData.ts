@@ -46,7 +46,76 @@ export async function initializeUser(userId: string, email: string) {
 }
 
 // Ensure the static workouts/exercises templates exist in Supabase
-export async function seedTemplatesIfMissing() {
+export async function seedTemplatesIfMissing(userId?: string) {
+  // If user is the specific v9 user, seed the v9_spartan 4-day split routines & exercises
+  if (userId === '2b4bd23c-ceff-460d-a73b-2c531686e3b2') {
+    const exercisesV9 = [
+      // Day 1
+      { id: 'd1_e1_v9', name: 'Bench Press (barbell or dumbbell)', type: 'strength', target_sets: 4, target_rep_min: 6, target_rep_max: 10 },
+      { id: 'd1_e2_v9', name: 'Pull-ups / Lat Pulldown', type: 'strength', target_sets: 4, target_rep_min: 6, target_rep_max: 10 },
+      { id: 'd1_e3_v9', name: 'Overhead Press', type: 'strength', target_sets: 3, target_rep_min: 6, target_rep_max: 10 },
+      { id: 'd1_e4_v9', name: 'Seated Cable Row / Dumbbell Row', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
+      { id: 'd1_e5_v9', name: 'Lateral Raises', type: 'strength', target_sets: 4, target_rep_min: 12, target_rep_max: 20 },
+      { id: 'd1_e6_v9', name: 'Push-up Ladder', type: 'strength', target_sets: 4, target_rep_min: 12, target_rep_max: 15 },
+      { id: 'd1_e7_v9', name: 'Triceps Pushdown or Dips', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
+      // Day 2
+      { id: 'd2_e1_v9', name: 'Back Squat or Goblet Squat', type: 'strength', target_sets: 4, target_rep_min: 6, target_rep_max: 10 },
+      { id: 'd2_e2_v9', name: 'Romanian Deadlift', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 10 },
+      { id: 'd2_e3_v9', name: 'Bulgarian Split Squat', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
+      { id: 'd2_e4_v9', name: 'Leg Curl (machine or Nordic)', type: 'strength', target_sets: 3, target_rep_min: 10, target_rep_max: 15 },
+      { id: 'd2_e5_v9', name: 'Hanging Knee Raises', type: 'strength', target_sets: 3, target_rep_min: 10, target_rep_max: 15 },
+      { id: 'd2_e6_v9', name: 'Plank', type: 'timed', target_sets: 3, target_rep_min: 45, target_rep_max: 60 },
+      { id: 'd2_e7_v9', name: 'Conditioning Block (10 min)', type: 'timed', target_sets: 10, target_rep_min: 30, target_rep_max: 30 },
+      // Day 3
+      { id: 'd3_e1_v9', name: 'Incline Dumbbell Press', type: 'strength', target_sets: 4, target_rep_min: 8, target_rep_max: 12 },
+      { id: 'd3_e2_v9', name: 'Pull-ups / Lat Pulldown', type: 'strength', target_sets: 4, target_rep_min: 8, target_rep_max: 12 },
+      { id: 'd3_e3_v9', name: 'Dumbbell Shoulder Press', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
+      { id: 'd3_e4_v9', name: 'Chest-Supported Row or Rear-Delt Fly', type: 'strength', target_sets: 3, target_rep_min: 12, target_rep_max: 20 },
+      { id: 'd3_e5_v9', name: 'Lateral Raises', type: 'strength', target_sets: 4, target_rep_min: 12, target_rep_max: 20 },
+      { id: 'd3_e6_v9', name: 'Hammer Curls', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
+      { id: 'd3_e7_v9', name: 'Push-up Ladder', type: 'strength', target_sets: 4, target_rep_min: 12, target_rep_max: 15 },
+      // Day 4
+      { id: 'd4_e1_v9', name: 'Deadlift or Romanian Deadlift', type: 'strength', target_sets: 3, target_rep_min: 5, target_rep_max: 8 },
+      { id: 'd4_e2_v9', name: 'Front Squat or Leg Press', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
+      { id: 'd4_e3_v9', name: 'Walking Lunges', type: 'strength', target_sets: 3, target_rep_min: 10, target_rep_max: 10 },
+      { id: 'd4_e4_v9', name: 'Calf Raises', type: 'strength', target_sets: 3, target_rep_min: 10, target_rep_max: 15 },
+      { id: 'd4_e5_v9', name: 'Ab-Wheel Rollout or Hanging Leg Raises', type: 'strength', target_sets: 3, target_rep_min: 6, target_rep_max: 15 },
+      { id: 'd4_e6_v9', name: 'Conditioning Block (10 min)', type: 'timed', target_sets: 10, target_rep_min: 30, target_rep_max: 30 },
+    ];
+
+    await supabase.from('exercises').upsert(exercisesV9);
+
+    const workoutsV9 = [
+      {
+        id: 'v9_w1',
+        name: 'Day 1 - Upper Body A',
+        order: 1,
+        exercise_ids: ['d1_e1_v9', 'd1_e2_v9', 'd1_e3_v9', 'd1_e4_v9', 'd1_e5_v9', 'd1_e6_v9', 'd1_e7_v9'],
+      },
+      {
+        id: 'v9_w2',
+        name: 'Day 2 - Lower Body A + Abs',
+        order: 2,
+        exercise_ids: ['d2_e1_v9', 'd2_e2_v9', 'd2_e3_v9', 'd2_e4_v9', 'd2_e5_v9', 'd2_e6_v9', 'd2_e7_v9'],
+      },
+      {
+        id: 'v9_w3',
+        name: 'Day 3 - Upper Body B',
+        order: 3,
+        exercise_ids: ['d3_e1_v9', 'd3_e2_v9', 'd3_e3_v9', 'd3_e4_v9', 'd3_e5_v9', 'd3_e6_v9', 'd3_e7_v9'],
+      },
+      {
+        id: 'v9_w4',
+        name: 'Day 4 - Lower Body B + Abs',
+        order: 4,
+        exercise_ids: ['d4_e1_v9', 'd4_e2_v9', 'd4_e3_v9', 'd4_e4_v9', 'd4_e5_v9', 'd4_e6_v9'],
+      },
+    ];
+
+    await supabase.from('workouts').upsert(workoutsV9);
+    return;
+  }
+
   const { data: existingWorkouts } = await supabase.from('workouts').select('id').limit(1);
   if (existingWorkouts && existingWorkouts.length > 0) {
     return;
@@ -154,17 +223,19 @@ export async function getUserProgressState(userId: string) {
     .single();
 
   if (!data) {
-    await seedTemplatesIfMissing();
+    await seedTemplatesIfMissing(userId);
     const { data: authUser } = await supabase.auth.getUser();
     return await initializeUser(userId, authUser?.user?.email || '');
   }
+
+  const defaultMaxOrder = userId === '2b4bd23c-ceff-460d-a73b-2c531686e3b2' ? 4 : 3;
 
   return {
     userId: data.user_id,
     email: data.email,
     name: data.name || data.email?.split('@')[0] || '',
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
-    maxWorkoutOrder: data.max_workout_order ?? 3,
+    maxWorkoutOrder: data.max_workout_order ?? defaultMaxOrder,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
   } as UserProfile;
