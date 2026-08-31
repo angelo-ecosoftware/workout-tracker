@@ -19,6 +19,8 @@ export async function initializeUser(userId: string, email: string) {
       lastCompletedWorkoutOrder: 0,
       maxWorkoutOrder: isV9User ? 4 : 3,
       lastSetSummaryPerExercise: {},
+      onboardingCompleted: isV9User ? true : false,
+      trainingDaysPerWeek: isV9User ? 4 : undefined,
       createdAt: new Date(),
     };
 
@@ -29,6 +31,8 @@ export async function initializeUser(userId: string, email: string) {
       last_completed_workout_order: 0,
       max_workout_order: isV9User ? 4 : 3,
       last_set_summary_per_exercise: {},
+      onboarding_completed: isV9User ? true : false,
+      training_days_per_week: isV9User ? 4 : null,
       created_at: newUser.createdAt.toISOString(),
     });
 
@@ -43,6 +47,8 @@ export async function initializeUser(userId: string, email: string) {
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
     maxWorkoutOrder: data.max_workout_order ?? (isV9User ? 4 : 3),
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
+    onboardingCompleted: data.onboarding_completed ?? (isV9User ? true : false),
+    trainingDaysPerWeek: data.training_days_per_week ?? (isV9User ? 4 : undefined),
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
   } as UserProfile;
 }
@@ -293,8 +299,25 @@ export async function getUserProgressState(userId: string) {
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
     maxWorkoutOrder: data.max_workout_order ?? (isV9User ? 4 : 3),
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
+    onboardingCompleted: data.onboarding_completed ?? (isV9User ? true : false),
+    trainingDaysPerWeek: data.training_days_per_week ?? (isV9User ? 4 : undefined),
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
   } as UserProfile;
+}
+
+export async function saveUserOnboarding(userId: string, daysPerWeek: number) {
+  const { error } = await supabase
+    .from('users')
+    .update({
+      onboarding_completed: true,
+      training_days_per_week: daysPerWeek,
+    })
+    .or(`user_id.eq.${userId},id.eq.${userId}`);
+
+  if (error) {
+    console.error('Error saving onboarding data:', error);
+    throw error;
+  }
 }
 
 export async function updateSessionDate(sessionId: string, newDate: Date) {

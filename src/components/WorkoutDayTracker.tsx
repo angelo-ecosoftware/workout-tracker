@@ -4,6 +4,7 @@ import { Workout, Exercise, UserProfile } from '../models.ts';
 import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, seedTemplatesIfMissing } from '../lib/supabaseData.ts';
 import { SessionEngine, ProgressionEngine } from '../engine.ts';
 import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff } from 'lucide-react';
+import { OnboardingModal } from './OnboardingModal.tsx';
 
 const WGER_EXACT_MATCHES: Record<string, number> = {
   "Lat Pulldown": 158,
@@ -432,8 +433,18 @@ export const WorkoutDayTracker: React.FC = () => {
   }
 
   if (workouts.length === 0) {
+    const showOnboarding = userProfile && !userProfile.onboardingCompleted;
+
     return (
-      <div className="bg-[#111] border border-[#222] rounded-[24px] p-8 text-center shadow-xl space-y-3">
+      <div className="bg-[#111] border border-[#222] rounded-[24px] p-8 text-center shadow-xl space-y-3 relative">
+        {showOnboarding && user && (
+          <OnboardingModal
+            userId={user.uid}
+            onComplete={() => {
+              setUserProfile(prev => prev ? { ...prev, onboardingCompleted: true } : prev);
+            }}
+          />
+        )}
         <h3 className="font-display font-black italic text-lg text-white uppercase tracking-tight">
           No Routines Configured
         </h3>
