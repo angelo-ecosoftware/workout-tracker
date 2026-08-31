@@ -4,7 +4,24 @@
 -- Source session: Hwt15eI1VXQlf4IqY01D (Day 1 - Upper Body A, v9_w1)
 -- ==============================================================================
 
--- 1. Insert/Upsert the Session for user 2b4bd23c-ceff-460d-a73b-2c531686e3b2
+-- 1. Ensure columns allow TEXT IDs (to support both Supabase UUIDs and Firebase alphanumeric IDs)
+DO $$ BEGIN
+  ALTER TABLE public.sets DROP CONSTRAINT IF EXISTS sets_session_id_fkey;
+  ALTER TABLE public.sets DROP CONSTRAINT IF EXISTS sets_session_id_sessions_id_fk;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+ALTER TABLE public.sessions ALTER COLUMN id TYPE TEXT;
+ALTER TABLE public.sets ALTER COLUMN id TYPE TEXT;
+ALTER TABLE public.sets ALTER COLUMN session_id TYPE TEXT;
+
+DO $$ BEGIN
+  ALTER TABLE public.sets ADD CONSTRAINT sets_session_id_fkey 
+    FOREIGN KEY (session_id) REFERENCES public.sessions(id) ON DELETE CASCADE;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
+
+-- 2. Insert/Upsert the Session for user 2b4bd23c-ceff-460d-a73b-2c531686e3b2
 INSERT INTO public.sessions (
   id,
   user_id,
