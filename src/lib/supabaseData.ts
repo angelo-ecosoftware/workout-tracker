@@ -7,16 +7,17 @@ export async function initializeUser(userId: string, email: string) {
   const { data, error } = await supabase
     .from('users')
     .select('*')
-    .eq('user_id', userId)
+    .or(`user_id.eq.${userId},id.eq.${userId}`)
     .single();
 
   if (error || !data) {
+    const isV9User = userId === '2b4bd23c-ceff-460d-a73b-2c531686e3b2';
     const newUser: UserProfile = {
       userId,
       email,
       name: email.split('@')[0],
       lastCompletedWorkoutOrder: 0,
-      maxWorkoutOrder: 3,
+      maxWorkoutOrder: isV9User ? 4 : 3,
       lastSetSummaryPerExercise: {},
       createdAt: new Date(),
     };
@@ -26,7 +27,7 @@ export async function initializeUser(userId: string, email: string) {
       email,
       name: newUser.name,
       last_completed_workout_order: 0,
-      max_workout_order: 3,
+      max_workout_order: isV9User ? 4 : 3,
       last_set_summary_per_exercise: {},
       created_at: newUser.createdAt.toISOString(),
     });
@@ -34,12 +35,13 @@ export async function initializeUser(userId: string, email: string) {
     return newUser;
   }
 
+  const isV9User = (data.user_id === '2b4bd23c-ceff-460d-a73b-2c531686e3b2' || data.id === '2b4bd23c-ceff-460d-a73b-2c531686e3b2');
   return {
-    userId: data.user_id,
+    userId: data.user_id || data.id || userId,
     email: data.email,
-    name: data.name || data.email.split('@')[0],
+    name: data.name || data.email?.split('@')[0] || '',
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
-    maxWorkoutOrder: data.max_workout_order ?? 3,
+    maxWorkoutOrder: data.max_workout_order ?? (isV9User ? 4 : 3),
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
   } as UserProfile;
@@ -189,9 +191,22 @@ export async function fetchWorkoutsData(userId?: string) {
     query = query.or(`user_id.eq.${userId},user_id.is.null`);
   }
 
-  const { data: workoutsRaw } = await query;
+  const { data: workoutsRaw, error: wError } = await query;
+  if (wError) {
+    console.warn('fetchWorkoutsData: scoped query returned error, trying fallback select all:', wError);
+  }
 
-  const allWorkouts: Workout[] = (workoutsRaw || []).map((w: any) => ({
+  // Fallback to fetching all workouts if user-scoped returned nothing or errored
+  let rawList = workoutsRaw;
+  if (!rawList || rawList.length === 0) {
+    const { data: allWorkoutsData } = await supabase
+      .from('workouts')
+      .select('*')
+      .order('order', { ascending: true });
+    rawList = allWorkoutsData || [];
+  }
+
+  const allWorkouts: Workout[] = (rawList || []).map((w: any) => ({
     id: String(w.id),
     name: w.name,
     order: w.order ?? w.day_number ?? 0,
@@ -206,7 +221,14 @@ export async function fetchWorkoutsData(userId?: string) {
   if (userId) {
     exQuery = exQuery.or(`user_id.eq.${userId},user_id.is.null`);
   }
-  const { data: exercisesRaw } = await exQuery;
+  let { data: exercisesRaw } = await exQuery;
+
+  // Fallback to all exercises if user-scoped returned nothing
+  if (!exercisesRaw || exercisesRaw.length === 0) {
+    const { data: allEx } = await supabase.from('exercises').select('*');
+    exercisesRaw = allEx || [];
+  }
+
   const exercisesList: Exercise[] = (exercisesRaw || []).map((e: any) => ({
     id: String(e.id),
     name: e.name,
@@ -233,7 +255,7 @@ export async function getUserProgressState(userId: string) {
   const { data } = await supabase
     .from('users')
     .select('*')
-    .eq('user_id', userId)
+    .or(`user_id.eq.${userId},id.eq.${userId}`)
     .single();
 
   if (!data) {
@@ -242,14 +264,14 @@ export async function getUserProgressState(userId: string) {
     return await initializeUser(userId, authUser?.user?.email || '');
   }
 
-  const defaultMaxOrder = userId === '2b4bd23c-ceff-460d-a73b-2c531686e3b2' ? 4 : 3;
+  const isV9User = (data.user_id === '2b4bd23c-ceff-460d-a73b-2c531686e3b2' || data.id === '2b4bd23c-ceff-460d-a73b-2c531686e3b2');
 
   return {
-    userId: data.user_id,
+    userId: data.user_id || data.id || userId,
     email: data.email,
     name: data.name || data.email?.split('@')[0] || '',
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
-    maxWorkoutOrder: data.max_workout_order ?? defaultMaxOrder,
+    maxWorkoutOrder: data.max_workout_order ?? (isV9User ? 4 : 3),
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
   } as UserProfile;
