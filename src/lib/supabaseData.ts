@@ -179,11 +179,17 @@ export async function seedTemplatesIfMissing(userId?: string) {
   await supabase.from('workouts').upsert(workoutsToSeed);
 }
 
-export async function fetchWorkoutsData() {
-  const { data: workoutsRaw } = await supabase
+export async function fetchWorkoutsData(userId?: string) {
+  let query = supabase
     .from('workouts')
     .select('*')
     .order('order', { ascending: true });
+
+  if (userId) {
+    query = query.or(`user_id.eq.${userId},user_id.is.null`);
+  }
+
+  const { data: workoutsRaw } = await query;
 
   const allWorkouts: Workout[] = (workoutsRaw || []).map((w: any) => ({
     id: String(w.id),
@@ -196,7 +202,11 @@ export async function fetchWorkoutsData() {
     i === self.findIndex((t) => t.order === w.order)
   );
 
-  const { data: exercisesRaw } = await supabase.from('exercises').select('*');
+  let exQuery = supabase.from('exercises').select('*');
+  if (userId) {
+    exQuery = exQuery.or(`user_id.eq.${userId},user_id.is.null`);
+  }
+  const { data: exercisesRaw } = await exQuery;
   const exercisesList: Exercise[] = (exercisesRaw || []).map((e: any) => ({
     id: String(e.id),
     name: e.name,

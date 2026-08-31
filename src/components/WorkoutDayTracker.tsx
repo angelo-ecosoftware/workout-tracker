@@ -165,7 +165,7 @@ export const WorkoutDayTracker: React.FC = () => {
 
       console.log("Starting Promise.all for fetching data...");
       const [wData, progressState] = await Promise.all([
-        fetchWorkoutsData(),
+        fetchWorkoutsData(user.uid),
         getUserProgressState(user.uid)
       ]);
       console.log("Finished Promise.all.", wData, progressState);
@@ -447,12 +447,12 @@ export const WorkoutDayTracker: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* 3-Day split selector */}
+      {/* Routine split selector */}
       <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl relative overflow-hidden">
         <label className="block text-[10px] font-bold text-[#C0FF00] uppercase tracking-widest mb-3 font-mono">
           Select Routine
         </label>
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
           {workouts.map((w) => {
             const isSuggested = suggestedDay === w.order;
             const isActive = activeWorkout?.id === w.id;
