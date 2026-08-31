@@ -24,7 +24,12 @@ EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
 -- 2. Insert/Upsert profile for user 2b4bd23c-ceff-460d-a73b-2c531686e3b2
+DELETE FROM public.users 
+WHERE user_id = '2b4bd23c-ceff-460d-a73b-2c531686e3b2'
+   OR id::text = '2b4bd23c-ceff-460d-a73b-2c531686e3b2';
+
 INSERT INTO public.users (
+  id,
   user_id,
   email,
   name,
@@ -36,8 +41,9 @@ INSERT INTO public.users (
 )
 VALUES (
   '2b4bd23c-ceff-460d-a73b-2c531686e3b2',
-  'angelo@example.com',
-  'angelo',
+  '2b4bd23c-ceff-460d-a73b-2c531686e3b2',
+  'angeloleeuw@gmail.com',
+  'angelo ghafoerkhan',
   1,
   4,
   '{
@@ -51,11 +57,7 @@ VALUES (
   }'::jsonb,
   TRUE,
   4
-)
-ON CONFLICT (user_id) DO UPDATE SET
-  onboarding_completed = TRUE,
-  training_days_per_week = 4,
-  last_completed_workout_order = 1;
+);
 
 -- 3. Configure permissive RLS on public.users
 ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
