@@ -155,22 +155,33 @@ export function calculateInsights(
     }
   });
 
-  // Generate 90 daily tiles ending on today
-  for (let i = 89; i >= 0; i--) {
-    const targetDate = new Date();
-    targetDate.setDate(now.getDate() - i);
-    const dateStr = targetDate.toISOString().split('T')[0];
+  // Generate daily tiles starting on the Monday of the week 89 days ago up to today
+  // to align cleanly with standard Monday-Sunday left-to-right rows
+  const startDate = new Date();
+  startDate.setDate(now.getDate() - 89);
+  // Align to previous Monday (0 = Sun, 1 = Mon, ..., 6 = Sat)
+  const dayOffset = (startDate.getDay() + 6) % 7; // Monday = 0
+  startDate.setDate(startDate.getDate() - dayOffset);
+  startDate.setHours(0, 0, 0, 0);
+
+  const todayStr = now.toISOString().split('T')[0];
+  const iterDate = new Date(startDate);
+
+  while (iterDate <= now) {
+    const dateStr = iterDate.toISOString().split('T')[0];
     const dayData = dateToSessionMap.get(dateStr);
 
     heatmapDays.push({
       date: dateStr,
-      dayOfWeek: targetDate.getDay(),
-      isToday: i === 0,
+      dayOfWeek: iterDate.getDay(),
+      isToday: dateStr === todayStr,
       sessionsCount: dayData?.count || 0,
       totalVolumeKg: Math.round(dayData?.volume || 0),
       totalWorkSeconds: dayData?.workSec || 0,
       workoutNames: dayData?.names || [],
     });
+
+    iterDate.setDate(iterDate.getDate() + 1);
   }
 
   // Weekly Tonnage (Last 8 Weeks)

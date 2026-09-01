@@ -247,56 +247,78 @@ export const InsightsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Heatmap Grid */}
-        <div className="overflow-x-auto pb-2">
-          <div className="min-w-[620px]">
-            <div className="grid grid-flow-col grid-rows-7 gap-1.5 pt-2">
-              {metrics.heatmapDays.map((day) => {
-                let bgClass = 'bg-[#181818] border border-[#282828]';
-                if (day.sessionsCount > 0) {
-                  if (day.totalVolumeKg > 5000) {
-                    bgClass = 'bg-[#C0FF00] text-black shadow-[0_0_10px_rgba(192,255,0,0.3)]';
-                  } else if (day.totalVolumeKg > 2000) {
-                    bgClass = 'bg-[#a3db00]';
-                  } else {
-                    bgClass = 'bg-[#C0FF00]/60';
-                  }
+        {/* Heatmap Grid - Standard Calendar View: Left to Right, Rows = Weeks */}
+        <div className="space-y-2 pt-2">
+          {/* Day of week headers */}
+          <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-mono font-bold text-gray-500 uppercase tracking-wider">
+            <span>Mon</span>
+            <span>Tue</span>
+            <span>Wed</span>
+            <span>Thu</span>
+            <span>Fri</span>
+            <span>Sat</span>
+            <span>Sun</span>
+          </div>
+
+          {/* Calendar Grid: Left-to-Right by day, Top-to-Bottom by week */}
+          <div className="grid grid-cols-7 gap-2">
+            {metrics.heatmapDays.map((day) => {
+              let bgClass = 'bg-[#181818] border border-[#282828] hover:border-[#555]';
+              if (day.sessionsCount > 0) {
+                if (day.totalVolumeKg > 5000) {
+                  bgClass = 'bg-[#C0FF00] text-black shadow-[0_0_10px_rgba(192,255,0,0.3)] border border-[#C0FF00]';
+                } else if (day.totalVolumeKg > 2000) {
+                  bgClass = 'bg-[#a3db00] text-black border border-[#a3db00]';
+                } else {
+                  bgClass = 'bg-[#C0FF00]/60 text-black border border-[#C0FF00]/40';
                 }
+              }
 
-                return (
-                  <div
-                    key={day.date}
-                    onMouseEnter={() => setHoveredDay(day)}
-                    onMouseLeave={() => setHoveredDay(null)}
-                    className={`w-4.5 h-4.5 rounded-sm transition-all cursor-pointer ${bgClass} ${
-                      day.isToday ? 'ring-1 ring-white ring-offset-1 ring-offset-black' : ''
-                    } hover:scale-125`}
-                  />
-                );
-              })}
-            </div>
+              const d = new Date(day.date);
+              const dayOfMonth = d.getDate();
 
-            {/* Hover details pill */}
-            <div className="h-6 mt-3">
-              {hoveredDay ? (
-                <div className="text-[11px] font-mono text-gray-300 flex items-center gap-2 bg-[#1a1a1a] px-3 py-1 rounded-lg border border-[#333] inline-flex">
-                  <span className="text-[#C0FF00] font-bold">{hoveredDay.date}:</span>
-                  {hoveredDay.sessionsCount > 0 ? (
-                    <span>
-                      {hoveredDay.sessionsCount} session(s) •{' '}
-                      {hoveredDay.workoutNames.join(', ')} •{' '}
-                      <strong className="text-white">{hoveredDay.totalVolumeKg.toLocaleString()} kg moved</strong>
+              return (
+                <div
+                  key={day.date}
+                  onMouseEnter={() => setHoveredDay(day)}
+                  onMouseLeave={() => setHoveredDay(null)}
+                  className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer p-1 relative ${bgClass} ${
+                    day.isToday ? 'ring-2 ring-white ring-offset-2 ring-offset-black font-black' : ''
+                  } hover:scale-105`}
+                >
+                  <span className={`text-[11px] font-mono ${day.sessionsCount > 0 ? 'font-black' : 'text-gray-400'}`}>
+                    {dayOfMonth}
+                  </span>
+                  {day.sessionsCount > 0 && (
+                    <span className="text-[8px] font-mono font-bold uppercase tracking-tighter truncate max-w-full">
+                      {day.totalVolumeKg > 0 ? `${Math.round(day.totalVolumeKg)}kg` : 'done'}
                     </span>
-                  ) : (
-                    <span className="text-gray-500">Rest / Recovery Day</span>
                   )}
                 </div>
-              ) : (
-                <span className="text-[10px] font-mono text-gray-500">
-                  Hover over any tile to view session volume & workout split.
-                </span>
-              )}
-            </div>
+              );
+            })}
+          </div>
+
+          {/* Hover details pill */}
+          <div className="min-h-[28px] mt-2 flex items-center">
+            {hoveredDay ? (
+              <div className="text-[11px] font-mono text-gray-300 flex items-center gap-2 bg-[#1a1a1a] px-3 py-1.5 rounded-lg border border-[#333] inline-flex flex-wrap">
+                <span className="text-[#C0FF00] font-bold">{hoveredDay.date}:</span>
+                {hoveredDay.sessionsCount > 0 ? (
+                  <span>
+                    {hoveredDay.sessionsCount} session(s) •{' '}
+                    {hoveredDay.workoutNames.join(', ')} •{' '}
+                    <strong className="text-white">{hoveredDay.totalVolumeKg.toLocaleString()} kg moved</strong>
+                  </span>
+                ) : (
+                  <span className="text-gray-500">Rest / Recovery Day</span>
+                )}
+              </div>
+            ) : (
+              <span className="text-[10px] font-mono text-gray-500">
+                Hover or tap any date to view workout split and volume moved.
+              </span>
+            )}
           </div>
         </div>
       </div>
