@@ -239,8 +239,10 @@ export const WorkoutDayTracker: React.FC = () => {
       let nextVal = baseNum + step;
       if (nextVal < 0) nextVal = 0;
 
-      // Format weights to 1 decimal point if float, clean reps
-      const formatted = field === 'weight' ? (Math.round(nextVal * 10) / 10).toString() : Math.round(nextVal).toString();
+      // Ensure integers only for reps, duration, difficulty, and clean rounded non-negative values for weight
+      const formatted = field === 'weight' 
+        ? (nextVal % 1 === 0 ? nextVal.toString() : (Math.round(nextVal * 10) / 10).toString()) 
+        : Math.round(nextVal).toString();
 
       const updated = {
         ...prev,
@@ -258,13 +260,27 @@ export const WorkoutDayTracker: React.FC = () => {
   };
 
   const handleTextChange = (key: string, field: 'weight' | 'reps' | 'durationSeconds' | 'difficulty', value: string) => {
+    // Only allow positive numbers/integers (0+)
+    let sanitized = value;
+    if (field === 'weight') {
+      // Allow positive integers or single decimal point
+      sanitized = value.replace(/[^0-9.]/g, '');
+      const parts = sanitized.split('.');
+      if (parts.length > 2) {
+        sanitized = parts[0] + '.' + parts.slice(1).join('');
+      }
+    } else {
+      // Reps, durationSeconds, difficulty: strictly non-negative integers only (0-9)
+      sanitized = value.replace(/[^0-9]/g, '');
+    }
+
     setInputs(prev => {
       const current = prev[key] || { weight: '20', reps: '10', durationSeconds: '30', difficulty: '7' };
       const updated = {
         ...prev,
         [key]: {
           ...current,
-          [field]: value
+          [field]: sanitized
         }
       };
 
