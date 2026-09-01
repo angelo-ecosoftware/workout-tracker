@@ -7,6 +7,7 @@ import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeO
 import { AssistedTimedTracker } from './AssistedTimedTracker.tsx';
 import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
+import { WelcomeModal } from './WelcomeModal.tsx';
 
 export const WorkoutDayTracker: React.FC = () => {
   const { user } = useAuth();
@@ -23,6 +24,7 @@ export const WorkoutDayTracker: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isRoutineEditorOpen, setIsRoutineEditorOpen] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
 
   // Recovery & Note States
   const [sleepHours, setSleepHours] = useState(8);
@@ -152,7 +154,14 @@ export const WorkoutDayTracker: React.FC = () => {
   };
 
   useEffect(() => {
-    if (user) loadWorkflowState();
+    if (user) {
+      // Check if user has seen welcome dialog
+      const welcomeKey = `welcome_shown_${user.uid}`;
+      if (!localStorage.getItem(welcomeKey)) {
+        setShowWelcomeModal(true);
+      }
+      loadWorkflowState();
+    }
   }, [user]);
 
   // 2. Load previous sets cache whenever active workout switches
@@ -454,6 +463,16 @@ export const WorkoutDayTracker: React.FC = () => {
   if (workouts.length === 0) {
     return (
       <div className="bg-[#111] border border-[#222] rounded-[24px] p-8 text-center shadow-xl space-y-4 relative">
+        <WelcomeModal
+          isOpen={showWelcomeModal}
+          onClose={() => {
+            if (user) {
+              localStorage.setItem(`welcome_shown_${user.uid}`, 'true');
+            }
+            setShowWelcomeModal(false);
+          }}
+        />
+
         <div className="w-12 h-12 mx-auto rounded-2xl bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00]">
           <Plus className="w-6 h-6" />
         </div>
@@ -498,6 +517,15 @@ export const WorkoutDayTracker: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      <WelcomeModal
+        isOpen={showWelcomeModal}
+        onClose={() => {
+          if (user) {
+            localStorage.setItem(`welcome_shown_${user.uid}`, 'true');
+          }
+          setShowWelcomeModal(false);
+        }}
+      />
       {/* Routine split selector - only visible in standard mode or after assisted sets are done */}
       {(!isAssistedMode || assistedFinished) && (
         <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl relative overflow-hidden">
