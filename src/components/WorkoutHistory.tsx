@@ -311,31 +311,33 @@ export const WorkoutHistory: React.FC = () => {
           Training History
         </h2>
         
-        {!isDeleteMode ? (
-          <button 
-            onClick={() => setIsDeleteMode(true)} 
-            className="text-[#C0FF00] p-2 rounded-full hover:bg-[#1a1a1a] transition-colors"
-            title="Delete Sessions"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        ) : (
-          <div className="flex items-center space-x-3 transition-opacity">
+        {!expandedSessionId && (
+          !isDeleteMode ? (
             <button 
-              onClick={() => { setIsDeleteMode(false); setSelectedIds(new Set()); }} 
-              className="text-[11px] font-sans font-bold uppercase tracking-wider text-gray-500 hover:text-white transition-colors"
+              onClick={() => setIsDeleteMode(true)} 
+              className="text-[#C0FF00] p-2 rounded-full hover:bg-[#1a1a1a] transition-colors"
+              title="Delete Sessions"
             >
-              Cancel
+              <Trash2 className="w-4 h-4" />
             </button>
-            <button 
-              onClick={requestDelete} 
-              disabled={selectedIds.size === 0} 
-              className="text-[11px] font-sans font-bold uppercase tracking-wider text-red-500 disabled:opacity-30 hover:bg-red-500/[0.1] px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Delete ({selectedIds.size})
-            </button>
-          </div>
+          ) : (
+            <div className="flex items-center space-x-3 transition-opacity">
+              <button 
+                onClick={() => { setIsDeleteMode(false); setSelectedIds(new Set()); }} 
+                className="text-[11px] font-sans font-bold uppercase tracking-wider text-gray-500 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={requestDelete} 
+                disabled={selectedIds.size === 0} 
+                className="text-[11px] font-sans font-bold uppercase tracking-wider text-red-500 disabled:opacity-30 hover:bg-red-500/[0.1] px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete ({selectedIds.size})
+              </button>
+            </div>
+          )
         )}
       </div>
       
