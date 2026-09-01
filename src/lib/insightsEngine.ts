@@ -258,9 +258,9 @@ export function calculateInsights(
     }
   });
 
-  const adherencePercentage = restSets.length > 0 ? Math.round((onTimeCount / restSets.length) * 100) : 100;
+  const adherencePercentage = restSets.length > 0 ? Math.round((onTimeCount / restSets.length) * 100) : 0;
   const averageRestSeconds = restSets.length > 0 ? Math.round(totalRestSeconds / restSets.length) : 0;
-  const workToRestRatio = totalRestSeconds > 0 ? Math.round((totalWorkSeconds / totalRestSeconds) * 10) / 10 : 1;
+  const workToRestRatio = totalRestSeconds > 0 ? Math.round((totalWorkSeconds / totalRestSeconds) * 10) / 10 : 0;
 
   const restDiscipline: RestDisciplineMetrics = {
     totalRestSeconds,
