@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../context/AuthContext.tsx';
-import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate, fetchWorkoutsData } from '../lib/supabaseData.ts';
-import { Session, WorkoutSet, Exercise } from '../models.ts';
+import { useAuth } from '../../context/AuthContext.tsx';
+import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate, fetchWorkoutsData } from '../../services/workoutService.ts';
+import { Session, WorkoutSet, Exercise } from '../../types/index.ts';
 import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X, FileText } from 'lucide-react';
-import { ConfirmModal } from './ConfirmModal.tsx';
+import { ConfirmModal } from '../common/ConfirmModal.tsx';
 
 interface PopulatedSession extends Session {
   workoutName: string;

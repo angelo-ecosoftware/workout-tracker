@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Workout, Exercise, UserProfile } from '../models.ts';
+import { Workout, Exercise, UserProfile } from '../../types/index.ts';
 import { Play, Check, SkipForward, Timer, Dumbbell, Zap, Eye, RotateCcw, X, AlertCircle, Sparkles } from 'lucide-react';
-import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
+import { WgerExerciseInfo } from '../exercise/WgerExerciseInfo.tsx';
 
 interface AssistedTimedTrackerProps {
   workout: Workout & { exercises: Exercise[] };

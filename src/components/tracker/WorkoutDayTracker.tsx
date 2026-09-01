@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext.tsx';
-import { Workout, Exercise, UserProfile } from '../models.ts';
-import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, seedTemplatesIfMissing, saveWorkoutsAndExercises } from '../lib/supabaseData.ts';
-import { SessionEngine, ProgressionEngine } from '../engine.ts';
+import { useAuth } from '../../context/AuthContext.tsx';
+import { Workout, Exercise, UserProfile } from '../../types/index.ts';
+import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, saveWorkoutsAndExercises } from '../../services/workoutService.ts';
+import { SessionEngine, ProgressionEngine } from '../../engine/index.ts';
 import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff, Timer, FileText, Settings, Plus } from 'lucide-react';
 import { AssistedTimedTracker } from './AssistedTimedTracker.tsx';
-import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
-import { RoutineEditorModal } from './RoutineEditorModal.tsx';
-import { WelcomeModal } from './WelcomeModal.tsx';
+import { WgerExerciseInfo } from '../exercise/WgerExerciseInfo.tsx';
+import { RoutineEditorModal } from '../routine/RoutineEditorModal.tsx';
+import { WelcomeModal } from '../modals/WelcomeModal.tsx';
 
 export const WorkoutDayTracker: React.FC = () => {
   const { user } = useAuth();
@@ -112,21 +112,12 @@ export const WorkoutDayTracker: React.FC = () => {
       setLoading(true);
       setErrorMsg(null);
       
-      if (!user) {
-        console.log("No user, aborting loadWorkflowState");
-        return;
-      }
+      if (!user) return;
 
-      console.log("Starting seedTemplatesIfMissing...");
-      await seedTemplatesIfMissing(user.uid);
-      console.log("Finished seedTemplatesIfMissing.");
-
-      console.log("Starting Promise.all for fetching data...");
       const [wData, userProgress] = await Promise.all([
         fetchWorkoutsData(user.uid),
         getUserProgressState(user.uid)
       ]);
-      console.log("Finished Promise.all.", wData, userProgress);
 
       const progressState = userProgress.profile;
       setWorkouts(wData.combinedWorkouts);
@@ -156,7 +147,6 @@ export const WorkoutDayTracker: React.FC = () => {
       console.error("loadWorkflowState ERROR:", err);
       setErrorMsg(`Failed to synchronize active workout progression. ERROR: ${err.message}`);
     } finally {
-      console.log("loadWorkflowState FINALLY reached - setting loading to false");
       setLoading(false);
     }
   };

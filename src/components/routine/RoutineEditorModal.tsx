@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Workout, Exercise, ExerciseType } from '../models.ts';
+import { Workout, Exercise, ExerciseType } from '../../types/index.ts';
 import { 
   X, Plus, Trash2, Edit3, Save, Dumbbell, Calendar, 
   ChevronDown, ChevronUp, Layers, Check, AlertCircle, RefreshCw, Search
 } from 'lucide-react';
-import { ExerciseSearchPicker } from './ExerciseSearchPicker.tsx';
-import { ConfirmModal } from './ConfirmModal.tsx';
+import { ExerciseSearchPicker } from '../exercise/ExerciseSearchPicker.tsx';
+import { ConfirmModal } from '../common/ConfirmModal.tsx';
 
 interface RoutineEditorModalProps {
   isOpen: boolean;
