@@ -9,6 +9,7 @@ import { AssistedTimedTracker, SetTimingRecord } from './AssistedTimedTracker.ts
 import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { WelcomeModal } from './WelcomeModal.tsx';
+import { saveDraftPhotosToStorage, loadDraftPhotosFromStorage, clearDraftPhotosFromStorage } from '../utils/draftPhotoStorage.ts';
 
 export const WorkoutDayTracker: React.FC = () => {
   const { user } = useAuth();
@@ -120,7 +121,7 @@ export const WorkoutDayTracker: React.FC = () => {
   };
 
   // Handle photo file selection (up to 5)
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
 
@@ -138,16 +139,26 @@ export const WorkoutDayTracker: React.FC = () => {
     const newPreviews = newFiles.map((f) => URL.createObjectURL(f));
     setPhotoPreviews((prev) => [...prev, ...newPreviews]);
 
+    // Persist draft photos to IndexedDB so they survive full app reloads & closures
+    if (user && activeWorkout) {
+      await saveDraftPhotosToStorage(user.uid, activeWorkout.id, updatedFiles);
+    }
+
     if (e.target) e.target.value = '';
   };
 
-  const handleRemovePhoto = (index: number) => {
-    setSelectedPhotos((prev) => prev.filter((_, i) => i !== index));
+  const handleRemovePhoto = async (index: number) => {
+    const updatedFiles = selectedPhotos.filter((_, i) => i !== index);
+    setSelectedPhotos(updatedFiles);
     setPhotoPreviews((prev) => {
       const targetUrl = prev[index];
       if (targetUrl) URL.revokeObjectURL(targetUrl);
       return prev.filter((_, i) => i !== index);
     });
+
+    if (user && activeWorkout) {
+      await saveDraftPhotosToStorage(user.uid, activeWorkout.id, updatedFiles);
+    }
   };
 
   // Helper to save current draft checkpoint to localStorage
@@ -172,14 +183,19 @@ export const WorkoutDayTracker: React.FC = () => {
   };
 
   // Helper to clear draft once workout is successfully completed & logged
-  const clearDraftCheckpoint = (workoutId?: string) => {
-    const key = getDraftKey(workoutId);
-    if (!key) return;
-    try {
-      localStorage.removeItem(key);
-      setLastAutoSavedTime(null);
-    } catch (e) {
-      console.warn('Could not remove draft checkpoint', e);
+  const clearDraftCheckpoint = async (workoutId?: string) => {
+    const targetWkId = workoutId || activeWorkout?.id;
+    const key = getDraftKey(targetWkId);
+    if (key) {
+      try {
+        localStorage.removeItem(key);
+        setLastAutoSavedTime(null);
+      } catch (e) {
+        console.warn('Could not remove draft checkpoint', e);
+      }
+    }
+    if (user && targetWkId) {
+      await clearDraftPhotosFromStorage(user.uid, targetWkId);
     }
   };
 
@@ -244,15 +260,27 @@ export const WorkoutDayTracker: React.FC = () => {
     }
   }, [user]);
 
-  // 2. Load previous sets cache whenever active workout switches
+  // 2. Load previous sets cache & draft state (including photos) whenever active workout switches
   useEffect(() => {
-    if (!activeWorkout || !userProfile) return;
+    if (!activeWorkout || !userProfile || !user) return;
 
     if (activeWorkout.exercises && activeWorkout.exercises.length > 0) {
       setExpandedExerciseId(activeWorkout.exercises[0].id);
     } else {
       setExpandedExerciseId(null);
     }
+
+    // Restore draft photos from IndexedDB if user previously picked photos
+    loadDraftPhotosFromStorage(user.uid, activeWorkout.id).then((restoredFiles) => {
+      if (restoredFiles && restoredFiles.length > 0) {
+        setSelectedPhotos(restoredFiles);
+        // Revoke old previews first
+        setPhotoPreviews((prev) => {
+          prev.forEach((url) => URL.revokeObjectURL(url));
+          return restoredFiles.map((f) => URL.createObjectURL(f));
+        });
+      }
+    });
 
     const prepopulateInputs = () => {
       // Check if user has an existing saved draft checkpoint in device localStorage
