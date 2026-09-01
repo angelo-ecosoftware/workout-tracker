@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Workout, Exercise, UserProfile } from '../models.ts';
 import { Play, Check, SkipForward, Timer, Dumbbell, Zap, Eye, RotateCcw, X, AlertCircle, Sparkles } from 'lucide-react';
 import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
-import { playFiveSecondVibrateAlarm, playCountdownBeep } from '../utils/sound.ts';
+import { playThreeSecondVibrateAlarm, playCountdownBeep } from '../utils/sound.ts';
 
 interface AssistedTimedTrackerProps {
   workout: Workout & { exercises: Exercise[] };
@@ -59,7 +59,7 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
 
         if (remainingMs <= 0) {
           clearInterval(timerRef.current);
-          playFiveSecondVibrateAlarm();
+          playThreeSecondVibrateAlarm();
           advanceToNextStep();
         }
       }, 50);

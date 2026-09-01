@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate, fetchWorkoutsData } from '../lib/supabaseData.ts';
 import { Session, WorkoutSet, Exercise } from '../models.ts';
-import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X, FileText } from 'lucide-react';
+import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X, FileText, Camera, Image } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal.tsx';
 
 interface PopulatedSession extends Session {
@@ -296,6 +296,37 @@ export const WorkoutHistory: React.FC = () => {
                   <div>
                     <span className="font-mono text-[10px] uppercase font-bold text-[#C0FF00] block mb-0.5">Workout Notes</span>
                     <p className="whitespace-pre-wrap text-gray-300 font-sans">{session.notes}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Session Progress Photos if logged */}
+              {session.photos && session.photos.length > 0 && (
+                <div className="mb-6 p-3.5 bg-[#161616] border border-[#2a2a2a] rounded-xl text-xs">
+                  <div className="flex items-center gap-2 mb-3 text-gray-300">
+                    <Camera className="w-4 h-4 text-[#C0FF00]" />
+                    <span className="font-mono text-[10px] uppercase font-bold text-[#C0FF00]">
+                      Progress Photos ({session.photos.length})
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                    {session.photos.map((photoUrl, idx) => (
+                      <a
+                        key={idx}
+                        href={photoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="relative group aspect-square rounded-xl overflow-hidden border border-[#333] bg-[#1a1a1a] hover:border-[#C0FF00] transition-colors"
+                        title="View photo full size"
+                      >
+                        <img
+                          src={photoUrl}
+                          alt={`Progress photo ${idx + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                      </a>
+                    ))}
                   </div>
                 </div>
               )}

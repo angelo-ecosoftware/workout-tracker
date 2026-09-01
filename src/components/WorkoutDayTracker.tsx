@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { Workout, Exercise, UserProfile } from '../models.ts';
 import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, seedTemplatesIfMissing, saveWorkoutsAndExercises } from '../lib/supabaseData.ts';
+import { uploadWorkoutPhotos } from '../lib/storage.ts';
 import { SessionEngine, ProgressionEngine } from '../engine.ts';
-import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff, Timer, FileText, Settings, Plus } from 'lucide-react';
+import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff, Timer, FileText, Settings, Plus, Camera, Image, Trash2 } from 'lucide-react';
 import { AssistedTimedTracker } from './AssistedTimedTracker.tsx';
 import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
@@ -30,6 +31,10 @@ export const WorkoutDayTracker: React.FC = () => {
   const [sleepHours, setSleepHours] = useState(8);
   const [energyScore, setEnergyScore] = useState(7);
   const [sessionNotes, setSessionNotes] = useState('');
+  const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [sessionDate, setSessionDate] = useState(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -106,6 +111,37 @@ export const WorkoutDayTracker: React.FC = () => {
   const getDraftKey = (workoutId?: string) => {
     if (!user) return null;
     return `workout_draft_${user.uid}_${workoutId || activeWorkout?.id || 'default'}`;
+  };
+
+  // Handle photo file selection (up to 5)
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const remainingSlots = 5 - selectedPhotos.length;
+    if (remainingSlots <= 0) {
+      setErrorMsg('You can upload a maximum of 5 photos per session.');
+      return;
+    }
+
+    const newFiles = files.slice(0, remainingSlots);
+    const updatedFiles = [...selectedPhotos, ...newFiles];
+    setSelectedPhotos(updatedFiles);
+
+    // Create local object URLs for instant visual preview
+    const newPreviews = newFiles.map((f) => URL.createObjectURL(f));
+    setPhotoPreviews((prev) => [...prev, ...newPreviews]);
+
+    if (e.target) e.target.value = '';
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setSelectedPhotos((prev) => prev.filter((_, i) => i !== index));
+    setPhotoPreviews((prev) => {
+      const targetUrl = prev[index];
+      if (targetUrl) URL.revokeObjectURL(targetUrl);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   // Helper to save current draft checkpoint to localStorage
@@ -462,18 +498,35 @@ export const WorkoutDayTracker: React.FC = () => {
          completedAtDate = new Date(parseInt(y), parseInt(m)-1, parseInt(d), now.getHours(), now.getMinutes(), now.getSeconds());
       }
 
+      // Upload progress photos to S3/Supabase storage if selected
+      let uploadedPhotoUrls: string[] = [];
+      if (selectedPhotos.length > 0 && user) {
+        setIsUploadingPhotos(true);
+        try {
+          uploadedPhotoUrls = await uploadWorkoutPhotos(user.uid, selectedPhotos);
+        } catch (uploadErr: any) {
+          console.warn('Photos upload error, continuing session save:', uploadErr);
+        } finally {
+          setIsUploadingPhotos(false);
+        }
+      }
+
       await logSessionCompletion(
         user!.uid,
         activeWorkout.id,
         finalSetsPayload,
         activeWorkout.exercises,
         completedAtDate,
-        sessionNotes
+        sessionNotes,
+        uploadedPhotoUrls
       );
 
       // Clear local auto-save draft checkpoint upon successful log
       clearDraftCheckpoint(activeWorkout.id);
       setSessionNotes('');
+      setSelectedPhotos([]);
+      photoPreviews.forEach((url) => URL.revokeObjectURL(url));
+      setPhotoPreviews([]);
 
       setSuccessMsg(`Workout successfully saved! Next workout Day updated.`);
       
@@ -721,6 +774,60 @@ export const WorkoutDayTracker: React.FC = () => {
                   rows={2}
                   className="w-full bg-[#161616] border border-[#2e2e2e] focus:border-[#C0FF00] rounded-xl p-3 text-xs text-white placeholder-gray-600 focus:outline-none transition-colors resize-y font-sans"
                 />
+              </div>
+
+              {/* Progress Photos of the Day (Up to 5) */}
+              <div className="space-y-2 pt-3 border-t border-[#222]">
+                <div className="flex items-center justify-between text-[11px] font-bold text-gray-400 font-mono">
+                  <span className="uppercase tracking-wider flex items-center gap-1.5 text-gray-300">
+                    <Camera className="w-3.5 h-3.5 text-[#C0FF00]" />
+                    Photo of the Day ({selectedPhotos.length}/5)
+                  </span>
+                  <span className="text-[10px] text-gray-500 font-normal">Optional</span>
+                </div>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handlePhotoSelect}
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                />
+
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5 pt-1">
+                  {photoPreviews.map((previewUrl, index) => (
+                    <div
+                      key={index}
+                      className="relative group aspect-square rounded-xl overflow-hidden border border-[#333] bg-[#1a1a1a]"
+                    >
+                      <img
+                        src={previewUrl}
+                        alt={`Workout snap ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhoto(index)}
+                        className="absolute top-1 right-1 p-1 rounded-lg bg-black/80 hover:bg-red-600 text-white transition-colors cursor-pointer opacity-90"
+                        title="Remove photo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {selectedPhotos.length < 5 && (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="aspect-square flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#333] hover:border-[#C0FF00] bg-[#161616] hover:bg-[#1f1f1f] text-gray-400 hover:text-[#C0FF00] transition-all cursor-pointer p-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-center">Add Photo</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
@@ -1052,15 +1159,15 @@ export const WorkoutDayTracker: React.FC = () => {
           {(!isAssistedMode || assistedFinished) && (
             <button
               onClick={handleLogWorkout}
-              disabled={loggingWorkout}
+              disabled={loggingWorkout || isUploadingPhotos}
               className="w-full flex items-center justify-center gap-2.5 py-4 bg-white hover:bg-gray-100 disabled:bg-[#1a1a1a] disabled:text-gray-600 disabled:border-[#222] text-black rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-200 shadow-[0_0_25px_rgba(255,255,255,0.06)] cursor-pointer"
             >
-              {loggingWorkout ? (
+              {loggingWorkout || isUploadingPhotos ? (
                 <Loader2 className="w-4 h-4 animate-spin text-black" />
               ) : (
                 <Dumbbell className="w-4.5 h-4.5 fill-black" />
               )}
-              SUBMIT WORKOUT
+              {isUploadingPhotos ? 'UPLOADING PHOTOS...' : 'SUBMIT WORKOUT'}
             </button>
           )}
         </div>

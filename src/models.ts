@@ -41,6 +41,7 @@ export interface Session {
   startedAt: Date;
   completedAt: Date | null;
   notes?: string | null;
+  photos?: string[] | null;
 }
 
 export interface WorkoutSet {

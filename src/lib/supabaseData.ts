@@ -255,6 +255,7 @@ export async function fetchWorkoutHistory(userId: string) {
     startedAt: d.started_at ? new Date(d.started_at) : new Date(),
     completedAt: d.completed_at ? new Date(d.completed_at) : null,
     notes: d.notes || null,
+    photos: Array.isArray(d.photos) ? d.photos : (d.photos ? [d.photos] : null),
   }));
 
   return sessions;
@@ -288,7 +289,8 @@ export async function logSessionCompletion(
   setsData: any[],
   exercisesList: Exercise[],
   sessionCompletedAt?: Date,
-  notes?: string
+  notes?: string,
+  photos?: string[]
 ) {
   const { data: authData } = await supabase.auth.getUser();
   const authUser = authData?.user;
@@ -326,23 +328,38 @@ export async function logSessionCompletion(
     sessionPayload.notes = notes.trim();
   }
 
+  if (photos && photos.length > 0) {
+    sessionPayload.photos = photos;
+  }
+
   let { data: insertedSession, error: sessionErr } = await supabase
     .from('sessions')
     .insert(sessionPayload)
     .select()
     .single();
 
-  // Graceful fallback if the Supabase table has not run the migration for the 'notes' column yet
-  if (sessionErr && sessionErr.message && sessionErr.message.includes('notes') && 'notes' in sessionPayload) {
-    console.warn('Supabase sessions table missing "notes" column. Retrying insert without notes field.');
-    delete sessionPayload.notes;
-    const retry = await supabase
-      .from('sessions')
-      .insert(sessionPayload)
-      .select()
-      .single();
-    insertedSession = retry.data;
-    sessionErr = retry.error;
+  // Graceful fallback if the Supabase table has not run the migration for the 'photos' or 'notes' column yet
+  if (sessionErr && sessionErr.message) {
+    let shouldRetry = false;
+    if (sessionErr.message.includes('photos') && 'photos' in sessionPayload) {
+      console.warn('Supabase sessions table missing "photos" column. Retrying insert without photos field.');
+      delete sessionPayload.photos;
+      shouldRetry = true;
+    }
+    if (sessionErr.message.includes('notes') && 'notes' in sessionPayload) {
+      console.warn('Supabase sessions table missing "notes" column. Retrying insert without notes field.');
+      delete sessionPayload.notes;
+      shouldRetry = true;
+    }
+    if (shouldRetry) {
+      const retry = await supabase
+        .from('sessions')
+        .insert(sessionPayload)
+        .select()
+        .single();
+      insertedSession = retry.data;
+      sessionErr = retry.error;
+    }
   }
 
   if (sessionErr || !insertedSession) {

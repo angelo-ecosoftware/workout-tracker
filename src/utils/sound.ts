@@ -31,27 +31,27 @@ export function initAudioUnlock() {
 }
 
 /**
- * Plays a distinct 5-second vibration and pulsing low-frequency buzzer sound
+ * Plays a distinct 3-second vibration and pulsing low-frequency buzzer sound
  * specifically designed to simulate phone vibration sound + triggers device haptics.
  */
-export function playFiveSecondVibrateAlarm() {
+export function playThreeSecondVibrateAlarm() {
   // 1. Hardware vibration for mobile devices supporting navigator.vibrate
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
     try {
-      // 5-second vibration pattern with intense pulses
-      navigator.vibrate([800, 200, 800, 200, 800, 200, 800, 200, 800]);
+      // 3-second vibration pattern with intense pulses (800ms on, 200ms off, 800ms on, 200ms off, 1000ms on)
+      navigator.vibrate([800, 200, 800, 200, 1000]);
     } catch (e) {
       console.warn('Haptic vibration failed:', e);
     }
   }
 
-  // 2. Synthesized 5-second vibrating buzzer tone using Web Audio API (works on iOS & Android browsers)
+  // 2. Synthesized 3-second vibrating buzzer tone using Web Audio API (works on iOS & Android browsers)
   try {
     const ctx = getAudioContext();
     if (!ctx) return;
 
     const startTime = ctx.currentTime;
-    const duration = 5.0; // exactly 5 seconds
+    const duration = 3.0; // exactly 3 seconds
 
     // Master gain
     const masterGain = ctx.createGain();
