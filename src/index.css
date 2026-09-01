@@ -7,15 +7,53 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
+/* Base theme CSS variables */
+:root {
+  --bg-app: #050505;
+  --bg-surface: #111111;
+  --bg-surface-subtle: #161616;
+  --bg-surface-hover: #1a1a1a;
+  --bg-input: #0d0d0d;
+  --border-app: #222222;
+  --border-subtle: #2a2a2a;
+  --border-strong: #333333;
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
+  --text-dim: #6b7280;
+  --accent-lime: #C0FF00;
+  --accent-lime-hover: #a0d600;
+  --accent-lime-text: #000000;
+  --modal-backdrop: rgba(0, 0, 0, 0.75);
+}
+
+:root.light {
+  --bg-app: #f4f5f8;
+  --bg-surface: #ffffff;
+  --bg-surface-subtle: #f8fafc;
+  --bg-surface-hover: #f1f5f9;
+  --bg-input: #ffffff;
+  --border-app: #e2e8f0;
+  --border-subtle: #cbd5e1;
+  --border-strong: #94a3b8;
+  --text-main: #0f172a;
+  --text-muted: #475569;
+  --text-dim: #64748b;
+  --accent-lime: #C0FF00;
+  --accent-lime-hover: #a8e600;
+  --accent-lime-text: #000000;
+  --modal-backdrop: rgba(15, 23, 42, 0.6);
+}
+
 /* Base style resets */
 body {
   font-family: var(--font-sans);
-  background-color: #050505;
-  color: #f3f4f6;
+  background-color: var(--bg-app);
+  color: var(--text-main);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Custom black-themed scrollbar */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -23,10 +61,150 @@ body {
 ::-webkit-scrollbar-track {
   background: #0d0d0d;
 }
+.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
 ::-webkit-scrollbar-thumb {
   background: #222222;
   border-radius: 3px;
 }
+.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
 ::-webkit-scrollbar-thumb:hover {
   background: #C0FF00;
+}
+
+/* Light mode dynamic utility classes and overrides */
+.light {
+  color-scheme: light;
+}
+
+.light body,
+.light .min-h-screen {
+  background-color: #f4f5f8 !important;
+  color: #0f172a !important;
+}
+
+/* Surface backgrounds in light mode */
+.light .bg-\[\#050505\] {
+  background-color: #f4f5f8 !important;
+}
+
+.light .bg-\[\#0d0d0d\],
+.light .bg-\[\#111\],
+.light .bg-\[\#111111\],
+.light .bg-\[\#141414\] {
+  background-color: #ffffff !important;
+}
+
+.light .bg-\[\#161616\],
+.light .bg-\[\#181818\],
+.light .bg-\[\#1a1a1a\],
+.light .bg-\[\#1f1f1f\],
+.light .bg-\[\#222\],
+.light .bg-\[\#262626\] {
+  background-color: #f8fafc !important;
+}
+
+.light .hover\:bg-\[\#1f1f1f\]:hover,
+.light .hover\:bg-\[\#222\]:hover,
+.light .hover\:bg-\[\#242424\]:hover,
+.light .hover\:bg-\[\#252525\]:hover,
+.light .hover\:bg-neutral-900:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* Borders in light mode - keep thin, crisp outlines with electric lime hover accents */
+.light .border-\[\#222\],
+.light .border-\[\#222222\],
+.light .border-\[\#262626\],
+.light .border-\[\#282828\],
+.light .border-\[\#2a2a2a\],
+.light .border-\[\#2b2b2b\],
+.light .border-\[\#2e2e2e\] {
+  border-color: #e2e8f0 !important;
+}
+
+.light .border-\[\#333\],
+.light .border-\[\#383838\],
+.light .border-\[\#444\],
+.light .border-\[\#555\] {
+  border-color: #cbd5e1 !important;
+}
+
+/* Text colors in light mode for maximum accessibility and contrast */
+.light .text-white {
+  color: #0f172a !important;
+}
+
+.light .text-\[\#f3f4f6\],
+.light .text-gray-200,
+.light .text-gray-300 {
+  color: #1e293b !important;
+}
+
+.light .text-gray-400 {
+  color: #475569 !important;
+}
+
+.light .text-gray-500 {
+  color: #64748b !important;
+}
+
+.light .text-gray-600 {
+  color: #94a3b8 !important;
+}
+
+.light .placeholder-gray-500::placeholder,
+.light .placeholder-gray-600::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Keep Electric Lime accents glowing with solid dark text for readable badges/buttons */
+.light .text-\[\#C0FF00\] {
+  color: #4d7c0f !important; /* accessible readable green for text */
+}
+
+.light .bg-\[\#C0FF00\] {
+  background-color: #C0FF00 !important;
+  color: #000000 !important;
+}
+
+.light .bg-\[\#C0FF00\]\/10,
+.light .bg-\[\#C0FF00\]\/15 {
+  background-color: rgba(192, 255, 0, 0.18) !important;
+}
+
+.light .border-\[\#C0FF00\],
+.light .border-\[\#C0FF00\]\/20,
+.light .border-\[\#C0FF00\]\/30,
+.light .border-\[\#C0FF00\]\/40,
+.light .border-\[\#C0FF00\]\/50 {
+  border-color: #84cc16 !important;
+}
+
+.light .hover\:border-\[\#C0FF00\]:hover,
+.light .hover\:border-\[\#C0FF00\]\/40:hover,
+.light .hover\:border-\[\#C0FF00\]\/50:hover,
+.light .focus\:border-\[\#C0FF00\]:focus {
+  border-color: #65a30d !important;
+}
+
+/* Active tab text on electric lime button in light mode */
+.light .bg-\[\#C0FF00\].text-black {
+  color: #000000 !important;
+}
+
+/* Header & Nav in Light Mode */
+.light header {
+  background-color: #ffffff !important;
+  border-bottom-color: #e2e8f0 !important;
+}
+
+/* Modals & Backdrops in Light Mode */
+.light .bg-black\/75,
+.light .bg-black\/80,
+.light .bg-black\/85 {
+  background-color: rgba(15, 23, 42, 0.6) !important;
 }
