@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { Workout, Exercise, UserProfile } from '../models.ts';
 import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, seedTemplatesIfMissing } from '../lib/supabaseData.ts';
 import { SessionEngine, ProgressionEngine } from '../engine.ts';
-import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff, Timer } from 'lucide-react';
+import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff, Timer, FileText } from 'lucide-react';
 import { OnboardingModal } from './OnboardingModal.tsx';
 import { AssistedTimedTracker } from './AssistedTimedTracker.tsx';
 import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
@@ -23,9 +23,10 @@ export const WorkoutDayTracker: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Recovery States
+  // Recovery & Note States
   const [sleepHours, setSleepHours] = useState(8);
   const [energyScore, setEnergyScore] = useState(7);
+  const [sessionNotes, setSessionNotes] = useState('');
   const [sessionDate, setSessionDate] = useState(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -70,7 +71,7 @@ export const WorkoutDayTracker: React.FC = () => {
   };
 
   // Helper to save current draft checkpoint to localStorage
-  const saveDraftCheckpoint = (newInputs: Record<string, any>, workoutId?: string, curDate?: string, curSleep?: number, curEnergy?: number) => {
+  const saveDraftCheckpoint = (newInputs: Record<string, any>, workoutId?: string, curDate?: string, curSleep?: number, curEnergy?: number, curNotes?: string) => {
     const key = getDraftKey(workoutId);
     if (!key) return;
     try {
@@ -80,6 +81,7 @@ export const WorkoutDayTracker: React.FC = () => {
         sessionDate: curDate ?? sessionDate,
         sleepHours: curSleep ?? sleepHours,
         energyScore: curEnergy ?? energyScore,
+        notes: curNotes ?? sessionNotes,
         savedAt: new Date().toISOString()
       };
       localStorage.setItem(key, JSON.stringify(payload));
@@ -175,6 +177,7 @@ export const WorkoutDayTracker: React.FC = () => {
               if (parsedDraft.sessionDate) setSessionDate(parsedDraft.sessionDate);
               if (parsedDraft.sleepHours != null) setSleepHours(parsedDraft.sleepHours);
               if (parsedDraft.energyScore != null) setEnergyScore(parsedDraft.energyScore);
+              if (parsedDraft.notes != null) setSessionNotes(parsedDraft.notes);
               if (parsedDraft.savedAt) {
                 const dateObj = new Date(parsedDraft.savedAt);
                 setLastAutoSavedTime(dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
@@ -411,10 +414,18 @@ export const WorkoutDayTracker: React.FC = () => {
          completedAtDate = new Date(parseInt(y), parseInt(m)-1, parseInt(d), now.getHours(), now.getMinutes(), now.getSeconds());
       }
 
-      await logSessionCompletion(user!.uid, activeWorkout.id, finalSetsPayload, activeWorkout.exercises, completedAtDate);
+      await logSessionCompletion(
+        user!.uid,
+        activeWorkout.id,
+        finalSetsPayload,
+        activeWorkout.exercises,
+        completedAtDate,
+        sessionNotes
+      );
 
       // Clear local auto-save draft checkpoint upon successful log
       clearDraftCheckpoint(activeWorkout.id);
+      setSessionNotes('');
 
       setSuccessMsg(`Workout successfully saved! Next workout Day updated.`);
       
@@ -546,7 +557,7 @@ export const WorkoutDayTracker: React.FC = () => {
                     value={sessionDate}
                     onChange={(e) => {
                       setSessionDate(e.target.value);
-                      saveDraftCheckpoint(inputs, activeWorkout.id, e.target.value, sleepHours, energyScore);
+                      saveDraftCheckpoint(inputs, activeWorkout.id, e.target.value, sleepHours, energyScore, sessionNotes);
                     }}
                     className="w-full sm:w-auto pl-8 pr-3 py-1.5 text-xs border border-[#333] rounded-xl bg-[#1a1a1a] text-white font-mono focus:outline-none focus:border-[#C0FF00]"
                   />
@@ -572,7 +583,7 @@ export const WorkoutDayTracker: React.FC = () => {
                     onChange={(e) => {
                       const val = parseFloat(e.target.value);
                       setSleepHours(val);
-                      saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, val, energyScore);
+                      saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, val, energyScore, sessionNotes);
                     }}
                     className="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#C0FF00]"
                   />
@@ -594,11 +605,33 @@ export const WorkoutDayTracker: React.FC = () => {
                     onChange={(e) => {
                       const val = parseInt(e.target.value, 10);
                       setEnergyScore(val);
-                      saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, sleepHours, val);
+                      saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, sleepHours, val, sessionNotes);
                     }}
                     className="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#C0FF00]"
                   />
                 </div>
+              </div>
+
+              {/* Routine Day Note Input */}
+              <div className="space-y-1.5 pt-3 border-t border-[#222]">
+                <div className="flex items-center justify-between text-[11px] font-bold text-gray-400 font-mono">
+                  <span className="uppercase tracking-wider flex items-center gap-1.5 text-gray-300">
+                    <FileText className="w-3.5 h-3.5 text-[#C0FF00]" />
+                    Routine Notes / Remarks
+                  </span>
+                  <span className="text-[10px] text-gray-500 font-normal">Optional</span>
+                </div>
+                <textarea
+                  value={sessionNotes}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSessionNotes(val);
+                    saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, sleepHours, energyScore, val);
+                  }}
+                  placeholder="e.g., Felt strong on pushups, shoulder felt great, tweaked grip width..."
+                  rows={2}
+                  className="w-full bg-[#161616] border border-[#2e2e2e] focus:border-[#C0FF00] rounded-xl p-3 text-xs text-white placeholder-gray-600 focus:outline-none transition-colors resize-y font-sans"
+                />
               </div>
             </div>
           )}

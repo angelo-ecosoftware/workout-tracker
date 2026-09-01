@@ -290,6 +290,7 @@ export async function fetchWorkoutHistory(userId: string) {
     status: d.status || (d.is_completed ? 'completed' : 'in_progress'),
     startedAt: d.started_at ? new Date(d.started_at) : new Date(),
     completedAt: d.completed_at ? new Date(d.completed_at) : null,
+    notes: d.notes || null,
   }));
 
   return sessions;
@@ -322,7 +323,8 @@ export async function logSessionCompletion(
   workoutId: string,
   setsData: any[],
   exercisesList: Exercise[],
-  sessionCompletedAt?: Date
+  sessionCompletedAt?: Date,
+  notes?: string
 ) {
   const { data: authData } = await supabase.auth.getUser();
   const authUser = authData?.user;
@@ -356,6 +358,7 @@ export async function logSessionCompletion(
       status: 'completed',
       started_at: sessionData.startedAt.toISOString(),
       completed_at: completedTimestamp,
+      notes: notes && notes.trim().length > 0 ? notes.trim() : null,
     })
     .select()
     .single();

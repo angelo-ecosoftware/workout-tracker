@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate, fetchWorkoutsData } from '../lib/supabaseData.ts';
 import { Session, WorkoutSet, Exercise } from '../models.ts';
-import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X } from 'lucide-react';
+import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X, FileText } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal.tsx';
 
 interface PopulatedSession extends Session {
@@ -288,6 +288,17 @@ export const WorkoutHistory: React.FC = () => {
                   )}
                 </div>
               </div>
+
+              {/* Session Notes if logged */}
+              {session.notes && (
+                <div className="mb-6 p-3.5 bg-[#161616] border border-[#2a2a2a] rounded-xl flex items-start gap-2.5 text-xs text-gray-300">
+                  <FileText className="w-4 h-4 text-[#C0FF00] shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-mono text-[10px] uppercase font-bold text-[#C0FF00] block mb-0.5">Workout Notes</span>
+                    <p className="whitespace-pre-wrap text-gray-300 font-sans">{session.notes}</p>
+                  </div>
+                </div>
+              )}
 
               {/* Desktop Table view for Detail */}
               <div className="hidden sm:block overflow-x-auto">

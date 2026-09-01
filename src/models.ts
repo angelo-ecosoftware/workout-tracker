@@ -42,6 +42,7 @@ export interface Session {
   status: 'in_progress' | 'completed';
   startedAt: Date;
   completedAt: Date | null;
+  notes?: string | null;
 }
 
 export interface WorkoutSet {
