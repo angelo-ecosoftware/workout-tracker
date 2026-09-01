@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate, fetchWorkoutsData } from '../lib/supabaseData.ts';
+import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate, updateSessionNotes, updateSessionPhotos, fetchWorkoutsData } from '../lib/supabaseData.ts';
+import { uploadWorkoutPhoto } from '../lib/storage.ts';
 import { Session, WorkoutSet, Exercise } from '../models.ts';
-import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X, FileText, Camera, Image } from 'lucide-react';
+import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X, FileText, Camera, Plus } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal.tsx';
 
 interface PopulatedSession extends Session {
@@ -22,6 +23,110 @@ export const WorkoutHistory: React.FC = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [editingDateSessionId, setEditingDateSessionId] = useState<string | null>(null);
   const [editingDateValue, setEditingDateValue] = useState<string>("");
+
+  // Notes editing state
+  const [editingNotesSessionId, setEditingNotesSessionId] = useState<string | null>(null);
+  const [editingNotesValue, setEditingNotesValue] = useState<string>("");
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+
+  // Photo uploading / deleting state
+  const [uploadingPhotoSessionId, setUploadingPhotoSessionId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [activePhotoUploadSessionId, setActivePhotoUploadSessionId] = useState<string | null>(null);
+
+  const startEditingNotes = (session: PopulatedSession) => {
+    setEditingNotesSessionId(session.id);
+    setEditingNotesValue(session.notes || "");
+  };
+
+  const saveNotesEdit = async (sessionId: string) => {
+    try {
+      setIsSavingNotes(true);
+      const cleanNotes = editingNotesValue.trim() || null;
+      await updateSessionNotes(sessionId, cleanNotes);
+
+      setSessions(prev =>
+        prev.map(s => (s.id === sessionId ? { ...s, notes: cleanNotes } : s))
+      );
+      setEditingNotesSessionId(null);
+    } catch (err) {
+      console.error("Failed to update notes:", err);
+      alert("Failed to update notes.");
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
+
+  const cancelNotesEdit = () => {
+    setEditingNotesSessionId(null);
+    setEditingNotesValue("");
+  };
+
+  const triggerAddPhoto = (sessionId: string) => {
+    setActivePhotoUploadSessionId(sessionId);
+    fileInputRef.current?.click();
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || !files.length || !activePhotoUploadSessionId || !user) {
+      return;
+    }
+
+    const targetSession = sessions.find(s => s.id === activePhotoUploadSessionId);
+    const existingPhotos = targetSession?.photos || [];
+
+    if (existingPhotos.length >= 5) {
+      alert("Maximum of 5 photos per session reached.");
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    const availableSlots = 5 - existingPhotos.length;
+    const filesToUpload = Array.from(files).slice(0, availableSlots);
+
+    try {
+      setUploadingPhotoSessionId(activePhotoUploadSessionId);
+      const uploadedUrls: string[] = [];
+      for (const file of filesToUpload) {
+        const url = await uploadWorkoutPhoto(user.uid, file);
+        uploadedUrls.push(url);
+      }
+
+      const updatedPhotos = [...existingPhotos, ...uploadedUrls];
+      await updateSessionPhotos(activePhotoUploadSessionId, updatedPhotos);
+
+      setSessions(prev =>
+        prev.map(s => (s.id === activePhotoUploadSessionId ? { ...s, photos: updatedPhotos } : s))
+      );
+    } catch (err: any) {
+      console.error("Photo upload error:", err);
+      alert(err.message || "Failed to upload photo.");
+    } finally {
+      setUploadingPhotoSessionId(null);
+      setActivePhotoUploadSessionId(null);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDeletePhoto = async (sessionId: string, photoIndexToRemove: number) => {
+    const targetSession = sessions.find(s => s.id === sessionId);
+    if (!targetSession || !targetSession.photos) return;
+
+    if (!confirm("Are you sure you want to remove this photo?")) return;
+
+    try {
+      const updatedPhotos = targetSession.photos.filter((_, idx) => idx !== photoIndexToRemove);
+      await updateSessionPhotos(sessionId, updatedPhotos);
+
+      setSessions(prev =>
+        prev.map(s => (s.id === sessionId ? { ...s, photos: updatedPhotos.length ? updatedPhotos : null } : s))
+      );
+    } catch (err) {
+      console.error("Failed to remove photo:", err);
+      alert("Failed to delete photo.");
+    }
+  };
 
   const startEditingDate = (session: PopulatedSession) => {
     setEditingDateSessionId(session.id);
@@ -289,34 +394,106 @@ export const WorkoutHistory: React.FC = () => {
                 </div>
               </div>
 
-              {/* Session Notes if logged */}
-              {session.notes && (
-                <div className="mb-6 p-3.5 bg-[#161616] border border-[#2a2a2a] rounded-xl flex items-start gap-2.5 text-xs text-gray-300">
-                  <FileText className="w-4 h-4 text-[#C0FF00] shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-mono text-[10px] uppercase font-bold text-[#C0FF00] block mb-0.5">Workout Notes</span>
-                    <p className="whitespace-pre-wrap text-gray-300 font-sans">{session.notes}</p>
-                  </div>
-                </div>
-              )}
+              {/* Hidden Global Photo Input for adding photos */}
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handlePhotoUpload}
+                accept="image/*"
+                multiple
+                className="hidden"
+              />
 
-              {/* Session Progress Photos if logged */}
-              {session.photos && session.photos.length > 0 && (
-                <div className="mb-6 p-3.5 bg-[#161616] border border-[#2a2a2a] rounded-xl text-xs">
-                  <div className="flex items-center gap-2 mb-3 text-gray-300">
-                    <Camera className="w-4 h-4 text-[#C0FF00]" />
+              {/* Session Notes */}
+              <div className="mb-5 p-3.5 bg-[#161616] border border-[#2a2a2a] rounded-xl text-xs text-gray-300">
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[#C0FF00] shrink-0" />
                     <span className="font-mono text-[10px] uppercase font-bold text-[#C0FF00]">
-                      Progress Photos ({session.photos.length})
+                      Workout Notes
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                    {session.photos.map((photoUrl, idx) => (
+                  {editingNotesSessionId !== session.id ? (
+                    <button
+                      onClick={() => startEditingNotes(session)}
+                      className="p-1 text-gray-400 hover:text-[#C0FF00] transition-colors rounded hover:bg-[#222]"
+                      title="Edit Notes"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                  ) : null}
+                </div>
+
+                {editingNotesSessionId === session.id ? (
+                  <div className="space-y-2 mt-2">
+                    <textarea
+                      value={editingNotesValue}
+                      onChange={(e) => setEditingNotesValue(e.target.value)}
+                      placeholder="Add or update session notes..."
+                      rows={3}
+                      className="w-full bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-lg p-2.5 text-xs text-white placeholder-gray-600 focus:outline-none transition-colors resize-y font-sans"
+                    />
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={cancelNotesEdit}
+                        disabled={isSavingNotes}
+                        className="px-2.5 py-1 text-[11px] font-sans font-bold text-gray-400 hover:text-white rounded bg-[#222] transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => saveNotesEdit(session.id)}
+                        disabled={isSavingNotes}
+                        className="px-3 py-1 text-[11px] font-sans font-bold bg-[#C0FF00] hover:bg-[#b0f000] text-black rounded transition-colors flex items-center gap-1.5"
+                      >
+                        {isSavingNotes ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="whitespace-pre-wrap text-gray-300 font-sans mt-1">
+                    {session.notes || <span className="text-gray-500 italic">No notes added for this workout.</span>}
+                  </p>
+                )}
+              </div>
+
+              {/* Session Progress Photos */}
+              <div className="mb-6 p-3.5 bg-[#161616] border border-[#2a2a2a] rounded-xl text-xs">
+                <div className="flex items-center justify-between mb-3 text-gray-300">
+                  <div className="flex items-center gap-2">
+                    <Camera className="w-4 h-4 text-[#C0FF00]" />
+                    <span className="font-mono text-[10px] uppercase font-bold text-[#C0FF00]">
+                      Progress Photos ({session.photos?.length || 0}/5)
+                    </span>
+                  </div>
+                  {(!session.photos || session.photos.length < 5) && (
+                    <button
+                      onClick={() => triggerAddPhoto(session.id)}
+                      disabled={uploadingPhotoSessionId === session.id}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#222] hover:bg-[#2c2c2c] text-[#C0FF00] text-[10px] font-mono font-bold uppercase transition-colors"
+                    >
+                      {uploadingPhotoSessionId === session.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Plus className="w-3 h-3" />
+                      )}
+                      Add Photo
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                  {(session.photos || []).map((photoUrl, idx) => (
+                    <div
+                      key={idx}
+                      className="relative group aspect-square rounded-xl overflow-hidden border border-[#333] bg-[#1a1a1a]"
+                    >
                       <a
-                        key={idx}
                         href={photoUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="relative group aspect-square rounded-xl overflow-hidden border border-[#333] bg-[#1a1a1a] hover:border-[#C0FF00] transition-colors"
+                        className="w-full h-full block"
                         title="View photo full size"
                       >
                         <img
@@ -326,10 +503,39 @@ export const WorkoutHistory: React.FC = () => {
                           loading="lazy"
                         />
                       </a>
-                    ))}
-                  </div>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeletePhoto(session.id, idx);
+                        }}
+                        className="absolute top-1 right-1 p-1 rounded-lg bg-black/80 hover:bg-red-600 text-white transition-colors cursor-pointer opacity-85"
+                        title="Remove photo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {(!session.photos || session.photos.length < 5) && (
+                    <button
+                      type="button"
+                      onClick={() => triggerAddPhoto(session.id)}
+                      disabled={uploadingPhotoSessionId === session.id}
+                      className="aspect-square flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#333] hover:border-[#C0FF00] bg-[#141414] hover:bg-[#1a1a1a] text-gray-400 hover:text-[#C0FF00] transition-all cursor-pointer p-2"
+                    >
+                      {uploadingPhotoSessionId === session.id ? (
+                        <Loader2 className="w-5 h-5 animate-spin text-[#C0FF00]" />
+                      ) : (
+                        <Plus className="w-5 h-5" />
+                      )}
+                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-center">
+                        {uploadingPhotoSessionId === session.id ? 'Uploading...' : 'Add Photo'}
+                      </span>
+                    </button>
+                  )}
                 </div>
-              )}
+              </div>
 
               {/* Desktop Table view for Detail */}
               <div className="hidden sm:block overflow-x-auto">

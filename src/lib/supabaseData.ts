@@ -233,6 +233,20 @@ export async function updateSessionDate(sessionId: string, newDate: Date) {
     .eq('id', sessionId);
 }
 
+export async function updateSessionNotes(sessionId: string, notes: string | null) {
+  await supabase
+    .from('sessions')
+    .update({ notes })
+    .eq('id', sessionId);
+}
+
+export async function updateSessionPhotos(sessionId: string, photos: string[]) {
+  await supabase
+    .from('sessions')
+    .update({ photos })
+    .eq('id', sessionId);
+}
+
 export async function deleteSessions(sessionIds: string[]) {
   if (!sessionIds.length) return;
   await supabase.from('sets').delete().in('session_id', sessionIds);
