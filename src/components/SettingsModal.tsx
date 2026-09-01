@@ -269,19 +269,19 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           <button
             onClick={handleOpenRoutineEditor}
             disabled={loadingWorkouts}
-            className="flex items-center justify-between w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
+            className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
           >
-            <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
                 {loadingWorkouts ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Layers className="w-3.5 h-3.5" />}
               </div>
-              <div className="min-w-0">
-                <div className="font-bold text-xs sm:text-sm text-white">Edit Routines & Exercises</div>
-                <div className="text-[11px] text-gray-500 line-clamp-1">Customize days, exercises & targets</div>
+              <div className="min-w-0 flex-1">
+                <div className="font-bold text-xs sm:text-sm text-white truncate">Edit Routines & Exercises</div>
+                <div className="text-[11px] text-gray-500 truncate">Customize days, exercises & targets</div>
               </div>
             </div>
-            <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 ml-2">
-              Edit
+            <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
+              Configure
             </div>
           </button>
 
@@ -289,22 +289,22 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           {isMobile && !isStandalone && (
             <button
               onClick={handleInstallApp}
-              className="flex items-center justify-between w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
+              className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
             >
-              <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
                   <Smartphone className="w-3.5 h-3.5" />
                 </div>
-                <div className="min-w-0">
-                  <div className="font-bold text-xs sm:text-sm text-white">
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-xs sm:text-sm text-white truncate">
                     Install / Download App
                   </div>
-                  <div className="text-[11px] text-gray-500 line-clamp-1">
+                  <div className="text-[11px] text-gray-500 truncate">
                     Fast offline & home screen access
                   </div>
                 </div>
               </div>
-              <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 ml-2">
+              <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
                 Install
               </div>
             </button>
@@ -412,18 +412,18 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
               onClose();
               await switchAccount();
             }}
-            className="flex items-center justify-between w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
+            className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
           >
-            <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
                 <UserCheck className="w-3.5 h-3.5" />
               </div>
-              <div className="min-w-0">
-                <div className="font-bold text-xs sm:text-sm text-white">Switch Account</div>
-                <div className="text-[11px] text-gray-500 line-clamp-1">Change Google account</div>
+              <div className="min-w-0 flex-1">
+                <div className="font-bold text-xs sm:text-sm text-white truncate">Switch Account</div>
+                <div className="text-[11px] text-gray-500 truncate">Change Google account</div>
               </div>
             </div>
-            <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 ml-2">
+            <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
               Switch
             </div>
           </button>

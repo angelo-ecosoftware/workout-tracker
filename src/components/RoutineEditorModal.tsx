@@ -59,17 +59,13 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   };
 
   const handleDeleteWorkoutDay = (index: number) => {
-    if (workouts.length <= 1) {
-      alert("You must keep at least 1 routine day in your split.");
-      return;
-    }
-    if (!confirm(`Delete "${workouts[index].name}"?`)) return;
+    if (!confirm(`Delete "${workouts[index]?.name || `Day ${index + 1}`}"?`)) return;
 
     const filtered = workouts.filter((_, i) => i !== index);
     // Re-index orders cleanly
     const reindexed = filtered.map((w, i) => ({ ...w, order: i + 1 }));
     setWorkouts(reindexed);
-    setSelectedWorkoutIndex(Math.max(0, index - 1));
+    setSelectedWorkoutIndex(Math.max(0, Math.min(index, reindexed.length - 1)));
   };
 
   const handleUpdateWorkoutName = (newName: string) => {
