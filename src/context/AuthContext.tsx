@@ -15,6 +15,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   loginWithGoogle: () => Promise<void>;
+  switchAccount: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -61,11 +62,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         provider: 'google',
         options: {
           redirectTo: window.location.origin,
+          queryParams: {
+            prompt: 'select_account',
+          },
         },
       });
       if (error) throw error;
     } catch (err: any) {
       console.error("Google login failed:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const switchAccount = async () => {
+    setLoading(true);
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setToken(null);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+          queryParams: {
+            prompt: 'select_account',
+          },
+        },
+      });
+      if (error) throw error;
+    } catch (err: any) {
+      console.error("Account switch failed:", err);
       throw err;
     } finally {
       setLoading(false);
@@ -86,7 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, loginWithGoogle, switchAccount, logout }}>
       {children}
     </AuthContext.Provider>
   );

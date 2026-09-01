@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { usePWA } from '../context/PWAContext.tsx';
-import { X, Download, Upload, Trash2, LogOut, Loader2, AlertTriangle, Smartphone, Check, Share2, Layers, Timer, Zap } from 'lucide-react';
+import { X, Download, Upload, Trash2, LogOut, Loader2, AlertTriangle, Smartphone, Check, Share2, Layers, Timer, Zap, UserCheck } from 'lucide-react';
 import { exportAllLogs, deleteAllLogs, importAllLogs, fetchWorkoutsData, saveWorkoutsAndExercises } from '../lib/supabaseData.ts';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { Workout, Exercise } from '../models.ts';
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, switchAccount } = useAuth();
   const { installPrompt, setInstallPrompt, isStandalone, isIOS } = usePWA();
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -389,12 +389,34 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
           <div className="h-px bg-[#222] my-1" />
 
+          {/* Switch Google Account */}
+          <button
+            onClick={async () => {
+              onClose();
+              await switchAccount();
+            }}
+            className="flex items-center justify-between w-full p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
+                <UserCheck className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="font-bold text-sm text-white">Switch Account</div>
+                <div className="text-xs text-gray-500">Pick or switch to another Google account</div>
+              </div>
+            </div>
+            <div className="text-xs font-mono font-bold text-[#C0FF00] uppercase tracking-wider">
+              Switch
+            </div>
+          </button>
+
           <button
             onClick={() => {
               onClose();
               logout();
             }}
-            className="flex items-center justify-center gap-2 w-full p-3 bg-[#1a1a1a] border border-[#222] hover:bg-neutral-900 rounded-xl text-gray-300 transition-colors font-bold text-sm uppercase tracking-wider mt-2"
+            className="flex items-center justify-center gap-2 w-full p-3 bg-[#1a1a1a] border border-[#222] hover:bg-neutral-900 rounded-xl text-gray-300 transition-colors font-bold text-sm uppercase tracking-wider mt-1"
           >
             <LogOut className="w-4 h-4" />
             Logout
