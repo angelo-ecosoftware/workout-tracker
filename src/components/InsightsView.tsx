@@ -106,10 +106,7 @@ export const InsightsView: React.FC = () => {
     );
   }
 
-  const formatTonnage = (kg: number) => {
-    if (kg >= 1000) {
-      return `${(kg / 1000).toFixed(1)} t`;
-    }
+  const formatKg = (kg: number) => {
     return `${kg.toLocaleString()} kg`;
   };
 
@@ -150,7 +147,7 @@ export const InsightsView: React.FC = () => {
         <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4.5 space-y-2 transition-all">
           <div className="flex items-center justify-between">
             <span className="font-mono text-[10px] uppercase font-bold text-gray-400 tracking-wider">
-              90-Day Tonnage
+              90-Day Volume
             </span>
             <div className="p-1.5 rounded-lg bg-[#C0FF00]/10 text-[#C0FF00]">
               <Dumbbell className="w-4 h-4" />
@@ -158,10 +155,10 @@ export const InsightsView: React.FC = () => {
           </div>
           <div>
             <div className="text-2xl font-display font-black text-[#C0FF00] tracking-tight">
-              {formatTonnage(metrics.totalVolume90DaysKg)}
+              {formatKg(metrics.totalVolume90DaysKg)}
             </div>
             <div className="flex items-center gap-1 text-[10px] font-mono text-gray-400 mt-1">
-              <span>Lifetime: {formatTonnage(metrics.totalVolumeKg)}</span>
+              <span>Lifetime: {formatKg(metrics.totalVolumeKg)}</span>
             </div>
           </div>
         </div>
@@ -304,13 +301,13 @@ export const InsightsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Weekly Tonnage Trajectory Chart (Last 8 Weeks) */}
+      {/* Weekly Volume Trajectory Chart (Last 8 Weeks) */}
       <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl space-y-4">
         <div className="flex items-center justify-between border-b border-[#222] pb-3">
           <div>
             <h3 className="font-display font-black text-base text-white uppercase tracking-tight flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-[#C0FF00]" />
-              Weekly Volume Trend (Tonnage)
+              Weekly Volume Trend (kg)
             </h3>
             <p className="text-[11px] font-sans text-gray-400 mt-0.5">
               Cumulative weekly kilogram volume moved over the last 8 weeks.
@@ -326,7 +323,7 @@ export const InsightsView: React.FC = () => {
             return (
               <div key={w.weekLabel} className="flex flex-col items-center gap-2 h-full justify-end group">
                 <span className="text-[9px] font-mono text-gray-400 group-hover:text-white transition-colors">
-                  {w.volumeKg > 0 ? `${(w.volumeKg / 1000).toFixed(1)}t` : '0t'}
+                  {w.volumeKg > 0 ? `${w.volumeKg.toLocaleString()}kg` : '0kg'}
                 </span>
                 <div className="w-full max-w-[36px] bg-[#1a1a1a] rounded-t-lg overflow-hidden flex flex-col justify-end h-full p-0.5 border border-[#282828]">
                   <div
