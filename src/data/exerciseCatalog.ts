@@ -1,5 +1,52 @@
-export * from '../constants/exerciseCatalog.ts';
+export interface CatalogExercise {
+  id: string;
+  name: string;
+  category: 'Chest' | 'Back' | 'Shoulders' | 'Legs' | 'Arms' | 'Core' | 'Cardio' | 'Full Body';
+  muscles: string[];
+  equipment: string;
+  type: 'strength' | 'timed';
+  defaultSets: number;
+  defaultRepMin: number;
+  defaultRepMax: number;
+}
 
+export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
+  // CHEST
+  {
+    id: 'wger_bench_press_barbell',
+    name: 'Bench Press (Barbell)',
+    category: 'Chest',
+    muscles: ['Pectoralis major', 'Triceps brachii', 'Anterior deltoid', 'Chest'],
+    equipment: 'Barbell',
+    type: 'strength',
+    defaultSets: 4,
+    defaultRepMin: 6,
+    defaultRepMax: 10
+  },
+  {
+    id: 'wger_bench_press_dumbbell',
+    name: 'Dumbbell Bench Press',
+    category: 'Chest',
+    muscles: ['Pectoralis major', 'Triceps brachii', 'Anterior deltoid', 'Chest'],
+    equipment: 'Dumbbells',
+    type: 'strength',
+    defaultSets: 4,
+    defaultRepMin: 8,
+    defaultRepMax: 12
+  },
+  {
+    id: 'wger_incline_bench_press',
+    name: 'Incline Bench Press (Barbell)',
+    category: 'Chest',
+    muscles: ['Clavicular head pectoralis', 'Anterior deltoid', 'Triceps', 'Upper Chest'],
+    equipment: 'Barbell',
+    type: 'strength',
+    defaultSets: 4,
+    defaultRepMin: 8,
+    defaultRepMax: 12
+  },
+  {
+    id: 'wger_incline_dumbbell_press',
     name: 'Incline Dumbbell Press',
     category: 'Chest',
     muscles: ['Clavicular head pectoralis', 'Anterior deltoid', 'Triceps', 'Upper Chest'],

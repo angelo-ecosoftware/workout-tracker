@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { PWAProvider } from './context/PWAContext.tsx';
-import { LoginScreen, Header, WorkoutDayTracker, WorkoutHistory } from './components/index.ts';
+import { LoginScreen } from './components/LoginScreen.tsx';
+import { Header } from './components/Header.tsx';
+import { WorkoutDayTracker } from './components/WorkoutDayTracker.tsx';
+import { WorkoutHistory } from './components/WorkoutHistory.tsx';
 import { Loader2 } from 'lucide-react';
 
 const GymAppContent: React.FC = () => {

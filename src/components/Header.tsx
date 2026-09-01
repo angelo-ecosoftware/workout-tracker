@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
 import { Dumbbell, Settings, User } from 'lucide-react';
-import { SettingsModal } from '../modals/SettingsModal.tsx';
+import { SettingsModal } from './SettingsModal.tsx';
 
 export const Header: React.FC = () => {
   const { user } = useAuth();

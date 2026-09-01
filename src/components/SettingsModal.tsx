@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext.tsx';
-import { usePWA } from '../../context/PWAContext.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
+import { usePWA } from '../context/PWAContext.tsx';
 import { X, Download, Upload, Trash2, LogOut, Loader2, AlertTriangle, Smartphone, Check, Share2, Layers, Timer, Zap, UserCheck } from 'lucide-react';
-import { exportAllLogs, deleteAllLogs, importAllLogs, fetchWorkoutsData, saveWorkoutsAndExercises } from '../../services/workoutService.ts';
-import { RoutineEditorModal } from '../routine/RoutineEditorModal.tsx';
-import { Workout, Exercise } from '../../types/index.ts';
+import { exportAllLogs, deleteAllLogs, importAllLogs, fetchWorkoutsData, saveWorkoutsAndExercises } from '../lib/supabaseData.ts';
+import { RoutineEditorModal } from './RoutineEditorModal.tsx';
+import { Workout, Exercise } from '../models.ts';
 
 interface Props {
   isOpen: boolean;

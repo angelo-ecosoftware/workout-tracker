@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext.tsx';
+import { useAuth } from '../context/AuthContext.tsx';
 import { Dumbbell, ShieldAlert, Loader2 } from 'lucide-react';
 
 export const LoginScreen: React.FC = () => {
