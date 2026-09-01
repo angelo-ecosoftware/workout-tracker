@@ -245,3 +245,188 @@ export function calculateInsights(
     weeklyTonnage,
   };
 }
+
+export interface ExerciseSessionDataPoint {
+  sessionId: string;
+  sessionDate: string; // YYYY-MM-DD
+  formattedDate: string; // e.g. "May 12"
+  maxWeightKg: number;
+  estimated1RMKg: number;
+  totalVolumeKg: number;
+  totalReps: number;
+  maxHoldDurationSeconds: number;
+  setsCount: number;
+  sets: Array<{
+    setNumber: number;
+    weight: number;
+    reps: number;
+    durationSeconds?: number;
+  }>;
+}
+
+export interface ExerciseProgressionReport {
+  exerciseId: string;
+  exerciseName: string;
+  exerciseType: 'strength' | 'timed';
+  allTimePrWeightKg: number;
+  allTimePr1RMKg: number;
+  allTimePrVolumeKg: number;
+  allTimePrHoldSeconds: number;
+  totalSetsLogged: number;
+  dataPoints: ExerciseSessionDataPoint[];
+  weightDeltaPercentage: number;
+  oneRmDeltaPercentage: number;
+  volumeDeltaPercentage: number;
+}
+
+/**
+ * Calculates per-exercise progression curves across all sessions.
+ */
+export function calculateExerciseProgression(
+  exerciseId: string,
+  sessions: Session[],
+  sets: WorkoutSet[],
+  exercises: Exercise[]
+): ExerciseProgressionReport | null {
+  const targetExercise = exercises.find((e) => e.id === exerciseId);
+  if (!targetExercise) return null;
+
+  const exerciseSets = sets.filter((s) => s.exerciseId === exerciseId);
+  if (exerciseSets.length === 0) {
+    return {
+      exerciseId,
+      exerciseName: targetExercise.name,
+      exerciseType: targetExercise.type,
+      allTimePrWeightKg: 0,
+      allTimePr1RMKg: 0,
+      allTimePrVolumeKg: 0,
+      allTimePrHoldSeconds: 0,
+      totalSetsLogged: 0,
+      dataPoints: [],
+      weightDeltaPercentage: 0,
+      oneRmDeltaPercentage: 0,
+      volumeDeltaPercentage: 0,
+    };
+  }
+
+  // Session date map
+  const sessionMap = new Map<string, Session>();
+  sessions.forEach((s) => {
+    if (s.id) sessionMap.set(s.id, s);
+  });
+
+  // Group sets by session
+  const setsBySession = new Map<string, WorkoutSet[]>();
+  exerciseSets.forEach((set) => {
+    const list = setsBySession.get(set.sessionId) || [];
+    list.push(set);
+    setsBySession.set(set.sessionId, list);
+  });
+
+  const dataPoints: ExerciseSessionDataPoint[] = [];
+  let allTimePrWeightKg = 0;
+  let allTimePr1RMKg = 0;
+  let allTimePrVolumeKg = 0;
+  let allTimePrHoldSeconds = 0;
+
+  setsBySession.forEach((sessionSets, sessionId) => {
+    const session = sessionMap.get(sessionId);
+    const dateObj = session?.completedAt ? new Date(session.completedAt) : session?.startedAt ? new Date(session.startedAt) : null;
+    if (!dateObj) return;
+
+    // Sort sets by setNumber
+    sessionSets.sort((a, b) => (a.setNumber || 0) - (b.setNumber || 0));
+
+    let maxWeight = 0;
+    let max1RM = 0;
+    let totalVol = 0;
+    let totalReps = 0;
+    let maxHold = 0;
+
+    const formattedSets = sessionSets.map((s) => {
+      const wt = s.weight || 0;
+      const rp = s.reps || 0;
+      const dur = s.durationSeconds || 0;
+
+      if (wt > maxWeight) maxWeight = wt;
+      if (dur > maxHold) maxHold = dur;
+
+      // Epley 1RM formula: Weight * (1 + reps / 30)
+      if (wt > 0 && rp > 0) {
+        const est1RM = Math.round(wt * (1 + rp / 30) * 10) / 10;
+        if (est1RM > max1RM) max1RM = est1RM;
+      } else if (wt > 0 && rp === 0) {
+        if (wt > max1RM) max1RM = wt;
+      }
+
+      totalVol += wt * rp;
+      totalReps += rp;
+
+      return {
+        setNumber: s.setNumber,
+        weight: wt,
+        reps: rp,
+        durationSeconds: dur > 0 ? dur : undefined,
+      };
+    });
+
+    if (maxWeight > allTimePrWeightKg) allTimePrWeightKg = maxWeight;
+    if (max1RM > allTimePr1RMKg) allTimePr1RMKg = max1RM;
+    if (totalVol > allTimePrVolumeKg) allTimePrVolumeKg = totalVol;
+    if (maxHold > allTimePrHoldSeconds) allTimePrHoldSeconds = maxHold;
+
+    const dateStr = dateObj.toISOString().split('T')[0];
+    const formattedDate = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    dataPoints.push({
+      sessionId,
+      sessionDate: dateStr,
+      formattedDate,
+      maxWeightKg: maxWeight,
+      estimated1RMKg: max1RM,
+      totalVolumeKg: Math.round(totalVol),
+      totalReps,
+      maxHoldDurationSeconds: maxHold,
+      setsCount: sessionSets.length,
+      sets: formattedSets,
+    });
+  });
+
+  // Sort chronological
+  dataPoints.sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
+
+  // Deltas comparing first session to latest session
+  let weightDeltaPercentage = 0;
+  let oneRmDeltaPercentage = 0;
+  let volumeDeltaPercentage = 0;
+
+  if (dataPoints.length >= 2) {
+    const firstPoint = dataPoints[0];
+    const latestPoint = dataPoints[dataPoints.length - 1];
+
+    if (firstPoint.maxWeightKg > 0) {
+      weightDeltaPercentage = Math.round(((latestPoint.maxWeightKg - firstPoint.maxWeightKg) / firstPoint.maxWeightKg) * 100);
+    }
+    if (firstPoint.estimated1RMKg > 0) {
+      oneRmDeltaPercentage = Math.round(((latestPoint.estimated1RMKg - firstPoint.estimated1RMKg) / firstPoint.estimated1RMKg) * 100);
+    }
+    if (firstPoint.totalVolumeKg > 0) {
+      volumeDeltaPercentage = Math.round(((latestPoint.totalVolumeKg - firstPoint.totalVolumeKg) / firstPoint.totalVolumeKg) * 100);
+    }
+  }
+
+  return {
+    exerciseId,
+    exerciseName: targetExercise.name,
+    exerciseType: targetExercise.type,
+    allTimePrWeightKg,
+    allTimePr1RMKg: Math.round(allTimePr1RMKg * 10) / 10,
+    allTimePrVolumeKg,
+    allTimePrHoldSeconds,
+    totalSetsLogged: exerciseSets.length,
+    dataPoints,
+    weightDeltaPercentage,
+    oneRmDeltaPercentage,
+    volumeDeltaPercentage,
+  };
+}

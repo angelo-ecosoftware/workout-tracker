@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { fetchWorkoutHistory, fetchAllSetsForUser, fetchWorkoutsData } from '../lib/supabaseData.ts';
-import { calculateInsights, InsightsMetrics } from '../lib/insightsEngine.ts';
+import {
+  calculateInsights,
+  calculateExerciseProgression,
+  InsightsMetrics,
+  ExerciseProgressionReport,
+} from '../lib/insightsEngine.ts';
 import { Session, WorkoutSet, Exercise } from '../models.ts';
+import { ExerciseProgressionCard } from './ExerciseProgressionCard.tsx';
 import {
   TrendingUp,
   Dumbbell,
@@ -21,6 +27,7 @@ import {
   CheckCircle2,
   Info,
   X,
+  ChevronDown,
 } from 'lucide-react';
 
 export const InsightsView: React.FC = () => {
@@ -30,6 +37,13 @@ export const InsightsView: React.FC = () => {
   const [metrics, setMetrics] = useState<InsightsMetrics | null>(null);
   const [hoveredDay, setHoveredDay] = useState<any | null>(null);
   const [activeInfoKey, setActiveInfoKey] = useState<string | null>(null);
+
+  // Per-exercise progression state
+  const [exercisesList, setExercisesList] = useState<Exercise[]>([]);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [exerciseReport, setExerciseReport] = useState<ExerciseProgressionReport | null>(null);
+  const [allSessions, setAllSessions] = useState<Session[]>([]);
+  const [allSetsData, setAllSetsData] = useState<WorkoutSet[]>([]);
 
   useEffect(() => {
     async function loadData() {
@@ -61,6 +75,25 @@ export const InsightsView: React.FC = () => {
         );
 
         setMetrics(calculated);
+        setExercisesList(workoutsData.exercisesList);
+        setAllSessions(historySessions);
+        setAllSetsData(allSets);
+
+        // Find exercises that actually have logged sets
+        const loggedExIds = new Set(allSets.map((s) => s.exerciseId));
+        const activeExercises = workoutsData.exercisesList.filter((e) => loggedExIds.has(e.id));
+
+        if (activeExercises.length > 0) {
+          const firstEx = activeExercises[0];
+          setSelectedExerciseId(firstEx.id);
+          const rep = calculateExerciseProgression(
+            firstEx.id,
+            historySessions,
+            allSets,
+            workoutsData.exercisesList
+          );
+          setExerciseReport(rep);
+        }
       } catch (err: any) {
         console.error('Failed to load insights metrics:', err);
         setErrorMsg(err.message || 'Failed to aggregate insights.');
@@ -71,6 +104,17 @@ export const InsightsView: React.FC = () => {
 
     loadData();
   }, [user, authLoading]);
+
+  // Handle exercise select change
+  const handleSelectExercise = (exId: string) => {
+    setSelectedExerciseId(exId);
+    if (!exId) {
+      setExerciseReport(null);
+      return;
+    }
+    const rep = calculateExerciseProgression(exId, allSessions, allSetsData, exercisesList);
+    setExerciseReport(rep);
+  };
 
   if (loading) {
     return (
@@ -516,6 +560,52 @@ export const InsightsView: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Per-Exercise Progressive Overload & 1RM Trajectory */}
+      <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#222] pb-3">
+          <div>
+            <h3 className="font-display font-black text-base text-white uppercase tracking-tight flex items-center gap-2">
+              <Dumbbell className="w-4 h-4 text-[#C0FF00]" />
+              Exercise Progressive Overload Curves
+            </h3>
+            <p className="text-[11px] font-sans text-gray-400 mt-0.5">
+              Individual lift benchmark trajectory, 1RM progression, and workout volume.
+            </p>
+          </div>
+
+          {/* Exercise Dropdown Selector */}
+          {exercisesList.length > 0 && (
+            <div className="relative self-start sm:self-auto min-w-[200px]">
+              <select
+                value={selectedExerciseId || ''}
+                onChange={(e) => handleSelectExercise(e.target.value)}
+                className="w-full bg-[#181818] border border-[#333] hover:border-[#C0FF00] text-white text-xs font-mono font-bold px-3 py-2 rounded-xl appearance-none cursor-pointer pr-8 focus:outline-none focus:border-[#C0FF00] transition-colors"
+              >
+                {exercisesList.map((ex) => {
+                  const hasSets = allSetsData.some((s) => s.exerciseId === ex.id);
+                  return (
+                    <option key={ex.id} value={ex.id}>
+                      {ex.name} {hasSets ? '' : '(No sets logged)'}
+                    </option>
+                  );
+                })}
+              </select>
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                <ChevronDown className="w-4 h-4" />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {exerciseReport ? (
+          <ExerciseProgressionCard report={exerciseReport} />
+        ) : (
+          <div className="text-center py-6 text-gray-500 font-mono text-xs">
+            Select an exercise above to visualize its strength trajectory.
+          </div>
+        )}
       </div>
 
       {/* Weekly Volume Trajectory Chart (Last 8 Weeks) */}

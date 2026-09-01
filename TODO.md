@@ -27,7 +27,7 @@ This document tracks identified architectural improvements, edge case handling, 
 
 ## 3. Insights & Analytics Roadmap
 
-- [ ] **Per-Exercise Progressive Overload Curves**
+- [x] **Per-Exercise Progressive Overload Curves**
   - **Action**: Add individual exercise drill-down views showing estimated 1RM trajectory, max weight over time, and rep volume trends across 30/60/90 days.
 
 - [ ] **Muscle Group Fatigue & Weekly Set Distribution**
