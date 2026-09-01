@@ -5,6 +5,7 @@ import {
   ChevronDown, ChevronUp, Layers, Check, AlertCircle, RefreshCw, Search
 } from 'lucide-react';
 import { ExerciseSearchPicker } from './ExerciseSearchPicker.tsx';
+import { ConfirmModal } from './ConfirmModal.tsx';
 
 interface RoutineEditorModalProps {
   isOpen: boolean;
@@ -30,6 +31,8 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  const [workoutToDeleteIndex, setWorkoutToDeleteIndex] = useState<number | null>(null);
+
   // Sync state whenever initialWorkouts changes or modal opens
   React.useEffect(() => {
     if (isOpen && initialWorkouts) {
@@ -37,6 +40,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
       setSelectedWorkoutIndex(0);
       setEditingExerciseId(null);
       setStatusMsg(null);
+      setWorkoutToDeleteIndex(null);
     }
   }, [isOpen, initialWorkouts]);
 
@@ -59,13 +63,18 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   };
 
   const handleDeleteWorkoutDay = (index: number) => {
-    if (!confirm(`Delete "${workouts[index]?.name || `Day ${index + 1}`}"?`)) return;
+    setWorkoutToDeleteIndex(index);
+  };
 
+  const confirmDeleteWorkoutDay = () => {
+    if (workoutToDeleteIndex === null) return;
+    const index = workoutToDeleteIndex;
     const filtered = workouts.filter((_, i) => i !== index);
     // Re-index orders cleanly
     const reindexed = filtered.map((w, i) => ({ ...w, order: i + 1 }));
     setWorkouts(reindexed);
     setSelectedWorkoutIndex(Math.max(0, Math.min(index, reindexed.length - 1)));
+    setWorkoutToDeleteIndex(null);
   };
 
   const handleUpdateWorkoutName = (newName: string) => {
@@ -470,6 +479,18 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
         </div>
 
       </div>
+
+      {/* Delete Routine Confirmation Modal */}
+      <ConfirmModal
+        isOpen={workoutToDeleteIndex !== null}
+        title="Delete Routine Day"
+        description={`Are you sure you want to delete "${workoutToDeleteIndex !== null ? (workouts[workoutToDeleteIndex]?.name || `Day ${workoutToDeleteIndex + 1}`) : ''}"? This will remove all exercises assigned to this day.`}
+        confirmText="Delete Routine"
+        cancelText="Cancel"
+        confirmVariant="danger"
+        onConfirm={confirmDeleteWorkoutDay}
+        onCancel={() => setWorkoutToDeleteIndex(null)}
+      />
     </div>
   );
 };

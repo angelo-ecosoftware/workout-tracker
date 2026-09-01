@@ -509,11 +509,19 @@ export async function saveWorkoutsAndExercises(
   // 2. Delete removed workouts for this user that are not in updated list
   const activeWorkoutIds = workoutRows.map(w => w.id);
   if (activeWorkoutIds.length > 0) {
-    await supabase
+    const { error: delErr } = await supabase
       .from('workouts')
       .delete()
       .eq('user_id', userId)
       .not('id', 'in', `(${activeWorkoutIds.map(id => `"${id}"`).join(',')})`);
+    if (delErr) console.warn('Workouts cleanup warning:', delErr);
+  } else {
+    // If all workouts were deleted by user, clear all workouts for this user
+    const { error: delAllErr } = await supabase
+      .from('workouts')
+      .delete()
+      .eq('user_id', userId);
+    if (delAllErr) console.warn('Workouts clear-all warning:', delAllErr);
   }
 
   // 3. Upsert workouts
