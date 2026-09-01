@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Workout, Exercise, ExerciseType } from '../models.ts';
 import { 
   X, Plus, Trash2, Edit3, Save, Dumbbell, Calendar, 
-  ChevronDown, ChevronUp, Layers, Check, AlertCircle, RefreshCw 
+  ChevronDown, ChevronUp, Layers, Check, AlertCircle, RefreshCw, Search
 } from 'lucide-react';
+import { ExerciseSearchPicker } from './ExerciseSearchPicker.tsx';
 
 interface RoutineEditorModalProps {
   isOpen: boolean;
@@ -25,6 +26,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   );
   const [selectedWorkoutIndex, setSelectedWorkoutIndex] = useState<number>(0);
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
+  const [isSearchPickerOpen, setIsSearchPickerOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -76,16 +78,16 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   };
 
   // Exercise management within current routine
-  const handleAddExercise = () => {
+  const handleAddExerciseFromPicker = (pickedEx: Partial<Exercise>) => {
     if (!currentWorkout) return;
-    const newExId = `ex_${Date.now()}`;
+    const newExId = pickedEx.id || `ex_${Date.now()}`;
     const newEx: Exercise = {
       id: newExId,
-      name: 'New Exercise',
-      type: 'strength',
-      targetSets: 3,
-      targetRepMin: 8,
-      targetRepMax: 12
+      name: pickedEx.name || 'New Exercise',
+      type: pickedEx.type || 'strength',
+      targetSets: pickedEx.targetSets || 3,
+      targetRepMin: pickedEx.targetRepMin || 8,
+      targetRepMax: pickedEx.targetRepMax || 12
     };
 
     const updatedExercises = [...currentWorkout.exercises, newEx];
@@ -96,7 +98,12 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
         ? { ...w, exercises: updatedExercises, exerciseIds: updatedIds }
         : w
     ));
+    setIsSearchPickerOpen(false);
     setEditingExerciseId(newExId);
+  };
+
+  const handleAddExercise = () => {
+    setIsSearchPickerOpen(true);
   };
 
   const handleDeleteExercise = (exId: string) => {
@@ -271,15 +278,23 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                   <button
                     type="button"
                     onClick={handleAddExercise}
-                    className="flex items-center gap-1 text-[10px] font-mono text-[#C0FF00] hover:text-white bg-[#C0FF00]/10 hover:bg-[#C0FF00]/20 border border-[#C0FF00]/30 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                    className="flex items-center gap-1.5 text-[10px] font-mono font-bold text-black bg-[#C0FF00] hover:bg-[#a6dc00] px-3 py-1.5 rounded-lg transition-colors cursor-pointer shadow-[0_0_15px_rgba(192,255,0,0.15)]"
                   >
-                    <Plus className="w-3 h-3" /> Add Exercise
+                    <Search className="w-3.5 h-3.5" /> Find & Add Exercise
                   </button>
                 </div>
 
-                {currentWorkout.exercises.length === 0 ? (
+                {/* Exercise Search & Autocomplete Picker */}
+                {isSearchPickerOpen && (
+                  <ExerciseSearchPicker
+                    onSelectExercise={handleAddExerciseFromPicker}
+                    onClose={() => setIsSearchPickerOpen(false)}
+                  />
+                )}
+
+                {currentWorkout.exercises.length === 0 && !isSearchPickerOpen ? (
                   <div className="text-center py-6 text-xs text-gray-500 font-mono border border-dashed border-[#262626] rounded-xl">
-                    No exercises in this routine yet. Click "+ Add Exercise" above.
+                    No exercises in this routine yet. Click "Find & Add Exercise" above.
                   </div>
                 ) : (
                   <div className="space-y-2">
