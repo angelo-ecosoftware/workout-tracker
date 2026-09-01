@@ -146,7 +146,7 @@ export const InsightsView: React.FC = () => {
 
       {/* Hero Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {/* Total Tonnage Moved */}
+        {/* Total Tonnage Moved (Col 1 on mobile, Col 1 on sm) */}
         <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 relative group/info">
@@ -165,9 +165,9 @@ export const InsightsView: React.FC = () => {
                 <Info className="w-3 h-3" />
               </button>
 
-              {/* Info popover: hover strictly on the info icon group for desktop, or tap-to-toggle on mobile */}
+              {/* Info popover: left-aligned on col 1 */}
               <div
-                className={`absolute z-30 bottom-full left-0 w-64 sm:w-72 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 pointer-events-none ${
+                className={`absolute z-30 bottom-full left-0 w-60 sm:w-72 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 pointer-events-none ${
                   activeInfoKey === 'volume'
                     ? '!opacity-100 !scale-100 !pointer-events-auto'
                     : 'opacity-0 scale-95 md:group-hover/info:opacity-100 md:group-hover/info:scale-100 md:group-hover/info:pointer-events-auto'
@@ -210,7 +210,7 @@ export const InsightsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Total Reps Completed */}
+        {/* Total Reps Completed (Col 2 on mobile -> right aligned, Col 2 on sm -> left aligned) */}
         <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 relative group/info">
@@ -229,9 +229,9 @@ export const InsightsView: React.FC = () => {
                 <Info className="w-3 h-3" />
               </button>
 
-              {/* Info popover */}
+              {/* Info popover: right aligned on mobile to prevent screen overflow */}
               <div
-                className={`absolute z-30 bottom-full left-0 w-64 sm:w-72 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 pointer-events-none ${
+                className={`absolute z-30 bottom-full right-0 sm:right-auto sm:left-0 w-60 sm:w-72 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 pointer-events-none ${
                   activeInfoKey === 'reps'
                     ? '!opacity-100 !scale-100 !pointer-events-auto'
                     : 'opacity-0 scale-95 md:group-hover/info:opacity-100 md:group-hover/info:scale-100 md:group-hover/info:pointer-events-auto'
@@ -274,7 +274,7 @@ export const InsightsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Timed Holds / Tension */}
+        {/* Timed Holds / Tension (Col 1 on mobile row 2 -> left-aligned, Col 3 on sm) */}
         <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 relative group/info">
@@ -293,9 +293,9 @@ export const InsightsView: React.FC = () => {
                 <Info className="w-3 h-3" />
               </button>
 
-              {/* Info popover */}
+              {/* Info popover: left-aligned on mobile */}
               <div
-                className={`absolute z-30 bottom-full left-0 w-64 sm:w-72 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 pointer-events-none ${
+                className={`absolute z-30 bottom-full left-0 w-60 sm:w-72 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 pointer-events-none ${
                   activeInfoKey === 'tension'
                     ? '!opacity-100 !scale-100 !pointer-events-auto'
                     : 'opacity-0 scale-95 md:group-hover/info:opacity-100 md:group-hover/info:scale-100 md:group-hover/info:pointer-events-auto'
@@ -338,7 +338,7 @@ export const InsightsView: React.FC = () => {
           </div>
         </div>
 
-        {/* Active Work vs Rest */}
+        {/* Active Work vs Rest (Col 2 on mobile row 2 -> right-aligned, Col 4 on sm -> right-aligned) */}
         <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 relative group/info">
@@ -357,9 +357,9 @@ export const InsightsView: React.FC = () => {
                 <Info className="w-3 h-3" />
               </button>
 
-              {/* Info popover */}
+              {/* Info popover: right-aligned on both mobile & desktop */}
               <div
-                className={`absolute z-30 bottom-full left-0 sm:left-auto sm:right-0 w-64 sm:w-72 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 pointer-events-none ${
+                className={`absolute z-30 bottom-full right-0 w-60 sm:w-72 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 pointer-events-none ${
                   activeInfoKey === 'effort'
                     ? '!opacity-100 !scale-100 !pointer-events-auto'
                     : 'opacity-0 scale-95 md:group-hover/info:opacity-100 md:group-hover/info:scale-100 md:group-hover/info:pointer-events-auto'
