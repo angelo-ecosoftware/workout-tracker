@@ -58,24 +58,42 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
   // Handle rest countdown
   useEffect(() => {
     if (phase === 'resting') {
-      restStartTimeRef.current = Date.now();
-      const startTime = performance.now();
+      const now = Date.now();
+      restStartTimeRef.current = now;
       const durationMs = restDurationSeconds * 1000;
+      const targetEndTime = now + durationMs;
       setRestTimeLeft(restDurationSeconds);
 
-      timerRef.current = setInterval(() => {
-        const elapsed = performance.now() - startTime;
-        const remainingMs = Math.max(0, durationMs - elapsed);
+      const updateRemaining = () => {
+        const currentTime = Date.now();
+        const remainingMs = Math.max(0, targetEndTime - currentTime);
         const remainingSec = Math.ceil(remainingMs / 1000);
 
         setRestTimeLeft(remainingSec);
 
         if (remainingMs <= 0) {
-          clearInterval(timerRef.current);
+          if (timerRef.current) clearInterval(timerRef.current);
           playThreeSecondVibrateAlarm();
           finishRestInterval();
         }
-      }, 50);
+      };
+
+      // Interval for continuous display update
+      timerRef.current = setInterval(updateRemaining, 50);
+
+      // Handle visibility changes when phone screen locks / unlocks or user switches apps
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          updateRemaining();
+        }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      return () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      };
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }

@@ -6,9 +6,9 @@ This document tracks identified architectural improvements, edge case handling, 
 
 ## 1. Timing & Gym Tracking Edge Cases
 
-- [ ] **Wall-Clock Time Delta for Background/Locked Screen Resiliency**
+- [x] **Wall-Clock Time Delta for Background/Locked Screen Resiliency**
   - **Issue**: Standard `setInterval` ticks throttle or pause when phone screens lock or users switch apps (e.g. Spotify).
-  - **Action**: Refactor timers in `AssistedTimedTracker.tsx` to compute elapsed time using `Date.now() - startTime` rather than naive incremental tick counters.
+  - **Action**: Refactor timers in `AssistedTimedTracker.tsx` to compute elapsed time using `Date.now()` target end times and `visibilitychange` listeners rather than naive tick counters.
 
 - [ ] **Workout Session Auto-Save & Abandonment Recovery**
   - **Issue**: Accidental tab closures, reloads, or device crashes mid-workout lose in-progress sets and entry timestamps.
