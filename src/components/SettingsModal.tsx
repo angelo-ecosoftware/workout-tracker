@@ -176,15 +176,16 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div 
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
-    >
+    <>
       <div 
-        onClick={(e) => e.stopPropagation()}
-        className="bg-[#111] border border-[#222] rounded-2xl w-full max-w-sm sm:max-w-md max-h-[85vh] flex flex-col overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-150"
+        onClick={onClose}
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-200"
       >
-        {/* Modal Header */}
+        <div 
+          onClick={(e) => e.stopPropagation()}
+          className="bg-[#111] border border-[#222] rounded-2xl w-full max-w-sm sm:max-w-md max-h-[85vh] flex flex-col overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-150"
+        >
+          {/* Modal Header */}
         <div className="flex items-center justify-between px-3.5 py-2.5 sm:px-4 sm:py-3 border-b border-[#222] bg-[#111]/95 backdrop-blur sticky top-0 z-10 shrink-0">
           <h2 className="font-display font-black uppercase italic tracking-tight text-white text-sm sm:text-base">Settings</h2>
           <button 
@@ -439,7 +440,9 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
             Logout
           </button>
         </div>
+        </div>
       </div>
+
       {/* Routine & Exercise Editor Modal */}
       {isRoutineEditorOpen && (
         <RoutineEditorModal
@@ -450,6 +453,6 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           onSaveWorkouts={handleSaveRoutines}
         />
       )}
-    </div>
+    </>
   );
 };

@@ -28,8 +28,14 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     : 'bg-[#C0FF00] hover:bg-[#a0d600] text-black';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-[#111] border border-[#222] rounded-[24px] p-6 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+    <div 
+      onClick={onCancel}
+      className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-[#111] border border-[#222] rounded-[24px] p-6 max-w-sm w-full shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+      >
         <h3 className="font-display font-black text-xl text-white uppercase tracking-tight mb-2">
           {title}
         </h3>
