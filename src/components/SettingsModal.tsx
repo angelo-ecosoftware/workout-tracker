@@ -42,6 +42,9 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     localStorage.setItem('setting_rest_duration_seconds', restDurationSeconds.toString());
+    window.dispatchEvent(new Event('workout_settings_updated'));
+  }, [restDurationSeconds]);
+
   // Close modal on Escape key press
   useEffect(() => {
     if (!isOpen) return;
@@ -452,6 +455,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           workouts={userWorkouts}
           onSaveWorkouts={handleSaveRoutines}
         />
-      )}    </div>
+      )}
+    </div>
   );
 };
