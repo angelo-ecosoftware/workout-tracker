@@ -13,7 +13,7 @@ interface Props {
 
 export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { user, logout, switchAccount } = useAuth();
-  const { installPrompt, setInstallPrompt, isStandalone, isIOS } = usePWA();
+  const { installPrompt, setInstallPrompt, isStandalone, isIOS, isMobile } = usePWA();
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
@@ -265,36 +265,38 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
           </button>
 
-          {/* PWA Install Button - Always accessible */}
-          <button
-            onClick={handleInstallApp}
-            className="flex items-center justify-between w-full p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
-                <Smartphone className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="font-bold text-sm text-white flex items-center gap-2">
-                  Install / Download App
-                  {isStandalone && (
-                    <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-normal flex items-center gap-1">
-                      <Check className="w-3 h-3" /> Installed
-                    </span>
-                  )}
+          {/* PWA Install Button - Mobile only (hidden on desktop) */}
+          {isMobile && (
+            <button
+              onClick={handleInstallApp}
+              className="flex items-center justify-between w-full p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
+                  <Smartphone className="w-4 h-4" />
                 </div>
-                <div className="text-xs text-gray-500">
-                  {isStandalone ? "Running in standalone app mode" : "Download to your home screen for offline & fast access"}
+                <div>
+                  <div className="font-bold text-sm text-white flex items-center gap-2">
+                    Install / Download App
+                    {isStandalone && (
+                      <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-normal flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Installed
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {isStandalone ? "Running in standalone app mode" : "Download to your home screen for offline & fast access"}
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="hidden sm:block text-xs font-mono font-bold text-[#C0FF00] uppercase tracking-wider">
-              {isStandalone ? "Active" : "Install"}
-            </div>
-          </button>
+              <div className="text-xs font-mono font-bold text-[#C0FF00] uppercase tracking-wider">
+                {isStandalone ? "Active" : "Install"}
+              </div>
+            </button>
+          )}
 
           {/* iOS Install Instruction Banner */}
-          {showIOSGuide && (
+          {isMobile && showIOSGuide && (
             <div className="p-3.5 bg-[#161616] border border-[#333] rounded-xl text-xs space-y-2 text-gray-300">
               <div className="flex items-center justify-between font-bold text-white uppercase font-mono tracking-wider text-[11px]">
                 <span className="flex items-center gap-1.5 text-[#C0FF00]">

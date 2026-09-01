@@ -5,6 +5,7 @@ interface PWAContextType {
   setInstallPrompt: (prompt: any) => void;
   isStandalone: boolean;
   isIOS: boolean;
+  isMobile: boolean;
 }
 
 const PWAContext = createContext<PWAContextType>({
@@ -12,6 +13,7 @@ const PWAContext = createContext<PWAContextType>({
   setInstallPrompt: () => {},
   isStandalone: false,
   isIOS: false,
+  isMobile: false,
 });
 
 export const usePWA = () => useContext(PWAContext);
@@ -20,6 +22,7 @@ export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [installPrompt, setInstallPrompt] = useState<any>(() => (typeof window !== 'undefined' ? (window as any).deferredInstallPrompt : null));
   const [isStandalone, setIsStandalone] = useState<boolean>(false);
   const [isIOS, setIsIOS] = useState<boolean>(false);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
 
   useEffect(() => {
     // Check if app is already installed / opened in standalone mode
@@ -29,10 +32,13 @@ export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       (window.navigator as any).standalone === true;
     setIsStandalone(standaloneMode);
 
-    // Detect iOS
+    // Detect mobile / iOS devices
     const userAgent = window.navigator.userAgent.toLowerCase();
     const iosDevice = /iphone|ipad|ipod/.test(userAgent);
+    const mobileDevice = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) ||
+      (window.matchMedia && window.matchMedia('(max-width: 768px)').matches && 'ontouchstart' in window);
     setIsIOS(iosDevice);
+    setIsMobile(mobileDevice);
 
     // If early script captured the event before React mounted
     if ((window as any).deferredInstallPrompt) {
@@ -70,7 +76,7 @@ export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, []);
 
   return (
-    <PWAContext.Provider value={{ installPrompt, setInstallPrompt, isStandalone, isIOS }}>
+    <PWAContext.Provider value={{ installPrompt, setInstallPrompt, isStandalone, isIOS, isMobile }}>
       {children}
     </PWAContext.Provider>
   );
