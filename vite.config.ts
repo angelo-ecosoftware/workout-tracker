@@ -12,7 +12,7 @@ export default defineConfig(() => {
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
-        includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png'],
+        includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
         manifest: {
           id: '/',
           name: 'Spartan Workout Tracker',
@@ -20,11 +20,12 @@ export default defineConfig(() => {
           description: 'Minimalist, high-performance progressive overload workout log book',
           start_url: '/',
           scope: '/',
-          display: 'fullscreen',
-          display_override: ['fullscreen', 'standalone'],
+          display: 'standalone',
+          display_override: ['window-controls-overlay', 'standalone', 'minimal-ui'],
           orientation: 'portrait',
           theme_color: '#000000',
           background_color: '#000000',
+          categories: ['fitness', 'health', 'sports'],
           icons: [
             {
               src: '/icon-192.png',
