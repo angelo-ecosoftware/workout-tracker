@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { Dumbbell, Settings, User } from 'lucide-react';
+import { usePWA } from '../context/PWAContext.tsx';
+import { Dumbbell, Settings, User, WifiOff, RefreshCw } from 'lucide-react';
 import { SettingsModal } from './SettingsModal.tsx';
 
 export const Header: React.FC = () => {
   const { user } = useAuth();
+  const { isOnline, pendingSyncCount, triggerManualSync } = usePWA();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   if (!user) return null;
+
+  const handleSyncClick = async () => {
+    setIsSyncing(true);
+    await triggerManualSync();
+    setTimeout(() => setIsSyncing(false), 800);
+  };
 
   return (
     <>
@@ -28,6 +37,31 @@ export const Header: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Offline indicator badge */}
+            {!isOnline && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] uppercase font-bold">
+                <WifiOff className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Offline Mode</span>
+              </div>
+            )}
+
+            {/* Pending sync queue badge */}
+            {pendingSyncCount > 0 && (
+              <button
+                onClick={handleSyncClick}
+                disabled={isSyncing || !isOnline}
+                title={isOnline ? "Sync offline workouts now" : "Offline: will auto-sync when online"}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl font-mono text-[10px] uppercase font-bold border transition-all cursor-pointer ${
+                  isOnline 
+                    ? 'bg-[#C0FF00]/10 border-[#C0FF00]/40 text-[#C0FF00] hover:bg-[#C0FF00]/20' 
+                    : 'bg-amber-500/10 border-amber-500/30 text-amber-400 opacity-80'
+                }`}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                <span>{pendingSyncCount} queued</span>
+              </button>
+            )}
+
             {/* Desktop User Pill */}
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1a] border border-[#222] rounded-xl">
               {user.photoURL ? (

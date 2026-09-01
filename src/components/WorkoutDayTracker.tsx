@@ -10,6 +10,7 @@ import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { WelcomeModal } from './WelcomeModal.tsx';
 import { saveDraftPhotosToStorage, loadDraftPhotosFromStorage, clearDraftPhotosFromStorage } from '../utils/draftPhotoStorage.ts';
+import { enqueueOfflineSession, processOfflineQueue } from '../utils/offlineQueue.ts';
 
 export const WorkoutDayTracker: React.FC = () => {
   const { user } = useAuth();
@@ -546,6 +547,33 @@ export const WorkoutDayTracker: React.FC = () => {
          completedAtDate = new Date(parseInt(y), parseInt(m)-1, parseInt(d), baseTime.getHours(), baseTime.getMinutes(), baseTime.getSeconds());
       }
 
+      // Check network connectivity - if offline, enqueue directly to IndexedDB
+      if (!navigator.onLine) {
+        await enqueueOfflineSession(
+          user!.uid,
+          activeWorkout.id,
+          finalSetsPayload,
+          activeWorkout.exercises,
+          completedAtDate,
+          sessionNotes,
+          selectedPhotos,
+          sessionStartedAtDate
+        );
+
+        // Clear local auto-save draft checkpoint
+        clearDraftCheckpoint(activeWorkout.id);
+        setSessionNotes('');
+        setSelectedPhotos([]);
+        photoPreviews.forEach((url) => URL.revokeObjectURL(url));
+        setPhotoPreviews([]);
+        setAssistedSessionTimings(null);
+
+        setSuccessMsg(`Workout saved offline! It will automatically sync once connection is restored.`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => setSuccessMsg(null), 5000);
+        return;
+      }
+
       // Upload progress photos to S3/Supabase storage if selected
       let uploadedPhotoUrls: string[] = [];
       if (selectedPhotos.length > 0 && user) {
@@ -559,16 +587,42 @@ export const WorkoutDayTracker: React.FC = () => {
         }
       }
 
-      await logSessionCompletion(
-        user!.uid,
-        activeWorkout.id,
-        finalSetsPayload,
-        activeWorkout.exercises,
-        completedAtDate,
-        sessionNotes,
-        uploadedPhotoUrls,
-        sessionStartedAtDate
-      );
+      try {
+        await logSessionCompletion(
+          user!.uid,
+          activeWorkout.id,
+          finalSetsPayload,
+          activeWorkout.exercises,
+          completedAtDate,
+          sessionNotes,
+          uploadedPhotoUrls,
+          sessionStartedAtDate
+        );
+      } catch (networkErr: any) {
+        // If Supabase request fails due to sudden network drop / timeout, fallback to offline queue
+        console.warn('Direct Supabase save failed, queuing offline:', networkErr);
+        await enqueueOfflineSession(
+          user!.uid,
+          activeWorkout.id,
+          finalSetsPayload,
+          activeWorkout.exercises,
+          completedAtDate,
+          sessionNotes,
+          selectedPhotos,
+          sessionStartedAtDate
+        );
+        clearDraftCheckpoint(activeWorkout.id);
+        setSessionNotes('');
+        setSelectedPhotos([]);
+        photoPreviews.forEach((url) => URL.revokeObjectURL(url));
+        setPhotoPreviews([]);
+        setAssistedSessionTimings(null);
+
+        setSuccessMsg(`Network interrupted. Workout saved offline and queued for auto-sync.`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => setSuccessMsg(null), 5000);
+        return;
+      }
 
       // Clear local auto-save draft checkpoint upon successful log
       clearDraftCheckpoint(activeWorkout.id);

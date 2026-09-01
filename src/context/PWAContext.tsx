@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { processOfflineQueue, getQueuedOfflineSessions } from '../utils/offlineQueue.ts';
 
 interface PWAContextType {
   installPrompt: any;
@@ -6,6 +7,9 @@ interface PWAContextType {
   isStandalone: boolean;
   isIOS: boolean;
   isMobile: boolean;
+  isOnline: boolean;
+  pendingSyncCount: number;
+  triggerManualSync: () => Promise<void>;
 }
 
 const PWAContext = createContext<PWAContextType>({
@@ -14,6 +18,9 @@ const PWAContext = createContext<PWAContextType>({
   isStandalone: false,
   isIOS: false,
   isMobile: false,
+  isOnline: true,
+  pendingSyncCount: 0,
+  triggerManualSync: async () => {},
 });
 
 export const usePWA = () => useContext(PWAContext);
@@ -23,6 +30,63 @@ export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [isStandalone, setIsStandalone] = useState<boolean>(false);
   const [isIOS, setIsIOS] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState<boolean>(false);
+  const [isOnline, setIsOnline] = useState<boolean>(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
+  const [pendingSyncCount, setPendingSyncCount] = useState<number>(0);
+
+  const refreshPendingCount = async () => {
+    try {
+      const queued = await getQueuedOfflineSessions();
+      setPendingSyncCount(queued.length);
+    } catch (e) {
+      console.warn('Failed to inspect offline queue count:', e);
+    }
+  };
+
+  const triggerManualSync = async () => {
+    if (!navigator.onLine) return;
+    try {
+      await processOfflineQueue();
+      await refreshPendingCount();
+    } catch (e) {
+      console.warn('Manual sync trigger failed:', e);
+    }
+  };
+
+  useEffect(() => {
+    // Initial sync count check
+    refreshPendingCount();
+
+    // Online / Offline network listeners
+    const handleOnline = async () => {
+      setIsOnline(true);
+      // Auto-flush queue whenever network connectivity is re-established
+      await processOfflineQueue();
+      await refreshPendingCount();
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    const handleQueueUpdate = () => {
+      refreshPendingCount();
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('offline_queue_updated', handleQueueUpdate);
+
+    // If online on initial load, attempt to flush any pending queue from prior sessions
+    if (navigator.onLine) {
+      processOfflineQueue().then(() => refreshPendingCount());
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('offline_queue_updated', handleQueueUpdate);
+    };
+  }, []);
 
   useEffect(() => {
     // Check if app is already installed / opened in standalone mode
@@ -76,7 +140,16 @@ export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, []);
 
   return (
-    <PWAContext.Provider value={{ installPrompt, setInstallPrompt, isStandalone, isIOS, isMobile }}>
+    <PWAContext.Provider value={{
+      installPrompt,
+      setInstallPrompt,
+      isStandalone,
+      isIOS,
+      isMobile,
+      isOnline,
+      pendingSyncCount,
+      triggerManualSync,
+    }}>
       {children}
     </PWAContext.Provider>
   );

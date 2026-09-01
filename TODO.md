@@ -44,6 +44,6 @@ This document tracks identified architectural improvements, edge case handling, 
   - **Issue**: Modern mobile camera photos range from 3–8 MB, quickly consuming Supabase storage quotas and slowing down uploads on gym cellular networks.
   - **Action**: Compress images via HTML Canvas WebP with high-resolution $2160\text{p}$ bounds and muscle-definition edge preservation before uploading to Supabase `media` bucket.
 
-- [ ] **Offline Sync & Queueing (PWA Resiliency)**
+- [x] **Offline Sync & Queueing (PWA Resiliency)**
   - **Issue**: Gym basements with poor cellular reception fail Supabase completion requests.
   - **Action**: Queue offline session completions and set logs in `IndexedDB` and trigger background sync once connectivity is restored via `navigator.onLine` and `window.addEventListener('online')`.
