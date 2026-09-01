@@ -147,9 +147,9 @@ export const InsightsView: React.FC = () => {
       {/* Hero Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* Total Tonnage Moved */}
-        <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative group/card">
+        <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 relative group/info">
               <span className="font-mono text-[10px] uppercase font-bold text-gray-400 tracking-wider">
                 90-Day Volume
               </span>
@@ -164,6 +164,37 @@ export const InsightsView: React.FC = () => {
               >
                 <Info className="w-3 h-3" />
               </button>
+
+              {/* Info popover: hover strictly on the info icon group for desktop, or tap-to-toggle on mobile */}
+              <div
+                className={`absolute z-30 bottom-full left-0 w-64 sm:w-72 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 pointer-events-none ${
+                  activeInfoKey === 'volume'
+                    ? '!opacity-100 !scale-100 !pointer-events-auto'
+                    : 'opacity-0 scale-95 md:group-hover/info:opacity-100 md:group-hover/info:scale-100 md:group-hover/info:pointer-events-auto'
+                }`}
+              >
+                <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-[#282828]">
+                  <span className="text-[11px] font-display font-black text-[#C0FF00] uppercase tracking-tight">
+                    90-Day Volume (Tonnage)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveInfoKey(null);
+                    }}
+                    className="md:hidden text-gray-400 hover:text-white"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+                <p className="text-[10px] text-gray-300 leading-relaxed font-sans mb-1.5">
+                  <strong className="text-white font-medium">What it is:</strong> The sum of (weight × reps) across every completed set in the last 90 days.
+                </p>
+                <p className="text-[10px] text-gray-400 leading-relaxed font-sans">
+                  <strong className="text-white font-medium">Why it matters:</strong> Volume load is the primary driver of muscle hypertrophy and progressive overload. Tracking tonnage ensures your muscular workload increases over training cycles.
+                </p>
+              </div>
             </div>
             <div className="p-1.5 rounded-lg bg-[#C0FF00]/10 text-[#C0FF00]">
               <Dumbbell className="w-4 h-4" />
@@ -177,43 +208,12 @@ export const InsightsView: React.FC = () => {
               <span>Lifetime: {formatKg(metrics.totalVolumeKg)}</span>
             </div>
           </div>
-
-          {/* Info popover: hover on desktop group, or tap-to-toggle on mobile */}
-          <div
-            className={`absolute z-30 bottom-full left-0 right-0 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 ${
-              activeInfoKey === 'volume'
-                ? 'opacity-100 scale-100 pointer-events-auto'
-                : 'opacity-0 scale-95 pointer-events-none md:group-hover/card:opacity-100 md:group-hover/card:scale-100 md:group-hover/card:pointer-events-auto'
-            }`}
-          >
-            <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-[#282828]">
-              <span className="text-[11px] font-display font-black text-[#C0FF00] uppercase tracking-tight">
-                90-Day Volume (Tonnage)
-              </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveInfoKey(null);
-                }}
-                className="md:hidden text-gray-400 hover:text-white"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-            <p className="text-[10px] text-gray-300 leading-relaxed font-sans mb-1.5">
-              <strong className="text-white font-medium">What it is:</strong> The sum of (weight × reps) across every completed set in the last 90 days.
-            </p>
-            <p className="text-[10px] text-gray-400 leading-relaxed font-sans">
-              <strong className="text-white font-medium">Why it matters:</strong> Volume load is the primary driver of muscle hypertrophy and progressive overload. Tracking tonnage ensures your muscular workload increases over training cycles.
-            </p>
-          </div>
         </div>
 
         {/* Total Reps Completed */}
-        <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative group/card">
+        <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 relative group/info">
               <span className="font-mono text-[10px] uppercase font-bold text-gray-400 tracking-wider">
                 Total Reps
               </span>
@@ -228,6 +228,37 @@ export const InsightsView: React.FC = () => {
               >
                 <Info className="w-3 h-3" />
               </button>
+
+              {/* Info popover */}
+              <div
+                className={`absolute z-30 bottom-full left-0 w-64 sm:w-72 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 pointer-events-none ${
+                  activeInfoKey === 'reps'
+                    ? '!opacity-100 !scale-100 !pointer-events-auto'
+                    : 'opacity-0 scale-95 md:group-hover/info:opacity-100 md:group-hover/info:scale-100 md:group-hover/info:pointer-events-auto'
+                }`}
+              >
+                <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-[#282828]">
+                  <span className="text-[11px] font-display font-black text-[#C0FF00] uppercase tracking-tight">
+                    Total Repetitions
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveInfoKey(null);
+                    }}
+                    className="md:hidden text-gray-400 hover:text-white"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+                <p className="text-[10px] text-gray-300 leading-relaxed font-sans mb-1.5">
+                  <strong className="text-white font-medium">What it is:</strong> The absolute count of completed repetitions across all logged sets.
+                </p>
+                <p className="text-[10px] text-gray-400 leading-relaxed font-sans">
+                  <strong className="text-white font-medium">Why it matters:</strong> Measures movement quality volume and neuromuscular repetitions accumulated, reflecting density and stamina build-up.
+                </p>
+              </div>
             </div>
             <div className="p-1.5 rounded-lg bg-[#C0FF00]/10 text-[#C0FF00]">
               <Layers className="w-4 h-4" />
@@ -241,43 +272,12 @@ export const InsightsView: React.FC = () => {
               Across {metrics.totalCompletedSessions} workouts
             </div>
           </div>
-
-          {/* Info popover */}
-          <div
-            className={`absolute z-30 bottom-full left-0 right-0 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 ${
-              activeInfoKey === 'reps'
-                ? 'opacity-100 scale-100 pointer-events-auto'
-                : 'opacity-0 scale-95 pointer-events-none md:group-hover/card:opacity-100 md:group-hover/card:scale-100 md:group-hover/card:pointer-events-auto'
-            }`}
-          >
-            <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-[#282828]">
-              <span className="text-[11px] font-display font-black text-[#C0FF00] uppercase tracking-tight">
-                Total Repetitions
-              </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveInfoKey(null);
-                }}
-                className="md:hidden text-gray-400 hover:text-white"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-            <p className="text-[10px] text-gray-300 leading-relaxed font-sans mb-1.5">
-              <strong className="text-white font-medium">What it is:</strong> The absolute count of completed repetitions across all logged sets.
-            </p>
-            <p className="text-[10px] text-gray-400 leading-relaxed font-sans">
-              <strong className="text-white font-medium">Why it matters:</strong> Measures movement quality volume and neuromuscular repetitions accumulated, reflecting density and stamina build-up.
-            </p>
-          </div>
         </div>
 
         {/* Timed Holds / Tension */}
-        <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative group/card">
+        <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 relative group/info">
               <span className="font-mono text-[10px] uppercase font-bold text-gray-400 tracking-wider">
                 Timed Tension
               </span>
@@ -292,6 +292,37 @@ export const InsightsView: React.FC = () => {
               >
                 <Info className="w-3 h-3" />
               </button>
+
+              {/* Info popover */}
+              <div
+                className={`absolute z-30 bottom-full left-0 w-64 sm:w-72 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 pointer-events-none ${
+                  activeInfoKey === 'tension'
+                    ? '!opacity-100 !scale-100 !pointer-events-auto'
+                    : 'opacity-0 scale-95 md:group-hover/info:opacity-100 md:group-hover/info:scale-100 md:group-hover/info:pointer-events-auto'
+                }`}
+              >
+                <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-[#282828]">
+                  <span className="text-[11px] font-display font-black text-[#C0FF00] uppercase tracking-tight">
+                    Timed Tension (TUT)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveInfoKey(null);
+                    }}
+                    className="md:hidden text-gray-400 hover:text-white"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+                <p className="text-[10px] text-gray-300 leading-relaxed font-sans mb-1.5">
+                  <strong className="text-white font-medium">What it is:</strong> Time spent in static isometric holds (planks, dead hangs, paused holds).
+                </p>
+                <p className="text-[10px] text-gray-400 leading-relaxed font-sans">
+                  <strong className="text-white font-medium">Why it matters:</strong> Builds tendon strength, core stability, and deep muscle recruitment without requiring joint movement.
+                </p>
+              </div>
             </div>
             <div className="p-1.5 rounded-lg bg-[#C0FF00]/10 text-[#C0FF00]">
               <Timer className="w-4 h-4" />
@@ -305,43 +336,12 @@ export const InsightsView: React.FC = () => {
               Isometric & timed holds
             </div>
           </div>
-
-          {/* Info popover */}
-          <div
-            className={`absolute z-30 bottom-full left-0 right-0 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 ${
-              activeInfoKey === 'tension'
-                ? 'opacity-100 scale-100 pointer-events-auto'
-                : 'opacity-0 scale-95 pointer-events-none md:group-hover/card:opacity-100 md:group-hover/card:scale-100 md:group-hover/card:pointer-events-auto'
-            }`}
-          >
-            <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-[#282828]">
-              <span className="text-[11px] font-display font-black text-[#C0FF00] uppercase tracking-tight">
-                Timed Tension (TUT)
-              </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveInfoKey(null);
-                }}
-                className="md:hidden text-gray-400 hover:text-white"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-            <p className="text-[10px] text-gray-300 leading-relaxed font-sans mb-1.5">
-              <strong className="text-white font-medium">What it is:</strong> Time spent in static isometric holds (planks, dead hangs, paused holds).
-            </p>
-            <p className="text-[10px] text-gray-400 leading-relaxed font-sans">
-              <strong className="text-white font-medium">Why it matters:</strong> Builds tendon strength, core stability, and deep muscle recruitment without requiring joint movement.
-            </p>
-          </div>
         </div>
 
         {/* Active Work vs Rest */}
-        <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative group/card">
+        <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 relative group/info">
               <span className="font-mono text-[10px] uppercase font-bold text-gray-400 tracking-wider">
                 Active Effort
               </span>
@@ -356,6 +356,37 @@ export const InsightsView: React.FC = () => {
               >
                 <Info className="w-3 h-3" />
               </button>
+
+              {/* Info popover */}
+              <div
+                className={`absolute z-30 bottom-full left-0 sm:left-auto sm:right-0 w-64 sm:w-72 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 pointer-events-none ${
+                  activeInfoKey === 'effort'
+                    ? '!opacity-100 !scale-100 !pointer-events-auto'
+                    : 'opacity-0 scale-95 md:group-hover/info:opacity-100 md:group-hover/info:scale-100 md:group-hover/info:pointer-events-auto'
+                }`}
+              >
+                <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-[#282828]">
+                  <span className="text-[11px] font-display font-black text-[#C0FF00] uppercase tracking-tight">
+                    Active Effort
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveInfoKey(null);
+                    }}
+                    className="md:hidden text-gray-400 hover:text-white"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+                <p className="text-[10px] text-gray-300 leading-relaxed font-sans mb-1.5">
+                  <strong className="text-white font-medium">What it is:</strong> Exact duration of active execution intervals (excluding rest periods).
+                </p>
+                <p className="text-[10px] text-gray-400 leading-relaxed font-sans">
+                  <strong className="text-white font-medium">Why it matters:</strong> Distinguishes true physical work from gym downtime, giving you an accurate measurement of training density and intensity.
+                </p>
+              </div>
             </div>
             <div className="p-1.5 rounded-lg bg-[#C0FF00]/10 text-[#C0FF00]">
               <Flame className="w-4 h-4" />
@@ -368,37 +399,6 @@ export const InsightsView: React.FC = () => {
             <div className="text-[10px] font-mono text-gray-400 mt-1">
               Pure lifting/hold duration
             </div>
-          </div>
-
-          {/* Info popover */}
-          <div
-            className={`absolute z-30 bottom-full left-0 right-0 mb-2 p-3 bg-[#181818] border border-[#333] rounded-xl text-left shadow-2xl transition-all duration-150 ${
-              activeInfoKey === 'effort'
-                ? 'opacity-100 scale-100 pointer-events-auto'
-                : 'opacity-0 scale-95 pointer-events-none md:group-hover/card:opacity-100 md:group-hover/card:scale-100 md:group-hover/card:pointer-events-auto'
-            }`}
-          >
-            <div className="flex items-center justify-between pb-1 mb-1.5 border-b border-[#282828]">
-              <span className="text-[11px] font-display font-black text-[#C0FF00] uppercase tracking-tight">
-                Active Effort
-              </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveInfoKey(null);
-                }}
-                className="md:hidden text-gray-400 hover:text-white"
-              >
-                <X className="w-3 h-3" />
-              </button>
-            </div>
-            <p className="text-[10px] text-gray-300 leading-relaxed font-sans mb-1.5">
-              <strong className="text-white font-medium">What it is:</strong> Exact duration of active execution intervals (excluding rest periods).
-            </p>
-            <p className="text-[10px] text-gray-400 leading-relaxed font-sans">
-              <strong className="text-white font-medium">Why it matters:</strong> Distinguishes true physical work from gym downtime, giving you an accurate measurement of training density and intensity.
-            </p>
           </div>
         </div>
       </div>
