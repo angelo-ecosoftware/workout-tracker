@@ -314,18 +314,36 @@ export async function logSessionCompletion(
   const sessionData = SessionEngine.createSession(userProfile, workoutData);
   const completedTimestamp = sessionCompletedAt ? sessionCompletedAt.toISOString() : new Date().toISOString();
 
-  const { data: insertedSession, error: sessionErr } = await supabase
+  const sessionPayload: Record<string, any> = {
+    user_id: userId,
+    workout_id: workoutId,
+    status: 'completed',
+    started_at: sessionData.startedAt.toISOString(),
+    completed_at: completedTimestamp,
+  };
+
+  if (notes && notes.trim().length > 0) {
+    sessionPayload.notes = notes.trim();
+  }
+
+  let { data: insertedSession, error: sessionErr } = await supabase
     .from('sessions')
-    .insert({
-      user_id: userId,
-      workout_id: workoutId,
-      status: 'completed',
-      started_at: sessionData.startedAt.toISOString(),
-      completed_at: completedTimestamp,
-      notes: notes && notes.trim().length > 0 ? notes.trim() : null,
-    })
+    .insert(sessionPayload)
     .select()
     .single();
+
+  // Graceful fallback if the Supabase table has not run the migration for the 'notes' column yet
+  if (sessionErr && sessionErr.message && sessionErr.message.includes('notes') && 'notes' in sessionPayload) {
+    console.warn('Supabase sessions table missing "notes" column. Retrying insert without notes field.');
+    delete sessionPayload.notes;
+    const retry = await supabase
+      .from('sessions')
+      .insert(sessionPayload)
+      .select()
+      .single();
+    insertedSession = retry.data;
+    sessionErr = retry.error;
+  }
 
   if (sessionErr || !insertedSession) {
     throw new Error(sessionErr?.message || 'Failed to record workout session');
