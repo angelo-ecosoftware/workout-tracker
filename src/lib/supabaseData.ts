@@ -1,6 +1,7 @@
 import { supabase } from './supabase.ts';
 import { UserProfile, Workout, Session, WorkoutSet, Exercise, LastSetSummary } from '../models.ts';
 import { SessionEngine, SetLogger } from '../engine.ts';
+import { deleteWorkoutPhotos } from './storage.ts';
 
 // Get or create user profile
 export async function initializeUser(userId: string, email?: string, name?: string) {
@@ -249,6 +250,30 @@ export async function updateSessionPhotos(sessionId: string, photos: string[]) {
 
 export async function deleteSessions(sessionIds: string[]) {
   if (!sessionIds.length) return;
+
+  // Retrieve photos associated with these sessions to cleanly remove them from storage
+  try {
+    const { data: sessionRows } = await supabase
+      .from('sessions')
+      .select('photos')
+      .in('id', sessionIds);
+
+    const photosToDelete: string[] = [];
+    (sessionRows || []).forEach((row: any) => {
+      if (Array.isArray(row.photos)) {
+        photosToDelete.push(...row.photos);
+      } else if (typeof row.photos === 'string' && row.photos) {
+        photosToDelete.push(row.photos);
+      }
+    });
+
+    if (photosToDelete.length > 0) {
+      await deleteWorkoutPhotos(photosToDelete);
+    }
+  } catch (err) {
+    console.warn('Error cleaning up session photos from storage:', err);
+  }
+
   await supabase.from('sets').delete().in('session_id', sessionIds);
   await supabase.from('sessions').delete().in('id', sessionIds);
 }

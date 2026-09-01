@@ -44,6 +44,68 @@ export async function uploadWorkoutPhoto(
 }
 
 /**
+ * Extracts storage relative file path from a Supabase public URL.
+ * Example URL: https://khvnlmzhymocnvdnptci.supabase.co/storage/v1/object/public/media/userId/12345_abc.webp
+ * Returns: "userId/12345_abc.webp"
+ */
+export function extractStoragePathFromUrl(url: string, bucketName: string = 'media'): string | null {
+  if (!url) return null;
+  const marker = `/storage/v1/object/public/${bucketName}/`;
+  const idx = url.indexOf(marker);
+  if (idx !== -1) {
+    return decodeURIComponent(url.substring(idx + marker.length).split('?')[0]);
+  }
+  
+  // Fallback for direct path or other formats
+  try {
+    const parsed = new URL(url);
+    const pathParts = parsed.pathname.split(`/${bucketName}/`);
+    if (pathParts.length > 1) {
+      return decodeURIComponent(pathParts.slice(1).join(`/${bucketName}/`).split('?')[0]);
+    }
+  } catch {
+    // If not a full URL, check if it's already a relative path
+    if (url.includes('/')) return url;
+  }
+  return null;
+}
+
+/**
+ * Deletes a single workout photo from Supabase Storage by its public URL.
+ */
+export async function deleteWorkoutPhoto(url: string): Promise<void> {
+  const bucketName = 'media';
+  const filePath = extractStoragePathFromUrl(url, bucketName);
+  if (!filePath) {
+    console.warn('Could not extract file path from photo URL for deletion:', url);
+    return;
+  }
+
+  const { error } = await supabase.storage.from(bucketName).remove([filePath]);
+  if (error) {
+    console.warn('Supabase storage photo removal warning:', error.message);
+  }
+}
+
+/**
+ * Deletes multiple workout photos from Supabase Storage by their public URLs.
+ */
+export async function deleteWorkoutPhotos(urls: string[]): Promise<void> {
+  if (!urls || !urls.length) return;
+  const bucketName = 'media';
+  const filePaths = urls
+    .map((url) => extractStoragePathFromUrl(url, bucketName))
+    .filter((path): path is string => !!path);
+
+  if (!filePaths.length) return;
+
+  const { error } = await supabase.storage.from(bucketName).remove(filePaths);
+  if (error) {
+    console.warn('Supabase storage photos bulk removal warning:', error.message);
+  }
+}
+
+/**
  * Uploads multiple workout progress photos (up to 5)
  */
 export async function uploadWorkoutPhotos(

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate, updateSessionNotes, updateSessionPhotos, fetchWorkoutsData } from '../lib/supabaseData.ts';
-import { uploadWorkoutPhoto } from '../lib/storage.ts';
+import { uploadWorkoutPhoto, deleteWorkoutPhoto } from '../lib/storage.ts';
 import { Session, WorkoutSet, Exercise } from '../models.ts';
 import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X, FileText, Camera, Plus, FolderOpen } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal.tsx';
@@ -120,7 +120,15 @@ export const WorkoutHistory: React.FC = () => {
 
     if (!confirm("Are you sure you want to remove this photo?")) return;
 
+    const photoUrlToDelete = targetSession.photos[photoIndexToRemove];
+
     try {
+      // 1. Delete the physical asset from Supabase / S3 storage
+      if (photoUrlToDelete) {
+        await deleteWorkoutPhoto(photoUrlToDelete);
+      }
+
+      // 2. Update session record in DB
       const updatedPhotos = targetSession.photos.filter((_, idx) => idx !== photoIndexToRemove);
       await updateSessionPhotos(sessionId, updatedPhotos);
 
