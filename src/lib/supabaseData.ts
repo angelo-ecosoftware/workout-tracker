@@ -26,7 +26,6 @@ export async function initializeUser(userId: string, email?: string, name?: stri
       lastCompletedWorkoutOrder: 0,
       maxWorkoutOrder: 3,
       lastSetSummaryPerExercise: {},
-      onboardingCompleted: false,
       createdAt: new Date(),
     };
 
@@ -37,7 +36,6 @@ export async function initializeUser(userId: string, email?: string, name?: stri
       last_completed_workout_order: 0,
       max_workout_order: 3,
       last_set_summary_per_exercise: {},
-      onboarding_completed: false,
       created_at: newUser.createdAt.toISOString(),
     }, { onConflict: 'user_id' });
 
@@ -73,7 +71,6 @@ export async function initializeUser(userId: string, email?: string, name?: stri
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
     maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
-    onboardingCompleted: data.onboarding_completed ?? false,
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
   } as UserProfile;
 }
@@ -216,44 +213,8 @@ export async function getUserProgressState(userId: string) {
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
     maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
-    onboardingCompleted: data.onboarding_completed ?? false,
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
   } as UserProfile;
-}
-
-export async function saveUserOnboarding(userId: string) {
-  const { data: authUser } = await supabase.auth.getUser();
-  const user = authUser?.user;
-  const email = user?.email || '';
-  const name = user?.user_metadata?.full_name || user?.user_metadata?.name || (email ? email.split('@')[0] : '') || 'Athlete';
-
-  const { error } = await supabase
-    .from('users')
-    .upsert({
-      user_id: userId,
-      email,
-      name,
-      onboarding_completed: true,
-      last_completed_workout_order: 0,
-      max_workout_order: 3,
-      last_set_summary_per_exercise: {},
-      created_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' });
-
-  if (error) {
-    console.error('Error saving onboarding data:', error);
-    const { error: fallbackError } = await supabase
-      .from('users')
-      .update({
-        onboarding_completed: true,
-      })
-      .eq('user_id', userId);
-
-    if (fallbackError) {
-      console.error('Fallback update error:', fallbackError);
-      throw fallbackError;
-    }
-  }
 }
 
 export async function updateSessionDate(sessionId: string, newDate: Date) {

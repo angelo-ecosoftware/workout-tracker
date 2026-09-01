@@ -18,7 +18,6 @@ async function seedTestUser() {
     last_completed_workout_order: 0,
     max_workout_order: 2,
     last_set_summary_per_exercise: {},
-    onboarding_completed: true,
   }, { onConflict: 'user_id' });
 
   if (userErr) console.warn("User upsert warning:", userErr);

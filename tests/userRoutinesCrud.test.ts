@@ -10,9 +10,7 @@ const TEST_USER = {
   last_completed_workout_order: 0,
   max_workout_order: 3,
   last_set_summary_per_exercise: "{}",
-  created_at: "2026-09-01 12:01:55.551+00",
-  has_onboarded: false,
-  onboarding_completed: true
+  created_at: "2026-09-01 12:01:55.551+00"
 };
 
 // Simulate full Create, Read, Update, Delete in-memory routine operations & DB synchronization shape
@@ -164,6 +162,6 @@ describe(`Routine CRUD and Zero-State workflow for user ${TEST_USER.user_id} (${
     expect(TEST_USER.user_id).toBe("c7b8e78f-24c3-447f-8ad2-5c31dd8421ec");
     expect(TEST_USER.email).toBe("extremealpha16@gmail.com");
     expect(TEST_USER.name).toBe("Alpha Extreme");
-    expect(TEST_USER.onboarding_completed).toBe(true);
+    expect(TEST_USER.last_completed_workout_order).toBe(0);
   });
 });
