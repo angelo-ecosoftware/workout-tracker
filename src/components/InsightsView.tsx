@@ -248,9 +248,9 @@ export const InsightsView: React.FC = () => {
         </div>
 
         {/* Heatmap Grid - Standard Calendar View: Left to Right, Rows = Weeks */}
-        <div className="space-y-2 pt-2">
+        <div className="space-y-1.5 pt-1">
           {/* Day of week headers */}
-          <div className="grid grid-cols-7 gap-2 text-center text-[10px] font-mono font-bold text-gray-500 uppercase tracking-wider">
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center text-[9px] font-mono font-bold text-gray-500 uppercase tracking-wider">
             <span>Mon</span>
             <span>Tue</span>
             <span>Wed</span>
@@ -261,12 +261,12 @@ export const InsightsView: React.FC = () => {
           </div>
 
           {/* Calendar Grid: Left-to-Right by day, Top-to-Bottom by week */}
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-7 gap-1 sm:gap-1.5 max-w-xl mx-auto">
             {metrics.heatmapDays.map((day) => {
               let bgClass = 'bg-[#181818] border border-[#282828] hover:border-[#555]';
               if (day.sessionsCount > 0) {
                 if (day.totalVolumeKg > 5000) {
-                  bgClass = 'bg-[#C0FF00] text-black shadow-[0_0_10px_rgba(192,255,0,0.3)] border border-[#C0FF00]';
+                  bgClass = 'bg-[#C0FF00] text-black shadow-[0_0_8px_rgba(192,255,0,0.3)] border border-[#C0FF00]';
                 } else if (day.totalVolumeKg > 2000) {
                   bgClass = 'bg-[#a3db00] text-black border border-[#a3db00]';
                 } else {
@@ -282,16 +282,16 @@ export const InsightsView: React.FC = () => {
                   key={day.date}
                   onMouseEnter={() => setHoveredDay(day)}
                   onMouseLeave={() => setHoveredDay(null)}
-                  className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all cursor-pointer p-1 relative ${bgClass} ${
-                    day.isToday ? 'ring-2 ring-white ring-offset-2 ring-offset-black font-black' : ''
+                  className={`h-7 sm:h-8 rounded-md flex flex-col items-center justify-center transition-all cursor-pointer px-0.5 relative ${bgClass} ${
+                    day.isToday ? 'ring-1.5 ring-white font-black' : ''
                   } hover:scale-105`}
                 >
-                  <span className={`text-[11px] font-mono ${day.sessionsCount > 0 ? 'font-black' : 'text-gray-400'}`}>
+                  <span className={`text-[9px] sm:text-[10px] leading-none font-mono ${day.sessionsCount > 0 ? 'font-black' : 'text-gray-400'}`}>
                     {dayOfMonth}
                   </span>
                   {day.sessionsCount > 0 && (
-                    <span className="text-[8px] font-mono font-bold uppercase tracking-tighter truncate max-w-full">
-                      {day.totalVolumeKg > 0 ? `${Math.round(day.totalVolumeKg)}kg` : 'done'}
+                    <span className="text-[7px] leading-tight font-mono font-bold uppercase tracking-tighter truncate max-w-full">
+                      {day.totalVolumeKg > 0 ? `${Math.round(day.totalVolumeKg)}kg` : '✓'}
                     </span>
                   )}
                 </div>
