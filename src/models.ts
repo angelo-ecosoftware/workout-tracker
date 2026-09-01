@@ -15,7 +15,6 @@ export interface UserProfile {
   maxWorkoutOrder: number;
   lastSetSummaryPerExercise: Record<string, LastSetSummary>;
   onboardingCompleted?: boolean;
-  trainingDaysPerWeek?: number;
   createdAt: Date;
 }
 

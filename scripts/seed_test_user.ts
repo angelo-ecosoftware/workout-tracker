@@ -13,13 +13,12 @@ async function seedTestUser() {
   // 1. Ensure user profile exists
   const { data: userData, error: userErr } = await supabase.from('users').upsert({
     user_id: TEST_USER_ID,
-    email: 'testuser@spartan.app',
+    email: 'testuser@workouttracker.app',
     name: 'Quick Tester',
     last_completed_workout_order: 0,
     max_workout_order: 2,
     last_set_summary_per_exercise: {},
     onboarding_completed: true,
-    training_days_per_week: 2,
   }, { onConflict: 'user_id' });
 
   if (userErr) console.warn("User upsert warning:", userErr);

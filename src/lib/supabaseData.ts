@@ -27,7 +27,6 @@ export async function initializeUser(userId: string, email?: string, name?: stri
       maxWorkoutOrder: 3,
       lastSetSummaryPerExercise: {},
       onboardingCompleted: false,
-      trainingDaysPerWeek: undefined,
       createdAt: new Date(),
     };
 
@@ -39,7 +38,6 @@ export async function initializeUser(userId: string, email?: string, name?: stri
       max_workout_order: 3,
       last_set_summary_per_exercise: {},
       onboarding_completed: false,
-      training_days_per_week: null,
       created_at: newUser.createdAt.toISOString(),
     }, { onConflict: 'user_id' });
 
@@ -76,7 +74,6 @@ export async function initializeUser(userId: string, email?: string, name?: stri
     maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
     onboardingCompleted: data.onboarding_completed ?? false,
-    trainingDaysPerWeek: data.training_days_per_week ?? undefined,
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
   } as UserProfile;
 }
@@ -220,12 +217,11 @@ export async function getUserProgressState(userId: string) {
     maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
     onboardingCompleted: data.onboarding_completed ?? false,
-    trainingDaysPerWeek: data.training_days_per_week ?? undefined,
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
   } as UserProfile;
 }
 
-export async function saveUserOnboarding(userId: string, daysPerWeek: number) {
+export async function saveUserOnboarding(userId: string) {
   const { data: authUser } = await supabase.auth.getUser();
   const user = authUser?.user;
   const email = user?.email || '';
@@ -238,7 +234,6 @@ export async function saveUserOnboarding(userId: string, daysPerWeek: number) {
       email,
       name,
       onboarding_completed: true,
-      training_days_per_week: daysPerWeek,
       last_completed_workout_order: 0,
       max_workout_order: 3,
       last_set_summary_per_exercise: {},
@@ -251,7 +246,6 @@ export async function saveUserOnboarding(userId: string, daysPerWeek: number) {
       .from('users')
       .update({
         onboarding_completed: true,
-        training_days_per_week: daysPerWeek,
       })
       .eq('user_id', userId);
 
