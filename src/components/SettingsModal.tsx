@@ -42,8 +42,17 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     localStorage.setItem('setting_rest_duration_seconds', restDurationSeconds.toString());
-    window.dispatchEvent(new Event('workout_settings_updated'));
-  }, [restDurationSeconds]);
+  // Close modal on Escape key press
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen || !user) return null;
 
@@ -164,19 +173,28 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-[#111] border border-[#222] rounded-2xl w-full max-w-md overflow-hidden shadow-2xl relative">
-        <div className="flex items-center justify-between p-4 border-b border-[#222]">
-          <h2 className="font-display font-black uppercase italic tracking-tight text-white">Settings</h2>
+    <div 
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-[#111] border border-[#222] rounded-2xl w-full max-w-lg max-h-[90vh] sm:max-h-[85vh] flex flex-col overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-150"
+      >
+        {/* Modal Header */}
+        <div className="flex items-center justify-between p-4 sm:p-5 border-b border-[#222] bg-[#111]/95 backdrop-blur sticky top-0 z-10 shrink-0">
+          <h2 className="font-display font-black uppercase italic tracking-tight text-white text-base sm:text-lg">Settings</h2>
           <button 
             onClick={onClose}
-            className="p-1.5 hover:bg-[#222] rounded-xl text-gray-400 hover:text-white transition-colors"
+            className="p-1.5 hover:bg-[#222] rounded-xl text-gray-400 hover:text-white transition-colors cursor-pointer"
+            aria-label="Close settings"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-4 flex flex-col gap-3">
+        {/* Modal Scrollable Body */}
+        <div className="p-3.5 sm:p-5 flex flex-col gap-3 overflow-y-auto overscroll-contain flex-1">
           {/* Assisted Timed Workout Toggle */}
           <div className="p-3.5 bg-[#1a1a1a] border border-[#222] rounded-xl flex flex-col gap-3">
             <div className="flex items-center justify-between">
