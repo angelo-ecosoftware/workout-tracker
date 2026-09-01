@@ -6,6 +6,7 @@ import { Header } from './components/Header.tsx';
 import { WorkoutDayTracker } from './components/WorkoutDayTracker.tsx';
 import { WorkoutHistory } from './components/WorkoutHistory.tsx';
 import { InsightsView } from './components/InsightsView.tsx';
+import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { Loader2 } from 'lucide-react';
 
 const GymAppContent: React.FC = () => {
@@ -69,10 +70,12 @@ const GymAppContent: React.FC = () => {
 
 export default function App() {
   return (
-    <PWAProvider>
-      <AuthProvider>
-        <GymAppContent />
-      </AuthProvider>
-    </PWAProvider>
+    <ErrorBoundary>
+      <PWAProvider>
+        <AuthProvider>
+          <GymAppContent />
+        </AuthProvider>
+      </PWAProvider>
+    </ErrorBoundary>
   );
 }
