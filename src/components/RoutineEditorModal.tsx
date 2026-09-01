@@ -21,12 +21,22 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   onSaveWorkouts,
 }) => {
   const [workouts, setWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>(() => 
-    JSON.parse(JSON.stringify(initialWorkouts))
+    JSON.parse(JSON.stringify(initialWorkouts || []))
   );
   const [selectedWorkoutIndex, setSelectedWorkoutIndex] = useState<number>(0);
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Sync state whenever initialWorkouts changes or modal opens
+  React.useEffect(() => {
+    if (isOpen && initialWorkouts) {
+      setWorkouts(JSON.parse(JSON.stringify(initialWorkouts)));
+      setSelectedWorkoutIndex(0);
+      setEditingExerciseId(null);
+      setStatusMsg(null);
+    }
+  }, [isOpen, initialWorkouts]);
 
   if (!isOpen) return null;
 
