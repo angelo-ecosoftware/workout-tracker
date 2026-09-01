@@ -13,6 +13,13 @@
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <script>
+      // Capture beforeinstallprompt before React loads so it is never missed
+      window.deferredInstallPrompt = null;
+      window.addEventListener('beforeinstallprompt', function(e) {
+        e.preventDefault();
+        window.deferredInstallPrompt = e;
+        window.dispatchEvent(new Event('deferredpromptready'));
+      });
       window.addEventListener('error', function(e) {
         if (e.message === 'Script error.' || e.message === 'Script error') {
           e.stopImmediatePropagation();

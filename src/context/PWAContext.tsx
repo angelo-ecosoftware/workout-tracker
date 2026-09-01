@@ -17,7 +17,7 @@ const PWAContext = createContext<PWAContextType>({
 export const usePWA = () => useContext(PWAContext);
 
 export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
+  const [installPrompt, setInstallPrompt] = useState<any>(() => (typeof window !== 'undefined' ? (window as any).deferredInstallPrompt : null));
   const [isStandalone, setIsStandalone] = useState<boolean>(false);
   const [isIOS, setIsIOS] = useState<boolean>(false);
 
@@ -25,6 +25,7 @@ export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     // Check if app is already installed / opened in standalone mode
     const standaloneMode = 
       window.matchMedia('(display-mode: standalone)').matches || 
+      window.matchMedia('(display-mode: fullscreen)').matches ||
       (window.navigator as any).standalone === true;
     setIsStandalone(standaloneMode);
 
@@ -33,15 +34,29 @@ export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const iosDevice = /iphone|ipad|ipod/.test(userAgent);
     setIsIOS(iosDevice);
 
+    // If early script captured the event before React mounted
+    if ((window as any).deferredInstallPrompt) {
+      setInstallPrompt((window as any).deferredInstallPrompt);
+    }
+
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault();
+      (window as any).deferredInstallPrompt = e;
       setInstallPrompt(e);
     };
 
+    const handlePromptReady = () => {
+      if ((window as any).deferredInstallPrompt) {
+        setInstallPrompt((window as any).deferredInstallPrompt);
+      }
+    };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('deferredpromptready', handlePromptReady);
 
     const handleAppInstalled = () => {
       setInstallPrompt(null);
+      (window as any).deferredInstallPrompt = null;
       setIsStandalone(true);
     };
 
@@ -49,6 +64,7 @@ export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('deferredpromptready', handlePromptReady);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
