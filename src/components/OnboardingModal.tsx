@@ -37,7 +37,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ userId, onComp
             {/* Badge */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1a1a1a] border border-[#333] text-[#C0FF00] text-xs font-mono font-bold uppercase tracking-wider mb-5">
               <Zap className="w-3.5 h-3.5 fill-[#C0FF00]" />
-              Thank you for using Spartan
+              Thank You For Using Our Tracker
             </div>
 
             <h2 className="text-2xl sm:text-3xl font-display font-black text-white uppercase tracking-tight leading-none mb-3">
@@ -45,7 +45,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ userId, onComp
             </h2>
 
             <p className="text-gray-400 font-sans text-sm leading-relaxed mb-6">
-              Thank you for using Spartan Workout Tracker. Built for serious lifters focused on precision, continuous overload, and structured progression.
+              Thank you for using Workout Tracker. Built for serious lifters focused on precision, continuous overload, and structured progression.
             </p>
 
             {/* Feature highlights */}

@@ -15,7 +15,7 @@ export default defineConfig(() => {
         includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
         manifest: {
           id: '/',
-          name: 'Spartan Workout Tracker',
+          name: 'Minimal Gym & Workout Tracker',
           short_name: 'Workout Tracker',
           description: 'Minimalist, high-performance progressive overload workout log book',
           start_url: '/',
