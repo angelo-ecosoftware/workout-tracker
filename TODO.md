@@ -19,7 +19,7 @@ This document tracks identified architectural improvements, edge case handling, 
 
 ## 2. Metric Calculations & Exercise Types
 
-- [ ] **Bodyweight Exercises Volume Tracking**
+- [x] **Bodyweight Exercises Volume Tracking**
   - **Context**: Working sets for unweighted bodyweight movements (pull-ups, dips, push-ups) are logged with `0 kg` added weight.
   - **Action**: Track progression via **Total Reps** so users don't see $0\text{ kg}$ total volume on bodyweight days.
 

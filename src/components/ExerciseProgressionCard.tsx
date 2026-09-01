@@ -21,10 +21,14 @@ interface ExerciseProgressionCardProps {
 }
 
 export const ExerciseProgressionCard: React.FC<ExerciseProgressionCardProps> = ({ report }) => {
-  const [selectedMetric, setSelectedMetric] = useState<'weight' | '1rm' | 'volume'>('weight');
+  const isTimed = report.exerciseType === 'timed';
+  const isBodyweight = report.isBodyweight;
+
+  const [selectedMetric, setSelectedMetric] = useState<'weight' | '1rm' | 'volume' | 'reps'>(
+    isBodyweight ? 'reps' : 'weight'
+  );
   const [hoveredPoint, setHoveredPoint] = useState<ExerciseSessionDataPoint | null>(null);
 
-  const isTimed = report.exerciseType === 'timed';
   const data = report.dataPoints;
 
   if (data.length === 0) {
@@ -38,6 +42,7 @@ export const ExerciseProgressionCard: React.FC<ExerciseProgressionCardProps> = (
   // Calculate chart bounds based on active metric
   const getPointValue = (p: ExerciseSessionDataPoint) => {
     if (isTimed) return p.maxHoldDurationSeconds;
+    if (isBodyweight || selectedMetric === 'reps') return p.totalReps;
     if (selectedMetric === 'weight') return p.maxWeightKg;
     if (selectedMetric === '1rm') return p.estimated1RMKg;
     return p.totalVolumeKg;
@@ -48,12 +53,15 @@ export const ExerciseProgressionCard: React.FC<ExerciseProgressionCardProps> = (
   const maxVal = Math.max(...values);
   const range = maxVal - minVal || 1;
 
-  const activeDelta =
-    selectedMetric === 'weight'
-      ? report.weightDeltaPercentage
-      : selectedMetric === '1rm'
-      ? report.oneRmDeltaPercentage
-      : report.volumeDeltaPercentage;
+  const activeDelta = isTimed
+    ? 0
+    : isBodyweight || selectedMetric === 'reps'
+    ? report.repsDeltaPercentage
+    : selectedMetric === 'weight'
+    ? report.weightDeltaPercentage
+    : selectedMetric === '1rm'
+    ? report.oneRmDeltaPercentage
+    : report.volumeDeltaPercentage;
 
   return (
     <div className="bg-[#141414] border border-[#222] hover:border-[#333] rounded-[22px] p-4 sm:p-5 space-y-4 transition-all">
@@ -78,76 +86,106 @@ export const ExerciseProgressionCard: React.FC<ExerciseProgressionCardProps> = (
         {/* Tab switchers */}
         {!isTimed && (
           <div className="flex items-center gap-1 bg-[#0d0d0d] p-1 rounded-xl border border-[#222] self-start sm:self-auto">
-            <button
-              type="button"
-              onClick={() => setSelectedMetric('weight')}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                selectedMetric === 'weight'
-                  ? 'bg-[#C0FF00] text-black shadow-sm'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Top Weight
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedMetric('1rm')}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                selectedMetric === '1rm'
-                  ? 'bg-[#C0FF00] text-black shadow-sm'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Est. 1RM
-            </button>
-            <button
-              type="button"
-              onClick={() => setSelectedMetric('volume')}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                selectedMetric === 'volume'
-                  ? 'bg-[#C0FF00] text-black shadow-sm'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Volume
-            </button>
+            {isBodyweight ? (
+              <button
+                type="button"
+                onClick={() => setSelectedMetric('reps')}
+                className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer bg-[#C0FF00] text-black shadow-sm"
+              >
+                Total Reps
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMetric('weight')}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                    selectedMetric === 'weight'
+                      ? 'bg-[#C0FF00] text-black shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Top Weight
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMetric('1rm')}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                    selectedMetric === '1rm'
+                      ? 'bg-[#C0FF00] text-black shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Est. 1RM
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMetric('volume')}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                    selectedMetric === 'volume'
+                      ? 'bg-[#C0FF00] text-black shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Volume
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>
 
       {/* PR Highlights & Trajectory Delta Banner */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        {/* All-time Top Weight */}
-        <div className="bg-[#0f0f0f] border border-[#222] rounded-xl p-2.5">
-          <div className="text-[9px] font-mono uppercase font-bold text-gray-400">All-Time PR</div>
-          <div className="text-base font-display font-black text-[#C0FF00] mt-0.5">
-            {isTimed ? `${report.allTimePrHoldSeconds}s` : `${report.allTimePrWeightKg} kg`}
-          </div>
-          <div className="text-[9px] font-mono text-gray-500">
-            {isTimed ? 'Max hold' : 'Heaviest lift'}
-          </div>
-        </div>
-
-        {/* All-Time 1RM (or Total Reps if timed) */}
+        {/* All-time Top Weight or Max Reps in a Single Session */}
         <div className="bg-[#0f0f0f] border border-[#222] rounded-xl p-2.5">
           <div className="text-[9px] font-mono uppercase font-bold text-gray-400">
-            {isTimed ? 'Hold Sets' : 'Estimated 1RM'}
+            {isTimed ? 'All-Time PR' : isBodyweight ? 'Session PR' : 'All-Time PR'}
           </div>
-          <div className="text-base font-display font-black text-white mt-0.5">
-            {isTimed ? `${report.totalSetsLogged}` : `${report.allTimePr1RMKg} kg`}
+          <div className="text-base font-display font-black text-[#C0FF00] mt-0.5">
+            {isTimed
+              ? `${report.allTimePrHoldSeconds}s`
+              : isBodyweight
+              ? `${report.allTimePrTotalReps} reps`
+              : `${report.allTimePrWeightKg} kg`}
           </div>
           <div className="text-[9px] font-mono text-gray-500">
-            {isTimed ? 'Logged' : 'Theoretical max'}
+            {isTimed ? 'Max hold' : isBodyweight ? 'Most reps/session' : 'Heaviest lift'}
           </div>
         </div>
 
-        {/* All-Time Session Volume */}
+        {/* All-Time 1RM (or Total Reps if timed/bodyweight) */}
         <div className="bg-[#0f0f0f] border border-[#222] rounded-xl p-2.5">
-          <div className="text-[9px] font-mono uppercase font-bold text-gray-400">Max Session Vol</div>
-          <div className="text-base font-display font-black text-white mt-0.5">
-            {isTimed ? `${report.allTimePrHoldSeconds}s` : `${report.allTimePrVolumeKg.toLocaleString()} kg`}
+          <div className="text-[9px] font-mono uppercase font-bold text-gray-400">
+            {isTimed ? 'Hold Sets' : isBodyweight ? 'Total Volume' : 'Estimated 1RM'}
           </div>
-          <div className="text-[9px] font-mono text-gray-500">Single workout</div>
+          <div className="text-base font-display font-black text-white mt-0.5">
+            {isTimed
+              ? `${report.totalSetsLogged}`
+              : isBodyweight
+              ? `${data.reduce((acc, d) => acc + d.totalReps, 0)} reps`
+              : `${report.allTimePr1RMKg} kg`}
+          </div>
+          <div className="text-[9px] font-mono text-gray-500">
+            {isTimed ? 'Logged' : isBodyweight ? 'Lifetime reps' : 'Theoretical max'}
+          </div>
+        </div>
+
+        {/* All-Time Session Volume or Best Single Set */}
+        <div className="bg-[#0f0f0f] border border-[#222] rounded-xl p-2.5">
+          <div className="text-[9px] font-mono uppercase font-bold text-gray-400">
+            {isBodyweight ? 'Best Set' : 'Max Session Vol'}
+          </div>
+          <div className="text-base font-display font-black text-white mt-0.5">
+            {isTimed
+              ? `${report.allTimePrHoldSeconds}s`
+              : isBodyweight
+              ? `${Math.max(...data.flatMap((d) => d.sets.map((s) => s.reps)), 0)} reps`
+              : `${report.allTimePrVolumeKg.toLocaleString()} kg`}
+          </div>
+          <div className="text-[9px] font-mono text-gray-500">
+            {isBodyweight ? 'Single set max' : 'Single workout'}
+          </div>
         </div>
 
         {/* Trajectory Growth Delta */}
@@ -177,7 +215,11 @@ export const ExerciseProgressionCard: React.FC<ExerciseProgressionCardProps> = (
         <div className="flex items-center justify-between text-[10px] font-mono text-gray-400">
           <span>Session Trajectory ({data.length} points)</span>
           <span className="text-gray-500">
-            {selectedMetric === 'weight'
+            {isTimed
+              ? 'Isometric hold duration (seconds)'
+              : isBodyweight || selectedMetric === 'reps'
+              ? 'Total reps completed per workout'
+              : selectedMetric === 'weight'
               ? 'Max weight (kg) per workout'
               : selectedMetric === '1rm'
               ? 'Epley Est. 1RM (kg)'
@@ -209,12 +251,14 @@ export const ExerciseProgressionCard: React.FC<ExerciseProgressionCardProps> = (
                       <div className="text-xs font-display font-black text-[#C0FF00]">
                         {isTimed
                           ? `${val}s hold`
+                          : isBodyweight || selectedMetric === 'reps'
+                          ? `${val} total reps`
                           : selectedMetric === 'volume'
                           ? `${val.toLocaleString()} kg`
                           : `${val} kg`}
                       </div>
                       <div className="text-[8px] font-mono text-gray-400 mt-0.5">
-                        {point.sets.map((s) => `${s.weight}k×${s.reps}`).join(' | ')}
+                        {point.sets.map((s) => (s.weight ? `${s.weight}k×${s.reps}` : `${s.reps}r`)).join(' | ')}
                       </div>
                     </div>
                   )}
@@ -225,7 +269,7 @@ export const ExerciseProgressionCard: React.FC<ExerciseProgressionCardProps> = (
                       isHovered ? 'text-[#C0FF00] font-bold' : isLatest ? 'text-white' : 'text-gray-500'
                     }`}
                   >
-                    {isTimed ? `${val}s` : `${val}`}
+                    {isTimed ? `${val}s` : isBodyweight || selectedMetric === 'reps' ? `${val}r` : `${val}`}
                   </span>
 
                   {/* Bar */}
@@ -259,12 +303,23 @@ export const ExerciseProgressionCard: React.FC<ExerciseProgressionCardProps> = (
               <div className="flex items-center gap-2 text-gray-300">
                 <span className="text-[#C0FF00] font-bold">{hoveredPoint.formattedDate}:</span>
                 <span>
-                  Sets: {hoveredPoint.sets.map((s) => `Set ${s.setNumber}: ${s.weight}kg × ${s.reps}`).join(', ')}
+                  Sets: {hoveredPoint.sets.map((s) => `Set ${s.setNumber}: ${s.weight ? `${s.weight}kg × ` : ''}${s.reps} reps`).join(', ')}
                 </span>
               </div>
               <div className="text-gray-400">
-                Est 1RM: <strong className="text-white">{hoveredPoint.estimated1RMKg}kg</strong> • Vol:{' '}
-                <strong className="text-white">{hoveredPoint.totalVolumeKg.toLocaleString()}kg</strong>
+                {isBodyweight ? (
+                  <>
+                    Total Reps: <strong className="text-white">{hoveredPoint.totalReps}</strong> • Best Set:{' '}
+                    <strong className="text-white">
+                      {Math.max(...hoveredPoint.sets.map((s) => s.reps))} reps
+                    </strong>
+                  </>
+                ) : (
+                  <>
+                    Est 1RM: <strong className="text-white">{hoveredPoint.estimated1RMKg}kg</strong> • Vol:{' '}
+                    <strong className="text-white">{hoveredPoint.totalVolumeKg.toLocaleString()}kg</strong>
+                  </>
+                )}
               </div>
             </div>
           )}

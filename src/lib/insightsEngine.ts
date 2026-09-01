@@ -241,30 +241,40 @@ export function calculateInsights(
   }
 
   // Rest Interval Discipline Analysis
-  const restSets = sets.filter((s) => s.restSeconds != null && s.restSeconds > 0);
-  const targetRest = 90; // Standard 90s benchmark or user setting baseline
+  // For historical sets logged without the assisted timer (restSeconds = 0 or null),
+  // compute an inferred/default rest benchmark (default 90s) between consecutive sets
+  // so users have actionable baseline metrics.
+  const DEFAULT_TARGET_REST_SEC = 90;
+  let effectiveRestSetsCount = 0;
+  let computedTotalRestSeconds = 0;
   let onTimeCount = 0;
   let underRestCount = 0;
   let overRestCount = 0;
 
-  restSets.forEach((s) => {
-    const r = s.restSeconds!;
-    if (r >= targetRest - 15 && r <= targetRest + 20) {
+  sets.forEach((s) => {
+    // If explicit recorded rest > 0, use recorded rest; otherwise default to baseline (90s) for completed workout sets
+    const hasExplicitRest = s.restSeconds != null && s.restSeconds > 0;
+    const rest = hasExplicitRest ? s.restSeconds! : DEFAULT_TARGET_REST_SEC;
+
+    effectiveRestSetsCount++;
+    computedTotalRestSeconds += rest;
+
+    if (rest >= DEFAULT_TARGET_REST_SEC - 15 && rest <= DEFAULT_TARGET_REST_SEC + 20) {
       onTimeCount++;
-    } else if (r < targetRest - 15) {
+    } else if (rest < DEFAULT_TARGET_REST_SEC - 15) {
       underRestCount++;
     } else {
       overRestCount++;
     }
   });
 
-  const adherencePercentage = restSets.length > 0 ? Math.round((onTimeCount / restSets.length) * 100) : 0;
-  const averageRestSeconds = restSets.length > 0 ? Math.round(totalRestSeconds / restSets.length) : 0;
-  const workToRestRatio = totalRestSeconds > 0 ? Math.round((totalWorkSeconds / totalRestSeconds) * 10) / 10 : 0;
+  const adherencePercentage = effectiveRestSetsCount > 0 ? Math.round((onTimeCount / effectiveRestSetsCount) * 100) : 0;
+  const averageRestSeconds = effectiveRestSetsCount > 0 ? Math.round(computedTotalRestSeconds / effectiveRestSetsCount) : DEFAULT_TARGET_REST_SEC;
+  const workToRestRatio = computedTotalRestSeconds > 0 ? Math.round((totalWorkSeconds / computedTotalRestSeconds) * 10) / 10 : 0;
 
   const restDiscipline: RestDisciplineMetrics = {
-    totalRestSeconds,
-    recordedRestIntervalsCount: restSets.length,
+    totalRestSeconds: computedTotalRestSeconds,
+    recordedRestIntervalsCount: effectiveRestSetsCount,
     averageRestSeconds,
     adherencePercentage,
     onTimeCount,
@@ -314,15 +324,18 @@ export interface ExerciseProgressionReport {
   exerciseId: string;
   exerciseName: string;
   exerciseType: 'strength' | 'timed';
+  isBodyweight: boolean;
   allTimePrWeightKg: number;
   allTimePr1RMKg: number;
   allTimePrVolumeKg: number;
+  allTimePrTotalReps: number;
   allTimePrHoldSeconds: number;
   totalSetsLogged: number;
   dataPoints: ExerciseSessionDataPoint[];
   weightDeltaPercentage: number;
   oneRmDeltaPercentage: number;
   volumeDeltaPercentage: number;
+  repsDeltaPercentage: number;
 }
 
 /**
@@ -343,17 +356,26 @@ export function calculateExerciseProgression(
       exerciseId,
       exerciseName: targetExercise.name,
       exerciseType: targetExercise.type,
+      isBodyweight: false,
       allTimePrWeightKg: 0,
       allTimePr1RMKg: 0,
       allTimePrVolumeKg: 0,
+      allTimePrTotalReps: 0,
       allTimePrHoldSeconds: 0,
       totalSetsLogged: 0,
       dataPoints: [],
       weightDeltaPercentage: 0,
       oneRmDeltaPercentage: 0,
       volumeDeltaPercentage: 0,
+      repsDeltaPercentage: 0,
     };
   }
+
+  // Determine if this is primarily an unweighted bodyweight exercise
+  // (i.e. not timed, has completed reps, and all logged weights are 0 or null)
+  const isTimed = targetExercise.type === 'timed';
+  const hasLoggedWeight = exerciseSets.some((s) => s.weight != null && s.weight > 0);
+  const isBodyweight = !isTimed && !hasLoggedWeight && exerciseSets.some((s) => s.reps != null && s.reps > 0);
 
   // Session date map
   const sessionMap = new Map<string, Session>();
@@ -373,6 +395,7 @@ export function calculateExerciseProgression(
   let allTimePrWeightKg = 0;
   let allTimePr1RMKg = 0;
   let allTimePrVolumeKg = 0;
+  let allTimePrTotalReps = 0;
   let allTimePrHoldSeconds = 0;
 
   setsBySession.forEach((sessionSets, sessionId) => {
@@ -419,6 +442,7 @@ export function calculateExerciseProgression(
     if (maxWeight > allTimePrWeightKg) allTimePrWeightKg = maxWeight;
     if (max1RM > allTimePr1RMKg) allTimePr1RMKg = max1RM;
     if (totalVol > allTimePrVolumeKg) allTimePrVolumeKg = totalVol;
+    if (totalReps > allTimePrTotalReps) allTimePrTotalReps = totalReps;
     if (maxHold > allTimePrHoldSeconds) allTimePrHoldSeconds = maxHold;
 
     const dateStr = dateObj.toISOString().split('T')[0];
@@ -445,6 +469,7 @@ export function calculateExerciseProgression(
   let weightDeltaPercentage = 0;
   let oneRmDeltaPercentage = 0;
   let volumeDeltaPercentage = 0;
+  let repsDeltaPercentage = 0;
 
   if (dataPoints.length >= 2) {
     const firstPoint = dataPoints[0];
@@ -459,20 +484,26 @@ export function calculateExerciseProgression(
     if (firstPoint.totalVolumeKg > 0) {
       volumeDeltaPercentage = Math.round(((latestPoint.totalVolumeKg - firstPoint.totalVolumeKg) / firstPoint.totalVolumeKg) * 100);
     }
+    if (firstPoint.totalReps > 0) {
+      repsDeltaPercentage = Math.round(((latestPoint.totalReps - firstPoint.totalReps) / firstPoint.totalReps) * 100);
+    }
   }
 
   return {
     exerciseId,
     exerciseName: targetExercise.name,
     exerciseType: targetExercise.type,
+    isBodyweight,
     allTimePrWeightKg,
     allTimePr1RMKg: Math.round(allTimePr1RMKg * 10) / 10,
     allTimePrVolumeKg,
+    allTimePrTotalReps,
     allTimePrHoldSeconds,
     totalSetsLogged: exerciseSets.length,
     dataPoints,
     weightDeltaPercentage,
     oneRmDeltaPercentage,
     volumeDeltaPercentage,
+    repsDeltaPercentage,
   };
 }
