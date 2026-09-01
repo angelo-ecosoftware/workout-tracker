@@ -20,12 +20,8 @@ This document tracks identified architectural improvements, edge case handling, 
 ## 2. Metric Calculations & Exercise Types
 
 - [ ] **Bodyweight Exercises Volume Tracking**
-  - **Context**: Working sets for pull-ups, dips, and push-ups are logged with `0 kg` when unweighted (warm-ups / bar-only stretches are not logged into the system).
-  - **Action**: For bodyweight-category exercises logged with `0 kg`, track progression via **Total Reps** or optionally calculate volume using the user's profile bodyweight ($BW \times \text{reps}$).
-
-- [ ] **Assisted Machine Counterweight Math**
-  - **Issue**: On assisted pull-up / dip machines, adding pin weight reduces the lifted load instead of increasing it.
-  - **Action**: Add a flag for `assisted_counterweight` exercises to calculate net effective load: `Bodyweight - Counterweight`.
+  - **Context**: Working sets for unweighted bodyweight movements (pull-ups, dips, push-ups) are logged with `0 kg` added weight.
+  - **Action**: Track progression via **Total Reps** so users don't see $0\text{ kg}$ total volume on bodyweight days.
 
 ---
 
