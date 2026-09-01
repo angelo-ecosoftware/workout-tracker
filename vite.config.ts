@@ -11,29 +11,44 @@ export default defineConfig(() => {
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
+        injectRegister: 'auto',
         includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png'],
         manifest: {
+          id: '/',
           name: 'Spartan Workout Tracker',
           short_name: 'Workout Tracker',
           description: 'Minimalist, high-performance progressive overload workout log book',
           start_url: '/',
           scope: '/',
-          display: 'standalone',
+          display: 'fullscreen',
+          display_override: ['fullscreen', 'standalone'],
           orientation: 'portrait',
-          theme_color: '#111111',
+          theme_color: '#000000',
           background_color: '#000000',
           icons: [
             {
               src: '/icon-192.png',
               sizes: '192x192',
               type: 'image/png',
-              purpose: 'any maskable'
+              purpose: 'any'
+            },
+            {
+              src: '/icon-192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'maskable'
             },
             {
               src: '/icon-512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any maskable'
+              purpose: 'any'
+            },
+            {
+              src: '/icon-512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable'
             }
           ]
         },
