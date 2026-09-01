@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate, updateSessionNotes, updateSessionPhotos, fetchWorkoutsData } from '../lib/supabaseData.ts';
 import { uploadWorkoutPhoto } from '../lib/storage.ts';
 import { Session, WorkoutSet, Exercise } from '../models.ts';
-import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X, FileText, Camera, Plus } from 'lucide-react';
+import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X, FileText, Camera, Plus, FolderOpen } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal.tsx';
 
 interface PopulatedSession extends Session {
@@ -32,6 +32,7 @@ export const WorkoutHistory: React.FC = () => {
   // Photo uploading / deleting state
   const [uploadingPhotoSessionId, setUploadingPhotoSessionId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [activePhotoUploadSessionId, setActivePhotoUploadSessionId] = useState<string | null>(null);
 
   const startEditingNotes = (session: PopulatedSession) => {
@@ -62,9 +63,13 @@ export const WorkoutHistory: React.FC = () => {
     setEditingNotesValue("");
   };
 
-  const triggerAddPhoto = (sessionId: string) => {
+  const triggerAddPhoto = (sessionId: string, source: 'camera' | 'files' = 'files') => {
     setActivePhotoUploadSessionId(sessionId);
-    fileInputRef.current?.click();
+    if (source === 'camera') {
+      cameraInputRef.current?.click();
+    } else {
+      fileInputRef.current?.click();
+    }
   };
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -396,7 +401,17 @@ export const WorkoutHistory: React.FC = () => {
                 </div>
               </div>
 
-              {/* Hidden Global Photo Input for adding photos */}
+              {/* Direct Camera Shutter Capture Input */}
+              <input
+                type="file"
+                ref={cameraInputRef}
+                onChange={handlePhotoUpload}
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+              />
+
+              {/* File / Gallery / File Manager Picker Input */}
               <input
                 type="file"
                 ref={fileInputRef}
@@ -470,18 +485,30 @@ export const WorkoutHistory: React.FC = () => {
                     </span>
                   </div>
                   {(!session.photos || session.photos.length < 5) && (
-                    <button
-                      onClick={() => triggerAddPhoto(session.id)}
-                      disabled={uploadingPhotoSessionId === session.id}
-                      className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#222] hover:bg-[#2c2c2c] text-[#C0FF00] text-[10px] font-mono font-bold uppercase transition-colors"
-                    >
-                      {uploadingPhotoSessionId === session.id ? (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      ) : (
-                        <Plus className="w-3 h-3" />
-                      )}
-                      Add Photo
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        onClick={() => triggerAddPhoto(session.id, 'camera')}
+                        disabled={uploadingPhotoSessionId === session.id}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#222] hover:bg-[#2c2c2c] text-[#C0FF00] text-[10px] font-mono font-bold uppercase transition-colors"
+                        title="Take Photo with Camera"
+                      >
+                        {uploadingPhotoSessionId === session.id ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Camera className="w-3 h-3" />
+                        )}
+                        Camera
+                      </button>
+                      <button
+                        onClick={() => triggerAddPhoto(session.id, 'files')}
+                        disabled={uploadingPhotoSessionId === session.id}
+                        className="flex items-center gap-1 px-2.5 py-1 rounded bg-[#222] hover:bg-[#2c2c2c] text-white hover:text-[#C0FF00] text-[10px] font-mono font-bold uppercase transition-colors"
+                        title="Upload from File Manager or Gallery"
+                      >
+                        <FolderOpen className="w-3 h-3" />
+                        Files
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -520,21 +547,37 @@ export const WorkoutHistory: React.FC = () => {
                   ))}
 
                   {(!session.photos || session.photos.length < 5) && (
-                    <button
-                      type="button"
-                      onClick={() => triggerAddPhoto(session.id)}
-                      disabled={uploadingPhotoSessionId === session.id}
-                      className="aspect-square flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#333] hover:border-[#C0FF00] bg-[#141414] hover:bg-[#1a1a1a] text-gray-400 hover:text-[#C0FF00] transition-all cursor-pointer p-2"
-                    >
-                      {uploadingPhotoSessionId === session.id ? (
-                        <Loader2 className="w-5 h-5 animate-spin text-[#C0FF00]" />
-                      ) : (
-                        <Plus className="w-5 h-5" />
-                      )}
-                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-center">
-                        {uploadingPhotoSessionId === session.id ? 'Uploading...' : 'Add Photo'}
-                      </span>
-                    </button>
+                    <div className="flex gap-2 aspect-square">
+                      <button
+                        type="button"
+                        onClick={() => triggerAddPhoto(session.id, 'camera')}
+                        disabled={uploadingPhotoSessionId === session.id}
+                        className="flex-1 flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#333] hover:border-[#C0FF00] bg-[#141414] hover:bg-[#1a1a1a] text-gray-400 hover:text-[#C0FF00] transition-all cursor-pointer p-1.5"
+                        title="Take Photo with Camera"
+                      >
+                        {uploadingPhotoSessionId === session.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-[#C0FF00]" />
+                        ) : (
+                          <Camera className="w-4 h-4" />
+                        )}
+                        <span className="text-[8px] font-mono font-bold uppercase tracking-wider text-center">
+                          Camera
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => triggerAddPhoto(session.id, 'files')}
+                        disabled={uploadingPhotoSessionId === session.id}
+                        className="flex-1 flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[#333] hover:border-[#C0FF00] bg-[#141414] hover:bg-[#1a1a1a] text-gray-400 hover:text-[#C0FF00] transition-all cursor-pointer p-1.5"
+                        title="Choose from Gallery or Files"
+                      >
+                        <FolderOpen className="w-4 h-4" />
+                        <span className="text-[8px] font-mono font-bold uppercase tracking-wider text-center">
+                          Files
+                        </span>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

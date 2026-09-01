@@ -4,7 +4,7 @@ import { Workout, Exercise, UserProfile } from '../models.ts';
 import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, seedTemplatesIfMissing, saveWorkoutsAndExercises } from '../lib/supabaseData.ts';
 import { uploadWorkoutPhotos } from '../lib/storage.ts';
 import { SessionEngine, ProgressionEngine } from '../engine.ts';
-import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff, Timer, FileText, Settings, Plus, Camera, Image, Trash2 } from 'lucide-react';
+import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff, Timer, FileText, Settings, Plus, Camera, Image, Trash2, FolderOpen } from 'lucide-react';
 import { AssistedTimedTracker, SetTimingRecord } from './AssistedTimedTracker.tsx';
 import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
@@ -35,6 +35,7 @@ export const WorkoutDayTracker: React.FC = () => {
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const [sessionDate, setSessionDate] = useState(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -807,6 +808,17 @@ export const WorkoutDayTracker: React.FC = () => {
                   <span className="text-[10px] text-gray-500 font-normal">Optional</span>
                 </div>
 
+                {/* Direct Camera Capture (forces mobile camera shutter) */}
+                <input
+                  type="file"
+                  ref={cameraInputRef}
+                  onChange={handlePhotoSelect}
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                />
+
+                {/* File / Photo Library / File Manager Picker */}
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -839,14 +851,29 @@ export const WorkoutDayTracker: React.FC = () => {
                   ))}
 
                   {selectedPhotos.length < 5 && (
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="aspect-square flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#333] hover:border-[#C0FF00] bg-[#161616] hover:bg-[#1f1f1f] text-gray-400 hover:text-[#C0FF00] transition-all cursor-pointer p-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-center">Add Photo</span>
-                    </button>
+                    <div className="flex gap-2 col-span-3 sm:col-span-2">
+                      {/* Button 1: Take Photo with Camera */}
+                      <button
+                        type="button"
+                        onClick={() => cameraInputRef.current?.click()}
+                        className="flex-1 aspect-square flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#333] hover:border-[#C0FF00] bg-[#161616] hover:bg-[#1f1f1f] text-gray-400 hover:text-[#C0FF00] transition-all cursor-pointer p-2"
+                        title="Take Photo with Camera"
+                      >
+                        <Camera className="w-4 h-4" />
+                        <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-center">Camera</span>
+                      </button>
+
+                      {/* Button 2: Upload from Files / Gallery */}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex-1 aspect-square flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#333] hover:border-[#C0FF00] bg-[#161616] hover:bg-[#1f1f1f] text-gray-400 hover:text-[#C0FF00] transition-all cursor-pointer p-2"
+                        title="Choose from Gallery or File Manager"
+                      >
+                        <FolderOpen className="w-4 h-4" />
+                        <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-center">Files / Gallery</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
