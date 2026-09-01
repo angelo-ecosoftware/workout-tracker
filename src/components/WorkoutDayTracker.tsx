@@ -58,6 +58,41 @@ export const WorkoutDayTracker: React.FC = () => {
     return () => window.removeEventListener('workout_settings_updated', handleSettingsUpdate);
   }, []);
 
+  // Screen Wake Lock API to keep the screen active during workouts
+  useEffect(() => {
+    if (!activeWorkout) return;
+
+    let wakeLockSentinel: any = null;
+
+    const requestWakeLock = async () => {
+      if ('wakeLock' in navigator && document.visibilityState === 'visible') {
+        try {
+          wakeLockSentinel = await (navigator as any).wakeLock.request('screen');
+        } catch (err) {
+          console.warn('Screen wake lock request failed:', err);
+        }
+      }
+    };
+
+    requestWakeLock();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLockSentinel) {
+        wakeLockSentinel.release().catch(() => {});
+        wakeLockSentinel = null;
+      }
+    };
+  }, [activeWorkout]);
+
   // Active workout entry inputs state
   // Key format: `${exerciseId}-${setNumber}` (setNumber starts from 1)
   const [inputs, setInputs] = useState<Record<string, {
