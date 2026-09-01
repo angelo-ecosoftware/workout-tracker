@@ -3,117 +3,10 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { Workout, Exercise, UserProfile } from '../models.ts';
 import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, seedTemplatesIfMissing } from '../lib/supabaseData.ts';
 import { SessionEngine, ProgressionEngine } from '../engine.ts';
-import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff, Timer } from 'lucide-react';
 import { OnboardingModal } from './OnboardingModal.tsx';
-
-const WGER_EXACT_MATCHES: Record<string, number> = {
-  "Lat Pulldown": 158,
-  "Bench Press": 163,
-  "Romanian Deadlift": 1700,
-  "Plank": 1911,
-};
-
-const WgerExerciseInfo: React.FC<{ exerciseName: string }> = ({ exerciseName }) => {
-  const [description, setDescription] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-
-  useEffect(() => {
-    const fetchDescription = async () => {
-      setLoading(true);
-      try {
-        let exerciseId = WGER_EXACT_MATCHES[exerciseName];
-
-        if (!exerciseId) {
-          // Attempt an autocomplete from the web endpoint using search
-          try {
-            const searchRes = await fetch(`https://wger.de/api/v2/exercise/?name=${encodeURIComponent(exerciseName)}&language=2`);
-            if (searchRes.ok) {
-              const searchData = await searchRes.json();
-              if (searchData.results && searchData.results.length > 0) {
-                const exactMatch = searchData.results.find((r: any) => r.name?.toLowerCase() === exerciseName?.toLowerCase());
-                if (exactMatch) {
-                  exerciseId = exactMatch.id;
-                } else {
-                  // Only use exact string match from search endpoint
-                }
-              }
-            }
-          } catch (e) {
-            console.warn("Wger search failed, falling back", e);
-          }
-        }
-        
-        if (exerciseId) {
-          try {
-            const infoRes = await fetch(`https://wger.de/api/v2/exerciseinfo/${exerciseId}/`);
-            if (!infoRes.ok) {
-              setDescription("No detailed description available for this exercise.");
-              setLoading(false);
-              return;
-            }
-            const infoData = await infoRes.json();
-            
-            const translations = infoData.translations || [];
-            const englishTranslation = translations.find((t: any) => t.language === 2);
-            const anyTranslation = translations[0];
-            
-            if (englishTranslation && englishTranslation.description) {
-              setDescription(englishTranslation.description);
-            } else if (anyTranslation && anyTranslation.description) {
-              setDescription(anyTranslation.description);
-            } else {
-              setDescription("No detailed description available for this exercise.");
-            }
-          } catch (e) {
-            setDescription("No detailed description available for this exercise.");
-          }
-        } else {
-          setDescription("No detailed description available for this exercise.");
-        }
-      } catch (e) {
-        setDescription("No detailed description available for this exercise.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchDescription();
-  }, [exerciseName]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 text-[10px] text-gray-500 font-mono animate-pulse p-3 bg-[#161616] rounded-xl border border-[#222] mb-3">
-        <Loader2 className="w-3 h-3 animate-spin" />
-        Loading instructions...
-      </div>
-    );
-  }
-
-  if (!description) return null;
-
-  return (
-    <div className="bg-[#161616] border border-[#2d2d2d] rounded-xl text-xs text-gray-300 font-sans shadow-none mb-3 overflow-hidden transition-all duration-200">
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-3 text-[10px] font-black font-mono text-gray-400 uppercase tracking-widest hover:bg-[#1a1a1a] transition-colors"
-      >
-        <span className="flex items-center gap-2">
-          <Eye className="w-3 h-3" />
-          How to perform
-        </span>
-        <ChevronRight className={`w-3 h-3 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`} />
-      </button>
-      
-      {isOpen && (
-        <div 
-          className="wger-content p-4 pt-0 border-t border-[#2d2d2d] mt-2 text-gray-400 [&>p]:mb-2 [&>ul]:list-disc [&>ul]:ml-4 [&>ul]:mb-2 [&>ol]:list-decimal [&>ol]:ml-4" 
-          dangerouslySetInnerHTML={{ __html: description }} 
-        />
-      )}
-    </div>
-  );
-};
+import { AssistedTimedTracker } from './AssistedTimedTracker.tsx';
+import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
 
 export const WorkoutDayTracker: React.FC = () => {
   const { user } = useAuth();
@@ -138,6 +31,28 @@ export const WorkoutDayTracker: React.FC = () => {
     return today.toISOString().split('T')[0];
   });
   const [lastAutoSavedTime, setLastAutoSavedTime] = useState<string | null>(null);
+
+  // Assisted Timed Workout Mode state
+  const [isAssistedMode, setIsAssistedMode] = useState<boolean>(() => {
+    return localStorage.getItem('setting_assisted_timed_workout') === 'true';
+  });
+  const [restDurationSeconds, setRestDurationSeconds] = useState<number>(() => {
+    const val = localStorage.getItem('setting_rest_duration_seconds');
+    return val ? parseInt(val, 10) : 5;
+  });
+  const [assistedFinished, setAssistedFinished] = useState(false);
+
+  // Sync settings when modified from SettingsModal
+  useEffect(() => {
+    const handleSettingsUpdate = () => {
+      setIsAssistedMode(localStorage.getItem('setting_assisted_timed_workout') === 'true');
+      const restVal = localStorage.getItem('setting_rest_duration_seconds');
+      if (restVal) setRestDurationSeconds(parseInt(restVal, 10));
+    };
+
+    window.addEventListener('workout_settings_updated', handleSettingsUpdate);
+    return () => window.removeEventListener('workout_settings_updated', handleSettingsUpdate);
+  }, []);
 
   // Active workout entry inputs state
   // Key format: `${exerciseId}-${setNumber}` (setNumber starts from 1)
@@ -668,12 +583,46 @@ export const WorkoutDayTracker: React.FC = () => {
             </div>
           </div>
 
-          {/* Section 3: Exercises Logging block list */}
-          <div className="space-y-5">
-            {activeWorkout.exercises.map((ex) => {
-              const cachedEx = userProfile?.lastSetSummaryPerExercise?.[ex.id];
-              const advice = getProgressionAdvice(ex);
-              const isExpanded = expandedExerciseId === ex.id;
+          {/* Section 3: Assisted Timed Mode vs Standard Full Exercise List */}
+          {isAssistedMode && !assistedFinished ? (
+            <AssistedTimedTracker
+              workout={activeWorkout}
+              userProfile={userProfile}
+              inputs={inputs}
+              onUpdateInput={updateInputValue}
+              onSetTextInput={handleTextChange}
+              onFinishAllSets={() => setAssistedFinished(true)}
+              restDurationSeconds={restDurationSeconds}
+            />
+          ) : (
+            <div className="space-y-5">
+              {isAssistedMode && assistedFinished && (
+                <div className="bg-[#141414] border border-[#C0FF00]/40 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 flex items-center justify-center text-[#C0FF00]">
+                      <Timer className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-display font-black text-xs uppercase tracking-wider text-white">
+                        Workout Sheet (All Sets Completed)
+                      </span>
+                      <p className="text-[10px] font-mono text-gray-400">Review weights and timings before logging</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAssistedFinished(false)}
+                    className="text-[10px] font-mono font-bold text-[#C0FF00] hover:underline cursor-pointer"
+                  >
+                    Re-open Assisted Flow
+                  </button>
+                </div>
+              )}
+
+              {activeWorkout.exercises.map((ex) => {
+                const cachedEx = userProfile?.lastSetSummaryPerExercise?.[ex.id];
+                const advice = getProgressionAdvice(ex);
+                const isExpanded = expandedExerciseId === ex.id;
 
               return (
                 <div key={ex.id} className={`bg-[#111] border rounded-[24px] shadow-xl transition-all ${isExpanded ? 'border-[#333] p-5 space-y-4' : 'border-[#222] hover:border-[#333] p-4'}`}>
@@ -937,6 +886,7 @@ export const WorkoutDayTracker: React.FC = () => {
               );
             })}
           </div>
+          )}
 
           {errorMsg && (
             <div className="p-4 bg-red-950/40 border border-red-900/40 text-red-300 text-xs rounded-xl font-mono">

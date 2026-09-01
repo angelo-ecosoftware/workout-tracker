@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { usePWA } from '../context/PWAContext.tsx';
-import { X, Download, Upload, Trash2, LogOut, Loader2, AlertTriangle, Smartphone, Check, Share2, Layers } from 'lucide-react';
+import { X, Download, Upload, Trash2, LogOut, Loader2, AlertTriangle, Smartphone, Check, Share2, Layers, Timer, Zap } from 'lucide-react';
 import { exportAllLogs, deleteAllLogs, importAllLogs, fetchWorkoutsData, saveWorkoutsAndExercises } from '../lib/supabaseData.ts';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { Workout, Exercise } from '../models.ts';
@@ -22,7 +22,28 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [isRoutineEditorOpen, setIsRoutineEditorOpen] = useState(false);
   const [userWorkouts, setUserWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
+  
+  // Assisted Timed Workout settings
+  const [assistedTimedWorkout, setAssistedTimedWorkout] = useState<boolean>(() => {
+    return localStorage.getItem('setting_assisted_timed_workout') === 'true';
+  });
+  const [restDurationSeconds, setRestDurationSeconds] = useState<number>(() => {
+    const val = localStorage.getItem('setting_rest_duration_seconds');
+    return val ? parseInt(val, 10) : 5; // Default short 5s for quick verification
+  });
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem('setting_assisted_timed_workout', assistedTimedWorkout ? 'true' : 'false');
+    // Notify listeners / active components
+    window.dispatchEvent(new Event('workout_settings_updated'));
+  }, [assistedTimedWorkout]);
+
+  useEffect(() => {
+    localStorage.setItem('setting_rest_duration_seconds', restDurationSeconds.toString());
+    window.dispatchEvent(new Event('workout_settings_updated'));
+  }, [restDurationSeconds]);
 
   if (!isOpen || !user) return null;
 
@@ -156,6 +177,74 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         </div>
 
         <div className="p-4 flex flex-col gap-3">
+          {/* Assisted Timed Workout Toggle */}
+          <div className="p-3.5 bg-[#1a1a1a] border border-[#222] rounded-xl flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                  assistedTimedWorkout 
+                    ? 'bg-[#C0FF00] text-black shadow-[0_0_12px_rgba(192,255,0,0.3)]' 
+                    : 'bg-[#262626] text-gray-400'
+                }`}>
+                  <Timer className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-bold text-sm text-white flex items-center gap-2">
+                    Assisted Timed Workout
+                    {assistedTimedWorkout && (
+                      <span className="text-[9px] font-mono bg-[#C0FF00]/10 text-[#C0FF00] border border-[#C0FF00]/30 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Guided 1-set focus mode with background timing & rest intervals
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAssistedTimedWorkout(!assistedTimedWorkout)}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  assistedTimedWorkout ? 'bg-[#C0FF00]' : 'bg-[#333]'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-black shadow ring-0 transition duration-200 ease-in-out ${
+                    assistedTimedWorkout ? 'translate-x-5 bg-black' : 'translate-x-0 bg-gray-400'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Rest duration timer setting (TODO: Full custom presets) */}
+            {assistedTimedWorkout && (
+              <div className="pt-2.5 border-t border-[#262626] flex items-center justify-between">
+                <div className="text-[11px] font-mono text-gray-400">
+                  <span>Rest Interval Timeout: </span>
+                  <span className="text-[#C0FF00] font-bold">{restDurationSeconds}s</span>
+                </div>
+                {/* TODO: Add custom user rest duration slider / presets */}
+                <div className="flex items-center gap-1.5">
+                  {[5, 30, 60, 90].map((sec) => (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={() => setRestDurationSeconds(sec)}
+                      className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold transition-all cursor-pointer border ${
+                        restDurationSeconds === sec
+                          ? 'bg-[#C0FF00] text-black border-[#C0FF00]'
+                          : 'bg-[#111] text-gray-400 border-[#2b2b2b] hover:text-white'
+                      }`}
+                    >
+                      {sec}s
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Edit Routines & Exercises */}
           <button
             onClick={handleOpenRoutineEditor}
