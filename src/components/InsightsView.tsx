@@ -149,21 +149,21 @@ export const InsightsView: React.FC = () => {
         {/* Total Tonnage Moved (Col 1 on mobile, Col 1 on sm) */}
         <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 relative group/info">
-              <span className="font-mono text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+            <div className="inline-flex items-center relative group/info">
+              <span className="font-mono text-[10px] uppercase font-bold text-gray-400 tracking-wider inline-flex items-center">
                 90-Day Volume
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveInfoKey(activeInfoKey === 'volume' ? null : 'volume');
+                  }}
+                  className="text-gray-500 hover:text-[#C0FF00] ml-1 p-0.5 rounded-full transition-colors focus:outline-none inline-flex items-center justify-center align-middle"
+                  aria-label="Information about 90-Day Volume"
+                >
+                  <Info className="w-2.5 h-2.5" />
+                </button>
               </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveInfoKey(activeInfoKey === 'volume' ? null : 'volume');
-                }}
-                className="text-gray-500 hover:text-[#C0FF00] p-0.5 rounded-full transition-colors focus:outline-none"
-                aria-label="Information about 90-Day Volume"
-              >
-                <Info className="w-3 h-3" />
-              </button>
 
               {/* Info popover: left-aligned on col 1 */}
               <div
@@ -213,21 +213,21 @@ export const InsightsView: React.FC = () => {
         {/* Total Reps Completed (Col 2 on mobile -> right aligned, Col 2 on sm -> left aligned) */}
         <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 relative group/info">
-              <span className="font-mono text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+            <div className="inline-flex items-center relative group/info">
+              <span className="font-mono text-[10px] uppercase font-bold text-gray-400 tracking-wider inline-flex items-center">
                 Total Reps
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveInfoKey(activeInfoKey === 'reps' ? null : 'reps');
+                  }}
+                  className="text-gray-500 hover:text-[#C0FF00] ml-1 p-0.5 rounded-full transition-colors focus:outline-none inline-flex items-center justify-center align-middle"
+                  aria-label="Information about Total Reps"
+                >
+                  <Info className="w-2.5 h-2.5" />
+                </button>
               </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveInfoKey(activeInfoKey === 'reps' ? null : 'reps');
-                }}
-                className="text-gray-500 hover:text-[#C0FF00] p-0.5 rounded-full transition-colors focus:outline-none"
-                aria-label="Information about Total Reps"
-              >
-                <Info className="w-3 h-3" />
-              </button>
 
               {/* Info popover: right aligned on mobile to prevent screen overflow */}
               <div
@@ -277,21 +277,21 @@ export const InsightsView: React.FC = () => {
         {/* Timed Holds / Tension (Col 1 on mobile row 2 -> left-aligned, Col 3 on sm) */}
         <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 relative group/info">
-              <span className="font-mono text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+            <div className="inline-flex items-center relative group/info">
+              <span className="font-mono text-[10px] uppercase font-bold text-gray-400 tracking-wider inline-flex items-center">
                 Timed Tension
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveInfoKey(activeInfoKey === 'tension' ? null : 'tension');
+                  }}
+                  className="text-gray-500 hover:text-[#C0FF00] ml-1 p-0.5 rounded-full transition-colors focus:outline-none inline-flex items-center justify-center align-middle"
+                  aria-label="Information about Timed Tension"
+                >
+                  <Info className="w-2.5 h-2.5" />
+                </button>
               </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveInfoKey(activeInfoKey === 'tension' ? null : 'tension');
-                }}
-                className="text-gray-500 hover:text-[#C0FF00] p-0.5 rounded-full transition-colors focus:outline-none"
-                aria-label="Information about Timed Tension"
-              >
-                <Info className="w-3 h-3" />
-              </button>
 
               {/* Info popover: left-aligned on mobile */}
               <div
@@ -341,21 +341,21 @@ export const InsightsView: React.FC = () => {
         {/* Active Work vs Rest (Col 2 on mobile row 2 -> right-aligned, Col 4 on sm -> right-aligned) */}
         <div className="bg-[#111] border border-[#222] hover:border-[#333] rounded-[20px] p-4 space-y-2 transition-all relative">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 relative group/info">
-              <span className="font-mono text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+            <div className="inline-flex items-center relative group/info">
+              <span className="font-mono text-[10px] uppercase font-bold text-gray-400 tracking-wider inline-flex items-center">
                 Active Effort
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveInfoKey(activeInfoKey === 'effort' ? null : 'effort');
+                  }}
+                  className="text-gray-500 hover:text-[#C0FF00] ml-1 p-0.5 rounded-full transition-colors focus:outline-none inline-flex items-center justify-center align-middle"
+                  aria-label="Information about Active Effort"
+                >
+                  <Info className="w-2.5 h-2.5" />
+                </button>
               </span>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveInfoKey(activeInfoKey === 'effort' ? null : 'effort');
-                }}
-                className="text-gray-500 hover:text-[#C0FF00] p-0.5 rounded-full transition-colors focus:outline-none"
-                aria-label="Information about Active Effort"
-              >
-                <Info className="w-3 h-3" />
-              </button>
 
               {/* Info popover: right-aligned on both mobile & desktop */}
               <div
