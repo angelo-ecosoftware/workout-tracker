@@ -40,9 +40,9 @@ This document tracks identified architectural improvements, edge case handling, 
 
 ## 4. Storage, PWA Offline Experience & Media Optimization
 
-- [ ] **Client-Side Image Compression**
+- [x] **Client-Side Image Compression**
   - **Issue**: Modern mobile camera photos range from 3–8 MB, quickly consuming Supabase storage quotas and slowing down uploads on gym cellular networks.
-  - **Action**: Compress images via HTML Canvas / `browser-image-compression` to `< 500 KB` WebP/JPEG before uploading to Supabase `media` bucket.
+  - **Action**: Compress images via HTML Canvas WebP with high-resolution $2160\text{p}$ bounds and muscle-definition edge preservation before uploading to Supabase `media` bucket.
 
 - [ ] **Offline Sync & Queueing (PWA Resiliency)**
   - **Issue**: Gym basements with poor cellular reception fail Supabase completion requests.
