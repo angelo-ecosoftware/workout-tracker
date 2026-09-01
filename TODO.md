@@ -10,25 +10,21 @@ This document tracks identified architectural improvements, edge case handling, 
   - **Issue**: Standard `setInterval` ticks throttle or pause when phone screens lock or users switch apps (e.g. Spotify).
   - **Action**: Refactor timers in `AssistedTimedTracker.tsx` to compute elapsed time using `Date.now()` target end times and `visibilitychange` listeners rather than naive tick counters.
 
-- [ ] **Workout Session Auto-Save & Abandonment Recovery**
+- [x] **Workout Session Auto-Save & Abandonment Recovery**
   - **Issue**: Accidental tab closures, reloads, or device crashes mid-workout lose in-progress sets and entry timestamps.
   - **Action**: Persist in-progress workout draft state to `localStorage` / `IndexedDB`.
   - **Action**: Implement a timeout threshold (e.g., auto-discard or prompt to restore sessions older than 3 hours).
 
 ---
 
-## 2. Metric Calculations & Special Sets
+## 2. Metric Calculations & Exercise Types
 
-- [ ] **Bodyweight Exercises Handling**
-  - **Issue**: Pull-ups, dips, and push-ups logged with 0 kg compute volume as `0 * reps = 0 kg`.
-  - **Action**: Add an optional user bodyweight setting or distinct "Added Weight" flag so bodyweight volume can either include body mass or be tracked with calibrated baseline load.
-
-- [ ] **Warm-up Sets & Drop Sets Classification**
-  - **Issue**: Warm-up sets inflate total tonnage and distort estimated 1RM calculations.
-  - **Action**: Add set-type tags (`W` for Warm-up, `N` for Normal, `D` for Drop set, `F` for Failure) and exclude warm-ups from top-set and 1RM progression charts.
+- [ ] **Bodyweight Exercises Volume Tracking**
+  - **Context**: Working sets for pull-ups, dips, and push-ups are logged with `0 kg` when unweighted (warm-ups / bar-only stretches are not logged into the system).
+  - **Action**: For bodyweight-category exercises logged with `0 kg`, track progression via **Total Reps** or optionally calculate volume using the user's profile bodyweight ($BW \times \text{reps}$).
 
 - [ ] **Assisted Machine Counterweight Math**
-  - **Issue**: On assisted pull-up / dip machines, adding weight reduces the lifted load instead of increasing it.
+  - **Issue**: On assisted pull-up / dip machines, adding pin weight reduces the lifted load instead of increasing it.
   - **Action**: Add a flag for `assisted_counterweight` exercises to calculate net effective load: `Bodyweight - Counterweight`.
 
 ---
