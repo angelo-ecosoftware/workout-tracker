@@ -37,7 +37,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({ userId, onComp
             {/* Badge */}
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1a1a1a] border border-[#333] text-[#C0FF00] text-xs font-mono font-bold uppercase tracking-wider mb-5">
               <Zap className="w-3.5 h-3.5 fill-[#C0FF00]" />
-              Welcome to Spartan
+              Thank you for using Spartan
             </div>
 
             <h2 className="text-2xl sm:text-3xl font-display font-black text-white uppercase tracking-tight leading-none mb-3">
