@@ -521,3 +521,72 @@ export async function importAllLogs(userId: string, data: any) {
     await supabase.from('sets').upsert(data.sets);
   }
 }
+
+export async function saveWorkoutsAndExercises(
+  userId: string,
+  updatedWorkouts: (Workout & { exercises: Exercise[] })[]
+) {
+  // 1. Gather all exercises and upsert them
+  const allExercises: any[] = [];
+  const workoutRows: any[] = [];
+  const junctionRows: any[] = [];
+
+  updatedWorkouts.forEach((w, wIdx) => {
+    const workoutId = w.id.startsWith('custom_w_') ? `w_${Date.now()}_${wIdx}` : w.id;
+    const exerciseIds = (w.exercises || []).map(e => e.id);
+
+    workoutRows.push({
+      id: workoutId,
+      name: w.name,
+      order: w.order,
+      user_id: userId,
+      exercise_ids: exerciseIds,
+    });
+
+    (w.exercises || []).forEach((ex, pos) => {
+      const exId = ex.id.startsWith('ex_') && !ex.id.includes('-') ? `ex_${Date.now()}_${pos}` : ex.id;
+      allExercises.push({
+        id: exId,
+        name: ex.name,
+        type: ex.type,
+        target_sets: ex.targetSets,
+        target_rep_min: ex.targetRepMin,
+        target_rep_max: ex.targetRepMax,
+        user_id: userId,
+      });
+
+      junctionRows.push({
+        workout_id: workoutId,
+        exercise_id: exId,
+        position: pos,
+        user_id: userId,
+      });
+    });
+  });
+
+  // Upsert exercises first so foreign keys exist
+  if (allExercises.length > 0) {
+    const { error: exErr } = await supabase.from('exercises').upsert(allExercises);
+    if (exErr) console.warn('Exercise upsert warning:', exErr);
+  }
+
+  // Delete removed workouts for this user that are not in updated list
+  const activeWorkoutIds = workoutRows.map(w => w.id);
+  await supabase.from('workouts').delete().eq('user_id', userId).not('id', 'in', `(${activeWorkoutIds.map(id => `"${id}"`).join(',')})`);
+
+  // Upsert workouts
+  if (workoutRows.length > 0) {
+    const { error: wErr } = await supabase.from('workouts').upsert(workoutRows);
+    if (wErr) throw new Error(`Failed to save workouts: ${wErr.message}`);
+  }
+
+  // Re-sync junction table
+  try {
+    await supabase.from('workout_exercises').delete().eq('user_id', userId);
+    if (junctionRows.length > 0) {
+      await supabase.from('workout_exercises').insert(junctionRows);
+    }
+  } catch (jErr) {
+    console.warn('Junction table sync note:', jErr);
+  }
+}

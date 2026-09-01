@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { usePWA } from '../context/PWAContext.tsx';
-import { X, Download, Upload, Trash2, LogOut, Loader2, AlertTriangle, Smartphone, Check, Share2 } from 'lucide-react';
-import { exportAllLogs, deleteAllLogs, importAllLogs } from '../lib/supabaseData.ts';
+import { X, Download, Upload, Trash2, LogOut, Loader2, AlertTriangle, Smartphone, Check, Share2, Layers } from 'lucide-react';
+import { exportAllLogs, deleteAllLogs, importAllLogs, fetchWorkoutsData, saveWorkoutsAndExercises } from '../lib/supabaseData.ts';
+import { RoutineEditorModal } from './RoutineEditorModal.tsx';
+import { Workout, Exercise } from '../models.ts';
 
 interface Props {
   isOpen: boolean;
@@ -17,9 +19,35 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [isResetting, setIsResetting] = useState(false);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [isRoutineEditorOpen, setIsRoutineEditorOpen] = useState(false);
+  const [userWorkouts, setUserWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
+  const [loadingWorkouts, setLoadingWorkouts] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen || !user) return null;
+
+  const handleOpenRoutineEditor = async () => {
+    setLoadingWorkouts(true);
+    try {
+      const data = await fetchWorkoutsData(user.uid);
+      setUserWorkouts(data.combinedWorkouts);
+      setIsRoutineEditorOpen(true);
+    } catch (err) {
+      console.error('Failed to load routines for editing:', err);
+      alert('Could not load routine split. Please try again.');
+    } finally {
+      setLoadingWorkouts(false);
+    }
+  };
+
+  const handleSaveRoutines = async (updatedWorkouts: (Workout & { exercises: Exercise[] })[]) => {
+    await saveWorkoutsAndExercises(user.uid, updatedWorkouts);
+    setUserWorkouts(updatedWorkouts);
+    // Reload page or let parent sync
+    setTimeout(() => {
+      window.location.reload();
+    }, 600);
+  };
 
   const handleInstallApp = async () => {
     if (isStandalone) {
@@ -128,6 +156,26 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         </div>
 
         <div className="p-4 flex flex-col gap-3">
+          {/* Edit Routines & Exercises */}
+          <button
+            onClick={handleOpenRoutineEditor}
+            disabled={loadingWorkouts}
+            className="flex items-center justify-between w-full p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
+                {loadingWorkouts ? <Loader2 className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />}
+              </div>
+              <div>
+                <div className="font-bold text-sm text-white">Edit Routines & Exercises</div>
+                <div className="text-xs text-gray-500">Add/remove days, customize exercises & rep/set targets</div>
+              </div>
+            </div>
+            <div className="text-xs font-mono font-bold text-[#C0FF00] uppercase tracking-wider">
+              Configure
+            </div>
+          </button>
+
           {/* PWA Install Button - Always accessible */}
           <button
             onClick={handleInstallApp}
@@ -264,6 +312,15 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           </button>
         </div>
       </div>
-    </div>
+      {/* Routine & Exercise Editor Modal */}
+      {isRoutineEditorOpen && (
+        <RoutineEditorModal
+          isOpen={isRoutineEditorOpen}
+          onClose={() => setIsRoutineEditorOpen(false)}
+          userId={user.uid}
+          workouts={userWorkouts}
+          onSaveWorkouts={handleSaveRoutines}
+        />
+      )}    </div>
   );
 };
