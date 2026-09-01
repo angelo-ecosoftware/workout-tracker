@@ -33,22 +33,100 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
   restDurationSeconds = 5,
 }) => {
   const exercises = workout.exercises || [];
+  const assistedStateKey = workout.id ? `assisted_tracker_state_${workout.id}` : '';
+
+  // Initialize state with localStorage persisted snapshot if available
+  const getSavedAssistedState = () => {
+    if (!assistedStateKey) return null;
+    try {
+      const saved = localStorage.getItem(assistedStateKey);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.warn('Could not read assisted tracker state from localStorage', e);
+    }
+    return null;
+  };
+
+  const initialSavedState = getSavedAssistedState();
 
   // Track active position in routine
-  const [exerciseIndex, setExerciseIndex] = useState(0);
-  const [setNumber, setSetNumber] = useState(1); // 1-based
-  const [phase, setPhase] = useState<'ready' | 'in_progress' | 'resting' | 'completed_all'>('ready');
-  const [setStartTime, setSetStartTime] = useState<number | null>(null);
+  const [exerciseIndex, setExerciseIndex] = useState<number>(() => {
+    if (initialSavedState && typeof initialSavedState.exerciseIndex === 'number') {
+      return Math.min(initialSavedState.exerciseIndex, Math.max(0, exercises.length - 1));
+    }
+    return 0;
+  });
+  const [setNumber, setSetNumber] = useState<number>(() => {
+    if (initialSavedState && typeof initialSavedState.setNumber === 'number') {
+      return initialSavedState.setNumber;
+    }
+    return 1;
+  }); // 1-based
+  const [phase, setPhase] = useState<'ready' | 'in_progress' | 'resting' | 'completed_all'>(() => {
+    if (initialSavedState && initialSavedState.phase) {
+      return initialSavedState.phase;
+    }
+    return 'ready';
+  });
+  const [setStartTime, setSetStartTime] = useState<number | null>(() => {
+    return initialSavedState?.setStartTime ?? null;
+  });
   const [restTimeLeft, setRestTimeLeft] = useState<number>(restDurationSeconds);
-  const [recordedDurations, setRecordedDurations] = useState<Record<string, number>>({});
+  const [recordedDurations, setRecordedDurations] = useState<Record<string, number>>(() => {
+    return initialSavedState?.recordedDurations ?? {};
+  });
   const [showWgerInfo, setShowWgerInfo] = useState(false);
 
   // Exact Gym Session Timing
-  const sessionStartTimeRef = useRef<Date | null>(null);
-  const restStartTimeRef = useRef<number | null>(null);
-  const setTimingsRef = useRef<Record<string, SetTimingRecord>>({});
+  const sessionStartTimeRef = useRef<Date | null>(
+    initialSavedState?.sessionStartTime ? new Date(initialSavedState.sessionStartTime) : null
+  );
+  const restStartTimeRef = useRef<number | null>(initialSavedState?.restStartTime ?? null);
+  const restTargetEndTimeRef = useRef<number | null>(initialSavedState?.restTargetEndTime ?? null);
+  const setTimingsRef = useRef<Record<string, SetTimingRecord>>(initialSavedState?.setTimings ?? {});
 
   const timerRef = useRef<any>(null);
+
+  // Synchronize state changes to localStorage
+  const persistState = (overrides?: Partial<{
+    exerciseIndex: number;
+    setNumber: number;
+    phase: 'ready' | 'in_progress' | 'resting' | 'completed_all';
+    setStartTime: number | null;
+    restStartTime: number | null;
+    restTargetEndTime: number | null;
+    recordedDurations: Record<string, number>;
+  }>) => {
+    if (!assistedStateKey) return;
+    try {
+      const stateToSave = {
+        exerciseIndex: overrides?.exerciseIndex ?? exerciseIndex,
+        setNumber: overrides?.setNumber ?? setNumber,
+        phase: overrides?.phase ?? phase,
+        setStartTime: overrides?.setStartTime !== undefined ? overrides.setStartTime : setStartTime,
+        restStartTime: overrides?.restStartTime !== undefined ? overrides.restStartTime : restStartTimeRef.current,
+        restTargetEndTime: overrides?.restTargetEndTime !== undefined ? overrides.restTargetEndTime : restTargetEndTimeRef.current,
+        recordedDurations: overrides?.recordedDurations ?? recordedDurations,
+        sessionStartTime: sessionStartTimeRef.current ? sessionStartTimeRef.current.toISOString() : null,
+        setTimings: setTimingsRef.current,
+        updatedAt: Date.now(),
+      };
+      localStorage.setItem(assistedStateKey, JSON.stringify(stateToSave));
+    } catch (e) {
+      console.warn('Could not persist assisted tracker state', e);
+    }
+  };
+
+  const clearPersistedState = () => {
+    if (!assistedStateKey) return;
+    try {
+      localStorage.removeItem(assistedStateKey);
+    } catch (e) {
+      console.warn('Could not clear assisted tracker state', e);
+    }
+  };
 
   const currentExercise = exercises[exerciseIndex];
   const totalExercises = exercises.length;
@@ -59,24 +137,43 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
   useEffect(() => {
     if (phase === 'resting') {
       const now = Date.now();
-      restStartTimeRef.current = now;
-      const durationMs = restDurationSeconds * 1000;
-      const targetEndTime = now + durationMs;
-      setRestTimeLeft(restDurationSeconds);
+      let targetEndTime = restTargetEndTimeRef.current;
+      
+      // If we don't have an active target end time or it was not set
+      if (!targetEndTime) {
+        restStartTimeRef.current = now;
+        const durationMs = restDurationSeconds * 1000;
+        targetEndTime = now + durationMs;
+        restTargetEndTimeRef.current = targetEndTime;
+        persistState({ restStartTime: now, restTargetEndTime: targetEndTime });
+      }
+
+      // If already expired while in background/reloading
+      if (targetEndTime <= now) {
+        setRestTimeLeft(0);
+        restTargetEndTimeRef.current = null;
+        finishRestInterval();
+        return;
+      }
 
       const updateRemaining = () => {
         const currentTime = Date.now();
-        const remainingMs = Math.max(0, targetEndTime - currentTime);
+        const activeTarget = restTargetEndTimeRef.current || targetEndTime!;
+        const remainingMs = Math.max(0, activeTarget - currentTime);
         const remainingSec = Math.ceil(remainingMs / 1000);
 
         setRestTimeLeft(remainingSec);
 
         if (remainingMs <= 0) {
           if (timerRef.current) clearInterval(timerRef.current);
+          restTargetEndTimeRef.current = null;
           playThreeSecondVibrateAlarm();
           finishRestInterval();
         }
       };
+
+      // Run once immediately on mount/update
+      updateRemaining();
 
       // Interval for continuous display update
       timerRef.current = setInterval(updateRemaining, 50);
@@ -111,14 +208,22 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
       sessionStartTimeRef.current = now;
     }
 
-    setSetStartTime(Date.now());
+    const startTimestamp = Date.now();
+    setSetStartTime(startTimestamp);
     if (currentSetKey) {
       setTimingsRef.current[currentSetKey] = {
         ...setTimingsRef.current[currentSetKey],
         startedAt: now,
       };
     }
+
     setPhase('in_progress');
+    persistState({
+      phase: 'in_progress',
+      setStartTime: startTimestamp,
+      restStartTime: null,
+      restTargetEndTime: null,
+    });
   };
 
   // Complete active set
@@ -127,8 +232,10 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
     const finishTime = finishDate.getTime();
     const duration = setStartTime ? Math.max(1, Math.round((finishTime - setStartTime) / 1000)) : 0;
 
+    let updatedDurations = recordedDurations;
     if (currentSetKey) {
-      setRecordedDurations((prev) => ({ ...prev, [currentSetKey]: duration }));
+      updatedDurations = { ...recordedDurations, [currentSetKey]: duration };
+      setRecordedDurations(updatedDurations);
       setTimingsRef.current[currentSetKey] = {
         ...setTimingsRef.current[currentSetKey],
         completedAt: finishDate,
@@ -149,6 +256,7 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
 
     if (isLastSetOfCurrentExercise && isLastExercise) {
       setPhase('completed_all');
+      clearPersistedState();
       onFinishAllSets({
         startedAt: sessionStartTimeRef.current || undefined,
         completedAt: finishDate,
@@ -156,7 +264,19 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
       });
     } else {
       // Enter rest countdown phase
+      const now = Date.now();
+      const targetEndTime = now + (restDurationSeconds * 1000);
+      restStartTimeRef.current = now;
+      restTargetEndTimeRef.current = targetEndTime;
+
       setPhase('resting');
+      persistState({
+        phase: 'resting',
+        setStartTime: null,
+        restStartTime: now,
+        restTargetEndTime: targetEndTime,
+        recordedDurations: updatedDurations,
+      });
     }
   };
 
@@ -169,6 +289,7 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
         restSeconds: restDuration,
       };
       restStartTimeRef.current = null;
+      restTargetEndTimeRef.current = null;
     }
     advanceToNextStep();
   };
@@ -191,6 +312,7 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
 
     if (isLastSetOfCurrentExercise && isLastExercise) {
       setPhase('completed_all');
+      clearPersistedState();
       onFinishAllSets({
         startedAt: sessionStartTimeRef.current || undefined,
         completedAt: new Date(),
@@ -207,16 +329,36 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
 
     if (setNumber < currentExercise.targetSets) {
       // Next set of same exercise
-      setSetNumber((prev) => prev + 1);
+      const nextSet = setNumber + 1;
+      setSetNumber(nextSet);
       setPhase('ready');
+      restTargetEndTimeRef.current = null;
+      persistState({
+        setNumber: nextSet,
+        phase: 'ready',
+        setStartTime: null,
+        restStartTime: null,
+        restTargetEndTime: null,
+      });
     } else {
       // Next exercise
       if (exerciseIndex < totalExercises - 1) {
-        setExerciseIndex((prev) => prev + 1);
+        const nextIdx = exerciseIndex + 1;
+        setExerciseIndex(nextIdx);
         setSetNumber(1);
         setPhase('ready');
+        restTargetEndTimeRef.current = null;
+        persistState({
+          exerciseIndex: nextIdx,
+          setNumber: 1,
+          phase: 'ready',
+          setStartTime: null,
+          restStartTime: null,
+          restTargetEndTime: null,
+        });
       } else {
         setPhase('completed_all');
+        clearPersistedState();
         onFinishAllSets({
           startedAt: sessionStartTimeRef.current || undefined,
           completedAt: new Date(),
@@ -234,12 +376,14 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
 
   // Reset entire assisted progression
   const handleRestart = () => {
+    clearPersistedState();
     setExerciseIndex(0);
     setSetNumber(1);
     setPhase('ready');
     setSetStartTime(null);
     sessionStartTimeRef.current = null;
     restStartTimeRef.current = null;
+    restTargetEndTimeRef.current = null;
     setTimingsRef.current = {};
   };
 
