@@ -33,7 +33,7 @@ This document tracks identified architectural improvements, edge case handling, 
 - [ ] **Muscle Group Fatigue & Weekly Set Distribution**
   - **Action**: Categorize exercises by primary/secondary muscle groups (Chest, Back, Legs, Shoulders, Arms, Core) and visualize weekly set volume against standard hypertrophy targets (10–20 sets/week).
 
-- [ ] **Rest Interval Discipline Analysis**
+- [x] **Rest Interval Discipline Analysis**
   - **Action**: Compare actual recorded rest times against target rest intervals to highlight pacing consistency and rest discipline.
 
 ---

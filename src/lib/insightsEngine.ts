@@ -10,6 +10,17 @@ export interface HeatmapDay {
   workoutNames: string[];
 }
 
+export interface RestDisciplineMetrics {
+  totalRestSeconds: number;
+  recordedRestIntervalsCount: number;
+  averageRestSeconds: number;
+  adherencePercentage: number; // % of sets resting within +/- 15s of target
+  onTimeCount: number;
+  underRestCount: number; // rushed (< target - 15s)
+  overRestCount: number; // delayed (> target + 15s)
+  workToRestRatio: number; // workSeconds / (restSeconds || 1)
+}
+
 export interface InsightsMetrics {
   totalVolumeKg: number;
   totalVolume90DaysKg: number;
@@ -25,6 +36,7 @@ export interface InsightsMetrics {
   favoriteWorkoutName: string;
   heatmapDays: HeatmapDay[];
   weeklyTonnage: Array<{ weekLabel: string; volumeKg: number }>;
+  restDiscipline: RestDisciplineMetrics;
 }
 
 /**
@@ -228,6 +240,39 @@ export function calculateInsights(
     }
   }
 
+  // Rest Interval Discipline Analysis
+  const restSets = sets.filter((s) => s.restSeconds != null && s.restSeconds > 0);
+  const targetRest = 90; // Standard 90s benchmark or user setting baseline
+  let onTimeCount = 0;
+  let underRestCount = 0;
+  let overRestCount = 0;
+
+  restSets.forEach((s) => {
+    const r = s.restSeconds!;
+    if (r >= targetRest - 15 && r <= targetRest + 20) {
+      onTimeCount++;
+    } else if (r < targetRest - 15) {
+      underRestCount++;
+    } else {
+      overRestCount++;
+    }
+  });
+
+  const adherencePercentage = restSets.length > 0 ? Math.round((onTimeCount / restSets.length) * 100) : 100;
+  const averageRestSeconds = restSets.length > 0 ? Math.round(totalRestSeconds / restSets.length) : 0;
+  const workToRestRatio = totalRestSeconds > 0 ? Math.round((totalWorkSeconds / totalRestSeconds) * 10) / 10 : 1;
+
+  const restDiscipline: RestDisciplineMetrics = {
+    totalRestSeconds,
+    recordedRestIntervalsCount: restSets.length,
+    averageRestSeconds,
+    adherencePercentage,
+    onTimeCount,
+    underRestCount,
+    overRestCount,
+    workToRestRatio,
+  };
+
   return {
     totalVolumeKg: Math.round(totalVolumeKg),
     totalVolume90DaysKg: Math.round(totalVolume90DaysKg),
@@ -243,6 +288,7 @@ export function calculateInsights(
     favoriteWorkoutName,
     heatmapDays,
     weeklyTonnage,
+    restDiscipline,
   };
 }
 
