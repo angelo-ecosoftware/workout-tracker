@@ -183,9 +183,15 @@ export async function getUserProgressState(userId: string) {
     .eq('user_id', userId)
     .maybeSingle();
 
+  const isFirstRegistration = !data;
+
   if (!data) {
     await seedTemplatesIfMissing(userId);
-    return await initializeUser(userId, userEmail, userName);
+    const createdProfile = await initializeUser(userId, userEmail, userName);
+    return {
+      profile: createdProfile,
+      isNewUser: true,
+    };
   }
 
   // If user exists, ensure email or name aren't stuck at empty or 'Athlete'
@@ -207,14 +213,17 @@ export async function getUserProgressState(userId: string) {
   }
 
   return {
-    userId: data.user_id || userId,
-    email: data.email || userEmail,
-    name: data.name || userName || (userEmail ? userEmail.split('@')[0] : '') || 'Athlete',
-    lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
-    maxWorkoutOrder: data.max_workout_order ?? 3,
-    lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
-    createdAt: data.created_at ? new Date(data.created_at) : new Date(),
-  } as UserProfile;
+    profile: {
+      userId: data.user_id || userId,
+      email: data.email || userEmail,
+      name: data.name || userName || (userEmail ? userEmail.split('@')[0] : '') || 'Athlete',
+      lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
+      maxWorkoutOrder: data.max_workout_order ?? 3,
+      lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
+      createdAt: data.created_at ? new Date(data.created_at) : new Date(),
+    } as UserProfile,
+    isNewUser: false,
+  };
 }
 
 export async function updateSessionDate(sessionId: string, newDate: Date) {

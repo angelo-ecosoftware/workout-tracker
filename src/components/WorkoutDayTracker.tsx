@@ -122,14 +122,22 @@ export const WorkoutDayTracker: React.FC = () => {
       console.log("Finished seedTemplatesIfMissing.");
 
       console.log("Starting Promise.all for fetching data...");
-      const [wData, progressState] = await Promise.all([
+      const [wData, userProgress] = await Promise.all([
         fetchWorkoutsData(user.uid),
         getUserProgressState(user.uid)
       ]);
-      console.log("Finished Promise.all.", wData, progressState);
+      console.log("Finished Promise.all.", wData, userProgress);
 
+      const progressState = userProgress.profile;
       setWorkouts(wData.combinedWorkouts);
       setUserProfile(progressState);
+
+      // Only show the welcome modal if the user was just newly registered (first time in public.users)
+      // AND has not yet dismissed it in this browser session/storage.
+      const welcomeKey = `welcome_shown_${user.uid}`;
+      if (userProgress.isNewUser && !localStorage.getItem(welcomeKey)) {
+        setShowWelcomeModal(true);
+      }
 
       const computedNextDay = SessionEngine.calculateNextWorkoutOrder(progressState, wData.combinedWorkouts);
       setSuggestedDay(computedNextDay);
@@ -155,11 +163,6 @@ export const WorkoutDayTracker: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      // Check if user has seen welcome dialog
-      const welcomeKey = `welcome_shown_${user.uid}`;
-      if (!localStorage.getItem(welcomeKey)) {
-        setShowWelcomeModal(true);
-      }
       loadWorkflowState();
     }
   }, [user]);
