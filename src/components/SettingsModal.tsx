@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { usePWA } from '../context/PWAContext.tsx';
-import { X, Download, Upload, Trash2, LogOut, Loader2, AlertTriangle, Smartphone } from 'lucide-react';
+import { X, Download, Upload, Trash2, LogOut, Loader2, AlertTriangle, Smartphone, Check, Share2 } from 'lucide-react';
 import { exportAllLogs, deleteAllLogs, importAllLogs } from '../lib/supabaseData.ts';
 
 interface Props {
@@ -11,37 +11,47 @@ interface Props {
 
 export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { user, logout } = useAuth();
-  const { installPrompt, setInstallPrompt } = usePWA();
+  const { installPrompt, setInstallPrompt, isStandalone, isIOS } = usePWA();
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [showConfirmReset, setShowConfirmReset] = useState(false);
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen || !user) return null;
 
   const handleInstallApp = async () => {
-    // Check if running in an iframe (AI Studio preview)
-    const isIframe = window.self !== window.top;
-    
-    if (isIframe) {
-      alert("Install prompt is blocked inside the preview window.\n\nPlease click the 'Open in New Tab' icon at the top right of the preview first, then try installing again!");
+    if (isStandalone) {
+      alert("App is already installed and running in app mode.");
       return;
     }
 
     if (installPrompt) {
       try {
-        installPrompt.prompt();
-        const { outcome } = await installPrompt.userChoice;
-        if (outcome === 'accepted') {
+        await installPrompt.prompt();
+        const choiceResult = await installPrompt.userChoice;
+        if (choiceResult?.outcome === 'accepted') {
           setInstallPrompt(null);
         }
       } catch (err) {
         console.error("Failed to prompt install:", err);
       }
-    } else {
-      alert("The install prompt is not available. This usually means:\n\n1. The app is already installed\n2. Your browser doesn't support the native prompt (like Safari - use the Share > Add to Home Screen button instead)\n3. You are in a private browsing window");
+      return;
     }
+
+    if (isIOS) {
+      setShowIOSGuide(true);
+      return;
+    }
+
+    // Android / Chromium fallback guidance if prompt event hasn't fired or was dismissed
+    alert(
+      "To install the app on your device:\n\n" +
+      "1. Open the browser menu (3 dots in Chrome/Edge/Brave)\n" +
+      "2. Tap 'Install app' or 'Add to Home screen'\n" +
+      "3. The app icon will appear directly on your home screen!"
+    );
   };
 
   const handleExport = async () => {
@@ -118,19 +128,49 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         </div>
 
         <div className="p-4 flex flex-col gap-3">
-          {installPrompt && (
-            <button
-              onClick={handleInstallApp}
-              className="flex items-center gap-3 w-full p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#333] rounded-xl text-left transition-colors"
-            >
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+          {/* PWA Install Button - Always accessible */}
+          <button
+            onClick={handleInstallApp}
+            className="flex items-center justify-between w-full p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
                 <Smartphone className="w-4 h-4" />
               </div>
               <div>
-                <div className="font-bold text-sm text-white">Install App</div>
-                <div className="text-xs text-gray-500">Add to your home screen for easy access</div>
+                <div className="font-bold text-sm text-white flex items-center gap-2">
+                  Install / Download App
+                  {isStandalone && (
+                    <span className="text-[10px] font-mono bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 rounded font-normal flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Installed
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {isStandalone ? "Running in standalone app mode" : "Download to your home screen for offline & fast access"}
+                </div>
               </div>
-            </button>
+            </div>
+            <div className="hidden sm:block text-xs font-mono font-bold text-[#C0FF00] uppercase tracking-wider">
+              {isStandalone ? "Active" : "Install"}
+            </div>
+          </button>
+
+          {/* iOS Install Instruction Banner */}
+          {showIOSGuide && (
+            <div className="p-3.5 bg-[#161616] border border-[#333] rounded-xl text-xs space-y-2 text-gray-300">
+              <div className="flex items-center justify-between font-bold text-white uppercase font-mono tracking-wider text-[11px]">
+                <span className="flex items-center gap-1.5 text-[#C0FF00]">
+                  <Share2 className="w-3.5 h-3.5" /> iOS / Safari Installation
+                </span>
+                <button onClick={() => setShowIOSGuide(false)} className="text-gray-500 hover:text-white">✕</button>
+              </div>
+              <ol className="list-decimal list-inside space-y-1 text-gray-400 pl-1">
+                <li>Tap the <strong className="text-white">Share</strong> button in Safari's bottom toolbar (<span className="text-[#C0FF00]">⎋</span> / square with arrow).</li>
+                <li>Scroll down and select <strong className="text-white">"Add to Home Screen"</strong> (<span className="text-[#C0FF00]">⊕</span>).</li>
+                <li>Tap <strong className="text-white">"Add"</strong> at the top right to install.</li>
+              </ol>
+            </div>
           )}
 
           <button
