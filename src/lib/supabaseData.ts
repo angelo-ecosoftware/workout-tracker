@@ -3,7 +3,15 @@ import { UserProfile, Workout, Session, WorkoutSet, Exercise, LastSetSummary } f
 import { SessionEngine, SetLogger } from '../engine.ts';
 
 // Get or create user profile
-export async function initializeUser(userId: string, email: string) {
+export async function initializeUser(userId: string, email?: string, name?: string) {
+  const { data: authData } = await supabase.auth.getUser();
+  const authUser = authData?.user;
+
+  // Derive best available email and name from parameters or auth metadata
+  const resolvedEmail = email || authUser?.email || '';
+  const metaName = authUser?.user_metadata?.full_name || authUser?.user_metadata?.name;
+  const resolvedName = name || metaName || (resolvedEmail ? resolvedEmail.split('@')[0] : '') || 'Athlete';
+
   const { data, error } = await supabase
     .from('users')
     .select('*')
@@ -13,8 +21,8 @@ export async function initializeUser(userId: string, email: string) {
   if (!data) {
     const newUser: UserProfile = {
       userId,
-      email,
-      name: email.split('@')[0] || 'Athlete',
+      email: resolvedEmail,
+      name: resolvedName,
       lastCompletedWorkoutOrder: 0,
       maxWorkoutOrder: 3,
       lastSetSummaryPerExercise: {},
@@ -25,8 +33,8 @@ export async function initializeUser(userId: string, email: string) {
 
     const { error: insertError } = await supabase.from('users').upsert({
       user_id: userId,
-      email,
-      name: newUser.name,
+      email: resolvedEmail,
+      name: resolvedName,
       last_completed_workout_order: 0,
       max_workout_order: 3,
       last_set_summary_per_exercise: {},
@@ -42,10 +50,28 @@ export async function initializeUser(userId: string, email: string) {
     return newUser;
   }
 
+  // If existing record was created with empty/null email or default 'Athlete' name, patch it with Google profile data
+  const isMissingEmail = !data.email && !!resolvedEmail;
+  const isDefaultName = (!data.name || data.name === 'Athlete') && resolvedName !== 'Athlete';
+
+  if (isMissingEmail || isDefaultName) {
+    const patchPayload: Record<string, any> = {};
+    if (isMissingEmail) patchPayload.email = resolvedEmail;
+    if (isDefaultName) patchPayload.name = resolvedName;
+
+    await supabase
+      .from('users')
+      .update(patchPayload)
+      .eq('user_id', userId);
+    
+    data.email = resolvedEmail || data.email;
+    data.name = resolvedName || data.name;
+  }
+
   return {
     userId: data.user_id || userId,
-    email: data.email,
-    name: data.name || data.email?.split('@')[0] || '',
+    email: data.email || resolvedEmail,
+    name: data.name || resolvedName,
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
     maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
@@ -56,89 +82,8 @@ export async function initializeUser(userId: string, email: string) {
 }
 
 // Ensure the static workouts/exercises templates exist in Supabase
-export async function seedTemplatesIfMissing(userId?: string) {
-  // If user is the specific v9 user, seed the v9_spartan 4-day split routines & exercises
-  if (userId === '2b4bd23c-ceff-460d-a73b-2c531686e3b2') {
-    const exercisesV9 = [
-      // Day 1
-      { id: 'd1_e1_v9', user_id: userId, name: 'Bench Press (barbell or dumbbell)', type: 'strength', target_sets: 4, target_rep_min: 6, target_rep_max: 10 },
-      { id: 'd1_e2_v9', user_id: userId, name: 'Pull-ups / Lat Pulldown', type: 'strength', target_sets: 4, target_rep_min: 6, target_rep_max: 10 },
-      { id: 'd1_e3_v9', user_id: userId, name: 'Overhead Press', type: 'strength', target_sets: 3, target_rep_min: 6, target_rep_max: 10 },
-      { id: 'd1_e4_v9', user_id: userId, name: 'Seated Cable Row / Dumbbell Row', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
-      { id: 'd1_e5_v9', user_id: userId, name: 'Lateral Raises', type: 'strength', target_sets: 4, target_rep_min: 12, target_rep_max: 20 },
-      { id: 'd1_e6_v9', user_id: userId, name: 'Push-up Ladder', type: 'strength', target_sets: 4, target_rep_min: 12, target_rep_max: 15 },
-      { id: 'd1_e7_v9', user_id: userId, name: 'Triceps Pushdown or Dips', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
-      // Day 2
-      { id: 'd2_e1_v9', user_id: userId, name: 'Back Squat or Goblet Squat', type: 'strength', target_sets: 4, target_rep_min: 6, target_rep_max: 10 },
-      { id: 'd2_e2_v9', user_id: userId, name: 'Romanian Deadlift', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 10 },
-      { id: 'd2_e3_v9', user_id: userId, name: 'Bulgarian Split Squat', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
-      { id: 'd2_e4_v9', user_id: userId, name: 'Leg Curl (machine or Nordic)', type: 'strength', target_sets: 3, target_rep_min: 10, target_rep_max: 15 },
-      { id: 'd2_e5_v9', user_id: userId, name: 'Hanging Knee Raises', type: 'strength', target_sets: 3, target_rep_min: 10, target_rep_max: 15 },
-      { id: 'd2_e6_v9', user_id: userId, name: 'Plank', type: 'timed', target_sets: 3, target_rep_min: 45, target_rep_max: 60 },
-      { id: 'd2_e7_v9', user_id: userId, name: 'Conditioning Block (10 min)', type: 'timed', target_sets: 10, target_rep_min: 30, target_rep_max: 30 },
-      // Day 3
-      { id: 'd3_e1_v9', user_id: userId, name: 'Incline Dumbbell Press', type: 'strength', target_sets: 4, target_rep_min: 8, target_rep_max: 12 },
-      { id: 'd3_e2_v9', user_id: userId, name: 'Pull-ups / Lat Pulldown', type: 'strength', target_sets: 4, target_rep_min: 8, target_rep_max: 12 },
-      { id: 'd3_e3_v9', user_id: userId, name: 'Dumbbell Shoulder Press', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
-      { id: 'd3_e4_v9', user_id: userId, name: 'Chest-Supported Row or Rear-Delt Fly', type: 'strength', target_sets: 3, target_rep_min: 12, target_rep_max: 20 },
-      { id: 'd3_e5_v9', user_id: userId, name: 'Lateral Raises', type: 'strength', target_sets: 4, target_rep_min: 12, target_rep_max: 20 },
-      { id: 'd3_e6_v9', user_id: userId, name: 'Hammer Curls', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
-      { id: 'd3_e7_v9', user_id: userId, name: 'Push-up Ladder', type: 'strength', target_sets: 4, target_rep_min: 12, target_rep_max: 15 },
-      // Day 4
-      { id: 'd4_e1_v9', user_id: userId, name: 'Deadlift or Romanian Deadlift', type: 'strength', target_sets: 3, target_rep_min: 5, target_rep_max: 8 },
-      { id: 'd4_e2_v9', user_id: userId, name: 'Front Squat or Leg Press', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 },
-      { id: 'd4_e3_v9', user_id: userId, name: 'Walking Lunges', type: 'strength', target_sets: 3, target_rep_min: 10, target_rep_max: 10 },
-      { id: 'd4_e4_v9', user_id: userId, name: 'Calf Raises', type: 'strength', target_sets: 3, target_rep_min: 10, target_rep_max: 15 },
-      { id: 'd4_e5_v9', user_id: userId, name: 'Ab-Wheel Rollout or Hanging Leg Raises', type: 'strength', target_sets: 3, target_rep_min: 6, target_rep_max: 15 },
-      { id: 'd4_e6_v9', user_id: userId, name: 'Conditioning Block (10 min)', type: 'timed', target_sets: 10, target_rep_min: 30, target_rep_max: 30 },
-    ];
-
-    try {
-      await supabase.from('exercises').upsert(exercisesV9);
-    } catch (e) {
-      console.warn('Exercises upsert warning:', e);
-    }
-
-    const workoutsV9 = [
-      {
-        id: 'v9_w1',
-        user_id: userId,
-        name: 'Day 1 - Upper Body A',
-        order: 1,
-        exercise_ids: ['d1_e1_v9', 'd1_e2_v9', 'd1_e3_v9', 'd1_e4_v9', 'd1_e5_v9', 'd1_e6_v9', 'd1_e7_v9'],
-      },
-      {
-        id: 'v9_w2',
-        user_id: userId,
-        name: 'Day 2 - Lower Body A + Abs',
-        order: 2,
-        exercise_ids: ['d2_e1_v9', 'd2_e2_v9', 'd2_e3_v9', 'd2_e4_v9', 'd2_e5_v9', 'd2_e6_v9', 'd2_e7_v9'],
-      },
-      {
-        id: 'v9_w3',
-        user_id: userId,
-        name: 'Day 3 - Upper Body B',
-        order: 3,
-        exercise_ids: ['d3_e1_v9', 'd3_e2_v9', 'd3_e3_v9', 'd3_e4_v9', 'd3_e5_v9', 'd3_e6_v9', 'd3_e7_v9'],
-      },
-      {
-        id: 'v9_w4',
-        user_id: userId,
-        name: 'Day 4 - Lower Body B + Abs',
-        order: 4,
-        exercise_ids: ['d4_e1_v9', 'd4_e2_v9', 'd4_e3_v9', 'd4_e4_v9', 'd4_e5_v9', 'd4_e6_v9'],
-      },
-    ];
-
-    try {
-      await supabase.from('workouts').upsert(workoutsV9);
-    } catch (e) {
-      console.warn('Workouts upsert warning:', e);
-    }
-    return;
-  }
-
-  // For other/new users: do not automatically seed default workouts or exercises (keep empty)
+export async function seedTemplatesIfMissing(_userId?: string) {
+  // Seeding disabled - users customize or manage their routines directly or via database
   return;
 }
 
@@ -233,6 +178,11 @@ export async function fetchWorkoutsData(userId?: string) {
 }
 
 export async function getUserProgressState(userId: string) {
+  const { data: authData } = await supabase.auth.getUser();
+  const authUser = authData?.user;
+  const userEmail = authUser?.email || '';
+  const userName = authUser?.user_metadata?.full_name || authUser?.user_metadata?.name;
+
   const { data } = await supabase
     .from('users')
     .select('*')
@@ -241,14 +191,31 @@ export async function getUserProgressState(userId: string) {
 
   if (!data) {
     await seedTemplatesIfMissing(userId);
-    const { data: authUser } = await supabase.auth.getUser();
-    return await initializeUser(userId, authUser?.user?.email || '');
+    return await initializeUser(userId, userEmail, userName);
+  }
+
+  // If user exists, ensure email or name aren't stuck at empty or 'Athlete'
+  const isMissingEmail = !data.email && !!userEmail;
+  const isDefaultName = (!data.name || data.name === 'Athlete') && !!userName;
+
+  if (isMissingEmail || isDefaultName) {
+    const patchPayload: Record<string, any> = {};
+    if (isMissingEmail) patchPayload.email = userEmail;
+    if (isDefaultName) patchPayload.name = userName;
+
+    await supabase
+      .from('users')
+      .update(patchPayload)
+      .eq('user_id', userId);
+
+    data.email = userEmail || data.email;
+    data.name = userName || data.name;
   }
 
   return {
     userId: data.user_id || userId,
-    email: data.email,
-    name: data.name || data.email?.split('@')[0] || '',
+    email: data.email || userEmail,
+    name: data.name || userName || (userEmail ? userEmail.split('@')[0] : '') || 'Athlete',
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
     maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
@@ -260,14 +227,16 @@ export async function getUserProgressState(userId: string) {
 
 export async function saveUserOnboarding(userId: string, daysPerWeek: number) {
   const { data: authUser } = await supabase.auth.getUser();
-  const email = authUser?.user?.email || '';
+  const user = authUser?.user;
+  const email = user?.email || '';
+  const name = user?.user_metadata?.full_name || user?.user_metadata?.name || (email ? email.split('@')[0] : '') || 'Athlete';
 
   const { error } = await supabase
     .from('users')
     .upsert({
       user_id: userId,
       email,
-      name: email.split('@')[0] || 'Athlete',
+      name,
       onboarding_completed: true,
       training_days_per_week: daysPerWeek,
       last_completed_workout_order: 0,
@@ -355,8 +324,13 @@ export async function logSessionCompletion(
   exercisesList: Exercise[],
   sessionCompletedAt?: Date
 ) {
-  const { data: authUser } = await supabase.auth.getUser();
-  const userProfile = await initializeUser(userId, authUser?.user?.email || '');
+  const { data: authData } = await supabase.auth.getUser();
+  const authUser = authData?.user;
+  const userProfile = await initializeUser(
+    userId,
+    authUser?.email || '',
+    authUser?.user_metadata?.full_name || authUser?.user_metadata?.name
+  );
 
   const { data: workoutDataRaw } = await supabase
     .from('workouts')

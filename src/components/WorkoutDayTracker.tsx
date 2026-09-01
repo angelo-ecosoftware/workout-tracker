@@ -448,140 +448,144 @@ export const WorkoutDayTracker: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Routine split selector */}
-      <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl relative overflow-hidden">
-        <label className="block text-[10px] font-bold text-[#C0FF00] uppercase tracking-widest mb-3 font-mono">
-          Select Routine
-        </label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-          {workouts.map((w) => {
-            const isSuggested = suggestedDay === w.order;
-            const isActive = activeWorkout?.id === w.id;
+      {/* Routine split selector - only visible in standard mode or after assisted sets are done */}
+      {(!isAssistedMode || assistedFinished) && (
+        <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl relative overflow-hidden">
+          <label className="block text-[10px] font-bold text-[#C0FF00] uppercase tracking-widest mb-3 font-mono">
+            Select Routine
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {workouts.map((w) => {
+              const isSuggested = suggestedDay === w.order;
+              const isActive = activeWorkout?.id === w.id;
 
-            return (
-              <button
-                key={w.id}
-                onClick={() => {
-                  setActiveWorkout(w);
-                  setErrorMsg(null);
-                }}
-                className={`py-3 px-3 rounded-xl text-left transition-all border relative cursor-pointer ${
-                  isActive 
-                    ? 'border-none bg-[#C0FF00] text-black font-black shadow-[0_0_25px_rgba(192,255,0,0.25)]' 
-                    : 'border-[#222] bg-[#1a1a1a] hover:bg-[#252525] text-gray-300 hover:text-white'
-                }`}
-              >
-                <div className="font-display font-black text-[11px] tracking-tight uppercase">
-                  {w.name.split(' (')[0]}
-                </div>
-                <div className={`text-[9px] truncate font-sans font-semibold mt-0.5 uppercase tracking-wide ${isActive ? 'text-black/70' : 'text-gray-500'}`}>
-                  {w.name.includes('(') ? `(${w.name.split('(')[1]}` : ''}
-                </div>
+              return (
+                <button
+                  key={w.id}
+                  onClick={() => {
+                    setActiveWorkout(w);
+                    setErrorMsg(null);
+                  }}
+                  className={`py-3 px-3 rounded-xl text-left transition-all border relative cursor-pointer ${
+                    isActive 
+                      ? 'border-none bg-[#C0FF00] text-black font-black shadow-[0_0_25px_rgba(192,255,0,0.25)]' 
+                      : 'border-[#222] bg-[#1a1a1a] hover:bg-[#252525] text-gray-300 hover:text-white'
+                  }`}
+                >
+                  <div className="font-display font-black text-[11px] tracking-tight uppercase">
+                    {w.name.split(' (')[0]}
+                  </div>
+                  <div className={`text-[9px] truncate font-sans font-semibold mt-0.5 uppercase tracking-wide ${isActive ? 'text-black/70' : 'text-gray-500'}`}>
+                    {w.name.includes('(') ? `(${w.name.split('(')[1]}` : ''}
+                  </div>
 
-                {isSuggested && !isActive && (
-                  <span className="absolute -top-1 -right-1 flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C0FF00] opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#C0FF00]"></span>
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        
-        {lastSessionDay && (
-          <div className="mt-4 text-[10px] text-gray-500 font-sans flex items-center justify-between border-t border-[#222] pt-3">
-            <span className="font-mono">LAST COMPLETED ROUTINE: <strong className="text-gray-200">{workouts.find(w => w.order === lastSessionDay)?.name || lastSessionDay}</strong></span>
-            <span className="flex items-center gap-1.5 text-[#C0FF00] font-bold font-mono">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#C0FF00] inline-block animate-pulse"></span>
-              SUGGESTED: {workouts.find(w => w.order === suggestedDay)?.name.split(' (')[0] || suggestedDay}
-            </span>
+                  {isSuggested && !isActive && (
+                    <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C0FF00] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#C0FF00]"></span>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-        )}
-      </div>
+          
+          {lastSessionDay && (
+            <div className="mt-4 text-[10px] text-gray-500 font-sans flex items-center justify-between border-t border-[#222] pt-3">
+              <span className="font-mono">LAST COMPLETED ROUTINE: <strong className="text-gray-200">{workouts.find(w => w.order === lastSessionDay)?.name || lastSessionDay}</strong></span>
+              <span className="flex items-center gap-1.5 text-[#C0FF00] font-bold font-mono">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#C0FF00] inline-block animate-pulse"></span>
+                SUGGESTED: {workouts.find(w => w.order === suggestedDay)?.name.split(' (')[0] || suggestedDay}
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
       {activeWorkout && (
         <div className="space-y-6">
           
-          {/* Section 2: Recovery Metrics Header block */}
-          <div className="bg-[#111111] border border-[#222] rounded-[24px] p-5 shadow-xl space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#222] pb-4 gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-display font-black italic text-lg text-white uppercase tracking-tight">
-                    {activeWorkout.name}
-                  </h3>
-                  {lastAutoSavedTime && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold bg-[#C0FF00]/10 text-[#C0FF00] border border-[#C0FF00]/20">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[#C0FF00] animate-pulse"></span>
-                      Auto-saved ({lastAutoSavedTime})
+          {/* Section 2: Recovery Metrics Header block - only in standard mode or after assisted sets finish */}
+          {(!isAssistedMode || assistedFinished) && (
+            <div className="bg-[#111111] border border-[#222] rounded-[24px] p-5 shadow-xl space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#222] pb-4 gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-display font-black italic text-lg text-white uppercase tracking-tight">
+                      {activeWorkout.name}
+                    </h3>
+                    {lastAutoSavedTime && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold bg-[#C0FF00]/10 text-[#C0FF00] border border-[#C0FF00]/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#C0FF00] animate-pulse"></span>
+                        Auto-saved ({lastAutoSavedTime})
+                      </span>
+                    )}
+                  </div>
+                  <div className="h-[2px] bg-gradient-to-r from-[#C0FF00] to-transparent w-36 mt-1 opacity-50"></div>
+                </div>
+
+                <div className="relative shrink-0 w-full sm:w-auto">
+                  <input
+                    type="date"
+                    value={sessionDate}
+                    onChange={(e) => {
+                      setSessionDate(e.target.value);
+                      saveDraftCheckpoint(inputs, activeWorkout.id, e.target.value, sleepHours, energyScore);
+                    }}
+                    className="w-full sm:w-auto pl-8 pr-3 py-1.5 text-xs border border-[#333] rounded-xl bg-[#1a1a1a] text-white font-mono focus:outline-none focus:border-[#C0FF00]"
+                  />
+                  <Calendar className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-2.5" />
+                </div>
+              </div>
+
+              {/* Recovery Sliders */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-gray-400">
+                    <span className="uppercase tracking-wider font-mono">Sleep (Hrs)</span>
+                    <span className="font-mono text-[#C0FF00] bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#222]">
+                      {sleepHours} hrs
                     </span>
-                  )}
+                  </div>
+                  <input
+                    type="range"
+                    min="4"
+                    max="12"
+                    step="0.5"
+                    value={sleepHours}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setSleepHours(val);
+                      saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, val, energyScore);
+                    }}
+                    className="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#C0FF00]"
+                  />
                 </div>
-                <div className="h-[2px] bg-gradient-to-r from-[#C0FF00] to-transparent w-36 mt-1 opacity-50"></div>
-              </div>
 
-              <div className="relative shrink-0 w-full sm:w-auto">
-                <input
-                  type="date"
-                  value={sessionDate}
-                  onChange={(e) => {
-                    setSessionDate(e.target.value);
-                    saveDraftCheckpoint(inputs, activeWorkout.id, e.target.value, sleepHours, energyScore);
-                  }}
-                  className="w-full sm:w-auto pl-8 pr-3 py-1.5 text-xs border border-[#333] rounded-xl bg-[#1a1a1a] text-white font-mono focus:outline-none focus:border-[#C0FF00]"
-                />
-                <Calendar className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-2.5" />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-gray-400">
+                    <span className="uppercase tracking-wider font-mono">Energy (1-10)</span>
+                    <span className="font-mono text-[#C0FF00] bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#222]">
+                      {energyScore} / 10
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value={energyScore}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setEnergyScore(val);
+                      saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, sleepHours, val);
+                    }}
+                    className="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#C0FF00]"
+                  />
+                </div>
               </div>
             </div>
-
-            {/* Recovery Sliders */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-[11px] font-bold text-gray-400">
-                  <span className="uppercase tracking-wider font-mono">Sleep (Hrs)</span>
-                  <span className="font-mono text-[#C0FF00] bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#222]">
-                    {sleepHours} hrs
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="4"
-                  max="12"
-                  step="0.5"
-                  value={sleepHours}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    setSleepHours(val);
-                    saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, val, energyScore);
-                  }}
-                  className="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#C0FF00]"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-[11px] font-bold text-gray-400">
-                  <span className="uppercase tracking-wider font-mono">Energy (1-10)</span>
-                  <span className="font-mono text-[#C0FF00] bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#222]">
-                    {energyScore} / 10
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="10"
-                  step="1"
-                  value={energyScore}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value, 10);
-                    setEnergyScore(val);
-                    saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, sleepHours, val);
-                  }}
-                  className="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#C0FF00]"
-                />
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Section 3: Assisted Timed Mode vs Standard Full Exercise List */}
           {isAssistedMode && !assistedFinished ? (
@@ -592,6 +596,11 @@ export const WorkoutDayTracker: React.FC = () => {
               onUpdateInput={updateInputValue}
               onSetTextInput={handleTextChange}
               onFinishAllSets={() => setAssistedFinished(true)}
+              onExitAssistedMode={() => {
+                setIsAssistedMode(false);
+                localStorage.setItem('setting_assisted_timed_workout', 'false');
+                window.dispatchEvent(new Event('workout_settings_updated'));
+              }}
               restDurationSeconds={restDurationSeconds}
             />
           ) : (
@@ -901,19 +910,21 @@ export const WorkoutDayTracker: React.FC = () => {
             </div>
           )}
 
-          {/* Direct log submit button */}
-          <button
-            onClick={handleLogWorkout}
-            disabled={loggingWorkout}
-            className="w-full flex items-center justify-center gap-2.5 py-4 bg-white hover:bg-gray-100 disabled:bg-[#1a1a1a] disabled:text-gray-600 disabled:border-[#222] text-black rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-200 shadow-[0_0_25px_rgba(255,255,255,0.06)] cursor-pointer"
-          >
-            {loggingWorkout ? (
-              <Loader2 className="w-4 h-4 animate-spin text-black" />
-            ) : (
-              <Dumbbell className="w-4.5 h-4.5 fill-black" />
-            )}
-            SUBMIT WORKOUT
-          </button>
+          {/* Direct log submit button - only visible in standard mode or after assisted sets finish */}
+          {(!isAssistedMode || assistedFinished) && (
+            <button
+              onClick={handleLogWorkout}
+              disabled={loggingWorkout}
+              className="w-full flex items-center justify-center gap-2.5 py-4 bg-white hover:bg-gray-100 disabled:bg-[#1a1a1a] disabled:text-gray-600 disabled:border-[#222] text-black rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-200 shadow-[0_0_25px_rgba(255,255,255,0.06)] cursor-pointer"
+            >
+              {loggingWorkout ? (
+                <Loader2 className="w-4 h-4 animate-spin text-black" />
+              ) : (
+                <Dumbbell className="w-4.5 h-4.5 fill-black" />
+              )}
+              SUBMIT WORKOUT
+            </button>
+          )}
         </div>
       )}
     </div>
