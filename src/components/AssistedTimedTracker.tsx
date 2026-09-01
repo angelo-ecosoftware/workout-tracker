@@ -4,13 +4,20 @@ import { Play, Check, SkipForward, Timer, Dumbbell, Zap, Eye, RotateCcw, X, Aler
 import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
 import { playThreeSecondVibrateAlarm, playCountdownBeep } from '../utils/sound.ts';
 
+export interface SetTimingRecord {
+  startedAt?: Date;
+  completedAt?: Date;
+  durationSeconds?: number;
+  restSeconds?: number;
+}
+
 interface AssistedTimedTrackerProps {
   workout: Workout & { exercises: Exercise[] };
   userProfile: UserProfile | null;
   inputs: Record<string, { weight: string; reps: string; durationSeconds?: string; difficulty?: string }>;
   onUpdateInput: (key: string, field: 'weight' | 'reps' | 'durationSeconds' | 'difficulty', step: number) => void;
   onSetTextInput: (key: string, field: 'weight' | 'reps' | 'durationSeconds' | 'difficulty', value: string) => void;
-  onFinishAllSets: () => void;
+  onFinishAllSets: (sessionTiming?: { startedAt?: Date; completedAt?: Date; setTimings?: Record<string, SetTimingRecord> }) => void;
   onExitAssistedMode?: () => void;
   restDurationSeconds?: number;
 }
@@ -36,6 +43,11 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
   const [recordedDurations, setRecordedDurations] = useState<Record<string, number>>({});
   const [showWgerInfo, setShowWgerInfo] = useState(false);
 
+  // Exact Gym Session Timing
+  const sessionStartTimeRef = useRef<Date | null>(null);
+  const restStartTimeRef = useRef<number | null>(null);
+  const setTimingsRef = useRef<Record<string, SetTimingRecord>>({});
+
   const timerRef = useRef<any>(null);
 
   const currentExercise = exercises[exerciseIndex];
@@ -46,6 +58,7 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
   // Handle rest countdown
   useEffect(() => {
     if (phase === 'resting') {
+      restStartTimeRef.current = Date.now();
       const startTime = performance.now();
       const durationMs = restDurationSeconds * 1000;
       setRestTimeLeft(restDurationSeconds);
@@ -60,7 +73,7 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
         if (remainingMs <= 0) {
           clearInterval(timerRef.current);
           playThreeSecondVibrateAlarm();
-          advanceToNextStep();
+          finishRestInterval();
         }
       }, 50);
     } else {
@@ -74,17 +87,36 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
 
   // Start current set (silent background timing)
   const handleStartSet = () => {
+    const now = new Date();
+    // Record gym entry timestamp on the very first set of the first exercise
+    if (!sessionStartTimeRef.current && exerciseIndex === 0 && setNumber === 1) {
+      sessionStartTimeRef.current = now;
+    }
+
     setSetStartTime(Date.now());
+    if (currentSetKey) {
+      setTimingsRef.current[currentSetKey] = {
+        ...setTimingsRef.current[currentSetKey],
+        startedAt: now,
+      };
+    }
     setPhase('in_progress');
   };
 
   // Complete active set
   const handleFinishSet = () => {
-    const finishTime = Date.now();
+    const finishDate = new Date();
+    const finishTime = finishDate.getTime();
     const duration = setStartTime ? Math.max(1, Math.round((finishTime - setStartTime) / 1000)) : 0;
 
     if (currentSetKey) {
       setRecordedDurations((prev) => ({ ...prev, [currentSetKey]: duration }));
+      setTimingsRef.current[currentSetKey] = {
+        ...setTimingsRef.current[currentSetKey],
+        completedAt: finishDate,
+        durationSeconds: duration,
+      };
+
       // If it's a timed exercise, populate durationSeconds
       if (currentExercise?.type === 'timed') {
         onSetTextInput(currentSetKey, 'durationSeconds', duration.toString());
@@ -99,11 +131,28 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
 
     if (isLastSetOfCurrentExercise && isLastExercise) {
       setPhase('completed_all');
-      onFinishAllSets();
+      onFinishAllSets({
+        startedAt: sessionStartTimeRef.current || undefined,
+        completedAt: finishDate,
+        setTimings: { ...setTimingsRef.current },
+      });
     } else {
       // Enter rest countdown phase
       setPhase('resting');
     }
+  };
+
+  // Helper when rest completes or is skipped
+  const finishRestInterval = () => {
+    if (restStartTimeRef.current && currentSetKey) {
+      const restDuration = Math.max(1, Math.round((Date.now() - restStartTimeRef.current) / 1000));
+      setTimingsRef.current[currentSetKey] = {
+        ...setTimingsRef.current[currentSetKey],
+        restSeconds: restDuration,
+      };
+      restStartTimeRef.current = null;
+    }
+    advanceToNextStep();
   };
 
   // Skip set (fills in 0 for weight & reps)
@@ -124,7 +173,11 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
 
     if (isLastSetOfCurrentExercise && isLastExercise) {
       setPhase('completed_all');
-      onFinishAllSets();
+      onFinishAllSets({
+        startedAt: sessionStartTimeRef.current || undefined,
+        completedAt: new Date(),
+        setTimings: { ...setTimingsRef.current },
+      });
     } else {
       advanceToNextStep();
     }
@@ -146,7 +199,11 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
         setPhase('ready');
       } else {
         setPhase('completed_all');
-        onFinishAllSets();
+        onFinishAllSets({
+          startedAt: sessionStartTimeRef.current || undefined,
+          completedAt: new Date(),
+          setTimings: { ...setTimingsRef.current },
+        });
       }
     }
   };
@@ -154,7 +211,7 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
   // Skip rest timer immediately
   const handleSkipRest = () => {
     if (timerRef.current) clearInterval(timerRef.current);
-    advanceToNextStep();
+    finishRestInterval();
   };
 
   // Reset entire assisted progression
@@ -163,6 +220,9 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
     setSetNumber(1);
     setPhase('ready');
     setSetStartTime(null);
+    sessionStartTimeRef.current = null;
+    restStartTimeRef.current = null;
+    setTimingsRef.current = {};
   };
 
   if (totalExercises === 0) {

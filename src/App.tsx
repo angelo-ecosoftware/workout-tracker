@@ -5,11 +5,12 @@ import { LoginScreen } from './components/LoginScreen.tsx';
 import { Header } from './components/Header.tsx';
 import { WorkoutDayTracker } from './components/WorkoutDayTracker.tsx';
 import { WorkoutHistory } from './components/WorkoutHistory.tsx';
+import { InsightsView } from './components/InsightsView.tsx';
 import { Loader2 } from 'lucide-react';
 
 const GymAppContent: React.FC = () => {
   const { user, loading, token } = useAuth();
-  const [activeTab, setActiveTab] = useState<'tracker' | 'history'>('tracker');
+  const [activeTab, setActiveTab] = useState<'tracker' | 'history' | 'insights'>('tracker');
 
   if (loading || (user && !token)) {
     return (
@@ -29,10 +30,10 @@ const GymAppContent: React.FC = () => {
       <Header />
       
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex bg-[#111] border border-[#222] rounded-full p-1 w-full max-w-sm mx-auto mb-8 font-sans">
+        <div className="flex bg-[#111] border border-[#222] rounded-full p-1 w-full max-w-md mx-auto mb-8 font-sans">
           <button 
              onClick={() => setActiveTab('tracker')}
-             className={`flex-1 py-2 text-xs uppercase tracking-widest font-bold rounded-full transition-all ${
+             className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
                activeTab === 'tracker' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
              }`}
           >
@@ -40,16 +41,26 @@ const GymAppContent: React.FC = () => {
           </button>
           <button 
              onClick={() => setActiveTab('history')}
-             className={`flex-1 py-2 text-xs uppercase tracking-widest font-bold rounded-full transition-all ${
+             className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
                activeTab === 'history' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
              }`}
           >
              Log Book
           </button>
+          <button 
+             onClick={() => setActiveTab('insights')}
+             className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+               activeTab === 'insights' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+             }`}
+          >
+             Insights
+          </button>
         </div>
 
         <div>
-          {activeTab === 'tracker' ? <WorkoutDayTracker /> : <WorkoutHistory />}
+          {activeTab === 'tracker' && <WorkoutDayTracker />}
+          {activeTab === 'history' && <WorkoutHistory />}
+          {activeTab === 'insights' && <InsightsView />}
         </div>
       </main>
     </div>

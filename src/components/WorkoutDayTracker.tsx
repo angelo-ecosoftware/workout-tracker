@@ -5,7 +5,7 @@ import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, seedTemp
 import { uploadWorkoutPhotos } from '../lib/storage.ts';
 import { SessionEngine, ProgressionEngine } from '../engine.ts';
 import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff, Timer, FileText, Settings, Plus, Camera, Image, Trash2 } from 'lucide-react';
-import { AssistedTimedTracker } from './AssistedTimedTracker.tsx';
+import { AssistedTimedTracker, SetTimingRecord } from './AssistedTimedTracker.tsx';
 import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { WelcomeModal } from './WelcomeModal.tsx';
@@ -50,6 +50,11 @@ export const WorkoutDayTracker: React.FC = () => {
     return val ? parseInt(val, 10) : 5;
   });
   const [assistedFinished, setAssistedFinished] = useState(false);
+  const [assistedSessionTimings, setAssistedSessionTimings] = useState<{
+    startedAt?: Date;
+    completedAt?: Date;
+    setTimings?: Record<string, SetTimingRecord>;
+  } | null>(null);
 
   // Sync settings when modified from SettingsModal
   useEffect(() => {
@@ -442,6 +447,9 @@ export const WorkoutDayTracker: React.FC = () => {
         reps?: number | null;
         durationSeconds?: number | null;
         difficulty?: number | null;
+        startedAt?: Date | null;
+        completedAt?: Date | null;
+        restSeconds?: number | null;
       }> = [];
 
       for (const ex of activeWorkout.exercises) {
@@ -453,6 +461,9 @@ export const WorkoutDayTracker: React.FC = () => {
             : { weight: '20', reps: '10', durationSeconds: '', difficulty: '' };
 
           const inputValues = inputs[key] || defaultInput;
+
+          const setTimingKey = `${ex.id}-${i}`;
+          const recordedSetTiming = assistedSessionTimings?.setTimings?.[setTimingKey];
 
           if (isTimed) {
             const secNum = parseInt(inputValues.durationSeconds || '', 10);
@@ -469,6 +480,9 @@ export const WorkoutDayTracker: React.FC = () => {
               reps: null,
               durationSeconds: secNum,
               difficulty: isNaN(diffNum) ? null : diffNum,
+              startedAt: recordedSetTiming?.startedAt,
+              completedAt: recordedSetTiming?.completedAt,
+              restSeconds: recordedSetTiming?.restSeconds,
             });
           } else {
             const weightNum = parseFloat(inputValues.weight || '');
@@ -483,19 +497,24 @@ export const WorkoutDayTracker: React.FC = () => {
               setNumber: i,
               weight: weightNum,
               reps: repsNum,
-              durationSeconds: null,
+              durationSeconds: recordedSetTiming?.durationSeconds || null,
               difficulty: null,
+              startedAt: recordedSetTiming?.startedAt,
+              completedAt: recordedSetTiming?.completedAt,
+              restSeconds: recordedSetTiming?.restSeconds,
             });
           }
         }
       }
 
-      let completedAtDate = undefined;
+      let completedAtDate = assistedSessionTimings?.completedAt || undefined;
+      let sessionStartedAtDate = assistedSessionTimings?.startedAt || undefined;
+
       if (sessionDate) {
-         // Create a date in local time using the provided date, but current time to keep it accurate
-         const now = new Date();
+         // Create a date in local time using the provided date, but keeping time
+         const baseTime = completedAtDate || new Date();
          const [y, m, d] = sessionDate.split('-');
-         completedAtDate = new Date(parseInt(y), parseInt(m)-1, parseInt(d), now.getHours(), now.getMinutes(), now.getSeconds());
+         completedAtDate = new Date(parseInt(y), parseInt(m)-1, parseInt(d), baseTime.getHours(), baseTime.getMinutes(), baseTime.getSeconds());
       }
 
       // Upload progress photos to S3/Supabase storage if selected
@@ -518,7 +537,8 @@ export const WorkoutDayTracker: React.FC = () => {
         activeWorkout.exercises,
         completedAtDate,
         sessionNotes,
-        uploadedPhotoUrls
+        uploadedPhotoUrls,
+        sessionStartedAtDate
       );
 
       // Clear local auto-save draft checkpoint upon successful log
@@ -527,6 +547,7 @@ export const WorkoutDayTracker: React.FC = () => {
       setSelectedPhotos([]);
       photoPreviews.forEach((url) => URL.revokeObjectURL(url));
       setPhotoPreviews([]);
+      setAssistedSessionTimings(null);
 
       setSuccessMsg(`Workout successfully saved! Next workout Day updated.`);
       
@@ -840,7 +861,10 @@ export const WorkoutDayTracker: React.FC = () => {
               inputs={inputs}
               onUpdateInput={updateInputValue}
               onSetTextInput={handleTextChange}
-              onFinishAllSets={() => setAssistedFinished(true)}
+              onFinishAllSets={(timings) => {
+                if (timings) setAssistedSessionTimings(timings);
+                setAssistedFinished(true);
+              }}
               onExitAssistedMode={() => {
                 setIsAssistedMode(false);
                 localStorage.setItem('setting_assisted_timed_workout', 'false');

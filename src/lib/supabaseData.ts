@@ -291,6 +291,39 @@ export async function fetchSetsForSession(sessionId: string) {
     weight: d.weight != null ? Number(d.weight) : null,
     reps: d.reps != null ? Number(d.reps) : null,
     durationSeconds: d.duration_seconds != null ? Number(d.duration_seconds) : null,
+    startedAt: d.started_at ? new Date(d.started_at) : null,
+    completedAt: d.completed_at ? new Date(d.completed_at) : null,
+    restSeconds: d.rest_seconds != null ? Number(d.rest_seconds) : null,
+    loggedAt: d.logged_at ? new Date(d.logged_at) : new Date(),
+  }));
+
+  return sets;
+}
+
+export async function fetchAllSetsForUser(userId: string) {
+  const { data, error } = await supabase
+    .from('sets')
+    .select('*')
+    .eq('user_id', userId)
+    .order('logged_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching all user sets:', error);
+    return [];
+  }
+
+  const sets: WorkoutSet[] = (data || []).map((d: any) => ({
+    id: String(d.id),
+    sessionId: String(d.session_id),
+    userId: String(d.user_id),
+    exerciseId: String(d.exercise_id),
+    setNumber: d.set_number,
+    weight: d.weight != null ? Number(d.weight) : null,
+    reps: d.reps != null ? Number(d.reps) : null,
+    durationSeconds: d.duration_seconds != null ? Number(d.duration_seconds) : null,
+    startedAt: d.started_at ? new Date(d.started_at) : null,
+    completedAt: d.completed_at ? new Date(d.completed_at) : null,
+    restSeconds: d.rest_seconds != null ? Number(d.rest_seconds) : null,
     loggedAt: d.logged_at ? new Date(d.logged_at) : new Date(),
   }));
 
@@ -304,7 +337,8 @@ export async function logSessionCompletion(
   exercisesList: Exercise[],
   sessionCompletedAt?: Date,
   notes?: string,
-  photos?: string[]
+  photos?: string[],
+  sessionStartedAt?: Date
 ) {
   const { data: authData } = await supabase.auth.getUser();
   const authUser = authData?.user;
@@ -328,13 +362,14 @@ export async function logSessionCompletion(
   };
 
   const sessionData = SessionEngine.createSession(userProfile, workoutData);
+  const startedTimestamp = sessionStartedAt ? sessionStartedAt.toISOString() : sessionData.startedAt.toISOString();
   const completedTimestamp = sessionCompletedAt ? sessionCompletedAt.toISOString() : new Date().toISOString();
 
   const sessionPayload: Record<string, any> = {
     user_id: userId,
     workout_id: workoutId,
     status: 'completed',
-    started_at: sessionData.startedAt.toISOString(),
+    started_at: startedTimestamp,
     completed_at: completedTimestamp,
   };
 
@@ -401,7 +436,7 @@ export async function logSessionCompletion(
       ex.type
     );
 
-    setsToInsert.push({
+    const setRow: Record<string, any> = {
       session_id: sessionId,
       user_id: userId,
       exercise_id: s.exerciseId,
@@ -410,7 +445,19 @@ export async function logSessionCompletion(
       reps: validatedSet.reps,
       duration_seconds: validatedSet.durationSeconds,
       logged_at: new Date().toISOString(),
-    });
+    };
+
+    if (s.startedAt) {
+      setRow.started_at = s.startedAt instanceof Date ? s.startedAt.toISOString() : s.startedAt;
+    }
+    if (s.completedAt) {
+      setRow.completed_at = s.completedAt instanceof Date ? s.completedAt.toISOString() : s.completedAt;
+    }
+    if (s.restSeconds != null) {
+      setRow.rest_seconds = s.restSeconds;
+    }
+
+    setsToInsert.push(setRow);
 
     newCacheUpdates[s.exerciseId] = {
       lastWeight: s.weight || null,
@@ -421,7 +468,22 @@ export async function logSessionCompletion(
   }
 
   if (setsToInsert.length > 0) {
-    const { error: setsErr } = await supabase.from('sets').insert(setsToInsert);
+    let { error: setsErr } = await supabase.from('sets').insert(setsToInsert);
+    if (setsErr && (setsErr.message.includes('started_at') || setsErr.message.includes('rest_seconds'))) {
+      console.warn('Retrying set insert with basic columns only...');
+      const basicSets = setsToInsert.map(r => ({
+        session_id: r.session_id,
+        user_id: r.user_id,
+        exercise_id: r.exercise_id,
+        set_number: r.set_number,
+        weight: r.weight,
+        reps: r.reps,
+        duration_seconds: r.duration_seconds,
+        logged_at: r.logged_at,
+      }));
+      const retrySets = await supabase.from('sets').insert(basicSets);
+      setsErr = retrySets.error;
+    }
     if (setsErr) {
       console.error('Failed inserting sets:', setsErr);
     }

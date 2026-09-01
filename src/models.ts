@@ -53,5 +53,8 @@ export interface WorkoutSet {
   weight: number | null;
   reps: number | null;
   durationSeconds: number | null;
+  startedAt?: Date | null;
+  completedAt?: Date | null;
+  restSeconds?: number | null;
   loggedAt: Date;
 }
