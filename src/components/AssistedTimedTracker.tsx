@@ -33,6 +33,7 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
   restDurationSeconds = 5,
 }) => {
   const exercises = workout.exercises || [];
+  const totalExercises = exercises.length;
   const assistedStateKey = workout.id ? `assisted_tracker_state_${workout.id}` : '';
 
   // Initialize state with localStorage persisted snapshot if available
@@ -41,7 +42,56 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
     try {
       const saved = localStorage.getItem(assistedStateKey);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (parsed) {
+          // If the previous state was resting and the rest timer has elapsed while app was closed,
+          // advance the initial state directly to the next set in 'ready' phase!
+          const now = Date.now();
+          if (parsed.phase === 'resting' && parsed.restTargetEndTime && parsed.restTargetEndTime <= now) {
+            const exIdx = parsed.exerciseIndex || 0;
+            const sNum = parsed.setNumber || 1;
+            const curEx = exercises[exIdx];
+            const targetSets = curEx?.targetSets || 1;
+
+            // Calculate recorded rest duration
+            const curKey = curEx ? `${curEx.id}-${sNum}` : '';
+            const updatedTimings = { ...(parsed.setTimings || {}) };
+            if (curKey && parsed.restStartTime) {
+              const restSec = Math.max(1, Math.round((now - parsed.restStartTime) / 1000));
+              updatedTimings[curKey] = {
+                ...(updatedTimings[curKey] || {}),
+                restSeconds: restSec,
+              };
+            }
+
+            if (sNum < targetSets) {
+              parsed.setNumber = sNum + 1;
+              parsed.phase = 'ready';
+              parsed.restStartTime = null;
+              parsed.restTargetEndTime = null;
+              parsed.setTimings = updatedTimings;
+            } else if (exIdx < exercises.length - 1) {
+              parsed.exerciseIndex = exIdx + 1;
+              parsed.setNumber = 1;
+              parsed.phase = 'ready';
+              parsed.restStartTime = null;
+              parsed.restTargetEndTime = null;
+              parsed.setTimings = updatedTimings;
+            } else {
+              parsed.phase = 'completed_all';
+              parsed.restStartTime = null;
+              parsed.restTargetEndTime = null;
+              parsed.setTimings = updatedTimings;
+            }
+
+            try {
+              localStorage.setItem(assistedStateKey, JSON.stringify(parsed));
+            } catch (e) {
+              console.warn('Could not update assisted state', e);
+            }
+          }
+          return parsed;
+        }
       }
     } catch (e) {
       console.warn('Could not read assisted tracker state from localStorage', e);
@@ -73,7 +123,13 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
   const [setStartTime, setSetStartTime] = useState<number | null>(() => {
     return initialSavedState?.setStartTime ?? null;
   });
-  const [restTimeLeft, setRestTimeLeft] = useState<number>(restDurationSeconds);
+  const [restTimeLeft, setRestTimeLeft] = useState<number>(() => {
+    if (initialSavedState?.phase === 'resting' && initialSavedState?.restTargetEndTime) {
+      const diffSec = Math.ceil((initialSavedState.restTargetEndTime - Date.now()) / 1000);
+      return Math.max(0, diffSec);
+    }
+    return restDurationSeconds;
+  });
   const [recordedDurations, setRecordedDurations] = useState<Record<string, number>>(() => {
     return initialSavedState?.recordedDurations ?? {};
   });
@@ -129,7 +185,6 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
   };
 
   const currentExercise = exercises[exerciseIndex];
-  const totalExercises = exercises.length;
   const currentSetKey = currentExercise ? `${currentExercise.id}-${setNumber}` : '';
   const currentValues = currentSetKey ? (inputs[currentSetKey] || { weight: '20', reps: '10', durationSeconds: '30', difficulty: '7' }) : null;
 
