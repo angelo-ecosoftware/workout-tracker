@@ -3,6 +3,10 @@ import {createRoot} from 'react-dom/client';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App.tsx';
 import './index.css';
+import { initAudioUnlock } from './utils/sound.ts';
+
+// Prepare Web Audio context on first user tap/click
+initAudioUnlock();
 
 // Register service worker for PWA installability
 registerSW({

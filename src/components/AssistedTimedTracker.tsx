@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Workout, Exercise, UserProfile } from '../models.ts';
 import { Play, Check, SkipForward, Timer, Dumbbell, Zap, Eye, RotateCcw, X, AlertCircle, Sparkles } from 'lucide-react';
 import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
+import { playFiveSecondVibrateAlarm, playCountdownBeep } from '../utils/sound.ts';
 
 interface AssistedTimedTrackerProps {
   workout: Workout & { exercises: Exercise[] };
@@ -45,17 +46,23 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
   // Handle rest countdown
   useEffect(() => {
     if (phase === 'resting') {
+      const startTime = performance.now();
+      const durationMs = restDurationSeconds * 1000;
       setRestTimeLeft(restDurationSeconds);
+
       timerRef.current = setInterval(() => {
-        setRestTimeLeft((prev) => {
-          if (prev <= 1) {
-            clearInterval(timerRef.current);
-            advanceToNextStep();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+        const elapsed = performance.now() - startTime;
+        const remainingMs = Math.max(0, durationMs - elapsed);
+        const remainingSec = Math.ceil(remainingMs / 1000);
+
+        setRestTimeLeft(remainingSec);
+
+        if (remainingMs <= 0) {
+          clearInterval(timerRef.current);
+          playFiveSecondVibrateAlarm();
+          advanceToNextStep();
+        }
+      }, 50);
     } else {
       if (timerRef.current) clearInterval(timerRef.current);
     }
@@ -191,7 +198,7 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
 
   const totalRestSeconds = restDurationSeconds || 5;
   const progressFraction = Math.max(0, Math.min(1, restTimeLeft / totalRestSeconds));
-  // Circumference for r=70: 2 * PI * 70 = 439.82
+  // Circumference for r=70: 2 * PI * 70 = 439.8229715...
   const circleRadius = 70;
   const circleCircumference = 2 * Math.PI * circleRadius;
   const strokeDashoffset = circleCircumference * (1 - progressFraction);
@@ -224,7 +231,7 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
                 strokeLinecap="round"
                 strokeDasharray={circleCircumference}
                 strokeDashoffset={strokeDashoffset}
-                className="transition-all duration-1000 ease-linear"
+                className="transition-[stroke-dashoffset] duration-100 ease-linear"
                 style={{
                   filter: 'drop-shadow(0 0 12px rgba(192, 255, 0, 0.45))'
                 }}
