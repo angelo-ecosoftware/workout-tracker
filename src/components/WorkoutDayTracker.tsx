@@ -4,7 +4,6 @@ import { Workout, Exercise, UserProfile } from '../models.ts';
 import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, seedTemplatesIfMissing, saveWorkoutsAndExercises } from '../lib/supabaseData.ts';
 import { SessionEngine, ProgressionEngine } from '../engine.ts';
 import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff, Timer, FileText, Settings, Plus } from 'lucide-react';
-import { OnboardingModal } from './OnboardingModal.tsx';
 import { AssistedTimedTracker } from './AssistedTimedTracker.tsx';
 import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
@@ -453,18 +452,8 @@ export const WorkoutDayTracker: React.FC = () => {
   }
 
   if (workouts.length === 0) {
-    const showOnboarding = userProfile && !userProfile.onboardingCompleted;
-
     return (
       <div className="bg-[#111] border border-[#222] rounded-[24px] p-8 text-center shadow-xl space-y-4 relative">
-        {showOnboarding && user && (
-          <OnboardingModal
-            userId={user.uid}
-            onComplete={() => {
-              setUserProfile(prev => prev ? { ...prev, onboardingCompleted: true } : prev);
-            }}
-          />
-        )}
         <div className="w-12 h-12 mx-auto rounded-2xl bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00]">
           <Plus className="w-6 h-6" />
         </div>
