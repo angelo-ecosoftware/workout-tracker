@@ -7,6 +7,18 @@ export interface LastSetSummary {
   lastSessionId: string;
 }
 
+export interface UserMetrics {
+  dateOfBirth?: string; // YYYY-MM-DD
+  height?: number; // cm
+  weight?: number; // kg
+  gender?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  fitnessLevel?: 'beginner' | 'intermediate' | 'advanced';
+  goals?: string[]; // Multiple standard goals selected
+  trainingLocation?: 'gym' | 'home' | 'hybrid';
+  bodyMeasurementsNotes?: string; // Freeform notes
+  updatedAt?: string;
+}
+
 export interface UserProfile {
   userId: string;
   email: string;
@@ -15,6 +27,7 @@ export interface UserProfile {
   maxWorkoutOrder: number;
   lastSetSummaryPerExercise: Record<string, LastSetSummary>;
   createdAt: Date;
+  metrics?: UserMetrics;
 }
 
 export interface Workout {

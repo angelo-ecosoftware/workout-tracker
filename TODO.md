@@ -47,3 +47,9 @@ This document tracks identified architectural improvements, edge case handling, 
 - [x] **Offline Sync & Queueing (PWA Resiliency)**
   - **Issue**: Gym basements with poor cellular reception fail Supabase completion requests.
   - **Action**: Queue offline session completions and set logs in `IndexedDB` and trigger background sync once connectivity is restored via `navigator.onLine` and `window.addEventListener('online')`.
+
+
+
+share workout 
+
+export and import logs nicer

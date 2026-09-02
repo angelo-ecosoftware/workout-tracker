@@ -8,6 +8,7 @@ export interface AuthUser {
   email?: string;
   displayName?: string;
   photoURL?: string;
+  provider?: string;
 }
 
 interface AuthContextType {
@@ -29,6 +30,7 @@ function mapSupabaseUser(user: User | null): AuthUser | null {
     email: user.email,
     displayName: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0],
     photoURL: user.user_metadata?.avatar_url || user.user_metadata?.picture,
+    provider: user.app_metadata?.provider || user.identities?.[0]?.provider,
   };
 }
 

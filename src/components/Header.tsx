@@ -1,14 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { usePWA } from '../context/PWAContext.tsx';
 import { Dumbbell, Settings, User, WifiOff, RefreshCw } from 'lucide-react';
 import { SettingsModal } from './SettingsModal.tsx';
+import { ProfileModal } from './ProfileModal.tsx';
+import { UserMetrics, Workout } from '../models.ts';
+import { getUserProfile, getWorkoutsForUser } from '../lib/supabaseData.ts';
 
 export const Header: React.FC = () => {
   const { user } = useAuth();
   const { isOnline, pendingSyncCount, triggerManualSync } = usePWA();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [metrics, setMetrics] = useState<UserMetrics | undefined>(undefined);
+  const [routines, setRoutines] = useState<Workout[]>([]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    // Load initial user metrics & active routines for frequency calculation
+    const loadProfileData = async () => {
+      try {
+        const profile = await getUserProfile(user.id, user.displayName, user.email);
+        if (profile?.metrics) {
+          setMetrics(profile.metrics);
+        } else {
+          const cached = localStorage.getItem(`user_metrics_${user.id}`);
+          if (cached) setMetrics(JSON.parse(cached));
+        }
+
+        const userRoutines = await getWorkoutsForUser(user.id);
+        setRoutines(userRoutines || []);
+      } catch (err) {
+        console.warn('Could not load user metrics in header:', err);
+      }
+    };
+
+    loadProfileData();
+  }, [user]);
 
   if (!user) return null;
 
@@ -45,44 +75,33 @@ export const Header: React.FC = () => {
               </div>
             )}
 
-            {/* Pending sync queue badge - disabled for now */}
-            {/*
-            {pendingSyncCount > 0 && (
-              <button
-                onClick={handleSyncClick}
-                disabled={isSyncing || !isOnline}
-                title={isOnline ? "Sync offline workouts now" : "Offline: will auto-sync when online"}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl font-mono text-[10px] uppercase font-bold border transition-all cursor-pointer ${
-                  isOnline 
-                    ? 'bg-[#C0FF00]/10 border-[#C0FF00]/40 text-[#C0FF00] hover:bg-[#C0FF00]/20' 
-                    : 'bg-amber-500/10 border-amber-500/30 text-amber-400 opacity-80'
-                }`}
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span>{pendingSyncCount} queued</span>
-              </button>
-            )}
-            */}
-
-            {/* Desktop User Pill */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1a] border border-[#222] rounded-xl">
+            {/* Desktop User Pill / Button */}
+            <button
+              onClick={() => setIsProfileOpen(true)}
+              title="View & Edit Athlete Profile"
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#252525] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl transition-all cursor-pointer group"
+            >
               {user.photoURL ? (
                 <img 
                   referrerPolicy="no-referrer"
                   src={user.photoURL} 
                   alt={user.displayName || 'Profile'} 
-                  className="w-5 h-5 rounded-full object-cover"
+                  className="w-5 h-5 rounded-full object-cover group-hover:ring-1 group-hover:ring-[#C0FF00]"
                 />
               ) : (
-                <User className="w-3.5 h-3.5 text-gray-400" />
+                <User className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#C0FF00]" />
               )}
-              <span className="font-mono text-xs font-semibold text-gray-300 max-w-[120px] truncate uppercase tracking-tight">
+              <span className="font-mono text-xs font-semibold text-gray-300 max-w-[120px] truncate uppercase tracking-tight group-hover:text-white">
                 {user.displayName || user.email?.split('@')[0]}
               </span>
-            </div>
+            </button>
 
-            {/* Mobile User Icon */}
-            <div className="sm:hidden flex items-center justify-center w-8 h-8 border border-[#333] bg-[#1a1a1a] rounded-xl">
+            {/* Mobile User Icon / Button */}
+            <button
+              onClick={() => setIsProfileOpen(true)}
+              title="View & Edit Athlete Profile"
+              className="sm:hidden flex items-center justify-center w-8 h-8 border border-[#333] hover:border-[#C0FF00] bg-[#1a1a1a] rounded-xl cursor-pointer transition-colors"
+            >
               {user.photoURL ? (
                 <img 
                   referrerPolicy="no-referrer"
@@ -93,7 +112,7 @@ export const Header: React.FC = () => {
               ) : (
                 <User className="w-4 h-4 text-gray-400" />
               )}
-            </div>
+            </button>
 
             <button
               onClick={() => setIsSettingsOpen(true)}
@@ -105,6 +124,15 @@ export const Header: React.FC = () => {
           </div>
         </div>
       </header>
+
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        user={user}
+        metrics={metrics}
+        routines={routines}
+        onMetricsUpdated={(newMetrics) => setMetrics(newMetrics)}
+      />
 
       <SettingsModal 
         isOpen={isSettingsOpen} 

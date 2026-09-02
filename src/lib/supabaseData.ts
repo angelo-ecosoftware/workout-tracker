@@ -65,6 +65,9 @@ export async function initializeUser(userId: string, email?: string, name?: stri
     data.name = resolvedName || data.name;
   }
 
+  const localMetricsRaw = localStorage.getItem(`user_metrics_${userId}`);
+  const localMetrics = localMetricsRaw ? JSON.parse(localMetricsRaw) : undefined;
+
   return {
     userId: data.user_id || userId,
     email: data.email || resolvedEmail,
@@ -73,6 +76,7 @@ export async function initializeUser(userId: string, email?: string, name?: stri
     maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
+    metrics: data.metrics || localMetrics,
   } as UserProfile;
 }
 
@@ -213,6 +217,9 @@ export async function getUserProgressState(userId: string) {
     data.name = userName || data.name;
   }
 
+  const localMetricsRaw = localStorage.getItem(`user_metrics_${userId}`);
+  const localMetrics = localMetricsRaw ? JSON.parse(localMetricsRaw) : undefined;
+
   return {
     profile: {
       userId: data.user_id || userId,
@@ -222,6 +229,7 @@ export async function getUserProgressState(userId: string) {
       maxWorkoutOrder: data.max_workout_order ?? 3,
       lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
       createdAt: data.created_at ? new Date(data.created_at) : new Date(),
+      metrics: data.metrics || localMetrics,
     } as UserProfile,
     isNewUser: false,
   };
@@ -542,6 +550,29 @@ export async function logSessionCompletion(
       last_set_summary_per_exercise: updatedCache,
     })
     .eq('user_id', userId);
+}
+
+export async function saveUserMetrics(userId: string, metrics: import('../models.ts').UserMetrics) {
+  // 1. Always save to local storage for instant offline availability
+  try {
+    localStorage.setItem(`user_metrics_${userId}`, JSON.stringify(metrics));
+  } catch (err) {
+    console.warn('Could not cache user metrics locally:', err);
+  }
+
+  // 2. Persist to Supabase users profile if supported / online
+  try {
+    const { error } = await supabase
+      .from('users')
+      .update({ metrics })
+      .eq('user_id', userId);
+
+    if (error) {
+      console.warn('Could not sync metrics column to Supabase (may need column or offline):', error);
+    }
+  } catch (err) {
+    console.warn('Supabase update metrics failed:', err);
+  }
 }
 
 export async function exportAllLogs(userId: string) {
