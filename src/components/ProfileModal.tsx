@@ -174,8 +174,16 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 <input 
                   type="date"
                   value={dob}
+                  max={new Date().toISOString().split('T')[0]}
+                  onClick={(e) => {
+                    try {
+                      if ('showPicker' in HTMLInputElement.prototype) {
+                        (e.target as HTMLInputElement).showPicker();
+                      }
+                    } catch {}
+                  }}
                   onChange={(e) => setDob(e.target.value)}
-                  className="w-full bg-[#111] border border-[#333] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#C0FF00]"
+                  className="w-full bg-[#111] border border-[#333] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#C0FF00] [color-scheme:dark] cursor-pointer"
                 />
               </div>
 
