@@ -134,14 +134,20 @@ export const DietaryView: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Navigate Date
+  // Today string helper (YYYY-MM-DD)
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  // Navigate Date (cannot navigate past today)
   const handleDateShift = (days: number) => {
     const current = new Date(selectedDate);
     current.setDate(current.getDate() + days);
-    setSelectedDate(current.toISOString().split('T')[0]);
+    const nextDate = current.toISOString().split('T')[0];
+    if (nextDate <= todayStr) {
+      setSelectedDate(nextDate);
+    }
   };
 
-  const isToday = selectedDate === new Date().toISOString().split('T')[0];
+  const isToday = selectedDate === todayStr;
 
   const formatDateTitle = (dateStr: string) => {
     const d = new Date(dateStr);
@@ -416,9 +422,10 @@ export const DietaryView: React.FC = () => {
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-2.5">
-          <Calendar className="w-4 h-4 text-[#C0FF00]" />
-          <span className="font-display text-sm sm:text-base font-black uppercase tracking-tight text-white">
+        {/* Date Picker trigger */}
+        <label className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-[#1a1a1a] transition-colors cursor-pointer relative group">
+          <Calendar className="w-4 h-4 text-[#C0FF00] group-hover:scale-110 transition-transform" />
+          <span className="font-display text-sm sm:text-base font-black uppercase tracking-tight text-white group-hover:text-[#C0FF00] transition-colors">
             {formatDateTitle(selectedDate)}
           </span>
           {isToday && (
@@ -426,11 +433,29 @@ export const DietaryView: React.FC = () => {
               Today
             </span>
           )}
-        </div>
+          {/* Native Date Input overlaid transparently for direct calendar picking */}
+          <input
+            type="date"
+            max={todayStr}
+            value={selectedDate}
+            onChange={(e) => {
+              if (e.target.value && e.target.value <= todayStr) {
+                setSelectedDate(e.target.value);
+              }
+            }}
+            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            aria-label="Select date"
+          />
+        </label>
 
         <button
           onClick={() => handleDateShift(1)}
-          className="p-2 hover:bg-[#1f1f1f] rounded-xl text-gray-400 hover:text-white transition-colors cursor-pointer"
+          disabled={isToday}
+          className={`p-2 rounded-xl transition-colors ${
+            isToday
+              ? 'text-gray-700 opacity-40 cursor-not-allowed'
+              : 'text-gray-400 hover:text-white hover:bg-[#1f1f1f] cursor-pointer'
+          }`}
           aria-label="Next day"
         >
           <ChevronRight className="w-5 h-5" />
