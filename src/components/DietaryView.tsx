@@ -145,7 +145,7 @@ export const DietaryView: React.FC = () => {
 
   const formatDateTitle = (dateStr: string) => {
     const d = new Date(dateStr);
-    return d.toLocaleDateString('nl-NL', {
+    return d.toLocaleDateString('en-US', {
       weekday: 'short',
       day: 'numeric',
       month: 'short',
@@ -533,27 +533,27 @@ export const DietaryView: React.FC = () => {
                 {/* Macro Pills Breakdown */}
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 pt-2 border-t border-[#202020] text-center font-mono text-xs">
                   <div className="bg-[#101010] p-1.5 rounded-lg border border-[#1f1f1f]">
-                    <div className="text-[9px] text-gray-500 uppercase font-sans font-bold">Kcal</div>
+                    <div className="text-[9px] text-gray-500 uppercase font-sans font-bold">Calories</div>
                     <div className="font-black text-white">{entry.calculatedKcal}</div>
                   </div>
                   <div className="bg-[#101010] p-1.5 rounded-lg border border-[#1f1f1f]">
-                    <div className="text-[9px] text-[#C0FF00] uppercase font-sans font-bold">Eiwit</div>
+                    <div className="text-[9px] text-[#C0FF00] uppercase font-sans font-bold">Protein</div>
                     <div className="font-black text-white">{entry.calculatedProtein}g</div>
                   </div>
                   <div className="bg-[#101010] p-1.5 rounded-lg border border-[#1f1f1f]">
-                    <div className="text-[9px] text-amber-400 uppercase font-sans font-bold">KH</div>
+                    <div className="text-[9px] text-amber-400 uppercase font-sans font-bold">Carbs</div>
                     <div className="font-black text-white">{entry.calculatedCarbs}g</div>
                   </div>
                   <div className="bg-[#101010] p-1.5 rounded-lg border border-[#1f1f1f]">
-                    <div className="text-[9px] text-orange-400 uppercase font-sans font-bold">Suikers</div>
+                    <div className="text-[9px] text-orange-400 uppercase font-sans font-bold">Sugars</div>
                     <div className="font-black text-white">{entry.calculatedSugar}g</div>
                   </div>
                   <div className="bg-[#101010] p-1.5 rounded-lg border border-[#1f1f1f]">
-                    <div className="text-[9px] text-rose-400 uppercase font-sans font-bold">Vet</div>
+                    <div className="text-[9px] text-rose-400 uppercase font-sans font-bold">Fat</div>
                     <div className="font-black text-white">{entry.calculatedFat}g</div>
                   </div>
                   <div className="bg-[#101010] p-1.5 rounded-lg border border-[#1f1f1f]">
-                    <div className="text-[9px] text-emerald-400 uppercase font-sans font-bold">Vezels</div>
+                    <div className="text-[9px] text-emerald-400 uppercase font-sans font-bold">Fiber</div>
                     <div className="font-black text-white">{entry.calculatedFiber}g</div>
                   </div>
                 </div>
@@ -582,7 +582,7 @@ export const DietaryView: React.FC = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3 relative z-10 font-mono">
           <div className="bg-[#161616] border border-[#262626] p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-gray-400 text-xs font-sans font-bold uppercase">
-              <span>Kcal</span>
+              <span>Calories</span>
               <Flame className="w-3.5 h-3.5 text-orange-500" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-white mt-1">
@@ -593,7 +593,7 @@ export const DietaryView: React.FC = () => {
 
           <div className="bg-[#161616] border border-[#C0FF00]/25 p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-[#C0FF00] text-xs font-sans font-bold uppercase">
-              <span>Eiwit</span>
+              <span>Protein</span>
               <Zap className="w-3.5 h-3.5 text-[#C0FF00]" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-[#C0FF00] mt-1">
@@ -604,7 +604,7 @@ export const DietaryView: React.FC = () => {
 
           <div className="bg-[#161616] border border-[#262626] p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-amber-400 text-xs font-sans font-bold uppercase">
-              <span>KH</span>
+              <span>Carbs</span>
               <Wheat className="w-3.5 h-3.5 text-amber-400" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-white mt-1">
@@ -615,7 +615,7 @@ export const DietaryView: React.FC = () => {
 
           <div className="bg-[#161616] border border-[#262626] p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-orange-400 text-xs font-sans font-bold uppercase">
-              <span>Suikers</span>
+              <span>Sugars</span>
               <Candy className="w-3.5 h-3.5 text-orange-400" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-white mt-1">
@@ -626,7 +626,7 @@ export const DietaryView: React.FC = () => {
 
           <div className="bg-[#161616] border border-[#262626] p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-rose-400 text-xs font-sans font-bold uppercase">
-              <span>Vet</span>
+              <span>Fat</span>
               <Droplet className="w-3.5 h-3.5 text-rose-400" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-white mt-1">
@@ -637,7 +637,7 @@ export const DietaryView: React.FC = () => {
 
           <div className="bg-[#161616] border border-[#262626] p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-emerald-400 text-xs font-sans font-bold uppercase">
-              <span>Vezels</span>
+              <span>Fiber</span>
               <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-white mt-1">
@@ -791,27 +791,27 @@ export const DietaryView: React.FC = () => {
                         return (
                           <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 bg-[#121212] p-2 rounded-xl text-center font-mono text-xs border border-[#2a2a2a]">
                             <div>
-                              <div className="text-[9px] text-gray-500 uppercase">Kcal</div>
+                              <div className="text-[9px] text-gray-500 uppercase">Calories</div>
                               <div className="font-bold text-white">{preview.calculatedKcal}</div>
                             </div>
                             <div>
-                              <div className="text-[9px] text-[#C0FF00] uppercase">Eiwit</div>
+                              <div className="text-[9px] text-[#C0FF00] uppercase">Protein</div>
                               <div className="font-bold text-[#C0FF00]">{preview.calculatedProtein}g</div>
                             </div>
                             <div>
-                              <div className="text-[9px] text-amber-400 uppercase">KH</div>
+                              <div className="text-[9px] text-amber-400 uppercase">Carbs</div>
                               <div className="font-bold text-white">{preview.calculatedCarbs}g</div>
                             </div>
                             <div>
-                              <div className="text-[9px] text-orange-400 uppercase">Suikers</div>
+                              <div className="text-[9px] text-orange-400 uppercase">Sugars</div>
                               <div className="font-bold text-white">{preview.calculatedSugar}g</div>
                             </div>
                             <div>
-                              <div className="text-[9px] text-rose-400 uppercase">Vet</div>
+                              <div className="text-[9px] text-rose-400 uppercase">Fat</div>
                               <div className="font-bold text-white">{preview.calculatedFat}g</div>
                             </div>
                             <div>
-                              <div className="text-[9px] text-emerald-400 uppercase">Vezels</div>
+                              <div className="text-[9px] text-emerald-400 uppercase">Fiber</div>
                               <div className="font-bold text-white">{preview.calculatedFiber}g</div>
                             </div>
                           </div>
@@ -828,7 +828,7 @@ export const DietaryView: React.FC = () => {
                     </div>
                   ) : (
                     <>
-                      {/* Search Bar & Hive-Mind Status */}
+                      {/* Search Bar & Database Status */}
                       <div className="space-y-1.5">
                         <div className="relative">
                           <Search className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -843,7 +843,7 @@ export const DietaryView: React.FC = () => {
                         <div className="flex items-center justify-between text-[10px] font-mono text-gray-500 px-1">
                           <span className="flex items-center gap-1">
                             <Globe className="w-3 h-3 text-[#C0FF00]" />
-                            <span>Hive-Mind Database</span>
+                            <span>Global Database</span>
                           </span>
                           <span>{filteredCatalog.length} items available</span>
                         </div>
@@ -906,13 +906,13 @@ export const DietaryView: React.FC = () => {
                                 <div className="flex items-center gap-2 text-[10px] font-mono text-gray-400 mt-1 flex-wrap">
                                   <span className="text-white font-semibold">{item.kcalPer100g} kcal</span>
                                   <span>•</span>
-                                  <span className="text-[#C0FF00]">E: {item.proteinPer100g}g</span>
+                                  <span className="text-[#C0FF00]">P: {item.proteinPer100g}g</span>
                                   <span>•</span>
-                                  <span className="text-amber-400">KH: {item.carbsPer100g}g</span>
+                                  <span className="text-amber-400">C: {item.carbsPer100g}g</span>
                                   <span>•</span>
-                                  <span className="text-rose-400">V: {item.fatPer100g}g</span>
+                                  <span className="text-rose-400">F: {item.fatPer100g}g</span>
                                   <span>•</span>
-                                  <span className="text-emerald-400">Vez: {item.fiberPer100g}g</span>
+                                  <span className="text-emerald-400">Fib: {item.fiberPer100g}g</span>
                                 </div>
                               </div>
                               <span className="text-[10px] font-mono text-[#C0FF00] group-hover:translate-x-0.5 uppercase font-bold shrink-0 transition-transform">
@@ -965,10 +965,10 @@ export const DietaryView: React.FC = () => {
                   <div className="p-3 bg-[#181818] border border-[#222] rounded-xl text-xs text-gray-400 space-y-1">
                     <div className="font-bold text-white flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-[#C0FF00]" />
-                      How the Hive-Mind Works
+                      How Link Extraction Works
                     </div>
                     <p className="text-[11px] text-gray-500">
-                      When you extract an AH product link, the official 100g nutritional facts are parsed and stored in the central database. Every other athlete will immediately be able to search and log it.
+                      When you extract a product link, official 100g nutritional facts are parsed and stored in the central database so everyone can search and log it.
                     </p>
                   </div>
                 </div>
@@ -1087,7 +1087,7 @@ export const DietaryView: React.FC = () => {
 
                   <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                     <div>
-                      <label className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Kcal / 100g</label>
+                      <label className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Calories / 100g</label>
                       <input
                         type="number"
                         step="0.1"
@@ -1098,7 +1098,7 @@ export const DietaryView: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-mono uppercase text-[#C0FF00] mb-1">Eiwit (g)</label>
+                      <label className="block text-[10px] font-mono uppercase text-[#C0FF00] mb-1">Protein (g)</label>
                       <input
                         type="number"
                         step="0.1"
@@ -1109,7 +1109,7 @@ export const DietaryView: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-mono uppercase text-amber-400 mb-1">KH (g)</label>
+                      <label className="block text-[10px] font-mono uppercase text-amber-400 mb-1">Carbs (g)</label>
                       <input
                         type="number"
                         step="0.1"
@@ -1120,7 +1120,7 @@ export const DietaryView: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-mono uppercase text-orange-400 mb-1">Suikers (g)</label>
+                      <label className="block text-[10px] font-mono uppercase text-orange-400 mb-1">Sugars (g)</label>
                       <input
                         type="number"
                         step="0.1"
@@ -1131,7 +1131,7 @@ export const DietaryView: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-mono uppercase text-rose-400 mb-1">Vet (g)</label>
+                      <label className="block text-[10px] font-mono uppercase text-rose-400 mb-1">Fat (g)</label>
                       <input
                         type="number"
                         step="0.1"
@@ -1142,7 +1142,7 @@ export const DietaryView: React.FC = () => {
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-mono uppercase text-emerald-400 mb-1">Vezels (g)</label>
+                      <label className="block text-[10px] font-mono uppercase text-emerald-400 mb-1">Fiber (g)</label>
                       <input
                         type="number"
                         step="0.1"
