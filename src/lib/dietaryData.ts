@@ -249,11 +249,12 @@ export async function fetchDailyDietaryLog(userId: string, dateStr: string): Pro
       .eq('log_date', dateStr)
       .maybeSingle();
 
-    if (!error && dbLog && Array.isArray(dbLog.entries_json) && dbLog.entries_json.length > 0) {
-      const totals = computeDailyTotals(dbLog.entries_json);
+    if (!error && dbLog) {
+      const entries = Array.isArray(dbLog.entries_json) ? dbLog.entries_json : [];
+      const totals = computeDailyTotals(entries);
       const fullLog: DailyDietaryLog = {
         date: dateStr,
-        entries: dbLog.entries_json,
+        entries,
         totalKcal: dbLog.total_kcal != null ? Number(dbLog.total_kcal) : totals.totalKcal,
         totalProtein: dbLog.total_protein != null ? Number(dbLog.total_protein) : totals.totalProtein,
         totalCarbs: dbLog.total_carbs != null ? Number(dbLog.total_carbs) : totals.totalCarbs,
@@ -286,6 +287,14 @@ export async function persistDailyDietaryLog(userId: string, log: DailyDietaryLo
   // 2. Persist to Supabase PostgreSQL database
   try {
     const logId = `diet_${userId}_${log.date}`;
+
+    // If the user deleted all food items from this day, clean up the empty record from the database
+    if (log.entries.length === 0) {
+      await supabase.from('dietary_log_entries').delete().eq('user_id', userId).eq('dietary_log_id', logId);
+      await supabase.from('dietary_logs').delete().eq('user_id', userId).eq('log_date', log.date);
+      return;
+    }
+
     const payload = {
       id: logId,
       user_id: userId,
