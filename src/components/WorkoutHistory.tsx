@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate, updateSessionNotes, updateSessionPhotos, fetchWorkoutsData } from '../lib/supabaseData.ts';
+import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate, updateSessionNotes, updateSessionPhotos, fetchWorkoutsData, fetchBodyMeasurementLogs, logDailyBodyWeight, initializeUser } from '../lib/supabaseData.ts';
 import { uploadWorkoutPhoto, deleteWorkoutPhoto } from '../lib/storage.ts';
-import { Session, WorkoutSet, Exercise } from '../models.ts';
-import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X, FileText, Camera, Plus, FolderOpen } from 'lucide-react';
+import { Session, WorkoutSet, Exercise, BodyMeasurementLog, UserProfile } from '../models.ts';
+import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X, FileText, Camera, Plus, FolderOpen, Scale, Sparkles } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal.tsx';
 
 interface PopulatedSession extends Session {
@@ -28,6 +28,13 @@ export const WorkoutHistory: React.FC = () => {
   const [editingNotesSessionId, setEditingNotesSessionId] = useState<string | null>(null);
   const [editingNotesValue, setEditingNotesValue] = useState<string>("");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+
+  // Daily Bodyweight (kg) state
+  const [bodyLogs, setBodyLogs] = useState<BodyMeasurementLog[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [editingWeightSessionId, setEditingWeightSessionId] = useState<string | null>(null);
+  const [editingWeightValue, setEditingWeightValue] = useState<string>("");
+  const [isSavingWeight, setIsSavingWeight] = useState(false);
 
   // Photo uploading / deleting state
   const [uploadingPhotoSessionId, setUploadingPhotoSessionId] = useState<string | null>(null);
@@ -61,6 +68,75 @@ export const WorkoutHistory: React.FC = () => {
   const cancelNotesEdit = () => {
     setEditingNotesSessionId(null);
     setEditingNotesValue("");
+  };
+
+  // Helper to extract session's local date string YYYY-MM-DD
+  const getSessionDateString = (session: PopulatedSession): string => {
+    if (!session.completedAt) {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    const d = session.completedAt;
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  // Find logged bodyweight for the session's date
+  const getSessionBodyLog = (session: PopulatedSession): BodyMeasurementLog | undefined => {
+    const dateStr = getSessionDateString(session);
+    return bodyLogs.find(log => log.logDate === dateStr);
+  };
+
+  const startEditingWeight = (session: PopulatedSession) => {
+    const existingLog = getSessionBodyLog(session);
+    const fallbackWeight = userProfile?.weightKg || userProfile?.metrics?.weight;
+    setEditingWeightSessionId(session.id);
+    setEditingWeightValue(existingLog?.weightKg != null ? String(existingLog.weightKg) : (fallbackWeight ? String(fallbackWeight) : ""));
+  };
+
+  const cancelWeightEdit = () => {
+    setEditingWeightSessionId(null);
+    setEditingWeightValue("");
+  };
+
+  const saveWeightEdit = async (session: PopulatedSession) => {
+    if (!user) return;
+    const parsedWeight = parseFloat(editingWeightValue);
+    if (isNaN(parsedWeight) || parsedWeight <= 0) {
+      alert("Please enter a valid positive bodyweight in kg.");
+      return;
+    }
+
+    try {
+      setIsSavingWeight(true);
+      const sessionDateStr = getSessionDateString(session);
+      const userHeight = userProfile?.heightCm || userProfile?.metrics?.height;
+
+      const updatedLog = await logDailyBodyWeight(user.uid, {
+        date: sessionDateStr,
+        weightKg: parsedWeight,
+        heightCm: userHeight,
+        source: 'workout_session',
+        notes: session.notes || undefined,
+      });
+
+      // Update bodyLogs in state
+      setBodyLogs(prev => {
+        const idx = prev.findIndex(l => l.logDate === sessionDateStr);
+        if (idx >= 0) {
+          const updated = [...prev];
+          updated[idx] = updatedLog;
+          return updated;
+        }
+        return [...prev, updatedLog].sort((a, b) => a.logDate.localeCompare(b.logDate));
+      });
+
+      setEditingWeightSessionId(null);
+    } catch (err: any) {
+      console.error("Failed to save body weight:", err);
+      alert(err.message || "Failed to save body weight.");
+    } finally {
+      setIsSavingWeight(false);
+    }
   };
 
   const triggerAddPhoto = (sessionId: string, source: 'camera' | 'files' = 'files') => {
@@ -225,10 +301,22 @@ export const WorkoutHistory: React.FC = () => {
       try {
         setLoading(true);
         setErrorMsg(null);
-        const historySessions = await fetchWorkoutHistory(user.uid);
         
-        // Fetch workout details and sets for each session in parallel, passing user.uid for custom routines
-        const { workoutsList, exercisesList } = await fetchWorkoutsData(user.uid);
+        const [historySessions, workoutsData, userProfileData, historicalBodyLogs] = await Promise.all([
+          fetchWorkoutHistory(user.uid),
+          fetchWorkoutsData(user.uid),
+          initializeUser(user.uid, user.email, user.displayName),
+          fetchBodyMeasurementLogs(user.uid),
+        ]);
+
+        if (userProfileData) {
+          setUserProfile(userProfileData);
+        }
+        if (historicalBodyLogs) {
+          setBodyLogs(historicalBodyLogs);
+        }
+
+        const { workoutsList, exercisesList } = workoutsData;
         const workoutMap = new Map(workoutsList.map(w => [w.id, w]));
         const exerciseMap = new Map(exercisesList.map(e => [e.id, e]));
 
@@ -482,6 +570,106 @@ export const WorkoutHistory: React.FC = () => {
                   </p>
                 )}
               </div>
+
+              {/* Editable Daily Bodyweight (kg) for this Workout Date */}
+              {(() => {
+                const sessionDateStr = getSessionDateString(session);
+                const sessionBodyLog = getSessionBodyLog(session);
+                const isEditingWeight = editingWeightSessionId === session.id;
+
+                return (
+                  <div className="mb-5 p-3.5 bg-[#161616] border border-[#2a2a2a] rounded-xl text-xs text-gray-300">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <Scale className="w-4 h-4 text-[#C0FF00] shrink-0" />
+                        <span className="font-mono text-[10px] uppercase font-bold text-[#C0FF00]">
+                          Bodyweight on {sessionDateStr}
+                        </span>
+                      </div>
+                      {!isEditingWeight && (
+                        <button
+                          onClick={() => startEditingWeight(session)}
+                          className="p-1 text-gray-400 hover:text-[#C0FF00] transition-colors rounded hover:bg-[#222] flex items-center gap-1 text-[11px] font-mono"
+                          title="Edit Bodyweight"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                          <span className="hidden sm:inline">Edit kg</span>
+                        </button>
+                      )}
+                    </div>
+
+                    {isEditingWeight ? (
+                      <div className="space-y-2 mt-2">
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1 max-w-[180px]">
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={editingWeightValue}
+                              onChange={(e) => {
+                                const sanitized = e.target.value.replace(/[^0-9.]/g, '');
+                                const parts = sanitized.split('.');
+                                setEditingWeightValue(parts.length > 2 ? `${parts[0]}.${parts.slice(1).join('')}` : sanitized);
+                              }}
+                              placeholder="e.g. 75.5"
+                              className="w-full bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-lg px-3 py-1.5 text-sm text-white font-mono font-bold placeholder-gray-600 focus:outline-none transition-colors"
+                            />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-gray-500 pointer-events-none">
+                              kg
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={cancelWeightEdit}
+                              disabled={isSavingWeight}
+                              className="px-2.5 py-1.5 text-[11px] font-sans font-bold text-gray-400 hover:text-white rounded bg-[#222] transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => saveWeightEdit(session)}
+                              disabled={isSavingWeight}
+                              className="px-3 py-1.5 text-[11px] font-sans font-bold bg-[#C0FF00] hover:bg-[#b0f000] text-black rounded transition-colors flex items-center gap-1.5"
+                            >
+                              {isSavingWeight ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                              Save kg
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-[10px] font-mono text-gray-500">
+                          Updates your daily time-series bodyweight history for {sessionDateStr}.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between mt-1 pt-0.5">
+                        <div className="flex items-baseline gap-2">
+                          {sessionBodyLog?.weightKg != null ? (
+                            <>
+                              <span className="text-base font-display font-black text-white">
+                                {sessionBodyLog.weightKg} kg
+                              </span>
+                              {sessionBodyLog.calculatedBmi && (
+                                <span className="text-[10px] font-mono text-gray-400">
+                                  (BMI {sessionBodyLog.calculatedBmi})
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-gray-500 italic text-xs">
+                              No bodyweight logged for this workout date.
+                            </span>
+                          )}
+                        </div>
+                        {sessionBodyLog?.source && (
+                          <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#222] text-gray-500">
+                            {sessionBodyLog.source}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Session Progress Photos */}
               <div className="mb-6 p-3.5 bg-[#161616] border border-[#2a2a2a] rounded-xl text-xs">
