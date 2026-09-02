@@ -273,14 +273,14 @@ export const DietaryView: React.FC = () => {
     setActiveModalTab('search');
   };
 
-  // 2. Fetch Single AH Product Link and persist to SQL Hive-Mind
+  // 2. Fetch Single Product Link (AH, Jumbo, Plus, etc.) and persist to Hive Mind database
   const handleFetchSingleProductLink = async () => {
     if (!singleLinkInput.trim()) return;
     setSingleLinkLoading(true);
     setSingleLinkError(null);
 
     try {
-      const res = await fetch(`/api/ah-product-link?url=${encodeURIComponent(singleLinkInput.trim())}`);
+      const res = await fetch(`/api/product-link?url=${encodeURIComponent(singleLinkInput.trim())}`);
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.error || `Failed to fetch (status ${res.status})`);
@@ -292,7 +292,7 @@ export const DietaryView: React.FC = () => {
 
       const prod = data.product;
 
-      // Automatically sync to SQL Hive-Mind so everyone can search and use it
+      // Automatically sync to Hive Mind so everyone can search and use it
       await saveHiveMindFoodItem(prod, userId);
 
       const updatedCatalog = [prod, ...catalog.filter((c) => c.id !== prod.id)];
@@ -748,7 +748,7 @@ export const DietaryView: React.FC = () => {
                 }`}
               >
                 <LinkIcon className="w-3.5 h-3.5" />
-                <span>AH Link</span>
+                <span>Product Link</span>
               </button>
 
               <button
@@ -915,7 +915,7 @@ export const DietaryView: React.FC = () => {
                                 }}
                                 className="text-xs font-sans text-[#00ade6] underline font-bold cursor-pointer"
                               >
-                                Paste AH Link
+                                Paste Product Link (Jumbo / AH)
                               </button>
                               <span className="text-gray-600">•</span>
                               <button
@@ -979,22 +979,22 @@ export const DietaryView: React.FC = () => {
                 </>
               )}
 
-              {/* TAB 2: PASTE SINGLE AH PRODUCT LINK */}
+              {/* TAB 2: PASTE SINGLE JUMBO OR AH PRODUCT LINK */}
               {activeModalTab === 'link' && (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wider text-gray-400 font-bold mb-1">
-                      Albert Heijn Product Link or wi-code
+                      Jumbo / Albert Heijn Product Link
                     </label>
                     <p className="text-[11px] text-gray-500 font-sans mb-2">
-                      Paste any product link from ah.nl (e.g. <code>https://www.ah.nl/producten/product/wi441199/...</code>). It will be saved into the shared database for all users!
+                      Paste any product link from <strong>jumbo.com</strong> (e.g. <code>https://www.jumbo.com/producten/...</code>) or <strong>ah.nl</strong> (e.g. <code>https://www.ah.nl/producten/product/wi...</code>). It will be saved into the shared database for all users!
                     </p>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
                         value={singleLinkInput}
                         onChange={(e) => setSingleLinkInput(e.target.value)}
-                        placeholder="https://www.ah.nl/producten/product/wi..."
+                        placeholder="https://www.jumbo.com/producten/... or https://www.ah.nl/..."
                         className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#00ade6] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono outline-none"
                       />
                       <button
