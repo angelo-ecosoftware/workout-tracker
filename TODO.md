@@ -56,3 +56,5 @@ implement water intake
 
 implment calories system
 wger excercise system with gifs
+
+compress image size ins s3 storage bucket

@@ -1,5 +1,3 @@
-import { FoodItem } from '../../src/models';
-
 export interface ProductScraperResult {
   id: string;
   name: string;
@@ -109,14 +107,26 @@ export function extractSchemaAndHeadings(
     try {
       const content = jld.replace(/<script[^>]*>/i, '').replace(/<\/script>/i, '');
       const parsed = JSON.parse(content);
-      if (parsed.name) {
-        title = parsed.name
-          .replace(/\s*bestellen\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
-          .replace(/\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
-          .trim();
+
+      // Handle Schema.org array or @graph nodes
+      const nodes = Array.isArray(parsed)
+        ? parsed
+        : Array.isArray(parsed['@graph'])
+        ? parsed['@graph']
+        : [parsed];
+
+      for (const node of nodes) {
+        if (node.name && typeof node.name === 'string' && (node['@type'] === 'Product' || !title || title === 'Product')) {
+          title = node.name
+            .replace(/\s*bestellen\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
+            .replace(/\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
+            .trim();
+        }
+        if (node.brand) {
+          if (typeof node.brand === 'string') brand = node.brand;
+          else if (node.brand?.name) brand = node.brand.name;
+        }
       }
-      if (parsed.brand && typeof parsed.brand === 'string') brand = parsed.brand;
-      else if (parsed.brand?.name) brand = parsed.brand.name;
     } catch (e) {}
   }
 
@@ -132,6 +142,69 @@ export function extractSchemaAndHeadings(
   }
 
   return { title, brand };
+}
+
+// -------------------------------------------------------------
+// Helper: Parse Dirk.nl Nuxt 3 devalue payload
+// -------------------------------------------------------------
+export function parseDirkNuxtNutrition(html: string): {
+  kcalPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  sugarPer100g: number;
+  fatPer100g: number;
+  fiberPer100g: number;
+} {
+  let kcalPer100g = 0;
+  let proteinPer100g = 0;
+  let carbsPer100g = 0;
+  let sugarPer100g = 0;
+  let fatPer100g = 0;
+  let fiberPer100g = 0;
+
+  const idx = html.indexOf('__NUXT_DATA__');
+  if (idx !== -1) {
+    try {
+      const openClose = html.indexOf('>', idx);
+      const scriptEnd = html.indexOf('</script>', openClose);
+      const jsonStr = html.slice(openClose + 1, scriptEnd).trim();
+      const data = JSON.parse(jsonStr);
+
+      if (Array.isArray(data)) {
+        data.forEach((item: any) => {
+          if (item && typeof item === 'object' && item.nutritionalValues !== undefined) {
+            const rowIndices = data[item.nutritionalValues];
+            if (Array.isArray(rowIndices)) {
+              rowIndices.forEach((rIdx: number) => {
+                const r = data[rIdx];
+                if (r && typeof r === 'object') {
+                  const label = String(data[r.text] || '').toLowerCase();
+                  const valStr = String(data[r.value] || '').replace(',', '.');
+                  const val = parseFloat(valStr) || 0;
+
+                  if (label.includes('energie') && (label.includes('kcal') || label.includes('kilocalorie'))) {
+                    kcalPer100g = val;
+                  } else if (label.startsWith('vetten') || label.startsWith('vet')) {
+                    fatPer100g = val;
+                  } else if (label.startsWith('koolhydraten')) {
+                    carbsPer100g = val;
+                  } else if (label.includes('suikers') || label.startsWith('suiker')) {
+                    sugarPer100g = val;
+                  } else if (label.includes('vezel')) {
+                    fiberPer100g = val;
+                  } else if (label.startsWith('eiwit')) {
+                    proteinPer100g = val;
+                  }
+                }
+              });
+            }
+          }
+        });
+      }
+    } catch (e) {}
+  }
+
+  return { kcalPer100g, proteinPer100g, carbsPer100g, sugarPer100g, fatPer100g, fiberPer100g };
 }
 
 // -------------------------------------------------------------
@@ -212,7 +285,44 @@ export const albertHeijnAdapter: StoreScraperAdapter = {
 };
 
 // -------------------------------------------------------------
-// ADAPTER 3: Generic Fallback (Plus, Dirk, Lidl, etc.)
+// ADAPTER 3: Dirk van den Broek (dirk.nl)
+// -------------------------------------------------------------
+export const dirkAdapter: StoreScraperAdapter = {
+  name: 'Dirk',
+  canHandle(url: string) {
+    return url.toLowerCase().includes('dirk.nl');
+  },
+  parse(html: string, url: string): ProductScraperResult {
+    const { title, brand } = extractSchemaAndHeadings(html, 'Dirk');
+    let nutrition = parseDirkNuxtNutrition(html);
+
+    // Fallback to table if not in Nuxt state
+    if (!nutrition.kcalPer100g && !nutrition.proteinPer100g) {
+      nutrition = parseDutchNutritionTable(html);
+    }
+
+    const dirkIdMatch = url.match(/\/(\d+)(?:[/?#]|$)/) || url.match(/boodschappen\/([^/?#]+)/i);
+    const productId = dirkIdMatch ? `dirk_${dirkIdMatch[1]}` : `dirk_${Date.now()}`;
+
+    const isDrink =
+      html.toLowerCase().includes('per 100 milliliter') ||
+      html.toLowerCase().includes('per 100 ml') ||
+      title.toLowerCase().includes('melk') ||
+      title.toLowerCase().includes('drank');
+
+    return {
+      id: productId,
+      name: title,
+      brand: brand || 'Dirk',
+      servingUnit: isDrink ? 'ml' : 'gram',
+      ...nutrition,
+      sourceUrl: url,
+    };
+  },
+};
+
+// -------------------------------------------------------------
+// ADAPTER 4: Generic Fallback (Plus, Aldi, Lidl, etc.)
 // -------------------------------------------------------------
 export const genericAdapter: StoreScraperAdapter = {
   name: 'Generic Store',
@@ -248,13 +358,21 @@ export const genericAdapter: StoreScraperAdapter = {
 
 // -------------------------------------------------------------
 // Registry of all Store Adapters
-// (Easily register future stores here: Plus, Dirk, Picnic, etc.)
 // -------------------------------------------------------------
 export const STORE_SCRAPERS: StoreScraperAdapter[] = [
   jumboAdapter,
   albertHeijnAdapter,
+  dirkAdapter,
   genericAdapter,
 ];
+
+/**
+ * Parse product info directly from HTML using appropriate adapter
+ */
+export function scrapeProductFromHtml(html: string, rawUrl: string): ProductScraperResult {
+  const adapter = STORE_SCRAPERS.find((s) => s.canHandle(rawUrl)) || genericAdapter;
+  return adapter.parse(html, rawUrl);
+}
 
 /**
  * Resolve target URL and scrape product info dynamically
