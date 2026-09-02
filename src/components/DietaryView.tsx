@@ -294,11 +294,13 @@ export const DietaryView: React.FC = () => {
     setShowAddModal(true);
   };
 
-  const filteredCatalog = catalog.filter(
-    (item) =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.brand && item.brand.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Multi-term insensitive fuzzy search
+  const filteredCatalog = catalog.filter((item) => {
+    if (!searchQuery.trim()) return true;
+    const terms = searchQuery.toLowerCase().trim().split(/\s+/);
+    const target = `${item.name} ${item.brand || ''}`.toLowerCase();
+    return terms.every((term) => target.includes(term));
+  });
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-12">
@@ -701,29 +703,61 @@ export const DietaryView: React.FC = () => {
                     </div>
                   ) : (
                     /* Food Item Selection List */
-                    <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
-                      {filteredCatalog.map((item) => (
-                        <div
-                          key={item.id}
-                          onClick={() => {
-                            setSelectedFoodItem(item);
-                            setPortionGrams(100);
-                          }}
-                          className="p-3 bg-[#181818] border border-[#262626] hover:border-[#C0FF00]/50 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-colors group"
-                        >
-                          <div>
-                            <div className="font-sans text-xs font-bold text-white group-hover:text-[#C0FF00] transition-colors">
-                              {item.name}
-                            </div>
-                            <div className="text-[10px] font-mono text-gray-500 mt-0.5">
-                              {item.kcalPer100g} kcal / 100g • {item.proteinPer100g}g protein • {item.carbsPer100g}g carbs
-                            </div>
-                          </div>
-                          <span className="text-[10px] font-mono text-gray-400 group-hover:text-white uppercase font-bold">
-                            Select →
-                          </span>
+                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                      {filteredCatalog.length === 0 ? (
+                        <div className="text-center py-8 bg-[#181818] border border-dashed border-[#2b2b2b] rounded-2xl">
+                          <p className="font-sans text-xs text-gray-400">
+                            No foods found matching "{searchQuery}"
+                          </p>
+                          <button
+                            onClick={() => {
+                              setNewFoodName(searchQuery);
+                              setIsCreatingNewFood(true);
+                            }}
+                            className="mt-2 text-xs font-sans text-[#C0FF00] underline font-bold cursor-pointer"
+                          >
+                            + Create "{searchQuery}" as custom food
+                          </button>
                         </div>
-                      ))}
+                      ) : (
+                        filteredCatalog.map((item) => (
+                          <div
+                            key={item.id}
+                            onClick={() => {
+                              setSelectedFoodItem(item);
+                              setPortionGrams(100);
+                            }}
+                            className="p-3 bg-[#181818] border border-[#262626] hover:border-[#C0FF00]/60 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-all group"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-sans text-xs font-bold text-white group-hover:text-[#C0FF00] transition-colors">
+                                  {item.name}
+                                </span>
+                                {item.brand && (
+                                  <span className="text-[9px] font-mono font-bold uppercase text-gray-400 bg-[#242424] px-1.5 py-0.2 rounded">
+                                    {item.brand}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] font-mono text-gray-400 mt-1 flex-wrap">
+                                <span className="text-white font-semibold">{item.kcalPer100g} kcal</span>
+                                <span>•</span>
+                                <span className="text-[#C0FF00]">E: {item.proteinPer100g}g</span>
+                                <span>•</span>
+                                <span className="text-amber-400">KH: {item.carbsPer100g}g</span>
+                                <span>•</span>
+                                <span className="text-rose-400">V: {item.fatPer100g}g</span>
+                                <span>•</span>
+                                <span className="text-emerald-400">Vez: {item.fiberPer100g}g</span>
+                              </div>
+                            </div>
+                            <span className="text-[10px] font-mono text-[#C0FF00] group-hover:translate-x-0.5 uppercase font-bold shrink-0 transition-transform">
+                              Select →
+                            </span>
+                          </div>
+                        ))
+                      )}
                     </div>
                   )}
 
