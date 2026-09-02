@@ -325,7 +325,7 @@ export const DietaryView: React.FC = () => {
 
     try {
       const listId = extractListId(listLinkInput);
-      const res = await fetch(`/api/ah-shared-list?listId=${encodeURIComponent(listId)}`);
+      const res = await fetch(`/api/grocery-list?listId=${encodeURIComponent(listId)}`);
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(errData.error || `Failed to fetch list (status ${res.status})`);

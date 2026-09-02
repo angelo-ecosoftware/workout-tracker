@@ -18,8 +18,8 @@ async function startServer() {
     res.json({ status: "healthy", timestamp: new Date().toISOString() });
   });
 
-  // API 2: Albert Heijn Shared Grocery List Proxy (CORS-safe server-side bridge)
-  app.all("/api/ah-shared-list", async (req, res) => {
+  // API 2: Shared Grocery List Proxy (CORS-safe server-side bridge)
+  const handleGroceryList = async (req: express.Request, res: express.Response) => {
     const listId = req.query.listId || req.body?.listId;
     if (!listId || typeof listId !== "string") {
       return res.status(400).json({ error: "Missing required parameter: listId" });
@@ -39,7 +39,7 @@ async function startServer() {
       if (!authRes.ok) {
         const errTxt = await authRes.text();
         return res.status(authRes.status).json({
-          error: `AH Mobile Auth failed (${authRes.status})`,
+          error: `Mobile Auth failed (${authRes.status})`,
           details: errTxt,
         });
       }
@@ -47,10 +47,10 @@ async function startServer() {
       const authData = (await authRes.json()) as { access_token?: string };
       const token = authData.access_token;
       if (!token) {
-        return res.status(502).json({ error: "No access token received from AH Mobile Auth" });
+        return res.status(502).json({ error: "No access token received from Mobile Auth" });
       }
 
-      // 2. Query Albert Heijn GraphQL for the shared grocery list
+      // 2. Query GraphQL for the shared grocery list
       const query = `
         query sharedList($groceryListId: String!) {
           groceryList(id: $groceryListId) {
@@ -89,7 +89,7 @@ async function startServer() {
       if (!gqlRes.ok) {
         const errTxt = await gqlRes.text();
         return res.status(gqlRes.status).json({
-          error: `AH GraphQL request failed (${gqlRes.status})`,
+          error: `GraphQL request failed (${gqlRes.status})`,
           details: errTxt,
         });
       }
@@ -119,10 +119,14 @@ async function startServer() {
         products,
       });
     } catch (err: any) {
-      console.error("AH Shared List Proxy Error:", err);
-      return res.status(500).json({ error: err.message || "Failed to fetch AH shared list" });
+      console.error("Shared List Proxy Error:", err);
+      return res.status(500).json({ error: err.message || "Failed to fetch shared list" });
     }
-  });
+  };
+
+  app.all("/api/grocery-list", handleGroceryList);
+  app.all("/api/shared-grocery-list", handleGroceryList);
+  app.all("/api/ah-shared-list", handleGroceryList);
 
   // API 3: Dynamic Product Link Scraper (AH, Jumbo, etc.)
   const handleProductLink = async (req: express.Request, res: express.Response) => {
