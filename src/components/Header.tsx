@@ -5,7 +5,7 @@ import { Dumbbell, Settings, User, WifiOff, RefreshCw } from 'lucide-react';
 import { SettingsModal } from './SettingsModal.tsx';
 import { ProfileModal } from './ProfileModal.tsx';
 import { UserMetrics, Workout } from '../models.ts';
-import { getUserProfile, getWorkoutsForUser } from '../lib/supabaseData.ts';
+import { initializeUser, fetchWorkoutsData } from '../lib/supabaseData.ts';
 
 export const Header: React.FC = () => {
   const { user } = useAuth();
@@ -22,7 +22,7 @@ export const Header: React.FC = () => {
     // Load initial user metrics & active routines for frequency calculation
     const loadProfileData = async () => {
       try {
-        const profile = await getUserProfile(user.id, user.displayName, user.email);
+        const profile = await initializeUser(user.id, user.email, user.displayName);
         if (profile?.metrics) {
           setMetrics(profile.metrics);
         } else {
@@ -30,7 +30,7 @@ export const Header: React.FC = () => {
           if (cached) setMetrics(JSON.parse(cached));
         }
 
-        const userRoutines = await getWorkoutsForUser(user.id);
+        const { workouts: userRoutines } = await fetchWorkoutsData(user.id);
         setRoutines(userRoutines || []);
       } catch (err) {
         console.warn('Could not load user metrics in header:', err);
