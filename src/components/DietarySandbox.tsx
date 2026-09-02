@@ -35,80 +35,20 @@ export const DietarySandbox: React.FC = () => {
         throw new Error('Please enter a valid Albert Heijn shared list link or ID');
       }
 
-      // 1. Get anonymous mobile auth token
-      const authRes = await fetch('https://api.ah.nl/mobile-auth/v1/auth/token/anonymous', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'User-Agent': 'Appie/8.8.2 iOS/17.0',
-        },
-        body: JSON.stringify({ clientId: 'appie' }),
-      });
+      // Query server-side proxy route to bypass browser CORS restrictions
+      const res = await fetch(`/api/ah-shared-list?listId=${encodeURIComponent(listId)}`);
 
-      if (!authRes.ok) {
-        throw new Error(`Failed to obtain guest token (${authRes.status})`);
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to fetch list (status ${res.status})`);
       }
 
-      const authData = await authRes.json();
-      const token = authData.access_token;
-      if (!token) throw new Error('No access token received from AH auth');
-
-      // 2. Query Albert Heijn GraphQL API for the shared list
-      const query = `
-        query sharedList($groceryListId: String!) {
-          groceryList(id: $groceryListId) {
-            statusCode
-            groceryList {
-              groceryItems {
-                quantity
-                product {
-                  id
-                  title
-                  brand
-                  webPath
-                  salesUnitSize
-                }
-              }
-            }
-          }
-        }
-      `;
-
-      const gqlRes = await fetch('https://api.ah.nl/graphql', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-          'User-Agent': 'Appie/8.8.2 iOS/17.0',
-          'x-application': 'AH-ShoppingList-Next',
-        },
-        body: JSON.stringify({
-          operationName: 'sharedList',
-          variables: { groceryListId: listId },
-          query: query,
-        }),
-      });
-
-      if (!gqlRes.ok) {
-        throw new Error(`GraphQL query failed with status ${gqlRes.status}`);
+      const data = await res.json();
+      if (!data.success || !Array.isArray(data.products)) {
+        throw new Error(data.error || 'Invalid list response');
       }
 
-      const gqlData = await gqlRes.json();
-      if (gqlData.errors && gqlData.errors.length > 0) {
-        throw new Error(gqlData.errors[0]?.message || 'GraphQL error');
-      }
-
-      const items = gqlData?.data?.groceryList?.groceryList?.groceryItems || [];
-      const extracted: AHProduct[] = items.map((item: any) => ({
-        id: item.product?.id,
-        title: item.product?.title || 'Unknown Product',
-        brand: item.product?.brand || '',
-        webPath: item.product?.webPath || '',
-        salesUnitSize: item.product?.salesUnitSize || '',
-        quantity: item.quantity || 1,
-      }));
-
-      setProducts(extracted);
+      setProducts(data.products);
     } catch (err: any) {
       console.error('Failed to extract AH list:', err);
       setError(err.message || 'Could not fetch list. Please check the URL.');
