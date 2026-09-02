@@ -529,7 +529,7 @@ export const InsightsView: React.FC = () => {
         </div>
       </div>
 
-      {/* View Mode Toggle: Heatmap vs BMI Biometrics */}
+      {/* View Mode Toggle: 90-Day Heatmap vs 90-Day BMI Biometrics */}
       <div className="flex items-center justify-between gap-3 bg-[#111] border border-[#222] p-2 rounded-2xl">
         <div className="flex items-center gap-1.5 p-1 bg-[#181818] rounded-xl border border-[#282828] w-full sm:w-auto">
           <button
@@ -542,7 +542,7 @@ export const InsightsView: React.FC = () => {
             }`}
           >
             <Calendar className="w-3.5 h-3.5" />
-            <span>90-Day Heatmap</span>
+            <span>90-Day Activity & Consistency Heatmap</span>
           </button>
           <button
             type="button"
@@ -554,7 +554,7 @@ export const InsightsView: React.FC = () => {
             }`}
           >
             <Scale className="w-3.5 h-3.5" />
-            <span>BMI & Biometrics</span>
+            <span>90-Day Body Mass Index (BMI) & Biometrics</span>
             {bmiValue && (
               <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${activeTab === 'bmi' ? 'bg-black/20 text-black' : 'bg-[#252525] text-gray-300'}`}>
                 {bmiValue}
@@ -563,7 +563,7 @@ export const InsightsView: React.FC = () => {
           </button>
         </div>
 
-        <div className="hidden sm:flex items-center gap-2 text-[11px] font-mono text-gray-400 pr-2">
+        <div className="hidden lg:flex items-center gap-2 text-[11px] font-mono text-gray-400 pr-2">
           {activeTab === 'heatmap' ? (
             <span>90-Day Activity Matrix</span>
           ) : (
@@ -574,13 +574,13 @@ export const InsightsView: React.FC = () => {
 
       {/* Conditionally Rendered: Heatmap or BMI Card */}
       {activeTab === 'bmi' ? (
-        /* Athlete Biometrics & BMI Card */
+        /* 90-Day Athlete Biometrics & BMI Card */
         <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl space-y-4 animate-fadeIn">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#222] pb-3">
             <div>
               <h3 className="font-display font-black text-base text-white uppercase tracking-tight flex items-center gap-2">
                 <Scale className="w-4 h-4 text-[#C0FF00]" />
-                Body Mass Index (BMI) & Biometrics
+                90-Day Body Mass Index (BMI) & Biometrics
               </h3>
               <p className="text-[11px] font-sans text-gray-400 mt-0.5">
                 Athlete body composition metric based on height and weight.
