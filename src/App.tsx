@@ -7,7 +7,7 @@ import { Header } from './components/Header.tsx';
 import { WorkoutDayTracker } from './components/WorkoutDayTracker.tsx';
 import { WorkoutHistory } from './components/WorkoutHistory.tsx';
 import { InsightsView } from './components/InsightsView.tsx';
-import { DietarySandbox } from './components/DietarySandbox.tsx';
+import { DietaryView } from './components/DietaryView.tsx';
 import { PublicSessionView } from './components/PublicSessionView.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { Loader2 } from 'lucide-react';
@@ -112,7 +112,7 @@ const GymAppContent: React.FC = () => {
           {activeTab === 'tracker' && <WorkoutDayTracker />}
           {activeTab === 'history' && <WorkoutHistory />}
           {activeTab === 'insights' && <InsightsView />}
-          {activeTab === 'dietary' && <DietarySandbox />}
+          {activeTab === 'dietary' && <DietaryView />}
         </div>
       </main>
     </div>

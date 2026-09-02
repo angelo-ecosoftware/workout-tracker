@@ -50,10 +50,9 @@ This document tracks identified architectural improvements, edge case handling, 
 
 
 
-share workout 
-
-export and import logs nicer
+homepage eventually
 
 implement water intake 
 
 implment calories system
+wger excercise system with gifs

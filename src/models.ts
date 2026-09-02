@@ -104,3 +104,55 @@ export interface WorkoutSet {
   restSeconds?: number | null;
   loggedAt: Date;
 }
+
+// ==========================================
+// Dietary & Nutrition Models
+// ==========================================
+
+export interface FoodItemNutrition {
+  id: string;
+  name: string;
+  brand?: string;
+  servingUnit?: string; // default 'gram' or 'ml'
+  // Base nutrition values normalized PER 100g / 100ml
+  kcalPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  sugarPer100g: number;
+  fatPer100g: number;
+  fiberPer100g: number;
+}
+
+export interface LoggedDietaryEntry {
+  id: string;
+  foodItemId: string;
+  name: string;
+  brand?: string;
+  amountGrams: number; // e.g. 40g
+  // Base 100g values for recalculation
+  kcalPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  sugarPer100g: number;
+  fatPer100g: number;
+  fiberPer100g: number;
+  // Calculated actual consumed values based on amountGrams
+  calculatedKcal: number;
+  calculatedProtein: number;
+  calculatedCarbs: number;
+  calculatedSugar: number;
+  calculatedFat: number;
+  calculatedFiber: number;
+  loggedAt?: string;
+}
+
+export interface DailyDietaryLog {
+  date: string; // YYYY-MM-DD
+  entries: LoggedDietaryEntry[];
+  totalKcal: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalSugar: number;
+  totalFat: number;
+  totalFiber: number;
+}
