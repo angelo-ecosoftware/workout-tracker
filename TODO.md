@@ -58,3 +58,5 @@ implment calories system
 wger excercise system with gifs
 
 compress image size ins s3 storage bucket
+
+zoekbalk werk niet goed bij product zoeken en cijffer 0 gaat niet weg 

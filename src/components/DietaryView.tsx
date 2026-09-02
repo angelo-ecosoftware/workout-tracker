@@ -39,6 +39,8 @@ import {
   saveFoodCatalog,
   getDailyDietaryLog,
   saveDailyDietaryLog,
+  fetchDailyDietaryLog,
+  persistDailyDietaryLog,
   calculatePortionNutrients,
   computeDailyTotals,
   fetchHiveMindFoodCatalog,
@@ -99,22 +101,28 @@ export const DietaryView: React.FC = () => {
   const [newFoodFat, setNewFoodFat] = useState<number | ''>('');
   const [newFoodFiber, setNewFoodFiber] = useState<number | ''>('');
 
-  // Initial Load: local catalog cache + fetch fresh Hive-Mind SQL database
+  // Initial Load: local catalog cache + fetch fresh Hive-Mind SQL database & daily log from Supabase
   useEffect(() => {
     const local = getSavedFoodCatalog(userId);
     setCatalog(local);
 
+    // Initial local read for instant UI render
     const loadedLog = getDailyDietaryLog(userId, selectedDate);
     setDailyLog(loadedLog);
 
-    // Fetch from Supabase Hive-Mind
+    // Fetch from Supabase database (both catalog and user's saved daily log for the selected date)
     setIsLoadingCatalog(true);
-    fetchHiveMindFoodCatalog(undefined, userId)
-      .then((remoteFoods) => {
-        // Always reflect latest database state (even if empty or after records were deleted)
+    Promise.all([
+      fetchHiveMindFoodCatalog(undefined, userId),
+      fetchDailyDietaryLog(userId, selectedDate),
+    ])
+      .then(([remoteFoods, remoteDailyLog]) => {
         if (remoteFoods !== undefined) {
           setCatalog(remoteFoods);
           saveFoodCatalog(userId, remoteFoods);
+        }
+        if (remoteDailyLog && remoteDailyLog.entries) {
+          setDailyLog(remoteDailyLog);
         }
       })
       .finally(() => setIsLoadingCatalog(false));
@@ -192,7 +200,7 @@ export const DietaryView: React.FC = () => {
     };
 
     setDailyLog(updatedLog);
-    saveDailyDietaryLog(userId, updatedLog);
+    persistDailyDietaryLog(userId, updatedLog);
     setShowAddModal(false);
     setSelectedFoodItem(null);
   };
@@ -227,7 +235,7 @@ export const DietaryView: React.FC = () => {
     };
 
     setDailyLog(updatedLog);
-    saveDailyDietaryLog(userId, updatedLog);
+    persistDailyDietaryLog(userId, updatedLog);
   };
 
   // Delete Entry from Log
@@ -240,7 +248,7 @@ export const DietaryView: React.FC = () => {
     };
 
     setDailyLog(updatedLog);
-    saveDailyDietaryLog(userId, updatedLog);
+    persistDailyDietaryLog(userId, updatedLog);
   };
 
   // 1. Create & Save New Custom Food (Private to the user who created it)

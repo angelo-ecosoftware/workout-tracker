@@ -238,3 +238,114 @@ export function saveDailyDietaryLog(userId: string, log: DailyDietaryLog) {
     console.warn('Failed to save daily dietary log:', e);
   }
 }
+
+export async function fetchDailyDietaryLog(userId: string, dateStr: string): Promise<DailyDietaryLog> {
+  // 1. Check database first
+  try {
+    const { data: dbLog, error } = await supabase
+      .from('dietary_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('log_date', dateStr)
+      .maybeSingle();
+
+    if (!error && dbLog && Array.isArray(dbLog.entries_json) && dbLog.entries_json.length > 0) {
+      const totals = computeDailyTotals(dbLog.entries_json);
+      const fullLog: DailyDietaryLog = {
+        date: dateStr,
+        entries: dbLog.entries_json,
+        totalKcal: dbLog.total_kcal != null ? Number(dbLog.total_kcal) : totals.totalKcal,
+        totalProtein: dbLog.total_protein != null ? Number(dbLog.total_protein) : totals.totalProtein,
+        totalCarbs: dbLog.total_carbs != null ? Number(dbLog.total_carbs) : totals.totalCarbs,
+        totalSugar: dbLog.total_sugar != null ? Number(dbLog.total_sugar) : totals.totalSugar,
+        totalFat: dbLog.total_fat != null ? Number(dbLog.total_fat) : totals.totalFat,
+        totalFiber: dbLog.total_fiber != null ? Number(dbLog.total_fiber) : totals.totalFiber,
+      };
+      // Keep local storage in sync
+      localStorage.setItem(`diet_log_${userId}_${dateStr}`, JSON.stringify(fullLog));
+      return fullLog;
+    }
+  } catch (err) {
+    console.warn('Failed to fetch daily dietary log from Supabase, falling back to local storage:', err);
+  }
+
+  // 2. Fallback to localStorage
+  return getDailyDietaryLog(userId, dateStr);
+}
+
+export async function persistDailyDietaryLog(userId: string, log: DailyDietaryLog): Promise<void> {
+  const totals = computeDailyTotals(log.entries);
+  const updatedLog: DailyDietaryLog = {
+    ...log,
+    ...totals,
+  };
+
+  // 1. Instant optimistic save to local storage for offline & responsive UI
+  saveDailyDietaryLog(userId, updatedLog);
+
+  // 2. Persist to Supabase PostgreSQL database
+  try {
+    const logId = `diet_${userId}_${log.date}`;
+    const payload = {
+      id: logId,
+      user_id: userId,
+      log_date: log.date,
+      total_kcal: totals.totalKcal,
+      total_protein: totals.totalProtein,
+      total_carbs: totals.totalCarbs,
+      total_sugar: totals.totalSugar,
+      total_fat: totals.totalFat,
+      total_fiber: totals.totalFiber,
+      entries_json: log.entries,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: logErr } = await supabase
+      .from('dietary_logs')
+      .upsert(payload, { onConflict: 'user_id,log_date' });
+
+    if (logErr) {
+      console.warn('Failed to upsert dietary_logs in database:', logErr);
+    }
+
+    // Also sync granular entries to dietary_log_entries table
+    try {
+      // Delete existing entries for this log date to replace cleanly
+      await supabase.from('dietary_log_entries').delete().eq('user_id', userId).eq('dietary_log_id', logId);
+
+      if (log.entries.length > 0) {
+        const rows = log.entries.map((e) => ({
+          id: e.id || `entry_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          dietary_log_id: logId,
+          user_id: userId,
+          food_item_id: e.foodItemId,
+          name: e.name,
+          brand: e.brand || null,
+          amount_grams: e.amountGrams,
+          kcal_per_100g: e.kcalPer100g,
+          protein_per_100g: e.proteinPer100g,
+          carbs_per_100g: e.carbsPer100g,
+          sugar_per_100g: e.sugarPer100g,
+          fat_per_100g: e.fatPer100g,
+          fiber_per_100g: e.fiberPer100g,
+          calculated_kcal: e.calculatedKcal,
+          calculated_protein: e.calculatedProtein,
+          calculated_carbs: e.calculatedCarbs,
+          calculated_sugar: e.calculatedSugar,
+          calculated_fat: e.calculatedFat,
+          calculated_fiber: e.calculatedFiber,
+          logged_at: e.loggedAt || new Date().toISOString(),
+        }));
+
+        const { error: entriesErr } = await supabase.from('dietary_log_entries').insert(rows);
+        if (entriesErr) {
+          console.warn('Failed to insert dietary_log_entries rows:', entriesErr);
+        }
+      }
+    } catch (entriesCatch) {
+      console.warn('Error syncing dietary_log_entries table:', entriesCatch);
+    }
+  } catch (err) {
+    console.error('Failed to persist daily dietary log to database:', err);
+  }
+}
