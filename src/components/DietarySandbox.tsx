@@ -36,7 +36,7 @@ export const DietarySandbox: React.FC = () => {
       }
 
       // Query server-side proxy route to bypass browser CORS restrictions
-      const res = await fetch(`/api/ah-shared-list?listId=${encodeURIComponent(listId)}`);
+      const res = await fetch(`/api/grocery-list?listId=${encodeURIComponent(listId)}`);
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
