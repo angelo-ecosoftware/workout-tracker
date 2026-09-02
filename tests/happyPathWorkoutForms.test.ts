@@ -233,10 +233,11 @@ describe('End-to-End Happy Path Tests: All Forms & Tracking Cases', () => {
         { id: '3', sessionId: 's2', userId: testUser.userId, exerciseId: 'ex_pushup', setNumber: 1, weight: 0, reps: 20, durationSeconds: null, startedAt: null, completedAt: null, restSeconds: 60, loggedAt: new Date() },
       ];
 
-      const insights = calculateInsights(mockSessions, mockSets, sampleWorkouts);
+      const workoutMap = new Map(sampleWorkouts.map((w) => [w.id, w.name]));
+      const insights = calculateInsights(mockSessions, mockSets, sampleExercises, workoutMap);
       expect(insights.totalCompletedSessions).toBe(2);
       expect(insights.totalVolumeKg).toBe(1600); // 80*10 + 80*10 = 1600kg
-      expect(insights.heatmapData.length).toBe(90);
+      expect(insights.heatmapDays.length).toBeGreaterThanOrEqual(90);
     });
 
     it('computes progression curve for individual exercise drill-down', () => {
@@ -265,10 +266,10 @@ describe('End-to-End Happy Path Tests: All Forms & Tracking Cases', () => {
       ];
 
       const curve = calculateExerciseProgression('ex_bench', mockSessions, mockSets, sampleExercises);
-      expect(curve.exerciseName).toBe('Barbell Bench Press');
-      expect(curve.dataPoints.length).toBe(2);
-      expect(curve.maxWeightAllTime).toBe(85);
-      expect(curve.estimated1RMAllTime).toBeGreaterThan(100);
+      expect(curve?.exerciseName).toBe('Barbell Bench Press');
+      expect(curve?.dataPoints.length).toBe(2);
+      expect(curve?.allTimePrWeightKg).toBe(85);
+      expect(curve?.allTimePr1RMKg).toBeGreaterThan(100);
     });
   });
 

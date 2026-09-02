@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { fetchWorkoutHistory, fetchAllSetsForUser, fetchWorkoutsData } from '../lib/supabaseData.ts';
+import { fetchWorkoutHistory, fetchAllSetsForUser, fetchWorkoutsData, initializeUser } from '../lib/supabaseData.ts';
 import {
   calculateInsights,
   calculateExerciseProgression,
   InsightsMetrics,
   ExerciseProgressionReport,
 } from '../lib/insightsEngine.ts';
-import { Session, WorkoutSet, Exercise } from '../models.ts';
+import { Session, WorkoutSet, Exercise, UserMetrics } from '../models.ts';
 import { ExerciseProgressionCard } from './ExerciseProgressionCard.tsx';
 import {
   TrendingUp,
@@ -28,6 +28,7 @@ import {
   Info,
   X,
   ChevronDown,
+  Scale,
 } from 'lucide-react';
 
 export const InsightsView: React.FC = () => {
@@ -35,6 +36,7 @@ export const InsightsView: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<InsightsMetrics | null>(null);
+  const [userMetrics, setUserMetrics] = useState<UserMetrics | null>(null);
   const [hoveredDay, setHoveredDay] = useState<any | null>(null);
   const [activeInfoKey, setActiveInfoKey] = useState<string | null>(null);
 
@@ -57,11 +59,26 @@ export const InsightsView: React.FC = () => {
         setLoading(true);
         setErrorMsg(null);
 
-        const [historySessions, allSets, workoutsData] = await Promise.all([
+        const [historySessions, allSets, workoutsData, userProfile] = await Promise.all([
           fetchWorkoutHistory(user.uid),
           fetchAllSetsForUser(user.uid),
           fetchWorkoutsData(user.uid),
+          initializeUser(user.uid, user.email, user.displayName),
         ]);
+
+        if (userProfile?.metrics) {
+          setUserMetrics(userProfile.metrics);
+        } else {
+          // Check local storage fallback
+          const localMetricsRaw = localStorage.getItem(`user_metrics_${user.uid}`);
+          if (localMetricsRaw) {
+            try {
+              setUserMetrics(JSON.parse(localMetricsRaw));
+            } catch {
+              // ignore
+            }
+          }
+        }
 
         const workoutMap = new Map(
           workoutsData.combinedWorkouts.map((w) => [w.id, w.name])
@@ -168,6 +185,50 @@ export const InsightsView: React.FC = () => {
 
   // Find maximum volume in weekly tonnage for bar chart scaling
   const maxWeeklyVol = Math.max(1, ...metrics.weeklyTonnage.map((w) => w.volumeKg));
+
+  // Calculate Body Mass Index (BMI) if height and weight exist
+  const heightM = userMetrics?.height ? userMetrics.height / 100 : null;
+  const weightKg = userMetrics?.weight || null;
+  const bmiValue = heightM && weightKg && heightM > 0 ? Number((weightKg / (heightM * heightM)).toFixed(1)) : null;
+
+  const getBmiCategory = (bmi: number) => {
+    if (bmi < 18.5) {
+      return {
+        label: 'Underweight',
+        color: 'text-sky-400',
+        badgeBg: 'bg-sky-500/10 border-sky-500/30 text-sky-400',
+        markerPos: Math.min(Math.max(((bmi - 14) / (35 - 14)) * 100, 4), 96),
+        advice: 'Consider a caloric surplus and progressive strength training to build lean muscle mass.',
+      };
+    }
+    if (bmi < 25) {
+      return {
+        label: 'Normal Weight',
+        color: 'text-[#C0FF00]',
+        badgeBg: 'bg-[#C0FF00]/10 border-[#C0FF00]/30 text-[#C0FF00]',
+        markerPos: Math.min(Math.max(((bmi - 14) / (35 - 14)) * 100, 4), 96),
+        advice: 'Optimal health range. Focus on progressive overload and body recomposition.',
+      };
+    }
+    if (bmi < 30) {
+      return {
+        label: 'Overweight',
+        color: 'text-amber-400',
+        badgeBg: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
+        markerPos: Math.min(Math.max(((bmi - 14) / (35 - 14)) * 100, 4), 96),
+        advice: 'Maintain training volume with a moderate calorie deficit or high-protein recomposition.',
+      };
+    }
+    return {
+      label: 'Obese',
+      color: 'text-rose-400',
+      badgeBg: 'bg-rose-500/10 border-rose-500/30 text-rose-400',
+      markerPos: Math.min(Math.max(((bmi - 14) / (35 - 14)) * 100, 4), 96),
+      advice: 'Prioritize consistent low-impact movement, clean nutrition, and structured resistance training.',
+    };
+  };
+
+  const bmiCategory = bmiValue ? getBmiCategory(bmiValue) : null;
 
   return (
     <div className="space-y-6">
@@ -461,6 +522,132 @@ export const InsightsView: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Athlete Biometrics & BMI Card */}
+      <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#222] pb-3">
+          <div>
+            <h3 className="font-display font-black text-base text-white uppercase tracking-tight flex items-center gap-2">
+              <Scale className="w-4 h-4 text-[#C0FF00]" />
+              Body Mass Index (BMI) & Biometrics
+            </h3>
+            <p className="text-[11px] font-sans text-gray-400 mt-0.5">
+              Athlete body composition metric based on height and weight.
+            </p>
+          </div>
+
+          {bmiCategory ? (
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-mono font-bold self-start sm:self-auto ${bmiCategory.badgeBg}`}>
+              <ShieldCheck className="w-3.5 h-3.5" />
+              {bmiCategory.label} (BMI {bmiValue})
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#181818] border border-[#333] text-[11px] font-mono text-gray-400 self-start sm:self-auto">
+              Set Height & Weight in Profile
+            </div>
+          )}
+        </div>
+
+        {bmiValue && bmiCategory ? (
+          <div className="space-y-4">
+            {/* Quick Metrics Stats Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-[#141414] border border-[#222] rounded-2xl p-3.5 space-y-1">
+                <div className="text-[9px] font-mono uppercase font-bold text-gray-400">BMI Score</div>
+                <div className="text-2xl font-display font-black text-white flex items-baseline gap-1.5">
+                  <span className={bmiCategory.color}>{bmiValue}</span>
+                  <span className="text-[10px] font-mono font-normal text-gray-500">kg/m²</span>
+                </div>
+                <div className={`text-[10px] font-mono font-bold ${bmiCategory.color}`}>
+                  {bmiCategory.label}
+                </div>
+              </div>
+
+              <div className="bg-[#141414] border border-[#222] rounded-2xl p-3.5 space-y-1">
+                <div className="text-[9px] font-mono uppercase font-bold text-gray-400">Current Weight</div>
+                <div className="text-2xl font-display font-black text-white">
+                  {userMetrics?.weight ? `${userMetrics.weight} kg` : '—'}
+                </div>
+                <div className="text-[9px] font-mono text-gray-500">From athlete profile</div>
+              </div>
+
+              <div className="bg-[#141414] border border-[#222] rounded-2xl p-3.5 space-y-1">
+                <div className="text-[9px] font-mono uppercase font-bold text-gray-400">Height</div>
+                <div className="text-2xl font-display font-black text-white">
+                  {userMetrics?.height ? `${userMetrics.height} cm` : '—'}
+                </div>
+                <div className="text-[9px] font-mono text-gray-500">From athlete profile</div>
+              </div>
+
+              <div className="bg-[#141414] border border-[#222] rounded-2xl p-3.5 space-y-1">
+                <div className="text-[9px] font-mono uppercase font-bold text-gray-400">Normal Range</div>
+                <div className="text-xl font-display font-black text-[#C0FF00]">
+                  18.5 – 24.9
+                </div>
+                <div className="text-[9px] font-mono text-gray-500">WHO Standard</div>
+              </div>
+            </div>
+
+            {/* Visual BMI Gauge Spectrum */}
+            <div className="bg-[#141414] border border-[#222] rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between text-[10px] font-mono font-bold text-gray-400">
+                <span>BMI Spectrum Distribution</span>
+                <span className={bmiCategory.color}>Your Position: {bmiValue}</span>
+              </div>
+
+              {/* Gradient Track with Marker */}
+              <div className="relative pt-2 pb-1">
+                <div className="h-3 rounded-full w-full bg-gradient-to-r from-sky-400 via-[#C0FF00] via-45% via-amber-400 via-75% to-rose-500 overflow-hidden opacity-90 shadow-inner" />
+                
+                {/* Pointer Marker */}
+                <div
+                  className="absolute top-0 -ml-2 flex flex-col items-center transition-all duration-500 pointer-events-none"
+                  style={{ left: `${bmiCategory.markerPos}%` }}
+                >
+                  <div className="w-4 h-4 rounded-full bg-white border-2 border-black shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse" />
+                  <div className="w-0.5 h-3 bg-white" />
+                </div>
+              </div>
+
+              {/* Spectrum Range Labels */}
+              <div className="grid grid-cols-4 text-center text-[9px] font-mono text-gray-400 pt-1">
+                <div className="text-left">
+                  <span className="block text-sky-400 font-bold">&lt; 18.5</span>
+                  <span className="text-gray-500">Underweight</span>
+                </div>
+                <div className="text-center">
+                  <span className="block text-[#C0FF00] font-bold">18.5 – 24.9</span>
+                  <span className="text-gray-500">Normal</span>
+                </div>
+                <div className="text-center">
+                  <span className="block text-amber-400 font-bold">25.0 – 29.9</span>
+                  <span className="text-gray-500">Overweight</span>
+                </div>
+                <div className="text-right">
+                  <span className="block text-rose-400 font-bold">&ge; 30.0</span>
+                  <span className="text-gray-500">Obese</span>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-[#222] flex items-center justify-between text-[11px] font-sans text-gray-400">
+                <span><strong className="text-white">Guidance:</strong> {bmiCategory.advice}</span>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="bg-[#141414] border border-[#222] rounded-2xl p-6 text-center space-y-2">
+            <div className="w-10 h-10 mx-auto rounded-xl bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00]">
+              <Scale className="w-5 h-5" />
+            </div>
+            <div className="text-xs font-display font-bold text-white uppercase">
+              No Biometric Data Recorded
+            </div>
+            <p className="text-[11px] font-sans text-gray-400 max-w-sm mx-auto">
+              Click your user profile avatar in the header to enter your height and weight. Your real-time BMI trajectory, classification, and fitness guidance will appear here.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 90-Day Consistency Heatmap Grid */}

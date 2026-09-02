@@ -82,6 +82,31 @@ export const SetLogger = {
 };
 
 export const ProgressionEngine = {
+  calculate1RM(weight: number, reps: number): number {
+    if (reps <= 1) return weight;
+    // Epley Formula: 1RM = weight * (1 + reps / 30)
+    const est = weight * (1 + reps / 30);
+    return Math.round(est * 10) / 10;
+  },
+
+  calculateNextTarget(
+    exercise: Exercise,
+    lastSet: { lastWeight: number; lastReps: number; lastSessionId?: string }
+  ): { type: 'weight' | 'reps'; suggestedWeight: number; suggestedReps: number } {
+    if (lastSet.lastReps >= exercise.targetRepMax) {
+      return {
+        type: 'weight',
+        suggestedWeight: lastSet.lastWeight + 2.5,
+        suggestedReps: exercise.targetRepMin,
+      };
+    }
+    return {
+      type: 'reps',
+      suggestedWeight: lastSet.lastWeight,
+      suggestedReps: lastSet.lastReps + 1,
+    };
+  },
+
   evaluateProgression(
     exerciseId: string, 
     userCache?: UserProfile['lastSetSummaryPerExercise']
