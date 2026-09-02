@@ -7,6 +7,7 @@ import { Header } from './components/Header.tsx';
 import { WorkoutDayTracker } from './components/WorkoutDayTracker.tsx';
 import { WorkoutHistory } from './components/WorkoutHistory.tsx';
 import { InsightsView } from './components/InsightsView.tsx';
+import { DietarySandbox } from './components/DietarySandbox.tsx';
 import { PublicSessionView } from './components/PublicSessionView.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { Loader2 } from 'lucide-react';
@@ -29,7 +30,7 @@ function getPublicSessionIdFromUrl(): string | null {
 
 const GymAppContent: React.FC = () => {
   const { user, loading, token } = useAuth();
-  const [activeTab, setActiveTab] = useState<'tracker' | 'history' | 'insights'>('tracker');
+  const [activeTab, setActiveTab] = useState<'tracker' | 'history' | 'insights' | 'dietary'>('tracker');
   const [publicSessionId, setPublicSessionId] = useState<string | null>(() => getPublicSessionIdFromUrl());
 
   useEffect(() => {
@@ -72,7 +73,7 @@ const GymAppContent: React.FC = () => {
       <Header />
       
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex bg-[#111] border border-[#222] rounded-full p-1 w-full max-w-md mx-auto mb-8 font-sans">
+        <div className="flex bg-[#111] border border-[#222] rounded-full p-1 w-full max-w-lg mx-auto mb-8 font-sans">
           <button 
              onClick={() => setActiveTab('tracker')}
              className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
@@ -97,12 +98,21 @@ const GymAppContent: React.FC = () => {
           >
              Insights
           </button>
+          <button 
+             onClick={() => setActiveTab('dietary')}
+             className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+               activeTab === 'dietary' ? 'bg-[#00ade6] text-black shadow-md' : 'text-gray-400 hover:text-white'
+             }`}
+          >
+             Dietary
+          </button>
         </div>
 
         <div>
           {activeTab === 'tracker' && <WorkoutDayTracker />}
           {activeTab === 'history' && <WorkoutHistory />}
           {activeTab === 'insights' && <InsightsView />}
+          {activeTab === 'dietary' && <DietarySandbox />}
         </div>
       </main>
     </div>
