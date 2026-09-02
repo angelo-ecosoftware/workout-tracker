@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useTransition } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import {
   Apple,
@@ -402,6 +402,21 @@ export const DietaryView: React.FC = () => {
     }
   };
 
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
+  const handleOpenDatePicker = () => {
+    if (dateInputRef.current) {
+      if ('showPicker' in HTMLInputElement.prototype) {
+        try {
+          dateInputRef.current.showPicker();
+          return;
+        } catch {}
+      }
+      dateInputRef.current.focus();
+      dateInputRef.current.click();
+    }
+  };
+
   // Search Filter
   const filteredCatalog = catalog.filter((item) => {
     if (!searchQuery.trim()) return true;
@@ -422,31 +437,43 @@ export const DietaryView: React.FC = () => {
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        {/* Date Picker trigger */}
-        <label className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-[#1a1a1a] transition-colors cursor-pointer relative group">
-          <Calendar className="w-4 h-4 text-[#C0FF00] group-hover:scale-110 transition-transform" />
-          <span className="font-display text-sm sm:text-base font-black uppercase tracking-tight text-white group-hover:text-[#C0FF00] transition-colors">
-            {formatDateTitle(selectedDate)}
-          </span>
-          {isToday && (
-            <span className="text-[10px] font-mono font-bold uppercase bg-[#C0FF00]/15 text-[#C0FF00] border border-[#C0FF00]/30 px-2 py-0.5 rounded-full">
-              Today
+        {/* Date Picker Button & Input */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={handleOpenDatePicker}
+            className="flex items-center gap-2.5 px-3 py-1.5 rounded-xl hover:bg-[#1a1a1a] border border-transparent hover:border-[#2a2a2a] transition-all cursor-pointer group"
+          >
+            <Calendar className="w-4 h-4 text-[#C0FF00] group-hover:scale-110 transition-transform shrink-0" />
+            <span className="font-display text-sm sm:text-base font-black uppercase tracking-tight text-white group-hover:text-[#C0FF00] transition-colors">
+              {formatDateTitle(selectedDate)}
             </span>
-          )}
-          {/* Native Date Input overlaid transparently for direct calendar picking */}
+            {isToday && (
+              <span className="text-[10px] font-mono font-bold uppercase bg-[#C0FF00]/15 text-[#C0FF00] border border-[#C0FF00]/30 px-2 py-0.5 rounded-full">
+                Today
+              </span>
+            )}
+          </button>
+
           <input
+            ref={dateInputRef}
             type="date"
             max={todayStr}
             value={selectedDate}
             onChange={(e) => {
-              if (e.target.value && e.target.value <= todayStr) {
-                setSelectedDate(e.target.value);
+              if (e.target.value) {
+                if (e.target.value <= todayStr) {
+                  setSelectedDate(e.target.value);
+                } else {
+                  setSelectedDate(todayStr);
+                }
               }
             }}
-            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+            className="absolute top-0 left-0 opacity-0 pointer-events-none w-0 h-0 [color-scheme:dark]"
+            tabIndex={-1}
             aria-label="Select date"
           />
-        </label>
+        </div>
 
         <button
           onClick={() => handleDateShift(1)}
