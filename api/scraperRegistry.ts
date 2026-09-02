@@ -415,25 +415,65 @@ export function scrapeProductFromHtml(html: string, rawUrl: string): ProductScra
 }
 
 /**
- * Resolve target URL and scrape product info dynamically
+ * Resolve target URL and scrape product info dynamically.
+ * If direct fetch is blocked by store bot protections (e.g. 403 on Vercel/AWS datacenter IPs),
+ * automatically fallback to high-availability reader proxies.
  */
 export async function scrapeProductFromUrl(rawUrl: string): Promise<ProductScraperResult> {
   const adapter = STORE_SCRAPERS.find((s) => s.canHandle(rawUrl)) || genericAdapter;
   const targetUrl = adapter.normalizeUrl ? adapter.normalizeUrl(rawUrl) : rawUrl.trim();
 
-  const pageRes = await fetch(targetUrl, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      'Accept-Language': 'nl-NL,nl;q=0.9,en;q=0.8',
-    },
-  });
+  let html = '';
+  let lastStatus = 0;
 
-  if (!pageRes.ok) {
-    throw new Error(`Could not load ${adapter.name} product page (status ${pageRes.status})`);
+  // 1. Direct fetch with realistic browser headers
+  try {
+    const pageRes = await fetch(targetUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        Accept:
+          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1',
+      },
+    });
+
+    lastStatus = pageRes.status;
+    if (pageRes.ok) {
+      html = await pageRes.text();
+    }
+  } catch (err) {
+    console.warn(`Direct fetch failed for ${targetUrl}:`, err);
   }
 
-  const html = await pageRes.text();
+  // 2. Fallback to Jina Reader proxy if blocked (403, 429, 503) or failed
+  if (!html && (lastStatus === 403 || lastStatus === 429 || lastStatus === 503 || lastStatus === 0)) {
+    try {
+      const jinaRes = await fetch(`https://r.jina.ai/${targetUrl}`, {
+        headers: {
+          Accept: 'text/html, text/plain',
+          'X-Return-Format': 'html',
+        },
+      });
+      if (jinaRes.ok) {
+        html = await jinaRes.text();
+      }
+    } catch (jinaErr) {
+      console.warn(`Fallback proxy fetch failed for ${targetUrl}:`, jinaErr);
+    }
+  }
+
+  if (!html) {
+    throw new Error(`Could not load ${adapter.name} product page (status ${lastStatus})`);
+  }
+
   return adapter.parse(html, targetUrl);
 }
