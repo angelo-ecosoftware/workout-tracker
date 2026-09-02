@@ -594,7 +594,7 @@ export const DietaryView: React.FC = () => {
           <div className="bg-[#161616] border border-[#C0FF00]/25 p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-[#C0FF00] text-xs font-sans font-bold uppercase">
               <span>Protein</span>
-              <Zap className="w-3.5 h-3.5 text-[#C0FF00]" />
+              <Sparkles className="w-3.5 h-3.5 text-[#C0FF00]" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-[#C0FF00] mt-1">
               {dailyLog.totalProtein}<span className="text-xs ml-0.5 font-normal">g</span>
@@ -605,7 +605,7 @@ export const DietaryView: React.FC = () => {
           <div className="bg-[#161616] border border-[#262626] p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-amber-400 text-xs font-sans font-bold uppercase">
               <span>Carbs</span>
-              <Wheat className="w-3.5 h-3.5 text-amber-400" />
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-white mt-1">
               {dailyLog.totalCarbs}<span className="text-xs ml-0.5 font-normal">g</span>
@@ -638,7 +638,7 @@ export const DietaryView: React.FC = () => {
           <div className="bg-[#161616] border border-[#262626] p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-emerald-400 text-xs font-sans font-bold uppercase">
               <span>Fiber</span>
-              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <Wheat className="w-3.5 h-3.5 text-emerald-400" />
             </div>
             <div className="text-xl sm:text-2xl font-black text-white mt-1">
               {dailyLog.totalFiber}<span className="text-xs ml-0.5 font-normal">g</span>
