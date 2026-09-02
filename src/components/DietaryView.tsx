@@ -355,20 +355,38 @@ export const DietaryView: React.FC = () => {
   };
 
   const convertAHProductToNutrition = (p: any): FoodItemNutrition => {
+    // If backend scraped real nutrition, use it directly
+    if (p.nutrition) {
+      return {
+        id: p.nutrition.id || `ah_wi${p.id || Date.now()}`,
+        name: p.nutrition.name || p.title,
+        brand: p.nutrition.brand || p.brand || 'AH',
+        servingUnit: p.nutrition.servingUnit || 'gram',
+        kcalPer100g: p.nutrition.kcalPer100g || 0,
+        proteinPer100g: p.nutrition.proteinPer100g || 0,
+        carbsPer100g: p.nutrition.carbsPer100g || 0,
+        sugarPer100g: p.nutrition.sugarPer100g || 0,
+        fatPer100g: p.nutrition.fatPer100g || 0,
+        fiberPer100g: p.nutrition.fiberPer100g || 0,
+        packageWeightGrams: p.nutrition.packageWeightGrams,
+        pieceCount: p.nutrition.pieceCount,
+        sourceUrl: p.nutrition.sourceUrl || (p.webPath ? `https://www.ah.nl${p.webPath}` : undefined),
+      };
+    }
+
     const isDrink = p.salesUnitSize?.toLowerCase().includes('l') || p.salesUnitSize?.toLowerCase().includes('ml');
-    const titleLower = p.title.toLowerCase();
 
     return {
       id: `ah_wi${p.id || Date.now()}`,
       name: p.title,
       brand: p.brand || 'AH',
       servingUnit: isDrink ? 'ml' : 'gram',
-      kcalPer100g: titleLower.includes('rijst') ? 355 : titleLower.includes('kip') ? 110 : titleLower.includes('melk') ? 47 : titleLower.includes('kwark') ? 52 : 100,
-      proteinPer100g: titleLower.includes('kip') ? 23.5 : titleLower.includes('rijst') ? 8.5 : titleLower.includes('melk') ? 3.6 : titleLower.includes('kwark') ? 8.5 : 5.0,
-      carbsPer100g: titleLower.includes('rijst') ? 77.0 : titleLower.includes('melk') ? 4.8 : titleLower.includes('kwark') ? 4.0 : 0.0,
-      sugarPer100g: titleLower.includes('melk') ? 4.8 : titleLower.includes('kwark') ? 4.0 : 0.0,
-      fatPer100g: titleLower.includes('kip') ? 1.8 : titleLower.includes('melk') ? 1.5 : 1.0,
-      fiberPer100g: titleLower.includes('rijst') ? 1.5 : 0.0,
+      kcalPer100g: 0,
+      proteinPer100g: 0,
+      carbsPer100g: 0,
+      sugarPer100g: 0,
+      fatPer100g: 0,
+      fiberPer100g: 0,
       sourceUrl: p.webPath ? `https://www.ah.nl${p.webPath}` : undefined,
     };
   };

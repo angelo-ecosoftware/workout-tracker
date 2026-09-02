@@ -22,7 +22,9 @@ export interface StoreScraperAdapter {
 }
 
 // -------------------------------------------------------------
+// -------------------------------------------------------------
 // Helper: Parse standard Dutch nutritional table (Voedingswaarden)
+// Supports both HTML <table> and Markdown table formats (| Key | Val |)
 // -------------------------------------------------------------
 export function parseDutchNutritionTable(html: string): {
   kcalPer100g: number;
@@ -55,17 +57,24 @@ export function parseDutchNutritionTable(html: string): {
     kcalPer100g = parseFloat(fullKcalMatch[1].replace(',', '.'));
   }
 
-  const rows = tableSection.split(/<\/tr>/i);
+  // Support both HTML <tr> tags and Markdown table rows (| ... | ... |)
+  const rows = tableSection.includes('</tr>')
+    ? tableSection.split(/<\/tr>/i)
+    : tableSection.split(/\r?\n/);
 
   for (const r of rows) {
     const cleaned = r
       .replace(/<!--[\s\S]*?-->/g, ' ')
       .replace(/<[^>]+>/g, ' ')
+      .replace(/^\||\|$/g, '')
+      .replace(/\|/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()
       .toLowerCase();
 
-    if (!kcalPer100g && cleaned.startsWith('energie') && !cleaned.includes('referentie')) {
+    if (!cleaned) continue;
+
+    if (!kcalPer100g && (cleaned.startsWith('energie') || cleaned.includes('energie')) && !cleaned.includes('referentie')) {
       let m = cleaned.match(/(\d+(?:[.,]\d+)?)\s*(?:kcal|kc\b)/);
       if (!m) m = cleaned.match(/(?:kcal|kc\b)\s*(\d+(?:[.,]\d+)?)/);
       if (m) kcalPer100g = parseFloat(m[1].replace(',', '.'));
@@ -96,7 +105,7 @@ export function parseDutchNutritionTable(html: string): {
 }
 
 // -------------------------------------------------------------
-// Helper: Extract JSON-LD and H1 title/brand fallbacks
+// Helper: Extract JSON-LD, H1, and Markdown title/brand fallbacks
 // -------------------------------------------------------------
 export function extractSchemaAndHeadings(
   html: string,
@@ -144,6 +153,20 @@ export function extractSchemaAndHeadings(
         .replace(/\s*bestellen\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
         .replace(/\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
         .trim();
+    }
+  }
+
+  // Markdown Title fallback from Jina proxy output (e.g. "Title: De Zaanse Hoeve Goudse belegen...")
+  if (!title || title === 'Product') {
+    const mdTitleMatch = html.match(/^Title:\s*([^\r\n]+)/m);
+    if (mdTitleMatch) {
+      const rawTitle = mdTitleMatch[1]
+        .replace(/\s*bestellen\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
+        .replace(/\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
+        .trim();
+      if (rawTitle && rawTitle.length > 2 && !rawTitle.toLowerCase().includes('helaas')) {
+        title = rawTitle;
+      }
     }
   }
 

@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { scrapeProductFromUrl } from './scraperRegistry.js';
 
 export const config = {
   runtime: 'nodejs',
@@ -98,7 +99,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const items = gqlData?.data?.groceryList?.groceryList?.groceryItems || [];
-    const products = items.map((item: any) => ({
+    const basicProducts = items.map((item: any) => ({
       id: item.product?.id,
       title: item.product?.title || 'Unknown Product',
       brand: item.product?.brand || '',
@@ -106,6 +107,24 @@ export default async function handler(req: any, res: any) {
       salesUnitSize: item.product?.salesUnitSize || '',
       quantity: item.quantity || 1,
     }));
+
+    // Scrape accurate nutrition in parallel with fallback to basic info
+    const products = await Promise.all(
+      basicProducts.map(async (p: any) => {
+        if (!p.webPath) return p;
+        try {
+          const scraped = await scrapeProductFromUrl(`https://www.ah.nl${p.webPath}`);
+          return {
+            ...p,
+            title: scraped.name || p.title,
+            brand: scraped.brand || p.brand,
+            nutrition: scraped,
+          };
+        } catch {
+          return p;
+        }
+      })
+    );
 
     return res.status(200).json({
       success: true,
