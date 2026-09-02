@@ -509,7 +509,7 @@ export async function logSessionCompletion(
 
   if (setsToInsert.length > 0) {
     let { error: setsErr } = await supabase.from('sets').insert(setsToInsert);
-    if (setsErr && (setsErr.message.includes('started_at') || setsErr.message.includes('rest_seconds'))) {
+    if (setsErr && (setsErr.message.includes('started_at') || setsErr.message.includes('rest_seconds') || setsErr.message.includes('completed_at'))) {
       console.warn('Retrying set insert with basic columns only...');
       const basicSets = setsToInsert.map(r => ({
         session_id: r.session_id,
@@ -526,6 +526,7 @@ export async function logSessionCompletion(
     }
     if (setsErr) {
       console.error('Failed inserting sets:', setsErr);
+      throw new Error(`Failed to save workout sets: ${setsErr.message}`);
     }
   }
 
