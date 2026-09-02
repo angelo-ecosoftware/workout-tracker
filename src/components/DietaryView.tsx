@@ -29,6 +29,12 @@ import {
   DailyDietaryLog,
 } from '../models.ts';
 import {
+  getStoreMetadata,
+  cleanProductTitle,
+  isHouseBrand,
+  fuzzyMatch,
+} from '../lib/storeBranding.ts';
+import {
   getSavedFoodCatalog,
   saveFoodCatalog,
   getDailyDietaryLog,
@@ -236,7 +242,7 @@ export const DietaryView: React.FC = () => {
     saveDailyDietaryLog(userId, updatedLog);
   };
 
-  // 1. Create & Save New Custom Food to SQL Hive-Mind
+  // 1. Create & Save New Custom Food (Private to the user who created it)
   const handleSaveNewCustomFood = async () => {
     if (!newFoodName.trim()) return;
 
@@ -251,9 +257,11 @@ export const DietaryView: React.FC = () => {
       sugarPer100g: Number(newFoodSugar) || 0,
       fatPer100g: Number(newFoodFat) || 0,
       fiberPer100g: Number(newFoodFiber) || 0,
+      isCustom: true,
+      userId: userId,
     };
 
-    // Save to Supabase SQL Hive Mind
+    // Save to Supabase SQL Database (isolated for this user)
     await saveHiveMindFoodItem(newFood, userId);
 
     const updatedCatalog = [newFood, ...catalog];
@@ -417,12 +425,17 @@ export const DietaryView: React.FC = () => {
     }
   };
 
-  // Search Filter
+  // Search Filter with Typo-Tolerant Fuzzy Search (e.g. "kpi" -> "kip")
   const filteredCatalog = catalog.filter((item) => {
     if (!searchQuery.trim()) return true;
-    const terms = searchQuery.toLowerCase().trim().split(/\s+/);
-    const target = `${item.name} ${item.brand || ''}`.toLowerCase();
-    return terms.every((term) => target.includes(term));
+    const storeMeta = getStoreMetadata(item.sourceUrl, item.id);
+    return fuzzyMatch(searchQuery, [
+      item.name,
+      item.brand,
+      cleanProductTitle(item.name),
+      storeMeta?.name,
+      storeMeta?.badgeLabel,
+    ]);
   });
 
   return (
@@ -819,7 +832,8 @@ export const DietaryView: React.FC = () => {
                             className="w-24 bg-[#101010] border border-[#333] focus:border-[#C0FF00] rounded-xl px-3 py-2 text-center text-sm font-mono font-bold text-[#C0FF00] outline-none"
                           />
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            {[30, 40, 50, 100, 150, 200].map((g) => (
+                            {/* Standard portion buttons */}
+                            {[30, 50, 100, 150, 200].map((g) => (
                               <button
                                 key={g}
                                 type="button"
@@ -833,6 +847,41 @@ export const DietaryView: React.FC = () => {
                                 {g}g
                               </button>
                             ))}
+
+                            {/* Full package shortcut if available */}
+                            {selectedFoodItem.packageWeightGrams && (
+                              <button
+                                type="button"
+                                onClick={() => setPortionGrams(selectedFoodItem.packageWeightGrams!)}
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-colors ${
+                                  portionGrams === selectedFoodItem.packageWeightGrams
+                                    ? 'bg-[#00ade6] text-black'
+                                    : 'bg-[#1e293b] hover:bg-[#334155] text-[#38bdf8] border border-[#00ade6]/40'
+                                }`}
+                              >
+                                Pak ({selectedFoodItem.packageWeightGrams}g)
+                              </button>
+                            )}
+
+                            {/* Per piece shortcut if piece count & package weight exist */}
+                            {selectedFoodItem.pieceCount && selectedFoodItem.packageWeightGrams && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setPortionGrams(
+                                    Math.round(selectedFoodItem.packageWeightGrams! / selectedFoodItem.pieceCount!)
+                                  )
+                                }
+                                className={`px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-colors ${
+                                  portionGrams ===
+                                  Math.round(selectedFoodItem.packageWeightGrams! / selectedFoodItem.pieceCount!)
+                                    ? 'bg-amber-400 text-black'
+                                    : 'bg-[#3b2a1a] hover:bg-[#4a3520] text-amber-300 border border-amber-500/40'
+                                }`}
+                              >
+                                1 stuk (~{Math.round(selectedFoodItem.packageWeightGrams / selectedFoodItem.pieceCount)}g)
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -930,48 +979,71 @@ export const DietaryView: React.FC = () => {
                             </div>
                           </div>
                         ) : (
-                          filteredCatalog.map((item) => (
-                            <div
-                              key={item.id}
-                              onClick={() => {
-                                setSelectedFoodItem(item);
-                                setPortionGrams(100);
-                              }}
-                              className="p-3 bg-[#181818] border border-[#262626] hover:border-[#C0FF00]/60 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-all group"
-                            >
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5 flex-wrap">
-                                  <span className="font-sans text-xs font-bold text-white group-hover:text-[#C0FF00] transition-colors">
-                                    {item.name}
-                                  </span>
-                                  {item.brand && (
-                                    <span className="text-[9px] font-mono font-bold uppercase text-gray-400 bg-[#242424] px-1.5 py-0.2 rounded">
-                                      {item.brand}
+                          filteredCatalog.map((item) => {
+                            const storeMeta = getStoreMetadata(item.sourceUrl, item.id);
+                            const displayName = cleanProductTitle(item.name);
+                            const showBrandBadge = item.brand && !isHouseBrand(item.brand, storeMeta);
+
+                            return (
+                              <div
+                                key={item.id}
+                                onClick={() => {
+                                  setSelectedFoodItem(item);
+                                  setPortionGrams(100);
+                                }}
+                                className="p-3 bg-[#181818] border border-[#262626] hover:border-[#C0FF00]/60 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-all group"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-sans text-xs font-bold text-white group-hover:text-[#C0FF00] transition-colors">
+                                      {displayName}
                                     </span>
-                                  )}
-                                  {item.sourceUrl && (
-                                    <span className="text-[9px] font-mono text-[#00ade6] bg-[#00ade6]/10 px-1 py-0.2 rounded">
-                                      AH
-                                    </span>
-                                  )}
+
+                                    {/* Brand badge: only shown if it is a genuine A-brand/3rd-party brand */}
+                                    {showBrandBadge && (
+                                      <span className="text-[9px] font-mono font-bold uppercase text-gray-400 bg-[#242424] px-1.5 py-0.2 rounded">
+                                        {item.brand}
+                                      </span>
+                                    )}
+
+                                    {/* Store badge: dynamically rendered per store (AH, Jumbo, Dirk, PLUS, etc.) */}
+                                    {storeMeta && (
+                                      <span className={`text-[9px] font-mono font-bold uppercase ${storeMeta.textColor} ${storeMeta.bgColor} px-1.5 py-0.2 rounded border ${storeMeta.borderColor}`}>
+                                        {storeMeta.badgeLabel}
+                                      </span>
+                                    )}
+
+                                    {/* Custom indicator for private manual foods */}
+                                    {item.isCustom && (
+                                      <span className="text-[9px] font-mono font-bold uppercase text-amber-400 bg-amber-400/10 px-1.5 py-0.2 rounded border border-amber-400/30">
+                                        Mijn Product
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-[10px] font-mono text-gray-400 mt-1 flex-wrap">
+                                    <span className="text-white font-semibold">{item.kcalPer100g} kcal</span>
+                                    <span>•</span>
+                                    <span className="text-[#C0FF00]">P: {item.proteinPer100g}g</span>
+                                    <span>•</span>
+                                    <span className="text-amber-400">C: {item.carbsPer100g}g</span>
+                                    <span>•</span>
+                                    <span className="text-rose-400">F: {item.fatPer100g}g</span>
+                                    <span>•</span>
+                                    <span className="text-emerald-400">Fib: {item.fiberPer100g}g</span>
+                                    {item.packageWeightGrams && (
+                                      <>
+                                        <span>•</span>
+                                        <span className="text-sky-400">({item.packageWeightGrams}g)</span>
+                                      </>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-2 text-[10px] font-mono text-gray-400 mt-1 flex-wrap">
-                                  <span className="text-white font-semibold">{item.kcalPer100g} kcal</span>
-                                  <span>•</span>
-                                  <span className="text-[#C0FF00]">P: {item.proteinPer100g}g</span>
-                                  <span>•</span>
-                                  <span className="text-amber-400">C: {item.carbsPer100g}g</span>
-                                  <span>•</span>
-                                  <span className="text-rose-400">F: {item.fatPer100g}g</span>
-                                  <span>•</span>
-                                  <span className="text-emerald-400">Fib: {item.fiberPer100g}g</span>
-                                </div>
+                                <span className="text-[10px] font-mono text-[#C0FF00] group-hover:translate-x-0.5 uppercase font-bold shrink-0 transition-transform">
+                                  Select →
+                                </span>
                               </div>
-                              <span className="text-[10px] font-mono text-[#C0FF00] group-hover:translate-x-0.5 uppercase font-bold shrink-0 transition-transform">
-                                Select →
-                              </span>
-                            </div>
-                          ))
+                            );
+                          })
                         )}
                       </div>
                     </>
@@ -979,22 +1051,22 @@ export const DietaryView: React.FC = () => {
                 </>
               )}
 
-              {/* TAB 2: PASTE SINGLE JUMBO OR AH PRODUCT LINK */}
+              {/* TAB 2: PASTE SINGLE SUPERMARKET PRODUCT LINK */}
               {activeModalTab === 'link' && (
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-mono uppercase tracking-wider text-gray-400 font-bold mb-1">
-                      Jumbo / Albert Heijn Product Link
+                      Supermarket Product Link (AH / Jumbo / Dirk / PLUS)
                     </label>
                     <p className="text-[11px] text-gray-500 font-sans mb-2">
-                      Paste any product link from <strong>jumbo.com</strong> (e.g. <code>https://www.jumbo.com/producten/...</code>) or <strong>ah.nl</strong> (e.g. <code>https://www.ah.nl/producten/product/wi...</code>). It will be saved into the shared database for all users!
+                      Plak een product link van <strong>ah.nl</strong>, <strong>jumbo.com</strong>, <strong>dirk.nl</strong> of <strong>plus.nl</strong>. De voedingswaarden en verpakkingsgrootte worden automatisch uitgelezen en opgeslagen in de centrale database!
                     </p>
                     <div className="flex items-center gap-2">
                       <input
                         type="text"
                         value={singleLinkInput}
                         onChange={(e) => setSingleLinkInput(e.target.value)}
-                        placeholder="https://www.jumbo.com/producten/... or https://www.ah.nl/..."
+                        placeholder="https://www.ah.nl/..., https://www.jumbo.com/..., https://www.dirk.nl/..., https://www.plus.nl/..."
                         className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#00ade6] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono outline-none"
                       />
                       <button
@@ -1017,10 +1089,10 @@ export const DietaryView: React.FC = () => {
                   <div className="p-3 bg-[#181818] border border-[#222] rounded-xl text-xs text-gray-400 space-y-1">
                     <div className="font-bold text-white flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-[#C0FF00]" />
-                      How Link Extraction Works
+                      Ondersteunde Supermarkten
                     </div>
                     <p className="text-[11px] text-gray-500">
-                      When you extract a product link, official 100g nutritional facts are parsed and stored in the central database so everyone can search and log it.
+                      Ondersteunt <strong>Albert Heijn</strong>, <strong>Jumbo</strong>, <strong>Dirk van den Broek</strong> en <strong>PLUS</strong> met automatische herkenning van portiegroottes en verpakkingsgewichten.
                     </p>
                   </div>
                 </div>

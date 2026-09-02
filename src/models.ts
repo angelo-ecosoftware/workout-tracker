@@ -122,6 +122,11 @@ export interface FoodItemNutrition {
   fatPer100g: number;
   fiberPer100g: number;
   sourceUrl?: string;
+  // Package sizing and user isolation
+  packageWeightGrams?: number;
+  pieceCount?: number;
+  isCustom?: boolean;
+  userId?: string;
 }
 
 export interface LoggedDietaryEntry {

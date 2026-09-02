@@ -30,7 +30,7 @@ export const Header: React.FC = () => {
           if (cached) setMetrics(JSON.parse(cached));
         }
 
-        const { workouts: userRoutines } = await fetchWorkoutsData(user.id);
+        const { workoutsList: userRoutines } = await fetchWorkoutsData(user.id);
         setRoutines(userRoutines || []);
       } catch (err) {
         console.warn('Could not load user metrics in header:', err);

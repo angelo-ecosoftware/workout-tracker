@@ -1,4 +1,4 @@
-import { Session, WorkoutSet, Exercise } from './models.ts';
+import { Session, WorkoutSet, Exercise } from '../models.ts';
 
 export interface HeatmapDay {
   date: string; // YYYY-MM-DD

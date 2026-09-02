@@ -10,6 +10,8 @@ export interface ProductScraperResult {
   fatPer100g: number;
   fiberPer100g: number;
   sourceUrl: string;
+  packageWeightGrams?: number;
+  pieceCount?: number;
 }
 
 export interface StoreScraperAdapter {
@@ -138,11 +140,61 @@ export function extractSchemaAndHeadings(
       .replace(/<[^>]+>/g, '')
       .trim();
     if (rawH1 && rawH1.length > 2 && !rawH1.toLowerCase().includes('helaas')) {
-      title = rawH1;
+      title = rawH1
+        .replace(/\s*bestellen\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
+        .replace(/\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
+        .trim();
     }
   }
 
+  // Clean redundant store prefixes from the title
+  title = title
+    .replace(/^(AH|Albert Heijn|Jumbo|PLUS|Dirk)\s+/i, '')
+    .trim();
+
   return { title, brand };
+}
+
+// -------------------------------------------------------------
+// Helper: Extract package sizing / piece count from title & html
+// -------------------------------------------------------------
+export function extractPackageSizing(
+  title: string,
+  html: string
+): { packageWeightGrams?: number; pieceCount?: number } {
+  let packageWeightGrams: number | undefined;
+  let pieceCount: number | undefined;
+
+  const targetText = `${title} ${html.slice(0, 4000)}`;
+
+  // Match e.g. "200 g", "800g", "1 kg", "1.5 kg", "500 ml", "1 l"
+  const kgMatch = targetText.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i);
+  if (kgMatch) {
+    packageWeightGrams = Math.round(parseFloat(kgMatch[1].replace(',', '.')) * 1000);
+  } else {
+    const gMatch = targetText.match(/(\d+(?:[.,]\d+)?)\s*(?:g|gram)\b/i);
+    if (gMatch) {
+      packageWeightGrams = parseFloat(gMatch[1].replace(',', '.'));
+    } else {
+      const literMatch = targetText.match(/(\d+(?:[.,]\d+)?)\s*(?:l|liter)\b/i);
+      if (literMatch) {
+        packageWeightGrams = Math.round(parseFloat(literMatch[1].replace(',', '.')) * 1000);
+      } else {
+        const mlMatch = targetText.match(/(\d+(?:[.,]\d+)?)\s*(?:ml|milliliter)\b/i);
+        if (mlMatch) {
+          packageWeightGrams = parseFloat(mlMatch[1].replace(',', '.'));
+        }
+      }
+    }
+  }
+
+  // Match piece count e.g. "2 stuks", "1 stuk", "4x", "6 pack"
+  const piecesMatch = targetText.match(/(\d+)\s*(?:stuks|stuk|pack|porties)\b/i);
+  if (piecesMatch) {
+    pieceCount = parseInt(piecesMatch[1], 10);
+  }
+
+  return { packageWeightGrams, pieceCount };
 }
 
 // -------------------------------------------------------------
@@ -219,6 +271,7 @@ export const jumboAdapter: StoreScraperAdapter = {
   parse(html: string, url: string): ProductScraperResult {
     const { title, brand } = extractSchemaAndHeadings(html, 'Jumbo');
     const nutrition = parseDutchNutritionTable(html);
+    const sizing = extractPackageSizing(title, html);
 
     const jumboIdMatch = url.match(/-([0-9A-Z]+)$/i) || url.match(/producten\/([^/?#]+)/i);
     const productId = jumboIdMatch ? `jumbo_${jumboIdMatch[1].toLowerCase()}` : `jumbo_${Date.now()}`;
@@ -235,6 +288,7 @@ export const jumboAdapter: StoreScraperAdapter = {
       brand,
       servingUnit: isDrink ? 'ml' : 'gram',
       ...nutrition,
+      ...sizing,
       sourceUrl: url,
     };
   },
@@ -264,6 +318,7 @@ export const albertHeijnAdapter: StoreScraperAdapter = {
   parse(html: string, url: string): ProductScraperResult {
     const { title, brand } = extractSchemaAndHeadings(html, 'AH');
     const nutrition = parseDutchNutritionTable(html);
+    const sizing = extractPackageSizing(title, html);
 
     const wiMatch = url.match(/wi(\d+)/i);
     const productId = wiMatch ? `ah_wi${wiMatch[1]}` : `ah_${Date.now()}`;
@@ -280,6 +335,7 @@ export const albertHeijnAdapter: StoreScraperAdapter = {
       brand,
       servingUnit: isDrink ? 'ml' : 'gram',
       ...nutrition,
+      ...sizing,
       sourceUrl: url,
     };
   },
@@ -301,6 +357,7 @@ export const dirkAdapter: StoreScraperAdapter = {
     if (!nutrition.kcalPer100g && !nutrition.proteinPer100g) {
       nutrition = parseDutchNutritionTable(html);
     }
+    const sizing = extractPackageSizing(title, html);
 
     const dirkIdMatch = url.match(/\/(\d+)(?:[/?#]|$)/) || url.match(/boodschappen\/([^/?#]+)/i);
     const productId = dirkIdMatch ? `dirk_${dirkIdMatch[1]}` : `dirk_${Date.now()}`;
@@ -317,6 +374,7 @@ export const dirkAdapter: StoreScraperAdapter = {
       brand: brand || 'Dirk',
       servingUnit: isDrink ? 'ml' : 'gram',
       ...nutrition,
+      ...sizing,
       sourceUrl: url,
     };
   },
@@ -337,6 +395,7 @@ export const plusAdapter: StoreScraperAdapter = {
   parse(html: string, url: string): ProductScraperResult {
     const { title, brand } = extractSchemaAndHeadings(html, 'PLUS');
     const nutrition = parseDutchNutritionTable(html);
+    const sizing = extractPackageSizing(title, html);
 
     const plusIdMatch = url.match(/-(\d+)(?:[/?#]|$)/) || url.match(/product\/([^/?#]+)/i);
     const productId = plusIdMatch ? `plus_${plusIdMatch[1]}` : `plus_${Date.now()}`;
@@ -354,6 +413,7 @@ export const plusAdapter: StoreScraperAdapter = {
       brand: brand || 'PLUS',
       servingUnit: isDrink ? 'ml' : 'gram',
       ...nutrition,
+      ...sizing,
       sourceUrl: url,
     };
   },
@@ -376,6 +436,7 @@ export const genericAdapter: StoreScraperAdapter = {
 
     const { title, brand } = extractSchemaAndHeadings(html, hostname);
     const nutrition = parseDutchNutritionTable(html);
+    const sizing = extractPackageSizing(title, html);
 
     const isDrink =
       html.toLowerCase().includes('per 100 milliliter') ||
@@ -389,6 +450,7 @@ export const genericAdapter: StoreScraperAdapter = {
       brand,
       servingUnit: isDrink ? 'ml' : 'gram',
       ...nutrition,
+      ...sizing,
       sourceUrl: url,
     };
   },

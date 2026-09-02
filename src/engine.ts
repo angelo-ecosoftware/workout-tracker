@@ -1,4 +1,4 @@
-import { UserProfile, Workout, Session, WorkoutSet } from './models';
+import { UserProfile, Workout, Session, WorkoutSet, Exercise } from './models';
 
 export class EngineError extends Error {
   constructor(public code: string, message: string) {

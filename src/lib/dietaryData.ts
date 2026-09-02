@@ -39,7 +39,7 @@ export function mapSupabaseRowToFoodItem(row: any): FoodItemNutrition {
   return {
     id: row.id,
     name: row.name,
-    brand: row.brand || 'AH',
+    brand: row.brand || '',
     servingUnit: (row.serving_unit === 'ml' ? 'ml' : 'gram') as 'gram' | 'ml',
     kcalPer100g: Number(row.kcal_per_100g) || 0,
     proteinPer100g: Number(row.protein_per_100g) || 0,
@@ -48,6 +48,10 @@ export function mapSupabaseRowToFoodItem(row: any): FoodItemNutrition {
     fatPer100g: Number(row.fat_per_100g) || 0,
     fiberPer100g: Number(row.fiber_per_100g) || 0,
     sourceUrl: row.source_url,
+    packageWeightGrams: row.package_weight_grams ? Number(row.package_weight_grams) : undefined,
+    pieceCount: row.piece_count ? Number(row.piece_count) : undefined,
+    isCustom: Boolean(row.is_custom),
+    userId: row.user_id || row.created_by,
   };
 }
 
@@ -55,7 +59,7 @@ export function mapFoodItemToSupabaseRow(item: FoodItemNutrition, createdBy: str
   return {
     id: item.id || `food_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     name: item.name,
-    brand: item.brand || 'AH',
+    brand: item.brand || '',
     serving_unit: item.servingUnit || 'gram',
     kcal_per_100g: item.kcalPer100g || 0,
     protein_per_100g: item.proteinPer100g || 0,
@@ -64,13 +68,17 @@ export function mapFoodItemToSupabaseRow(item: FoodItemNutrition, createdBy: str
     fat_per_100g: item.fatPer100g || 0,
     fiber_per_100g: item.fiberPer100g || 0,
     source_url: item.sourceUrl || null,
+    package_weight_grams: item.packageWeightGrams || null,
+    piece_count: item.pieceCount || null,
+    is_custom: Boolean(item.isCustom),
+    user_id: item.userId || createdBy,
     created_by: createdBy,
     updated_at: new Date().toISOString(),
   };
 }
 
-// Fetch the shared community food catalog from Supabase
-export async function fetchHiveMindFoodCatalog(searchQuery?: string): Promise<FoodItemNutrition[]> {
+// Fetch the food catalog from Supabase (shared verified items + private items created by the user)
+export async function fetchHiveMindFoodCatalog(searchQuery?: string, currentUserId?: string): Promise<FoodItemNutrition[]> {
   try {
     let query = supabase
       .from('food_items')
@@ -85,7 +93,16 @@ export async function fetchHiveMindFoodCatalog(searchQuery?: string): Promise<Fo
 
     const { data, error } = await query;
     if (!error && data && data.length > 0) {
-      const mapped = data.map(mapSupabaseRowToFoodItem);
+      const mapped = data
+        .map(mapSupabaseRowToFoodItem)
+        .filter((item) => {
+          // If item is marked custom, it is strictly private to the user who created it
+          if (item.isCustom) {
+            return currentUserId && (item.userId === currentUserId);
+          }
+          return true; // Public verified store items visible to everyone
+        });
+
       try {
         localStorage.setItem('hive_mind_food_catalog_cache', JSON.stringify(mapped));
       } catch (e) {}
@@ -100,7 +117,14 @@ export async function fetchHiveMindFoodCatalog(searchQuery?: string): Promise<Fo
     const raw = localStorage.getItem('hive_mind_food_catalog_cache');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.filter((item: FoodItemNutrition) => {
+          if (item.isCustom) {
+            return currentUserId && item.userId === currentUserId;
+          }
+          return true;
+        });
+      }
     }
   } catch (e) {}
 
