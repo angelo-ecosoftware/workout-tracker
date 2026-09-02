@@ -165,7 +165,15 @@ export const WorkoutDayTracker: React.FC = () => {
   };
 
   // Helper to save current draft checkpoint to localStorage
-  const saveDraftCheckpoint = (newInputs: Record<string, any>, workoutId?: string, curDate?: string, curSleep?: number, curEnergy?: number, curNotes?: string, curWeight?: string) => {
+  const saveDraftCheckpoint = (
+    newInputs: Record<string, any>,
+    workoutId?: string,
+    curDate?: string,
+    curSleep?: number,
+    curEnergy?: number,
+    curNotes?: string,
+    curWeight?: string
+  ) => {
     const key = getDraftKey(workoutId);
     if (!key) return;
     try {
@@ -180,6 +188,10 @@ export const WorkoutDayTracker: React.FC = () => {
         savedAt: new Date().toISOString()
       };
       localStorage.setItem(key, JSON.stringify(payload));
+      // Also backup to a generic latest draft key for safety
+      if (user) {
+        localStorage.setItem(`workout_draft_latest_${user.uid}`, JSON.stringify(payload));
+      }
       setLastAutoSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch (e) {
       console.warn('Could not save draft checkpoint to localStorage', e);
@@ -193,6 +205,9 @@ export const WorkoutDayTracker: React.FC = () => {
     if (key) {
       try {
         localStorage.removeItem(key);
+        if (user) {
+          localStorage.removeItem(`workout_draft_latest_${user.uid}`);
+        }
         setLastAutoSavedTime(null);
       } catch (e) {
         console.warn('Could not remove draft checkpoint', e);
@@ -297,7 +312,10 @@ export const WorkoutDayTracker: React.FC = () => {
       const draftKey = getDraftKey(activeWorkout.id);
       if (draftKey) {
         try {
-          const rawDraft = localStorage.getItem(draftKey);
+          let rawDraft = localStorage.getItem(draftKey);
+          if (!rawDraft && user) {
+            rawDraft = localStorage.getItem(`workout_draft_latest_${user.uid}`);
+          }
           if (rawDraft) {
             const parsedDraft = JSON.parse(rawDraft);
             if (parsedDraft && parsedDraft.inputs && Object.keys(parsedDraft.inputs).length > 0) {
