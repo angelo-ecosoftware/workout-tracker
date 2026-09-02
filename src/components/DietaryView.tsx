@@ -459,7 +459,7 @@ export const DietaryView: React.FC = () => {
             className="px-4 py-2 bg-[#C0FF00] hover:bg-[#a8e000] text-black font-sans text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(192,255,0,0.2)] cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
-            Add Food
+            Log Food
           </button>
         </div>
 
@@ -473,7 +473,7 @@ export const DietaryView: React.FC = () => {
               No Food Logged For {isToday ? 'Today' : selectedDate}
             </p>
             <p className="font-sans text-xs text-gray-600 mt-1 max-w-xs mx-auto">
-              Tap "Add Food" to search the community database, paste an AH product link, or import your grocery list.
+              Tap "Log Food" to search the community database, paste an AH product link, or import your grocery list.
             </p>
           </div>
         ) : (
@@ -659,7 +659,7 @@ export const DietaryView: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Database className="w-5 h-5 text-[#C0FF00]" />
                 <h3 className="font-display text-base font-black uppercase tracking-wider text-white">
-                  Add Food Item
+                  Log Food
                 </h3>
               </div>
               <button
