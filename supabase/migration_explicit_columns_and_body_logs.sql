@@ -34,15 +34,26 @@ CREATE TABLE IF NOT EXISTS public.body_logs (
 -- Index for fast user timeline lookup
 CREATE INDEX IF NOT EXISTS idx_body_logs_user_date ON public.body_logs (user_id, log_date ASC);
 
--- 3. Ensure 'workout_exercises' Junction Table exists as Single Source of Truth
+-- 3. Ensure 'workout_exercises' Junction Table exists and has 'sort_order' & 'position' columns
 CREATE TABLE IF NOT EXISTS public.workout_exercises (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id TEXT NOT NULL,
   workout_id TEXT NOT NULL,
   exercise_id TEXT NOT NULL,
+  sort_order INT4 NOT NULL DEFAULT 0,
   position INT4 NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- In case 'workout_exercises' already existed previously with 'sort_order', add 'position' or vice-versa
+ALTER TABLE IF EXISTS public.workout_exercises
+  ADD COLUMN IF NOT EXISTS sort_order INT4 DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS position INT4 DEFAULT 0;
+
+-- Sync position with sort_order if position was just added
+UPDATE public.workout_exercises
+SET position = COALESCE(position, sort_order, 0)
+WHERE position IS NULL OR position = 0;
 
 CREATE INDEX IF NOT EXISTS idx_workout_exercises_user_workout 
   ON public.workout_exercises (user_id, workout_id, position ASC);
