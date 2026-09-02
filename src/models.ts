@@ -19,22 +19,55 @@ export interface UserMetrics {
   updatedAt?: string;
 }
 
+export interface BodyMeasurementLog {
+  id: string;
+  userId: string;
+  logDate: string; // YYYY-MM-DD (unique per day per user)
+  weightKg: number;
+  heightCm?: number;
+  calculatedBmi?: number;
+  waistCm?: number;
+  bodyFatPercentage?: number;
+  notes?: string;
+  source?: 'profile' | 'workout_session' | 'manual';
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface UserProfile {
   userId: string;
   email: string;
   name: string;
+  dateOfBirth?: string;
+  gender?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  heightCm?: number;
+  weightKg?: number;
+  fitnessLevel?: 'beginner' | 'intermediate' | 'advanced';
+  trainingLocation?: 'gym' | 'home' | 'hybrid';
   lastCompletedWorkoutOrder: number;
   maxWorkoutOrder: number;
   lastSetSummaryPerExercise: Record<string, LastSetSummary>;
   createdAt: Date;
+  updatedAt?: Date;
   metrics?: UserMetrics;
+}
+
+export interface WorkoutExercise {
+  id: string;
+  userId?: string;
+  workoutId: string;
+  exerciseId: string;
+  sortOrder: number;
+  createdAt?: Date;
 }
 
 export interface Workout {
   id: string;
+  userId?: string;
   name: string;
   order: number;
-  exerciseIds: string[];
+  exerciseIds?: string[];
+  exercises?: Exercise[];
 }
 
 export interface Exercise {

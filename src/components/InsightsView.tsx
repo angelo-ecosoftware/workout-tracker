@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { fetchWorkoutHistory, fetchAllSetsForUser, fetchWorkoutsData, initializeUser } from '../lib/supabaseData.ts';
+import { fetchWorkoutHistory, fetchAllSetsForUser, fetchWorkoutsData, initializeUser, fetchBodyMeasurementLogs } from '../lib/supabaseData.ts';
 import {
   calculateInsights,
   calculateExerciseProgression,
   InsightsMetrics,
   ExerciseProgressionReport,
 } from '../lib/insightsEngine.ts';
-import { Session, WorkoutSet, Exercise, UserMetrics } from '../models.ts';
+import { Session, WorkoutSet, Exercise, UserMetrics, BodyMeasurementLog } from '../models.ts';
 import { ExerciseProgressionCard } from './ExerciseProgressionCard.tsx';
 import {
   TrendingUp,
@@ -37,6 +37,7 @@ export const InsightsView: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<InsightsMetrics | null>(null);
   const [userMetrics, setUserMetrics] = useState<UserMetrics | null>(null);
+  const [bodyLogs, setBodyLogs] = useState<BodyMeasurementLog[]>([]);
   const [hoveredDay, setHoveredDay] = useState<any | null>(null);
   const [activeInfoKey, setActiveInfoKey] = useState<string | null>(null);
 
@@ -59,11 +60,12 @@ export const InsightsView: React.FC = () => {
         setLoading(true);
         setErrorMsg(null);
 
-        const [historySessions, allSets, workoutsData, userProfile] = await Promise.all([
+        const [historySessions, allSets, workoutsData, userProfile, historicalBodyLogs] = await Promise.all([
           fetchWorkoutHistory(user.uid),
           fetchAllSetsForUser(user.uid),
           fetchWorkoutsData(user.uid),
           initializeUser(user.uid, user.email, user.displayName),
+          fetchBodyMeasurementLogs(user.uid),
         ]);
 
         if (userProfile?.metrics) {
@@ -79,6 +81,8 @@ export const InsightsView: React.FC = () => {
             }
           }
         }
+
+        setBodyLogs(historicalBodyLogs || []);
 
         const workoutMap = new Map(
           workoutsData.combinedWorkouts.map((w) => [w.id, w.name])
@@ -634,6 +638,50 @@ export const InsightsView: React.FC = () => {
                 <span><strong className="text-white">Guidance:</strong> {bmiCategory.advice}</span>
               </div>
             </div>
+
+            {/* Daily Bodyweight & BMI History Log Breakdown */}
+            {bodyLogs.length > 0 && (
+              <div className="bg-[#141414] border border-[#222] rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-display font-black text-white uppercase tracking-tight flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-[#C0FF00]" />
+                    Daily Bodyweight & BMI History ({bodyLogs.length} entries)
+                  </span>
+                  <span className="text-[10px] font-mono text-gray-400">1 Log Per Day</span>
+                </div>
+
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {[...bodyLogs].reverse().map((log) => {
+                    const logHeightM = (log.heightCm || userMetrics?.height) ? (log.heightCm || userMetrics!.height!) / 100 : null;
+                    const logBmi = log.calculatedBmi || (logHeightM && logHeightM > 0 ? Number((log.weightKg / (logHeightM * logHeightM)).toFixed(1)) : null);
+                    const cat = logBmi ? getBmiCategory(logBmi) : null;
+
+                    return (
+                      <div
+                        key={log.id || log.logDate}
+                        className="bg-[#1a1a1a] border border-[#282828] rounded-xl px-3 py-2 flex items-center justify-between text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-gray-300 font-bold text-[11px]">{log.logDate}</span>
+                          <span className="text-[9px] font-mono text-gray-500 uppercase px-1.5 py-0.5 rounded bg-[#222]">
+                            {log.source || 'profile'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className="font-display font-black text-white">{log.weightKg} kg</span>
+                          {logBmi && cat && (
+                            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${cat.badgeBg}`}>
+                              BMI {logBmi} • {cat.label}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="bg-[#141414] border border-[#222] rounded-2xl p-6 text-center space-y-2">

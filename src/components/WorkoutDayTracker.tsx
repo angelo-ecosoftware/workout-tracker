@@ -4,12 +4,13 @@ import { Workout, Exercise, UserProfile } from '../models.ts';
 import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, seedTemplatesIfMissing, saveWorkoutsAndExercises } from '../lib/supabaseData.ts';
 import { uploadWorkoutPhotos } from '../lib/storage.ts';
 import { SessionEngine, ProgressionEngine } from '../engine.ts';
-import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff, Timer, FileText, Settings, Plus, Camera, Image, Trash2, FolderOpen } from 'lucide-react';
+import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff, Timer, FileText, Settings, Plus, Camera, Image, Trash2, FolderOpen, Scale } from 'lucide-react';
 import { AssistedTimedTracker, SetTimingRecord } from './AssistedTimedTracker.tsx';
 import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { WelcomeModal } from './WelcomeModal.tsx';
 import { saveDraftPhotosToStorage, loadDraftPhotosFromStorage, clearDraftPhotosFromStorage } from '../utils/draftPhotoStorage.ts';
+import { logDailyBodyWeight } from '../lib/supabaseData.ts';
 // import { enqueueOfflineSession, processOfflineQueue } from '../utils/offlineQueue.ts';
 
 export const WorkoutDayTracker: React.FC = () => {
@@ -33,6 +34,7 @@ export const WorkoutDayTracker: React.FC = () => {
   const [sleepHours, setSleepHours] = useState(8);
   const [energyScore, setEnergyScore] = useState(7);
   const [sessionNotes, setSessionNotes] = useState('');
+  const [bodyWeightKg, setBodyWeightKg] = useState<string>('');
   const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
@@ -163,7 +165,7 @@ export const WorkoutDayTracker: React.FC = () => {
   };
 
   // Helper to save current draft checkpoint to localStorage
-  const saveDraftCheckpoint = (newInputs: Record<string, any>, workoutId?: string, curDate?: string, curSleep?: number, curEnergy?: number, curNotes?: string) => {
+  const saveDraftCheckpoint = (newInputs: Record<string, any>, workoutId?: string, curDate?: string, curSleep?: number, curEnergy?: number, curNotes?: string, curWeight?: string) => {
     const key = getDraftKey(workoutId);
     if (!key) return;
     try {
@@ -174,6 +176,7 @@ export const WorkoutDayTracker: React.FC = () => {
         sleepHours: curSleep ?? sleepHours,
         energyScore: curEnergy ?? energyScore,
         notes: curNotes ?? sessionNotes,
+        bodyWeightKg: curWeight ?? bodyWeightKg,
         savedAt: new Date().toISOString()
       };
       localStorage.setItem(key, JSON.stringify(payload));
@@ -284,6 +287,12 @@ export const WorkoutDayTracker: React.FC = () => {
     });
 
     const prepopulateInputs = () => {
+      // Determine user's previous body weight from profile metrics or local cache
+      const cachedProfileWeight = userProfile.weightKg || userProfile.metrics?.weight;
+      if (cachedProfileWeight && !bodyWeightKg) {
+        setBodyWeightKg(String(cachedProfileWeight));
+      }
+
       // Check if user has an existing saved draft checkpoint in device localStorage
       const draftKey = getDraftKey(activeWorkout.id);
       if (draftKey) {
@@ -297,6 +306,7 @@ export const WorkoutDayTracker: React.FC = () => {
               if (parsedDraft.sleepHours != null) setSleepHours(parsedDraft.sleepHours);
               if (parsedDraft.energyScore != null) setEnergyScore(parsedDraft.energyScore);
               if (parsedDraft.notes != null) setSessionNotes(parsedDraft.notes);
+              if (parsedDraft.bodyWeightKg != null) setBodyWeightKg(String(parsedDraft.bodyWeightKg));
               if (parsedDraft.savedAt) {
                 const dateObj = new Date(parsedDraft.savedAt);
                 setLastAutoSavedTime(dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
@@ -600,34 +610,22 @@ export const WorkoutDayTracker: React.FC = () => {
           uploadedPhotoUrls,
           sessionStartedAtDate
         );
+
+        // If a bodyweight is logged for this session, upsert a daily bodyweight entry
+        const parsedWeight = parseFloat(bodyWeightKg);
+        if (!isNaN(parsedWeight) && parsedWeight > 0) {
+          const userHeight = userProfile?.heightCm || userProfile?.metrics?.height;
+          await logDailyBodyWeight(user!.uid, {
+            date: sessionDate,
+            weightKg: parsedWeight,
+            heightCm: userHeight,
+            source: 'workout_session',
+            notes: sessionNotes || undefined,
+          });
+        }
       } catch (networkErr: any) {
         console.error('Failed saving workout session:', networkErr);
         throw networkErr;
-        /*
-        // If Supabase request fails due to sudden network drop / timeout, fallback to offline queue
-        console.warn('Direct Supabase save failed, queuing offline:', networkErr);
-        await enqueueOfflineSession(
-          user!.uid,
-          activeWorkout.id,
-          finalSetsPayload,
-          activeWorkout.exercises,
-          completedAtDate,
-          sessionNotes,
-          selectedPhotos,
-          sessionStartedAtDate
-        );
-        clearDraftCheckpoint(activeWorkout.id);
-        setSessionNotes('');
-        setSelectedPhotos([]);
-        photoPreviews.forEach((url) => URL.revokeObjectURL(url));
-        setPhotoPreviews([]);
-        setAssistedSessionTimings(null);
-
-        setSuccessMsg(`Network interrupted. Workout saved offline and queued for auto-sync.`);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        setTimeout(() => setSuccessMsg(null), 5000);
-        return;
-        */
       }
 
       // Clear local auto-save draft checkpoint upon successful log
@@ -878,12 +876,56 @@ export const WorkoutDayTracker: React.FC = () => {
                   onChange={(e) => {
                     const val = e.target.value;
                     setSessionNotes(val);
-                    saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, sleepHours, energyScore, val);
+                    saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, sleepHours, energyScore, val, bodyWeightKg);
                   }}
                   placeholder="e.g., Felt strong on pushups, shoulder felt great, tweaked grip width..."
                   rows={2}
                   className="w-full bg-[#161616] border border-[#2e2e2e] focus:border-[#C0FF00] rounded-xl p-3 text-xs text-white placeholder-gray-600 focus:outline-none transition-colors resize-y font-sans"
                 />
+              </div>
+
+              {/* Bodyweight for Session / Day (Auto-filled from previous, editable) */}
+              <div className="pt-3 border-t border-[#222]">
+                <div className="bg-[#141414] border border-[#282828] hover:border-[#383838] transition-colors rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-lg bg-[#C0FF00]/10 text-[#C0FF00] shrink-0">
+                      <Scale className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                        Today's Bodyweight
+                        <span className="text-[9px] font-sans font-normal text-[#C0FF00] bg-[#C0FF00]/10 px-1.5 py-0.2 rounded border border-[#C0FF00]/20">
+                          auto-filled
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-gray-400 font-sans">
+                        Updates your daily weight & BMI progression log for {sessionDate}.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="20"
+                        max="350"
+                        placeholder="kg"
+                        value={bodyWeightKg}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setBodyWeightKg(val);
+                          saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, sleepHours, energyScore, sessionNotes, val);
+                        }}
+                        className="w-24 bg-[#1e1e1e] border border-[#333] focus:border-[#C0FF00] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono font-bold text-right pr-7 focus:outline-none transition-colors"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-gray-500 pointer-events-none">
+                        kg
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Progress Photos of the Day (Up to 5) */}

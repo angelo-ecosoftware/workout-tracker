@@ -560,19 +560,166 @@ export async function saveUserMetrics(userId: string, metrics: import('../models
     console.warn('Could not cache user metrics locally:', err);
   }
 
-  // 2. Persist to Supabase users profile if supported / online
+  // 2. Persist to Supabase users profile (both explicit fields and JSON metrics)
   try {
+    const updatePayload: Record<string, any> = { metrics };
+    if (metrics.dateOfBirth) updatePayload.date_of_birth = metrics.dateOfBirth;
+    if (metrics.gender) updatePayload.gender = metrics.gender;
+    if (metrics.height) updatePayload.height_cm = metrics.height;
+    if (metrics.weight) updatePayload.weight_kg = metrics.weight;
+    if (metrics.fitnessLevel) updatePayload.fitness_level = metrics.fitnessLevel;
+    if (metrics.trainingLocation) updatePayload.training_location = metrics.trainingLocation;
+    updatePayload.updated_at = new Date().toISOString();
+
     const { error } = await supabase
       .from('users')
-      .update({ metrics })
+      .update(updatePayload)
       .eq('user_id', userId);
 
     if (error) {
-      console.warn('Could not sync metrics column to Supabase (may need column or offline):', error);
+      // Fallback if explicit columns are missing
+      await supabase.from('users').update({ metrics }).eq('user_id', userId);
     }
   } catch (err) {
     console.warn('Supabase update metrics failed:', err);
   }
+
+  // 3. If weight is provided, record/upsert a daily body log for today (1 entry per day)
+  if (metrics.weight && metrics.weight > 0) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    await logDailyBodyWeight(userId, {
+      date: todayStr,
+      weightKg: metrics.weight,
+      heightCm: metrics.height,
+      source: 'profile',
+      notes: metrics.bodyMeasurementsNotes,
+    });
+  }
+}
+
+/**
+ * Logs or updates a daily body measurement entry for a user.
+ * Ensures the BMI and weight are recorded once per day so day-to-day progression is retained.
+ */
+export async function logDailyBodyWeight(
+  userId: string,
+  payload: {
+    date: string; // YYYY-MM-DD
+    weightKg: number;
+    heightCm?: number;
+    waistCm?: number;
+    source?: 'profile' | 'workout_session' | 'manual';
+    notes?: string;
+  }
+): Promise<import('../models.ts').BodyMeasurementLog> {
+  const heightM = payload.heightCm ? payload.heightCm / 100 : undefined;
+  const calculatedBmi = heightM && heightM > 0
+    ? Number((payload.weightKg / (heightM * heightM)).toFixed(1))
+    : undefined;
+
+  const logEntry: import('../models.ts').BodyMeasurementLog = {
+    id: `blog_${userId}_${payload.date}`,
+    userId,
+    logDate: payload.date,
+    weightKg: payload.weightKg,
+    heightCm: payload.heightCm,
+    calculatedBmi,
+    waistCm: payload.waistCm,
+    notes: payload.notes,
+    source: payload.source || 'manual',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  // 1. Local Storage persistence for offline & instant retrieval
+  try {
+    const localKey = `body_logs_${userId}`;
+    const rawLogs = localStorage.getItem(localKey);
+    const logs: import('../models.ts').BodyMeasurementLog[] = rawLogs ? JSON.parse(rawLogs) : [];
+    
+    // Replace today's log if it exists, or append new entry
+    const existingIdx = logs.findIndex((l) => l.logDate === payload.date);
+    if (existingIdx >= 0) {
+      logs[existingIdx] = { ...logs[existingIdx], ...logEntry, updatedAt: new Date() };
+    } else {
+      logs.push(logEntry);
+    }
+
+    // Keep sorted by date ascending
+    logs.sort((a, b) => a.logDate.localeCompare(b.logDate));
+    localStorage.setItem(localKey, JSON.stringify(logs));
+  } catch (lErr) {
+    console.warn('Could not save body log locally:', lErr);
+  }
+
+  // 2. Supabase DB persistence
+  try {
+    const dbPayload = {
+      id: logEntry.id,
+      user_id: userId,
+      log_date: payload.date,
+      weight_kg: payload.weightKg,
+      height_cm: payload.heightCm || null,
+      calculated_bmi: calculatedBmi || null,
+      waist_cm: payload.waistCm || null,
+      notes: payload.notes || null,
+      source: logEntry.source,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase.from('body_logs').upsert(dbPayload, { onConflict: 'user_id,log_date' });
+    if (error) {
+      console.warn('Could not sync body log to Supabase body_logs table:', error);
+    }
+  } catch (dbErr) {
+    console.warn('Supabase body_logs upsert error:', dbErr);
+  }
+
+  return logEntry;
+}
+
+/**
+ * Fetches historical body measurement logs for trend and BMI analytics.
+ */
+export async function fetchBodyMeasurementLogs(userId: string): Promise<import('../models.ts').BodyMeasurementLog[]> {
+  // 1. Try Supabase
+  try {
+    const { data, error } = await supabase
+      .from('body_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('log_date', { ascending: true });
+
+    if (!error && data && data.length > 0) {
+      return data.map((d: any) => ({
+        id: String(d.id),
+        userId: d.user_id,
+        logDate: d.log_date,
+        weightKg: Number(d.weight_kg),
+        heightCm: d.height_cm ? Number(d.height_cm) : undefined,
+        calculatedBmi: d.calculated_bmi ? Number(d.calculated_bmi) : undefined,
+        waistCm: d.waist_cm ? Number(d.waist_cm) : undefined,
+        notes: d.notes || undefined,
+        source: d.source || 'manual',
+        createdAt: d.created_at ? new Date(d.created_at) : new Date(),
+        updatedAt: d.updated_at ? new Date(d.updated_at) : new Date(),
+      }));
+    }
+  } catch (err) {
+    console.warn('Failed to fetch body_logs from Supabase:', err);
+  }
+
+  // 2. Local Storage fallback
+  try {
+    const raw = localStorage.getItem(`body_logs_${userId}`);
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch {
+    // ignore
+  }
+
+  return [];
 }
 
 export async function exportAllLogs(userId: string) {
