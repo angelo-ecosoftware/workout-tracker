@@ -1,11 +1,67 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { Dumbbell, ShieldAlert, Loader2 } from 'lucide-react';
+import { usePWA } from '../context/PWAContext.tsx';
+import { Dumbbell, ShieldAlert, Loader2, Download, Smartphone, X, Share2, PlusSquare, ArrowRight } from 'lucide-react';
 
 export const LoginScreen: React.FC = () => {
   const { loginWithGoogle } = useAuth();
+  const { installPrompt, setInstallPrompt, isStandalone, isIOS, isMobile } = usePWA();
   const [loggingIn, setLoggingIn] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+
+  // Check if the user previously dismissed the prompt during this session or recently
+  const [isDismissed, setIsDismissed] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('dismiss_install_overlay') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    try {
+      sessionStorage.setItem('dismiss_install_overlay', 'true');
+    } catch (e) {
+      // ignore storage access errors
+    }
+  };
+
+  const handleInstallClick = async () => {
+    if (installPrompt) {
+      try {
+        await installPrompt.prompt();
+        const choiceResult = await installPrompt.userChoice;
+        if (choiceResult?.outcome === 'accepted') {
+          setInstallPrompt(null);
+          handleDismiss();
+        }
+      } catch (err) {
+        console.error('Failed to prompt install:', err);
+      }
+      return;
+    }
+
+    if (isIOS) {
+      setShowIOSInstructions(true);
+      return;
+    }
+
+    // Android / browser fallback instructions
+    alert(
+      "To install the app:\n\n" +
+      "1. Tap your browser menu (⋮ in Chrome, Brave, or Edge)\n" +
+      "2. Select 'Install app' or 'Add to Home screen'\n" +
+      "3. Open the installed app from your home screen for full-screen performance!"
+    );
+  };
+
+  // Condition: Show banner/overlay only if:
+  // 1. User is on phone (isMobile is true)
+  // 2. User has NOT downloaded/installed the app yet (isStandalone is false)
+  // 3. User hasn't dismissed it in current session
+  const showInstallOverlay = isMobile && !isStandalone && !isDismissed;
 
   const handleLogin = async () => {
     setLoggingIn(true);
@@ -89,6 +145,119 @@ export const LoginScreen: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Phone App Install Overlay / Banner */}
+      {showInstallOverlay && (
+        <div className="fixed inset-x-0 bottom-0 z-50 p-4 pb-6 sm:pb-6 animate-in slide-in-from-bottom-5 duration-300">
+          <div className="max-w-md mx-auto bg-[#141414]/95 backdrop-blur-xl border border-[#C0FF00]/40 rounded-2xl p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] relative">
+            {/* Close / Dismiss button */}
+            <button
+              onClick={handleDismiss}
+              aria-label="Dismiss download prompt"
+              className="absolute top-3 right-3 w-8 h-8 rounded-full bg-[#222] hover:bg-[#333] text-gray-400 hover:text-white flex items-center justify-center cursor-pointer transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-start gap-3.5 pr-6">
+              <div className="w-10 h-10 rounded-xl bg-[#C0FF00]/15 border border-[#C0FF00]/30 flex items-center justify-center text-[#C0FF00] shrink-0 mt-0.5">
+                <Smartphone className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-display text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  Install Workout App
+                  <span className="text-[10px] bg-[#C0FF00] text-black font-black px-1.5 py-0.5 rounded uppercase">
+                    PWA
+                  </span>
+                </h2>
+                <p className="font-sans text-xs text-gray-300 mt-1 leading-relaxed">
+                  For a <span className="text-white font-semibold">better and cleaner user experience</span>, we recommend installing the app directly to your phone.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3.5 flex items-center gap-2">
+              <button
+                onClick={handleInstallClick}
+                className="flex-1 py-2.5 px-3 bg-[#C0FF00] hover:bg-[#a8e000] active:scale-[0.98] text-black font-sans text-xs font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(192,255,0,0.25)] transition-all"
+              >
+                <Download className="w-4 h-4 stroke-[2.5]" />
+                Download App
+              </button>
+              <button
+                onClick={handleDismiss}
+                className="py-2.5 px-3.5 bg-[#202020] hover:bg-[#282828] text-gray-400 hover:text-gray-200 font-sans text-xs font-semibold uppercase tracking-wider rounded-xl cursor-pointer transition-colors"
+              >
+                Maybe Later
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* iOS Safari Step-by-step Install Modal */}
+      {showIOSInstructions && (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-[#151515] border border-[#2d2d2d] rounded-3xl p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <button
+              onClick={() => setShowIOSInstructions(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-[#222] text-gray-400 hover:text-white flex items-center justify-center cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="w-12 h-12 rounded-2xl bg-[#C0FF00]/15 border border-[#C0FF00]/40 flex items-center justify-center text-[#C0FF00] mb-4">
+              <Download className="w-6 h-6 stroke-[2.2]" />
+            </div>
+
+            <h3 className="font-display text-base font-bold text-white uppercase tracking-wider">
+              Install on iOS Safari
+            </h3>
+            <p className="font-sans text-xs text-gray-400 mt-1 mb-4">
+              Add to your Home Screen in 2 quick taps for the full native app experience:
+            </p>
+
+            <div className="space-y-3 font-sans text-xs text-gray-300">
+              <div className="flex items-center gap-3 p-3 bg-[#1e1e1e] rounded-xl border border-[#2a2a2a]">
+                <div className="w-7 h-7 rounded-lg bg-[#2a2a2a] flex items-center justify-center text-[#C0FF00] font-bold shrink-0">
+                  1
+                </div>
+                <div>
+                  Tap the <span className="text-white font-semibold inline-flex items-center gap-1">Share button <Share2 className="w-3.5 h-3.5 inline text-[#C0FF00]" /></span> at the bottom of Safari.
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-[#1e1e1e] rounded-xl border border-[#2a2a2a]">
+                <div className="w-7 h-7 rounded-lg bg-[#2a2a2a] flex items-center justify-center text-[#C0FF00] font-bold shrink-0">
+                  2
+                </div>
+                <div>
+                  Scroll down & select <span className="text-white font-semibold inline-flex items-center gap-1">Add to Home Screen <PlusSquare className="w-3.5 h-3.5 inline text-[#C0FF00]" /></span>.
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-[#1e1e1e] rounded-xl border border-[#2a2a2a]">
+                <div className="w-7 h-7 rounded-lg bg-[#2a2a2a] flex items-center justify-center text-[#C0FF00] font-bold shrink-0">
+                  3
+                </div>
+                <div>
+                  Tap <span className="text-[#C0FF00] font-bold">Add</span> in the top right.
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowIOSInstructions(false);
+                handleDismiss();
+              }}
+              className="w-full mt-5 py-3 bg-[#C0FF00] text-black font-sans text-xs font-bold uppercase tracking-wider rounded-xl cursor-pointer hover:bg-[#a8e000] transition-colors"
+            >
+              Got it!
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
