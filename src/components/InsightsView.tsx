@@ -40,6 +40,7 @@ export const InsightsView: React.FC = () => {
   const [bodyLogs, setBodyLogs] = useState<BodyMeasurementLog[]>([]);
   const [hoveredDay, setHoveredDay] = useState<any | null>(null);
   const [activeInfoKey, setActiveInfoKey] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'heatmap' | 'bmi'>('heatmap');
 
   // Per-exercise progression state
   const [exercisesList, setExercisesList] = useState<Exercise[]>([]);
@@ -528,274 +529,320 @@ export const InsightsView: React.FC = () => {
         </div>
       </div>
 
-      {/* Athlete Biometrics & BMI Card */}
-      <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#222] pb-3">
-          <div>
-            <h3 className="font-display font-black text-base text-white uppercase tracking-tight flex items-center gap-2">
-              <Scale className="w-4 h-4 text-[#C0FF00]" />
-              Body Mass Index (BMI) & Biometrics
-            </h3>
-            <p className="text-[11px] font-sans text-gray-400 mt-0.5">
-              Athlete body composition metric based on height and weight.
-            </p>
+      {/* View Mode Toggle: Heatmap vs BMI Biometrics */}
+      <div className="flex items-center justify-between gap-3 bg-[#111] border border-[#222] p-2 rounded-2xl">
+        <div className="flex items-center gap-1.5 p-1 bg-[#181818] rounded-xl border border-[#282828] w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setActiveTab('heatmap')}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all ${
+              activeTab === 'heatmap'
+                ? 'bg-[#C0FF00] text-black shadow-md shadow-[#C0FF00]/20'
+                : 'text-gray-400 hover:text-white hover:bg-[#222]'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5" />
+            <span>90-Day Heatmap</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('bmi')}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-mono font-bold transition-all ${
+              activeTab === 'bmi'
+                ? 'bg-[#C0FF00] text-black shadow-md shadow-[#C0FF00]/20'
+                : 'text-gray-400 hover:text-white hover:bg-[#222]'
+            }`}
+          >
+            <Scale className="w-3.5 h-3.5" />
+            <span>BMI & Biometrics</span>
+            {bmiValue && (
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${activeTab === 'bmi' ? 'bg-black/20 text-black' : 'bg-[#252525] text-gray-300'}`}>
+                {bmiValue}
+              </span>
+            )}
+          </button>
+        </div>
+
+        <div className="hidden sm:flex items-center gap-2 text-[11px] font-mono text-gray-400 pr-2">
+          {activeTab === 'heatmap' ? (
+            <span>90-Day Activity Matrix</span>
+          ) : (
+            <span>WHO Standard Metric</span>
+          )}
+        </div>
+      </div>
+
+      {/* Conditionally Rendered: Heatmap or BMI Card */}
+      {activeTab === 'bmi' ? (
+        /* Athlete Biometrics & BMI Card */
+        <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl space-y-4 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#222] pb-3">
+            <div>
+              <h3 className="font-display font-black text-base text-white uppercase tracking-tight flex items-center gap-2">
+                <Scale className="w-4 h-4 text-[#C0FF00]" />
+                Body Mass Index (BMI) & Biometrics
+              </h3>
+              <p className="text-[11px] font-sans text-gray-400 mt-0.5">
+                Athlete body composition metric based on height and weight.
+              </p>
+            </div>
+
+            {bmiCategory ? (
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-mono font-bold self-start sm:self-auto ${bmiCategory.badgeBg}`}>
+                <ShieldCheck className="w-3.5 h-3.5" />
+                {bmiCategory.label} (BMI {bmiValue})
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#181818] border border-[#333] text-[11px] font-mono text-gray-400 self-start sm:self-auto">
+                Set Height & Weight in Profile
+              </div>
+            )}
           </div>
 
-          {bmiCategory ? (
-            <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-mono font-bold self-start sm:self-auto ${bmiCategory.badgeBg}`}>
-              <ShieldCheck className="w-3.5 h-3.5" />
-              {bmiCategory.label} (BMI {bmiValue})
+          {bmiValue && bmiCategory ? (
+            <div className="space-y-4">
+              {/* Quick Metrics Stats Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-[#141414] border border-[#222] rounded-2xl p-3.5 space-y-1">
+                  <div className="text-[9px] font-mono uppercase font-bold text-gray-400">BMI Score</div>
+                  <div className="text-2xl font-display font-black text-white flex items-baseline gap-1.5">
+                    <span className={bmiCategory.color}>{bmiValue}</span>
+                    <span className="text-[10px] font-mono font-normal text-gray-500">kg/m²</span>
+                  </div>
+                  <div className={`text-[10px] font-mono font-bold ${bmiCategory.color}`}>
+                    {bmiCategory.label}
+                  </div>
+                </div>
+
+                <div className="bg-[#141414] border border-[#222] rounded-2xl p-3.5 space-y-1">
+                  <div className="text-[9px] font-mono uppercase font-bold text-gray-400">Current Weight</div>
+                  <div className="text-2xl font-display font-black text-white">
+                    {userMetrics?.weight ? `${userMetrics.weight} kg` : '—'}
+                  </div>
+                  <div className="text-[9px] font-mono text-gray-500">From athlete profile</div>
+                </div>
+
+                <div className="bg-[#141414] border border-[#222] rounded-2xl p-3.5 space-y-1">
+                  <div className="text-[9px] font-mono uppercase font-bold text-gray-400">Height</div>
+                  <div className="text-2xl font-display font-black text-white">
+                    {userMetrics?.height ? `${userMetrics.height} cm` : '—'}
+                  </div>
+                  <div className="text-[9px] font-mono text-gray-500">From athlete profile</div>
+                </div>
+
+                <div className="bg-[#141414] border border-[#222] rounded-2xl p-3.5 space-y-1">
+                  <div className="text-[9px] font-mono uppercase font-bold text-gray-400">Normal Range</div>
+                  <div className="text-xl font-display font-black text-[#C0FF00]">
+                    18.5 – 24.9
+                  </div>
+                  <div className="text-[9px] font-mono text-gray-500">WHO Standard</div>
+                </div>
+              </div>
+
+              {/* Visual BMI Gauge Spectrum */}
+              <div className="bg-[#141414] border border-[#222] rounded-2xl p-4 space-y-3">
+                <div className="flex items-center justify-between text-[10px] font-mono font-bold text-gray-400">
+                  <span>BMI Spectrum Distribution</span>
+                  <span className={bmiCategory.color}>Your Position: {bmiValue}</span>
+                </div>
+
+                {/* Gradient Track with Marker */}
+                <div className="relative pt-2 pb-1">
+                  <div className="h-3 rounded-full w-full bg-gradient-to-r from-sky-400 via-[#C0FF00] via-45% via-amber-400 via-75% to-rose-500 overflow-hidden opacity-90 shadow-inner" />
+                  
+                  {/* Pointer Marker */}
+                  <div
+                    className="absolute top-0 -ml-2 flex flex-col items-center transition-all duration-500 pointer-events-none"
+                    style={{ left: `${bmiCategory.markerPos}%` }}
+                  >
+                    <div className="w-4 h-4 rounded-full bg-white border-2 border-black shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse" />
+                    <div className="w-0.5 h-3 bg-white" />
+                  </div>
+                </div>
+
+                {/* Spectrum Range Labels */}
+                <div className="grid grid-cols-4 text-center text-[9px] font-mono text-gray-400 pt-1">
+                  <div className="text-left">
+                    <span className="block text-sky-400 font-bold">&lt; 18.5</span>
+                    <span className="text-gray-500">Underweight</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="block text-[#C0FF00] font-bold">18.5 – 24.9</span>
+                    <span className="text-gray-500">Normal</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="block text-amber-400 font-bold">25.0 – 29.9</span>
+                    <span className="text-gray-500">Overweight</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="block text-rose-400 font-bold">&ge; 30.0</span>
+                    <span className="text-gray-500">Obese</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-[#222] flex items-center justify-between text-[11px] font-sans text-gray-400">
+                  <span><strong className="text-white">Guidance:</strong> {bmiCategory.advice}</span>
+                </div>
+              </div>
+
+              {/* Daily Bodyweight & BMI History Log Breakdown */}
+              {bodyLogs.length > 0 && (
+                <div className="bg-[#141414] border border-[#222] rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-display font-black text-white uppercase tracking-tight flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-[#C0FF00]" />
+                      Daily Bodyweight & BMI History ({bodyLogs.length} entries)
+                    </span>
+                    <span className="text-[10px] font-mono text-gray-400">1 Log Per Day</span>
+                  </div>
+
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {[...bodyLogs].reverse().map((log) => {
+                      const logHeightM = (log.heightCm || userMetrics?.height) ? (log.heightCm || userMetrics!.height!) / 100 : null;
+                      const logBmi = log.calculatedBmi || (logHeightM && logHeightM > 0 ? Number((log.weightKg / (logHeightM * logHeightM)).toFixed(1)) : null);
+                      const cat = logBmi ? getBmiCategory(logBmi) : null;
+
+                      return (
+                        <div
+                          key={log.id || log.logDate}
+                          className="bg-[#1a1a1a] border border-[#282828] rounded-xl px-3 py-2 flex items-center justify-between text-xs"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-gray-300 font-bold text-[11px]">{log.logDate}</span>
+                            <span className="text-[9px] font-mono text-gray-500 uppercase px-1.5 py-0.5 rounded bg-[#222]">
+                              {log.source || 'profile'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <span className="font-display font-black text-white">{log.weightKg} kg</span>
+                            {logBmi && cat && (
+                              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${cat.badgeBg}`}>
+                                BMI {logBmi} • {cat.label}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#181818] border border-[#333] text-[11px] font-mono text-gray-400 self-start sm:self-auto">
-              Set Height & Weight in Profile
+            <div className="bg-[#141414] border border-[#222] rounded-2xl p-6 text-center space-y-2">
+              <div className="w-10 h-10 mx-auto rounded-xl bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00]">
+                <Scale className="w-5 h-5" />
+              </div>
+              <div className="text-xs font-display font-bold text-white uppercase">
+                No Biometric Data Recorded
+              </div>
+              <p className="text-[11px] font-sans text-gray-400 max-w-sm mx-auto">
+                Click your user profile avatar in the header to enter your height and weight. Your real-time BMI trajectory, classification, and fitness guidance will appear here.
+              </p>
             </div>
           )}
         </div>
-
-        {bmiValue && bmiCategory ? (
-          <div className="space-y-4">
-            {/* Quick Metrics Stats Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-[#141414] border border-[#222] rounded-2xl p-3.5 space-y-1">
-                <div className="text-[9px] font-mono uppercase font-bold text-gray-400">BMI Score</div>
-                <div className="text-2xl font-display font-black text-white flex items-baseline gap-1.5">
-                  <span className={bmiCategory.color}>{bmiValue}</span>
-                  <span className="text-[10px] font-mono font-normal text-gray-500">kg/m²</span>
-                </div>
-                <div className={`text-[10px] font-mono font-bold ${bmiCategory.color}`}>
-                  {bmiCategory.label}
-                </div>
-              </div>
-
-              <div className="bg-[#141414] border border-[#222] rounded-2xl p-3.5 space-y-1">
-                <div className="text-[9px] font-mono uppercase font-bold text-gray-400">Current Weight</div>
-                <div className="text-2xl font-display font-black text-white">
-                  {userMetrics?.weight ? `${userMetrics.weight} kg` : '—'}
-                </div>
-                <div className="text-[9px] font-mono text-gray-500">From athlete profile</div>
-              </div>
-
-              <div className="bg-[#141414] border border-[#222] rounded-2xl p-3.5 space-y-1">
-                <div className="text-[9px] font-mono uppercase font-bold text-gray-400">Height</div>
-                <div className="text-2xl font-display font-black text-white">
-                  {userMetrics?.height ? `${userMetrics.height} cm` : '—'}
-                </div>
-                <div className="text-[9px] font-mono text-gray-500">From athlete profile</div>
-              </div>
-
-              <div className="bg-[#141414] border border-[#222] rounded-2xl p-3.5 space-y-1">
-                <div className="text-[9px] font-mono uppercase font-bold text-gray-400">Normal Range</div>
-                <div className="text-xl font-display font-black text-[#C0FF00]">
-                  18.5 – 24.9
-                </div>
-                <div className="text-[9px] font-mono text-gray-500">WHO Standard</div>
-              </div>
+      ) : (
+        /* 90-Day Consistency Heatmap Grid */
+        <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl space-y-4 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#222] pb-3">
+            <div>
+              <h3 className="font-display font-black text-base text-white uppercase tracking-tight flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-[#C0FF00]" />
+                90-Day Activity & Consistency Heatmap
+              </h3>
+              <p className="text-[11px] font-sans text-gray-400 mt-0.5">
+                {metrics.sessionsLast90Days} sessions completed in the last 90 days.
+              </p>
             </div>
 
-            {/* Visual BMI Gauge Spectrum */}
-            <div className="bg-[#141414] border border-[#222] rounded-2xl p-4 space-y-3">
-              <div className="flex items-center justify-between text-[10px] font-mono font-bold text-gray-400">
-                <span>BMI Spectrum Distribution</span>
-                <span className={bmiCategory.color}>Your Position: {bmiValue}</span>
-              </div>
+            <div className="flex items-center gap-2 text-[10px] font-mono text-gray-400 self-start sm:self-auto">
+              <span>Rest</span>
+              <div className="w-3 h-3 rounded-sm bg-[#1a1a1a] border border-[#333]"></div>
+              <div className="w-3 h-3 rounded-sm bg-[#C0FF00]/30"></div>
+              <div className="w-3 h-3 rounded-sm bg-[#C0FF00]/70"></div>
+              <div className="w-3 h-3 rounded-sm bg-[#C0FF00]"></div>
+              <span>Active</span>
+            </div>
+          </div>
 
-              {/* Gradient Track with Marker */}
-              <div className="relative pt-2 pb-1">
-                <div className="h-3 rounded-full w-full bg-gradient-to-r from-sky-400 via-[#C0FF00] via-45% via-amber-400 via-75% to-rose-500 overflow-hidden opacity-90 shadow-inner" />
-                
-                {/* Pointer Marker */}
-                <div
-                  className="absolute top-0 -ml-2 flex flex-col items-center transition-all duration-500 pointer-events-none"
-                  style={{ left: `${bmiCategory.markerPos}%` }}
-                >
-                  <div className="w-4 h-4 rounded-full bg-white border-2 border-black shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse" />
-                  <div className="w-0.5 h-3 bg-white" />
-                </div>
-              </div>
-
-              {/* Spectrum Range Labels */}
-              <div className="grid grid-cols-4 text-center text-[9px] font-mono text-gray-400 pt-1">
-                <div className="text-left">
-                  <span className="block text-sky-400 font-bold">&lt; 18.5</span>
-                  <span className="text-gray-500">Underweight</span>
-                </div>
-                <div className="text-center">
-                  <span className="block text-[#C0FF00] font-bold">18.5 – 24.9</span>
-                  <span className="text-gray-500">Normal</span>
-                </div>
-                <div className="text-center">
-                  <span className="block text-amber-400 font-bold">25.0 – 29.9</span>
-                  <span className="text-gray-500">Overweight</span>
-                </div>
-                <div className="text-right">
-                  <span className="block text-rose-400 font-bold">&ge; 30.0</span>
-                  <span className="text-gray-500">Obese</span>
-                </div>
-              </div>
-
-              <div className="pt-2 border-t border-[#222] flex items-center justify-between text-[11px] font-sans text-gray-400">
-                <span><strong className="text-white">Guidance:</strong> {bmiCategory.advice}</span>
-              </div>
+          {/* Heatmap Grid - Standard Calendar View: Left to Right, Rows = Weeks */}
+          <div className="space-y-1.5 pt-1">
+            {/* Day of week headers */}
+            <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center text-[9px] font-mono font-bold text-gray-500 uppercase tracking-wider">
+              <span>Mon</span>
+              <span>Tue</span>
+              <span>Wed</span>
+              <span>Thu</span>
+              <span>Fri</span>
+              <span>Sat</span>
+              <span>Sun</span>
             </div>
 
-            {/* Daily Bodyweight & BMI History Log Breakdown */}
-            {bodyLogs.length > 0 && (
-              <div className="bg-[#141414] border border-[#222] rounded-2xl p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-display font-black text-white uppercase tracking-tight flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-[#C0FF00]" />
-                    Daily Bodyweight & BMI History ({bodyLogs.length} entries)
-                  </span>
-                  <span className="text-[10px] font-mono text-gray-400">1 Log Per Day</span>
-                </div>
-
-                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                  {[...bodyLogs].reverse().map((log) => {
-                    const logHeightM = (log.heightCm || userMetrics?.height) ? (log.heightCm || userMetrics!.height!) / 100 : null;
-                    const logBmi = log.calculatedBmi || (logHeightM && logHeightM > 0 ? Number((log.weightKg / (logHeightM * logHeightM)).toFixed(1)) : null);
-                    const cat = logBmi ? getBmiCategory(logBmi) : null;
-
-                    return (
-                      <div
-                        key={log.id || log.logDate}
-                        className="bg-[#1a1a1a] border border-[#282828] rounded-xl px-3 py-2 flex items-center justify-between text-xs"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-gray-300 font-bold text-[11px]">{log.logDate}</span>
-                          <span className="text-[9px] font-mono text-gray-500 uppercase px-1.5 py-0.5 rounded bg-[#222]">
-                            {log.source || 'profile'}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <span className="font-display font-black text-white">{log.weightKg} kg</span>
-                          {logBmi && cat && (
-                            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${cat.badgeBg}`}>
-                              BMI {logBmi} • {cat.label}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="bg-[#141414] border border-[#222] rounded-2xl p-6 text-center space-y-2">
-            <div className="w-10 h-10 mx-auto rounded-xl bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00]">
-              <Scale className="w-5 h-5" />
-            </div>
-            <div className="text-xs font-display font-bold text-white uppercase">
-              No Biometric Data Recorded
-            </div>
-            <p className="text-[11px] font-sans text-gray-400 max-w-sm mx-auto">
-              Click your user profile avatar in the header to enter your height and weight. Your real-time BMI trajectory, classification, and fitness guidance will appear here.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* 90-Day Consistency Heatmap Grid */}
-      <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#222] pb-3">
-          <div>
-            <h3 className="font-display font-black text-base text-white uppercase tracking-tight flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-[#C0FF00]" />
-              90-Day Activity & Consistency Heatmap
-            </h3>
-            <p className="text-[11px] font-sans text-gray-400 mt-0.5">
-              {metrics.sessionsLast90Days} sessions completed in the last 90 days.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 text-[10px] font-mono text-gray-400 self-start sm:self-auto">
-            <span>Rest</span>
-            <div className="w-3 h-3 rounded-sm bg-[#1a1a1a] border border-[#333]"></div>
-            <div className="w-3 h-3 rounded-sm bg-[#C0FF00]/30"></div>
-            <div className="w-3 h-3 rounded-sm bg-[#C0FF00]/70"></div>
-            <div className="w-3 h-3 rounded-sm bg-[#C0FF00]"></div>
-            <span>Active</span>
-          </div>
-        </div>
-
-        {/* Heatmap Grid - Standard Calendar View: Left to Right, Rows = Weeks */}
-        <div className="space-y-1.5 pt-1">
-          {/* Day of week headers */}
-          <div className="grid grid-cols-7 gap-1 sm:gap-1.5 text-center text-[9px] font-mono font-bold text-gray-500 uppercase tracking-wider">
-            <span>Mon</span>
-            <span>Tue</span>
-            <span>Wed</span>
-            <span>Thu</span>
-            <span>Fri</span>
-            <span>Sat</span>
-            <span>Sun</span>
-          </div>
-
-          {/* Calendar Grid: Left-to-Right by day, Top-to-Bottom by week */}
-          <div className="grid grid-cols-7 gap-1 sm:gap-1.5 max-w-xl mx-auto">
-            {metrics.heatmapDays.map((day) => {
-              let bgClass = 'bg-[#181818] border border-[#282828] hover:border-[#555]';
-              if (day.sessionsCount > 0) {
-                if (day.totalVolumeKg > 5000) {
-                  bgClass = 'bg-[#C0FF00] text-black shadow-[0_0_8px_rgba(192,255,0,0.3)] border border-[#C0FF00]';
-                } else if (day.totalVolumeKg > 2000) {
-                  bgClass = 'bg-[#a3db00] text-black border border-[#a3db00]';
-                } else {
-                  bgClass = 'bg-[#C0FF00]/60 text-black border border-[#C0FF00]/40';
+            {/* Calendar Grid: Left-to-Right by day, Top-to-Bottom by week */}
+            <div className="grid grid-cols-7 gap-1 sm:gap-1.5 max-w-xl mx-auto">
+              {metrics.heatmapDays.map((day) => {
+                let bgClass = 'bg-[#181818] border border-[#282828] hover:border-[#555]';
+                if (day.sessionsCount > 0) {
+                  if (day.totalVolumeKg > 5000) {
+                    bgClass = 'bg-[#C0FF00] text-black shadow-[0_0_8px_rgba(192,255,0,0.3)] border border-[#C0FF00]';
+                  } else if (day.totalVolumeKg > 2000) {
+                    bgClass = 'bg-[#a3db00] text-black border border-[#a3db00]';
+                  } else {
+                    bgClass = 'bg-[#C0FF00]/60 text-black border border-[#C0FF00]/40';
+                  }
                 }
-              }
 
-              const d = new Date(day.date);
-              const dayOfMonth = d.getDate();
+                const d = new Date(day.date);
+                const dayOfMonth = d.getDate();
 
-              return (
-                <div
-                  key={day.date}
-                  onMouseEnter={() => setHoveredDay(day)}
-                  onMouseLeave={() => setHoveredDay(null)}
-                  className={`h-7 sm:h-8 rounded-md flex flex-col items-center justify-center transition-all cursor-pointer px-0.5 relative ${bgClass} ${
-                    day.isToday ? 'ring-1.5 ring-white font-black' : ''
-                  } hover:scale-105`}
-                >
-                  <span className={`text-[9px] sm:text-[10px] leading-none font-mono ${day.sessionsCount > 0 ? 'font-black' : 'text-gray-400'}`}>
-                    {dayOfMonth}
-                  </span>
-                  {day.sessionsCount > 0 && (
-                    <span className="text-[7px] leading-tight font-mono font-bold uppercase tracking-tighter truncate max-w-full">
-                      {day.totalVolumeKg > 0 ? `${Math.round(day.totalVolumeKg)}kg` : '✓'}
+                return (
+                  <div
+                    key={day.date}
+                    onMouseEnter={() => setHoveredDay(day)}
+                    onMouseLeave={() => setHoveredDay(null)}
+                    className={`h-7 sm:h-8 rounded-md flex flex-col items-center justify-center transition-all cursor-pointer px-0.5 relative ${bgClass} ${
+                      day.isToday ? 'ring-1.5 ring-white font-black' : ''
+                    } hover:scale-105`}
+                  >
+                    <span className={`text-[9px] sm:text-[10px] leading-none font-mono ${day.sessionsCount > 0 ? 'font-black' : 'text-gray-400'}`}>
+                      {dayOfMonth}
                     </span>
+                    {day.sessionsCount > 0 && (
+                      <span className="text-[7px] leading-tight font-mono font-bold uppercase tracking-tighter truncate max-w-full">
+                        {day.totalVolumeKg > 0 ? `${Math.round(day.totalVolumeKg)}kg` : '✓'}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Hover details pill */}
+            <div className="min-h-[28px] mt-2 flex items-center">
+              {hoveredDay ? (
+                <div className="text-[11px] font-mono text-gray-300 flex items-center gap-2 bg-[#1a1a1a] px-3 py-1.5 rounded-lg border border-[#333] inline-flex flex-wrap">
+                  <span className="text-[#C0FF00] font-bold">{hoveredDay.date}:</span>
+                  {hoveredDay.sessionsCount > 0 ? (
+                    <span>
+                      {hoveredDay.sessionsCount} session(s) •{' '}
+                      {hoveredDay.workoutNames.join(', ')} •{' '}
+                      <strong className="text-white">{hoveredDay.totalVolumeKg.toLocaleString()} kg moved</strong>
+                    </span>
+                  ) : (
+                    <span className="text-gray-500">Rest / Recovery Day</span>
                   )}
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Hover details pill */}
-          <div className="min-h-[28px] mt-2 flex items-center">
-            {hoveredDay ? (
-              <div className="text-[11px] font-mono text-gray-300 flex items-center gap-2 bg-[#1a1a1a] px-3 py-1.5 rounded-lg border border-[#333] inline-flex flex-wrap">
-                <span className="text-[#C0FF00] font-bold">{hoveredDay.date}:</span>
-                {hoveredDay.sessionsCount > 0 ? (
-                  <span>
-                    {hoveredDay.sessionsCount} session(s) •{' '}
-                    {hoveredDay.workoutNames.join(', ')} •{' '}
-                    <strong className="text-white">{hoveredDay.totalVolumeKg.toLocaleString()} kg moved</strong>
-                  </span>
-                ) : (
-                  <span className="text-gray-500">Rest / Recovery Day</span>
-                )}
-              </div>
-            ) : (
-              <span className="text-[10px] font-mono text-gray-500">
-                Hover or tap any date to view workout split and volume moved.
-              </span>
-            )}
+              ) : (
+                <span className="text-[10px] font-mono text-gray-500">
+                  Hover or tap any date to view workout split and volume moved.
+                </span>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Per-Exercise Progressive Overload & 1RM Trajectory */}
       <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl space-y-4">
