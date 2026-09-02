@@ -134,31 +134,25 @@ export async function fetchHiveMindFoodCatalog(searchQuery?: string, currentUser
   return DEFAULT_FOOD_CATALOG;
 }
 
-// Save a single food item to the Hive-Mind database (accessible to all users)
+// Save a single food item to the Supabase food_items database
 export async function saveHiveMindFoodItem(item: FoodItemNutrition, userId?: string): Promise<FoodItemNutrition> {
   const row = mapFoodItemToSupabaseRow(item, userId || 'community');
-  try {
-    const { error } = await supabase.from('food_items').upsert(row, { onConflict: 'id' });
-    if (error) {
-      console.warn('Supabase food_items upsert error:', error);
-    }
-  } catch (e) {
-    console.warn('Failed to upsert hive mind food item:', e);
+  const { data, error } = await supabase.from('food_items').upsert(row, { onConflict: 'id' }).select();
+  if (error) {
+    console.error('Supabase food_items upsert error:', error);
+    throw new Error(`Failed to save food to database: ${error.message}`);
   }
   return item;
 }
 
-// Bulk save multiple food items to the Hive-Mind database (e.g. from AH shopping list)
+// Bulk save multiple food items to the Supabase food_items database
 export async function saveHiveMindFoodItems(items: FoodItemNutrition[], userId?: string): Promise<void> {
   if (!items || items.length === 0) return;
   const rows = items.map((it) => mapFoodItemToSupabaseRow(it, userId || 'community'));
-  try {
-    const { error } = await supabase.from('food_items').upsert(rows, { onConflict: 'id' });
-    if (error) {
-      console.warn('Supabase bulk food_items upsert error:', error);
-    }
-  } catch (e) {
-    console.warn('Failed to bulk upsert hive mind food items:', e);
+  const { error } = await supabase.from('food_items').upsert(rows, { onConflict: 'id' });
+  if (error) {
+    console.error('Supabase bulk food_items upsert error:', error);
+    throw new Error(`Failed to save food items to database: ${error.message}`);
   }
 }
 

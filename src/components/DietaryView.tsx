@@ -265,9 +265,9 @@ export const DietaryView: React.FC = () => {
     // Save to Supabase SQL Database (isolated for this user)
     await saveHiveMindFoodItem(newFood, userId);
 
-    const updatedCatalog = [newFood, ...catalog];
-    setCatalog(updatedCatalog);
-    saveFoodCatalog(userId, updatedCatalog);
+    const fresh = await fetchHiveMindFoodCatalog(undefined, userId);
+    setCatalog(fresh);
+    saveFoodCatalog(userId, fresh);
 
     setNewFoodName('');
     setNewFoodBrand('');
@@ -282,7 +282,7 @@ export const DietaryView: React.FC = () => {
     setActiveModalTab('search');
   };
 
-  // 2. Fetch Single Product Link (AH, Jumbo, Plus, etc.) and persist to Hive Mind database
+  // 2. Fetch Single Product Link (AH, Jumbo, Plus, etc.) and persist to Supabase database
   const handleFetchSingleProductLink = async () => {
     if (!singleLinkInput.trim()) return;
     setSingleLinkLoading(true);
@@ -299,14 +299,17 @@ export const DietaryView: React.FC = () => {
         throw new Error('Could not parse nutrition for this product link');
       }
 
-      const prod = data.product;
+      const prod = {
+        ...data.product,
+        isCustom: false, // Public store item available to all users
+      };
 
-      // Automatically sync to Hive Mind so everyone can search and use it
+      // Automatically sync to Supabase food_items table
       await saveHiveMindFoodItem(prod, userId);
 
-      const updatedCatalog = [prod, ...catalog.filter((c) => c.id !== prod.id)];
-      setCatalog(updatedCatalog);
-      saveFoodCatalog(userId, updatedCatalog);
+      const fresh = await fetchHiveMindFoodCatalog(undefined, userId);
+      setCatalog(fresh);
+      saveFoodCatalog(userId, fresh);
 
       setSingleLinkInput('');
       setSelectedFoodItem(prod);
@@ -389,18 +392,15 @@ export const DietaryView: React.FC = () => {
     setIsBulkImporting(true);
 
     try {
-      const convertedItems = listExtractedProducts.map(convertAHProductToNutrition);
+      const convertedItems = listExtractedProducts.map((p) => ({
+        ...convertAHProductToNutrition(p),
+        isCustom: false,
+      }));
       await saveHiveMindFoodItems(convertedItems, userId);
 
-      const map = new Map<string, FoodItemNutrition>();
-      for (const item of convertedItems) map.set(item.id, item);
-      for (const item of catalog) {
-        if (!map.has(item.id)) map.set(item.id, item);
-      }
-
-      const merged = Array.from(map.values());
-      setCatalog(merged);
-      saveFoodCatalog(userId, merged);
+      const fresh = await fetchHiveMindFoodCatalog(undefined, userId);
+      setCatalog(fresh);
+      saveFoodCatalog(userId, fresh);
 
       if (convertedItems.length > 0) {
         setSelectedFoodItem(convertedItems[0]);
