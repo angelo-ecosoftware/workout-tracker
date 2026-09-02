@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { PWAProvider } from './context/PWAContext.tsx';
 import { ThemeProvider } from './context/ThemeContext.tsx';
@@ -7,12 +7,52 @@ import { Header } from './components/Header.tsx';
 import { WorkoutDayTracker } from './components/WorkoutDayTracker.tsx';
 import { WorkoutHistory } from './components/WorkoutHistory.tsx';
 import { InsightsView } from './components/InsightsView.tsx';
+import { PublicSessionView } from './components/PublicSessionView.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
 import { Loader2 } from 'lucide-react';
+
+// Extract public session ID from query param (?session=xxx or ?share=xxx) or hash (#/share/xxx or #/session/xxx)
+function getPublicSessionIdFromUrl(): string | null {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sessionParam = urlParams.get('session') || urlParams.get('share');
+    if (sessionParam) return sessionParam;
+
+    const hash = window.location.hash;
+    const match = hash.match(/#(?:share|session)\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) return match[1];
+  } catch (e) {
+    console.warn('Error reading URL parameters:', e);
+  }
+  return null;
+}
 
 const GymAppContent: React.FC = () => {
   const { user, loading, token } = useAuth();
   const [activeTab, setActiveTab] = useState<'tracker' | 'history' | 'insights'>('tracker');
+  const [publicSessionId, setPublicSessionId] = useState<string | null>(() => getPublicSessionIdFromUrl());
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setPublicSessionId(getPublicSessionIdFromUrl());
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // If a public workout session is requested, show public read-only card directly without forcing login
+  if (publicSessionId) {
+    return (
+      <PublicSessionView
+        sessionId={publicSessionId}
+        onGoToApp={() => {
+          // Clear URL parameter and reset state
+          window.history.pushState({}, '', window.location.pathname);
+          setPublicSessionId(null);
+        }}
+      />
+    );
+  }
 
   if (loading || (user && !token)) {
     return (

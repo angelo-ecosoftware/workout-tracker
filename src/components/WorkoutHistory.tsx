@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext.tsx';
 import { fetchWorkoutHistory, fetchSetsForSession, deleteSessions, updateSessionDate, updateSessionNotes, updateSessionPhotos, fetchWorkoutsData, fetchBodyMeasurementLogs, logDailyBodyWeight, initializeUser } from '../lib/supabaseData.ts';
 import { uploadWorkoutPhoto, deleteWorkoutPhoto } from '../lib/storage.ts';
 import { Session, WorkoutSet, Exercise, BodyMeasurementLog, UserProfile } from '../models.ts';
-import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X, FileText, Camera, Plus, FolderOpen, Scale, Sparkles } from 'lucide-react';
+import { Activity, Calendar, Clock, Loader2, ChevronLeft, Trash2, CheckCircle2, Circle, Edit2, Save, X, FileText, Camera, Plus, FolderOpen, Scale, Sparkles, Share2, Check } from 'lucide-react';
 import { ConfirmModal } from './ConfirmModal.tsx';
 
 interface PopulatedSession extends Session {
@@ -35,6 +35,37 @@ export const WorkoutHistory: React.FC = () => {
   const [editingWeightSessionId, setEditingWeightSessionId] = useState<string | null>(null);
   const [editingWeightValue, setEditingWeightValue] = useState<string>("");
   const [isSavingWeight, setIsSavingWeight] = useState(false);
+
+  // Share session state
+  const [copiedSessionId, setCopiedSessionId] = useState<string | null>(null);
+
+  const handleShareSession = async (session: PopulatedSession) => {
+    // Generate public shareable link
+    const shareUrl = `${window.location.origin}${window.location.pathname}?session=${session.id}`;
+    
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        // Fallback for non-https or older browsers
+        const textArea = document.createElement("textarea");
+        textArea.value = shareUrl;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        textArea.remove();
+      }
+
+      setCopiedSessionId(session.id);
+      setTimeout(() => setCopiedSessionId(null), 3000);
+    } catch (err) {
+      console.warn("Clipboard copy failed, using prompt fallback", err);
+      window.prompt("Copy this public workout link:", shareUrl);
+    }
+  };
 
   // Photo uploading / deleting state
   const [uploadingPhotoSessionId, setUploadingPhotoSessionId] = useState<string | null>(null);
@@ -494,6 +525,31 @@ export const WorkoutHistory: React.FC = () => {
                       </button>
                     </div>
                   )}
+                </div>
+
+                {/* Red outline spot: Public Share Workout Button */}
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <button
+                    onClick={() => handleShareSession(session)}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                      copiedSessionId === session.id
+                        ? 'bg-[#C0FF00] text-black shadow-md shadow-[#C0FF00]/30'
+                        : 'bg-[#1a1a1a] hover:bg-[#252525] text-gray-300 hover:text-white border border-[#333] hover:border-[#C0FF00]'
+                    }`}
+                    title="Share public read-only link with non-users"
+                  >
+                    {copiedSessionId === session.id ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-black stroke-[3]" />
+                        <span>Link Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="w-3.5 h-3.5 text-[#C0FF00]" />
+                        <span>Share Workout</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
 

@@ -333,6 +333,109 @@ export async function fetchSetsForSession(sessionId: string) {
   return sets;
 }
 
+/**
+ * Publicly fetches a single workout session by ID with its workout metadata, sets, and exercise names.
+ * Safe for unauthenticated guests.
+ */
+export async function fetchPublicWorkoutSession(sessionId: string): Promise<{
+  session: Session;
+  workoutName: string;
+  athleteName?: string;
+  bodyWeightKg?: number | null;
+  calculatedBmi?: number | null;
+  sets: (WorkoutSet & { exerciseName: string; type: 'strength' | 'timed' })[];
+} | null> {
+  try {
+    // 1. Fetch the session row
+    const { data: sessionData, error: sessionErr } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .single();
+
+    if (sessionErr || !sessionData) {
+      console.warn('Session not found for public link:', sessionErr);
+      return null;
+    }
+
+    const session: Session = {
+      id: String(sessionData.id),
+      userId: String(sessionData.user_id),
+      workoutId: String(sessionData.workout_id),
+      status: sessionData.status || (sessionData.is_completed ? 'completed' : 'in_progress'),
+      startedAt: sessionData.started_at ? new Date(sessionData.started_at) : new Date(),
+      completedAt: sessionData.completed_at ? new Date(sessionData.completed_at) : null,
+      notes: sessionData.notes || null,
+      photos: Array.isArray(sessionData.photos) ? sessionData.photos : (sessionData.photos ? [sessionData.photos] : null),
+    };
+
+    // 2. Fetch workout title, exercises, sets, and athlete profile concurrently
+    const [workoutRes, exercisesRes, setsRes, userRes] = await Promise.all([
+      supabase.from('workouts').select('*').eq('id', sessionData.workout_id).single(),
+      supabase.from('exercises').select('*'),
+      supabase.from('sets').select('*').eq('session_id', sessionId).order('set_number', { ascending: true }),
+      supabase.from('users').select('*').eq('user_id', sessionData.user_id).single(),
+    ]);
+
+    const workoutName = workoutRes.data?.name || 'Workout Session';
+    const exercisesMap = new Map((exercisesRes.data || []).map((e: any) => [String(e.id), e]));
+    
+    // Optional athlete name
+    const athleteName = userRes.data?.name || userRes.data?.email?.split('@')[0] || 'Athlete';
+
+    // Check if a bodyweight log was recorded on that session date
+    let bodyWeightKg: number | null = null;
+    let calculatedBmi: number | null = null;
+    if (session.completedAt) {
+      const d = session.completedAt;
+      const logDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const { data: bodyLogData } = await supabase
+        .from('body_logs')
+        .select('*')
+        .eq('user_id', sessionData.user_id)
+        .eq('log_date', logDate)
+        .single();
+
+      if (bodyLogData) {
+        bodyWeightKg = Number(bodyLogData.weight_kg);
+        calculatedBmi = bodyLogData.calculated_bmi ? Number(bodyLogData.calculated_bmi) : null;
+      }
+    }
+
+    const populatedSets = (setsRes.data || []).map((s: any) => {
+      const ex = exercisesMap.get(String(s.exercise_id));
+      return {
+        id: String(s.id),
+        sessionId: String(s.session_id),
+        userId: String(s.user_id),
+        exerciseId: String(s.exercise_id),
+        setNumber: s.set_number,
+        weight: s.weight != null ? Number(s.weight) : null,
+        reps: s.reps != null ? Number(s.reps) : null,
+        durationSeconds: s.duration_seconds != null ? Number(s.duration_seconds) : null,
+        startedAt: s.started_at ? new Date(s.started_at) : null,
+        completedAt: s.completed_at ? new Date(s.completed_at) : null,
+        restSeconds: s.rest_seconds != null ? Number(s.rest_seconds) : null,
+        loggedAt: s.logged_at ? new Date(s.logged_at) : new Date(),
+        exerciseName: ex?.name || 'Exercise',
+        type: ex?.type === 'timed' ? 'timed' : 'strength',
+      } as WorkoutSet & { exerciseName: string; type: 'strength' | 'timed' };
+    });
+
+    return {
+      session,
+      workoutName,
+      athleteName,
+      bodyWeightKg,
+      calculatedBmi,
+      sets: populatedSets,
+    };
+  } catch (err) {
+    console.error('Error fetching public workout session:', err);
+    return null;
+  }
+}
+
 export async function fetchAllSetsForUser(userId: string) {
   const { data, error } = await supabase
     .from('sets')
