@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useTransition } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import {
   Apple,
@@ -19,7 +19,9 @@ import {
   Loader2,
   X,
   Check,
-  Package,
+  Database,
+  Globe,
+  ArrowRight,
 } from 'lucide-react';
 import {
   FoodItemNutrition,
@@ -33,6 +35,9 @@ import {
   saveDailyDietaryLog,
   calculatePortionNutrients,
   computeDailyTotals,
+  fetchHiveMindFoodCatalog,
+  saveHiveMindFoodItem,
+  saveHiveMindFoodItems,
 } from '../lib/dietaryData.ts';
 
 export const DietaryView: React.FC = () => {
@@ -45,6 +50,7 @@ export const DietaryView: React.FC = () => {
   });
 
   const [catalog, setCatalog] = useState<FoodItemNutrition[]>([]);
+  const [isLoadingCatalog, setIsLoadingCatalog] = useState(false);
   const [dailyLog, setDailyLog] = useState<DailyDietaryLog>({
     date: selectedDate,
     entries: [],
@@ -58,7 +64,7 @@ export const DietaryView: React.FC = () => {
 
   // Modal Flow States
   const [showAddModal, setShowAddModal] = useState(false);
-  const [activeModalTab, setActiveModalTab] = useState<'shelf' | 'link' | 'list' | 'custom'>('shelf');
+  const [activeModalTab, setActiveModalTab] = useState<'search' | 'link' | 'list' | 'custom'>('search');
   const [searchQuery, setSearchQuery] = useState('');
 
   // Selected Food for logging
@@ -75,6 +81,7 @@ export const DietaryView: React.FC = () => {
   const [listLinkLoading, setListLinkLoading] = useState(false);
   const [listLinkError, setListLinkError] = useState<string | null>(null);
   const [listExtractedProducts, setListExtractedProducts] = useState<any[]>([]);
+  const [isBulkImporting, setIsBulkImporting] = useState(false);
 
   // New Custom Food Form State
   const [newFoodName, setNewFoodName] = useState('');
@@ -86,14 +93,46 @@ export const DietaryView: React.FC = () => {
   const [newFoodFat, setNewFoodFat] = useState<number | ''>('');
   const [newFoodFiber, setNewFoodFiber] = useState<number | ''>('');
 
-  // Load Catalog & Daily Log when user or selected date changes
+  // Initial Load: local catalog cache + fetch fresh Hive-Mind SQL database
   useEffect(() => {
-    const loadedCatalog = getSavedFoodCatalog(userId);
-    setCatalog(loadedCatalog);
+    const local = getSavedFoodCatalog(userId);
+    setCatalog(local);
 
     const loadedLog = getDailyDietaryLog(userId, selectedDate);
     setDailyLog(loadedLog);
+
+    // Fetch from Supabase Hive-Mind
+    setIsLoadingCatalog(true);
+    fetchHiveMindFoodCatalog()
+      .then((remoteFoods) => {
+        if (remoteFoods && remoteFoods.length > 0) {
+          setCatalog(remoteFoods);
+          saveFoodCatalog(userId, remoteFoods);
+        }
+      })
+      .finally(() => setIsLoadingCatalog(false));
   }, [userId, selectedDate]);
+
+  // Search debounce against Hive-Mind SQL Database
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim().length >= 2) {
+        fetchHiveMindFoodCatalog(searchQuery.trim()).then((results) => {
+          if (results && results.length > 0) {
+            // Merge with existing catalog without duplicates
+            setCatalog((prev) => {
+              const map = new Map<string, FoodItemNutrition>();
+              for (const it of prev) map.set(it.id, it);
+              for (const it of results) map.set(it.id, it);
+              return Array.from(map.values());
+            });
+          }
+        });
+      }
+    }, 280);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   // Navigate Date
   const handleDateShift = (days: number) => {
@@ -191,8 +230,8 @@ export const DietaryView: React.FC = () => {
     saveDailyDietaryLog(userId, updatedLog);
   };
 
-  // Create & Save New Custom Food
-  const handleSaveNewCustomFood = () => {
+  // 1. Create & Save New Custom Food to SQL Hive-Mind
+  const handleSaveNewCustomFood = async () => {
     if (!newFoodName.trim()) return;
 
     const newFood: FoodItemNutrition = {
@@ -208,6 +247,9 @@ export const DietaryView: React.FC = () => {
       fiberPer100g: Number(newFoodFiber) || 0,
     };
 
+    // Save to Supabase SQL Hive Mind
+    await saveHiveMindFoodItem(newFood, userId);
+
     const updatedCatalog = [newFood, ...catalog];
     setCatalog(updatedCatalog);
     saveFoodCatalog(userId, updatedCatalog);
@@ -222,10 +264,10 @@ export const DietaryView: React.FC = () => {
     setNewFoodFiber('');
 
     setSelectedFoodItem(newFood);
-    setActiveModalTab('shelf');
+    setActiveModalTab('search');
   };
 
-  // 1. Fetch Single AH Product Link
+  // 2. Fetch Single AH Product Link and persist to SQL Hive-Mind
   const handleFetchSingleProductLink = async () => {
     if (!singleLinkInput.trim()) return;
     setSingleLinkLoading(true);
@@ -243,13 +285,17 @@ export const DietaryView: React.FC = () => {
       }
 
       const prod = data.product;
-      const updatedCatalog = [prod, ...catalog.filter((c) => c.name.toLowerCase() !== prod.name.toLowerCase())];
+
+      // Automatically sync to SQL Hive-Mind so everyone can search and use it
+      await saveHiveMindFoodItem(prod, userId);
+
+      const updatedCatalog = [prod, ...catalog.filter((c) => c.id !== prod.id)];
       setCatalog(updatedCatalog);
       saveFoodCatalog(userId, updatedCatalog);
 
       setSingleLinkInput('');
       setSelectedFoodItem(prod);
-      setActiveModalTab('shelf');
+      setActiveModalTab('search');
     } catch (err: any) {
       setSingleLinkError(err.message || 'Could not load product details.');
     } finally {
@@ -257,7 +303,7 @@ export const DietaryView: React.FC = () => {
     }
   };
 
-  // 2. Fetch AH Shared Grocery List
+  // 3. Fetch AH Shared Grocery List
   const extractListId = (url: string): string => {
     const clean = url.trim();
     const match = clean.match(/gedeelde-lijst\/([a-zA-Z0-9_-]+)/);
@@ -290,33 +336,64 @@ export const DietaryView: React.FC = () => {
     }
   };
 
-  const handleImportListItemToShelf = (p: any) => {
-    const existing = catalog.find((c) => c.name.toLowerCase() === p.title.toLowerCase());
-    if (existing) {
-      setSelectedFoodItem(existing);
-      setActiveModalTab('shelf');
-      return;
-    }
+  const convertAHProductToNutrition = (p: any): FoodItemNutrition => {
+    const isDrink = p.salesUnitSize?.toLowerCase().includes('l') || p.salesUnitSize?.toLowerCase().includes('ml');
+    const titleLower = p.title.toLowerCase();
 
-    const newFood: FoodItemNutrition = {
-      id: `ah_${p.id || Date.now()}`,
+    return {
+      id: `ah_wi${p.id || Date.now()}`,
       name: p.title,
       brand: p.brand || 'AH',
-      servingUnit: p.salesUnitSize?.includes('l') || p.salesUnitSize?.includes('ml') ? 'ml' : 'gram',
-      kcalPer100g: p.title.toLowerCase().includes('rijst') ? 355 : p.title.toLowerCase().includes('kip') ? 110 : p.title.toLowerCase().includes('melk') ? 47 : 100,
-      proteinPer100g: p.title.toLowerCase().includes('kip') ? 23.5 : p.title.toLowerCase().includes('rijst') ? 8.5 : p.title.toLowerCase().includes('melk') ? 3.6 : 5.0,
-      carbsPer100g: p.title.toLowerCase().includes('rijst') ? 77.0 : p.title.toLowerCase().includes('melk') ? 4.8 : 0.0,
-      sugarPer100g: p.title.toLowerCase().includes('melk') ? 4.8 : 0.0,
-      fatPer100g: p.title.toLowerCase().includes('kip') ? 1.8 : p.title.toLowerCase().includes('melk') ? 1.5 : 1.0,
-      fiberPer100g: p.title.toLowerCase().includes('rijst') ? 1.5 : 0.0,
+      servingUnit: isDrink ? 'ml' : 'gram',
+      kcalPer100g: titleLower.includes('rijst') ? 355 : titleLower.includes('kip') ? 110 : titleLower.includes('melk') ? 47 : titleLower.includes('kwark') ? 52 : 100,
+      proteinPer100g: titleLower.includes('kip') ? 23.5 : titleLower.includes('rijst') ? 8.5 : titleLower.includes('melk') ? 3.6 : titleLower.includes('kwark') ? 8.5 : 5.0,
+      carbsPer100g: titleLower.includes('rijst') ? 77.0 : titleLower.includes('melk') ? 4.8 : titleLower.includes('kwark') ? 4.0 : 0.0,
+      sugarPer100g: titleLower.includes('melk') ? 4.8 : titleLower.includes('kwark') ? 4.0 : 0.0,
+      fatPer100g: titleLower.includes('kip') ? 1.8 : titleLower.includes('melk') ? 1.5 : 1.0,
+      fiberPer100g: titleLower.includes('rijst') ? 1.5 : 0.0,
+      sourceUrl: p.webPath ? `https://www.ah.nl${p.webPath}` : undefined,
     };
+  };
 
-    const updatedCatalog = [newFood, ...catalog];
+  const handleImportListItemToIndex = async (p: any) => {
+    const newFood = convertAHProductToNutrition(p);
+
+    // Save to SQL Hive-Mind
+    await saveHiveMindFoodItem(newFood, userId);
+
+    const updatedCatalog = [newFood, ...catalog.filter((c) => c.id !== newFood.id)];
     setCatalog(updatedCatalog);
     saveFoodCatalog(userId, updatedCatalog);
 
     setSelectedFoodItem(newFood);
-    setActiveModalTab('shelf');
+    setActiveModalTab('search');
+  };
+
+  const handleBulkImportAllList = async () => {
+    if (listExtractedProducts.length === 0) return;
+    setIsBulkImporting(true);
+
+    try {
+      const convertedItems = listExtractedProducts.map(convertAHProductToNutrition);
+      await saveHiveMindFoodItems(convertedItems, userId);
+
+      const map = new Map<string, FoodItemNutrition>();
+      for (const item of convertedItems) map.set(item.id, item);
+      for (const item of catalog) {
+        if (!map.has(item.id)) map.set(item.id, item);
+      }
+
+      const merged = Array.from(map.values());
+      setCatalog(merged);
+      saveFoodCatalog(userId, merged);
+
+      if (convertedItems.length > 0) {
+        setSelectedFoodItem(convertedItems[0]);
+      }
+      setActiveModalTab('search');
+    } finally {
+      setIsBulkImporting(false);
+    }
   };
 
   // Search Filter
@@ -376,7 +453,7 @@ export const DietaryView: React.FC = () => {
           <button
             onClick={() => {
               setSelectedFoodItem(null);
-              setActiveModalTab('shelf');
+              setActiveModalTab('search');
               setShowAddModal(true);
             }}
             className="px-4 py-2 bg-[#C0FF00] hover:bg-[#a8e000] text-black font-sans text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(192,255,0,0.2)] cursor-pointer"
@@ -396,7 +473,7 @@ export const DietaryView: React.FC = () => {
               No Food Logged For {isToday ? 'Today' : selectedDate}
             </p>
             <p className="font-sans text-xs text-gray-600 mt-1 max-w-xs mx-auto">
-              Tap "Add Food" to search your shelf, paste an AH product link, or import your grocery list.
+              Tap "Add Food" to search the community database, paste an AH product link, or import your grocery list.
             </p>
           </div>
         ) : (
@@ -572,7 +649,7 @@ export const DietaryView: React.FC = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* MINIMAL UNIFIED ADD FOOD MODAL */}
+      {/* HIVE-MIND FOOD SEARCH & INGESTION MODAL */}
       {/* ========================================================================= */}
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-150">
@@ -580,7 +657,7 @@ export const DietaryView: React.FC = () => {
             {/* Modal Top Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#222]">
               <div className="flex items-center gap-2">
-                <Apple className="w-5 h-5 text-[#C0FF00]" />
+                <Database className="w-5 h-5 text-[#C0FF00]" />
                 <h3 className="font-display text-base font-black uppercase tracking-wider text-white">
                   Add Food Item
                 </h3>
@@ -596,18 +673,18 @@ export const DietaryView: React.FC = () => {
               </button>
             </div>
 
-            {/* Minimal Sub-Tabs Header */}
+            {/* 4 Minimal Tabs Header */}
             <div className="flex border-b border-[#222] bg-[#0d0d0d] p-1 font-sans text-xs">
               <button
-                onClick={() => setActiveModalTab('shelf')}
+                onClick={() => setActiveModalTab('search')}
                 className={`flex-1 py-2 rounded-xl font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                  activeModalTab === 'shelf'
+                  activeModalTab === 'search'
                     ? 'bg-[#222] text-[#C0FF00]'
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                <Package className="w-3.5 h-3.5" />
-                <span>My Shelf</span>
+                <Search className="w-3.5 h-3.5" />
+                <span>Search</span>
               </button>
 
               <button
@@ -649,8 +726,8 @@ export const DietaryView: React.FC = () => {
 
             {/* Modal Body */}
             <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
-              {/* TAB 1: SEARCH & LOG FROM SHELF */}
-              {activeModalTab === 'shelf' && (
+              {/* TAB 1: SEARCH & LOG FROM HIVE MIND DATABASE */}
+              {activeModalTab === 'search' && (
                 <>
                   {/* Selected Food Portion Config */}
                   {selectedFoodItem ? (
@@ -751,34 +828,54 @@ export const DietaryView: React.FC = () => {
                     </div>
                   ) : (
                     <>
-                      {/* Search Bar */}
-                      <div className="relative">
-                        <Search className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                        <input
-                          type="text"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Search your shelf (e.g. Kipfilet, Kwark, Melk)..."
-                          className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white font-sans placeholder:text-gray-600 outline-none transition-colors"
-                        />
+                      {/* Search Bar & Hive-Mind Status */}
+                      <div className="space-y-1.5">
+                        <div className="relative">
+                          <Search className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search shared database (e.g. Kipfilet, Kwark, Melk)..."
+                            className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white font-sans placeholder:text-gray-600 outline-none transition-colors"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[10px] font-mono text-gray-500 px-1">
+                          <span className="flex items-center gap-1">
+                            <Globe className="w-3 h-3 text-[#C0FF00]" />
+                            <span>Hive-Mind Database</span>
+                          </span>
+                          <span>{filteredCatalog.length} items available</span>
+                        </div>
                       </div>
 
-                      {/* Shelf Item List */}
+                      {/* Food Item List */}
                       <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                         {filteredCatalog.length === 0 ? (
                           <div className="text-center py-8 bg-[#181818] border border-dashed border-[#2b2b2b] rounded-2xl">
                             <p className="font-sans text-xs text-gray-400">
                               No foods found matching "{searchQuery}"
                             </p>
-                            <button
-                              onClick={() => {
-                                setNewFoodName(searchQuery);
-                                setActiveModalTab('custom');
-                              }}
-                              className="mt-2 text-xs font-sans text-[#C0FF00] underline font-bold cursor-pointer"
-                            >
-                              + Create "{searchQuery}" as custom food
-                            </button>
+                            <div className="flex items-center justify-center gap-3 mt-3">
+                              <button
+                                onClick={() => {
+                                  setActiveModalTab('link');
+                                }}
+                                className="text-xs font-sans text-[#00ade6] underline font-bold cursor-pointer"
+                              >
+                                Paste AH Link
+                              </button>
+                              <span className="text-gray-600">•</span>
+                              <button
+                                onClick={() => {
+                                  setNewFoodName(searchQuery);
+                                  setActiveModalTab('custom');
+                                }}
+                                className="text-xs font-sans text-[#C0FF00] underline font-bold cursor-pointer"
+                              >
+                                Create as Custom
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           filteredCatalog.map((item) => (
@@ -798,6 +895,11 @@ export const DietaryView: React.FC = () => {
                                   {item.brand && (
                                     <span className="text-[9px] font-mono font-bold uppercase text-gray-400 bg-[#242424] px-1.5 py-0.2 rounded">
                                       {item.brand}
+                                    </span>
+                                  )}
+                                  {item.sourceUrl && (
+                                    <span className="text-[9px] font-mono text-[#00ade6] bg-[#00ade6]/10 px-1 py-0.2 rounded">
+                                      AH
                                     </span>
                                   )}
                                 </div>
@@ -833,7 +935,7 @@ export const DietaryView: React.FC = () => {
                       Albert Heijn Product Link or wi-code
                     </label>
                     <p className="text-[11px] text-gray-500 font-sans mb-2">
-                      Paste any product link from ah.nl (e.g. <code>https://www.ah.nl/producten/product/wi441199/...</code>)
+                      Paste any product link from ah.nl (e.g. <code>https://www.ah.nl/producten/product/wi441199/...</code>). It will be saved into the shared database for all users!
                     </p>
                     <div className="flex items-center gap-2">
                       <input
@@ -849,7 +951,7 @@ export const DietaryView: React.FC = () => {
                         className="px-4 py-2.5 bg-[#00ade6] hover:bg-[#0096c7] text-white font-sans text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
                       >
                         {singleLinkLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
-                        Extract
+                        Extract & Save
                       </button>
                     </div>
                   </div>
@@ -859,6 +961,16 @@ export const DietaryView: React.FC = () => {
                       {singleLinkError}
                     </div>
                   )}
+
+                  <div className="p-3 bg-[#181818] border border-[#222] rounded-xl text-xs text-gray-400 space-y-1">
+                    <div className="font-bold text-white flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-[#C0FF00]" />
+                      How the Hive-Mind Works
+                    </div>
+                    <p className="text-[11px] text-gray-500">
+                      When you extract an AH product link, the official 100g nutritional facts are parsed and stored in the central database. Every other athlete will immediately be able to search and log it.
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -870,7 +982,7 @@ export const DietaryView: React.FC = () => {
                       Albert Heijn Shared Grocery List Link
                     </label>
                     <p className="text-[11px] text-gray-500 font-sans mb-2">
-                      Share your cart/list from the AH app or web and paste the link below:
+                      Share your cart/list from the AH app or web and paste the link below to import products:
                     </p>
                     <div className="flex items-center gap-2">
                       <input
@@ -899,9 +1011,20 @@ export const DietaryView: React.FC = () => {
 
                   {listExtractedProducts.length > 0 && (
                     <div className="space-y-2 pt-2 border-t border-[#222]">
-                      <div className="text-xs font-mono text-gray-400 font-bold uppercase">
-                        List Products ({listExtractedProducts.length}) — Click + to add to shelf:
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs font-mono text-gray-400 font-bold uppercase">
+                          Products ({listExtractedProducts.length})
+                        </div>
+                        <button
+                          onClick={handleBulkImportAllList}
+                          disabled={isBulkImporting}
+                          className="px-3 py-1 bg-[#C0FF00] hover:bg-[#a8e000] text-black font-sans text-xs font-black uppercase tracking-wider rounded-lg flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                        >
+                          {isBulkImporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                          Import All to Database
+                        </button>
                       </div>
+
                       <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                         {listExtractedProducts.map((p, i) => (
                           <div
@@ -917,10 +1040,10 @@ export const DietaryView: React.FC = () => {
                               </div>
                             </div>
                             <button
-                              onClick={() => handleImportListItemToShelf(p)}
+                              onClick={() => handleImportListItemToIndex(p)}
                               className="px-3 py-1.5 bg-[#C0FF00] hover:bg-[#a8e000] text-black font-sans text-xs font-black uppercase tracking-wider rounded-lg cursor-pointer shrink-0"
                             >
-                              + Add
+                              + Add & Log
                             </button>
                           </div>
                         ))}
@@ -1034,9 +1157,10 @@ export const DietaryView: React.FC = () => {
                   <button
                     onClick={handleSaveNewCustomFood}
                     disabled={!newFoodName.trim()}
-                    className="w-full mt-3 py-2.5 bg-[#C0FF00] hover:bg-[#a8e000] text-black font-sans text-xs font-black uppercase tracking-wider rounded-xl cursor-pointer disabled:opacity-40 transition-all"
+                    className="w-full mt-3 py-2.5 bg-[#C0FF00] hover:bg-[#a8e000] text-black font-sans text-xs font-black uppercase tracking-wider rounded-xl cursor-pointer disabled:opacity-40 transition-all flex items-center justify-center gap-1.5"
                   >
-                    Save to My Shelf
+                    <Globe className="w-4 h-4" />
+                    Save & Add to Global Database
                   </button>
                 </div>
               )}

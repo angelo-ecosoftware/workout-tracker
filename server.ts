@@ -222,10 +222,13 @@ async function startServer() {
         }
       }
 
+      const wiMatch = targetUrl.match(/wi(\d+)/i);
+      const productId = wiMatch ? `ah_wi${wiMatch[1]}` : `ah_${Date.now()}`;
+
       return res.status(200).json({
         success: true,
         product: {
-          id: `ah_${Date.now()}`,
+          id: productId,
           name: title,
           brand,
           servingUnit: html.toLowerCase().includes("per 100 milliliter") ? "ml" : "gram",

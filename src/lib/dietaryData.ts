@@ -1,4 +1,5 @@
 import { FoodItemNutrition, LoggedDietaryEntry, DailyDietaryLog } from '../models.ts';
+import { supabase } from './supabase.ts';
 
 // Comprehensive starter food items with accurate Dutch NEVO / AH 100g nutrition labels
 export const DEFAULT_FOOD_CATALOG: FoodItemNutrition[] = [
@@ -477,20 +478,124 @@ export function computeDailyTotals(entries: LoggedDietaryEntry[]) {
   );
 }
 
+// Supabase Hive-Mind Food Item Database Mappers & API
+export function mapSupabaseRowToFoodItem(row: any): FoodItemNutrition {
+  return {
+    id: row.id,
+    name: row.name,
+    brand: row.brand || 'AH',
+    servingUnit: (row.serving_unit === 'ml' ? 'ml' : 'gram') as 'gram' | 'ml',
+    kcalPer100g: Number(row.kcal_per_100g) || 0,
+    proteinPer100g: Number(row.protein_per_100g) || 0,
+    carbsPer100g: Number(row.carbs_per_100g) || 0,
+    sugarPer100g: Number(row.sugar_per_100g) || 0,
+    fatPer100g: Number(row.fat_per_100g) || 0,
+    fiberPer100g: Number(row.fiber_per_100g) || 0,
+    sourceUrl: row.source_url,
+  };
+}
+
+export function mapFoodItemToSupabaseRow(item: FoodItemNutrition, createdBy: string = 'community') {
+  return {
+    id: item.id || `food_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    name: item.name,
+    brand: item.brand || 'AH',
+    serving_unit: item.servingUnit || 'gram',
+    kcal_per_100g: item.kcalPer100g || 0,
+    protein_per_100g: item.proteinPer100g || 0,
+    carbs_per_100g: item.carbsPer100g || 0,
+    sugar_per_100g: item.sugarPer100g || 0,
+    fat_per_100g: item.fatPer100g || 0,
+    fiber_per_100g: item.fiberPer100g || 0,
+    source_url: item.sourceUrl || null,
+    created_by: createdBy,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+// Fetch the shared community food catalog from Supabase
+export async function fetchHiveMindFoodCatalog(searchQuery?: string): Promise<FoodItemNutrition[]> {
+  try {
+    let query = supabase
+      .from('food_items')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(250);
+
+    if (searchQuery && searchQuery.trim().length > 0) {
+      const q = searchQuery.trim();
+      query = query.or(`name.ilike.%${q}%,brand.ilike.%${q}%`);
+    }
+
+    const { data, error } = await query;
+    if (!error && data && data.length > 0) {
+      const mapped = data.map(mapSupabaseRowToFoodItem);
+      try {
+        localStorage.setItem('hive_mind_food_catalog_cache', JSON.stringify(mapped));
+      } catch (e) {}
+      return mapped;
+    }
+  } catch (err) {
+    console.warn('Error fetching hive mind foods:', err);
+  }
+
+  // Fallback to local cache or defaults
+  try {
+    const raw = localStorage.getItem('hive_mind_food_catalog_cache');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {}
+
+  return DEFAULT_FOOD_CATALOG;
+}
+
+// Save a single food item to the Hive-Mind database (accessible to all users)
+export async function saveHiveMindFoodItem(item: FoodItemNutrition, userId?: string): Promise<FoodItemNutrition> {
+  const row = mapFoodItemToSupabaseRow(item, userId || 'community');
+  try {
+    const { error } = await supabase.from('food_items').upsert(row, { onConflict: 'id' });
+    if (error) {
+      console.warn('Supabase food_items upsert error:', error);
+    }
+  } catch (e) {
+    console.warn('Failed to upsert hive mind food item:', e);
+  }
+  return item;
+}
+
+// Bulk save multiple food items to the Hive-Mind database (e.g. from AH shopping list)
+export async function saveHiveMindFoodItems(items: FoodItemNutrition[], userId?: string): Promise<void> {
+  if (!items || items.length === 0) return;
+  const rows = items.map((it) => mapFoodItemToSupabaseRow(it, userId || 'community'));
+  try {
+    const { error } = await supabase.from('food_items').upsert(rows, { onConflict: 'id' });
+    if (error) {
+      console.warn('Supabase bulk food_items upsert error:', error);
+    }
+  } catch (e) {
+    console.warn('Failed to bulk upsert hive mind food items:', e);
+  }
+}
+
 // Local Storage helpers with user separation (merges default catalog with custom items)
 export function getSavedFoodCatalog(userId: string): FoodItemNutrition[] {
   try {
+    const rawCache = localStorage.getItem('hive_mind_food_catalog_cache');
+    if (rawCache) {
+      const parsed = JSON.parse(rawCache);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+
     const raw = localStorage.getItem(`food_catalog_${userId}`);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Merge saved custom foods with default catalog by ID or Name
         const map = new Map<string, FoodItemNutrition>();
-        // Add defaults first
         for (const item of DEFAULT_FOOD_CATALOG) {
           map.set(item.name.toLowerCase(), item);
         }
-        // Override or add user items
         for (const item of parsed) {
           map.set(item.name.toLowerCase(), item);
         }
@@ -506,6 +611,7 @@ export function getSavedFoodCatalog(userId: string): FoodItemNutrition[] {
 export function saveFoodCatalog(userId: string, catalog: FoodItemNutrition[]) {
   try {
     localStorage.setItem(`food_catalog_${userId}`, JSON.stringify(catalog));
+    localStorage.setItem('hive_mind_food_catalog_cache', JSON.stringify(catalog));
   } catch (e) {
     console.warn('Failed to save food catalog to storage:', e);
   }

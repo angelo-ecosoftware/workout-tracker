@@ -121,6 +121,7 @@ export interface FoodItemNutrition {
   sugarPer100g: number;
   fatPer100g: number;
   fiberPer100g: number;
+  sourceUrl?: string;
 }
 
 export interface LoggedDietaryEntry {
