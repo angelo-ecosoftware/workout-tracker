@@ -363,7 +363,8 @@ export async function logSessionCompletion(
   sessionCompletedAt?: Date,
   notes?: string,
   photos?: string[],
-  sessionStartedAt?: Date
+  sessionStartedAt?: Date,
+  _idempotencyKey?: string
 ) {
   const { data: authData } = await supabase.auth.getUser();
   const authUser = authData?.user;
@@ -389,6 +390,20 @@ export async function logSessionCompletion(
   const sessionData = SessionEngine.createSession(userProfile, workoutData);
   const startedTimestamp = sessionStartedAt ? sessionStartedAt.toISOString() : sessionData.startedAt.toISOString();
   const completedTimestamp = sessionCompletedAt ? sessionCompletedAt.toISOString() : new Date().toISOString();
+
+  // Deduplication check: prevent inserting the exact same session twice within the same timestamp/workout
+  const { data: existingSession } = await supabase
+    .from('sessions')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('workout_id', workoutId)
+    .eq('completed_at', completedTimestamp)
+    .maybeSingle();
+
+  if (existingSession) {
+    console.log(`Session already logged for this completion timestamp (${existingSession.id}), skipping duplicate.`);
+    return;
+  }
 
   const sessionPayload: Record<string, any> = {
     user_id: userId,

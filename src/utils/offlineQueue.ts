@@ -122,6 +122,27 @@ export async function getQueuedOfflineSessions(userId?: string): Promise<QueuedS
 }
 
 /**
+ * Clear all queued sessions from IndexedDB
+ */
+export async function clearAllQueuedOfflineSessions(): Promise<void> {
+  try {
+    const db = await openQueueDB();
+    const tx = db.transaction(QUEUE_STORE, 'readwrite');
+    const store = tx.objectStore(QUEUE_STORE);
+    store.clear();
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => {
+        window.dispatchEvent(new CustomEvent('offline_queue_updated'));
+        resolve();
+      };
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.warn('Failed to clear queued sessions:', err);
+  }
+}
+
+/**
  * Remove a session from the queue once successfully synced.
  */
 export async function removeQueuedOfflineSession(queueId: string): Promise<void> {
@@ -183,7 +204,7 @@ export async function processOfflineQueue(userId?: string): Promise<{ syncedCoun
           }
         }
 
-        // Send workout session to Supabase
+        // Send workout session to Supabase with idempotency/session ID
         await logSessionCompletion(
           item.userId,
           item.workoutId,
@@ -192,7 +213,8 @@ export async function processOfflineQueue(userId?: string): Promise<{ syncedCoun
           item.sessionCompletedAt ? new Date(item.sessionCompletedAt) : undefined,
           item.notes,
           uploadedPhotoUrls,
-          item.sessionStartedAt ? new Date(item.sessionStartedAt) : undefined
+          item.sessionStartedAt ? new Date(item.sessionStartedAt) : undefined,
+          item.id
         );
 
         // Session synced successfully -> remove from IndexedDB
@@ -200,9 +222,36 @@ export async function processOfflineQueue(userId?: string): Promise<{ syncedCoun
         syncedCount++;
       } catch (sessionErr: any) {
         console.error(`Failed syncing queued session ${item.id}:`, sessionErr);
-        // If offline or network failure, stop batch and try again on next online event
-        if (!navigator.onLine || sessionErr?.message?.includes('Failed to fetch') || sessionErr?.message?.includes('NetworkError')) {
-          break;
+
+        // If it was a network drop / timeout, leave in queue to retry when online
+        const isNetworkFailure =
+          !navigator.onLine ||
+          sessionErr?.message?.includes('Failed to fetch') ||
+          sessionErr?.message?.includes('NetworkError') ||
+          sessionErr?.message?.includes('timeout') ||
+          sessionErr?.name === 'TypeError';
+
+        if (isNetworkFailure) {
+          break; // Don't burn through remaining items while offline
+        } else {
+          // If it's a permanent database/validation error (e.g., schema rejection),
+          // increment retryCount or remove to prevent infinite retry loops.
+          if ((item.retryCount || 0) >= 3) {
+            console.warn(`Purging unprocessable queued session ${item.id} after 3 failed attempts.`);
+            await removeQueuedOfflineSession(item.id);
+          } else {
+            // Update retry count
+            try {
+              const db = await openQueueDB();
+              const tx = db.transaction(QUEUE_STORE, 'readwrite');
+              const store = tx.objectStore(QUEUE_STORE);
+              item.retryCount = (item.retryCount || 0) + 1;
+              item.lastError = sessionErr?.message || String(sessionErr);
+              store.put(item);
+            } catch (updateErr) {
+              console.warn('Failed updating item retry count:', updateErr);
+            }
+          }
         }
       }
     }

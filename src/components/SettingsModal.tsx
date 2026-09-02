@@ -165,9 +165,15 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
     setIsResetting(true);
     try {
       await deleteAllLogs(user.uid);
+      try {
+        const { clearAllQueuedOfflineSessions } = await import('../utils/offlineQueue.ts');
+        await clearAllQueuedOfflineSessions();
+      } catch (err) {
+        console.warn('Failed to clear offline queue on reset:', err);
+      }
       setShowConfirmReset(false);
       onClose();
-      // Optionally reload the page to clear state
+      // Reload the page to clear state
       window.location.reload();
     } catch (e) {
       console.error('Failed to reset logs:', e);
