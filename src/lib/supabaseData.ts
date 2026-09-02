@@ -826,26 +826,115 @@ export async function fetchBodyMeasurementLogs(userId: string): Promise<import('
 }
 
 export async function exportAllLogs(userId: string) {
-  const { data: sessions } = await supabase.from('sessions').select('*').eq('user_id', userId);
-  const { data: sets } = await supabase.from('sets').select('*').eq('user_id', userId);
-  return { sessions: sessions || [], sets: sets || [] };
+  // Fetch complete dataset for the user: Workouts (Routines), Exercises, Workout-Exercise links, Sessions, Sets, Body Logs, and User Profile
+  const [
+    { data: workouts },
+    { data: exercises },
+    { data: workoutExercises },
+    { data: sessions },
+    { data: sets },
+    { data: bodyLogs },
+    { data: userProfile }
+  ] = await Promise.all([
+    supabase.from('workouts').select('*').eq('user_id', userId),
+    supabase.from('exercises').select('*').eq('user_id', userId),
+    supabase.from('workout_exercises').select('*').eq('user_id', userId),
+    supabase.from('sessions').select('*').eq('user_id', userId),
+    supabase.from('sets').select('*').eq('user_id', userId),
+    supabase.from('body_logs').select('*').eq('user_id', userId),
+    supabase.from('users').select('*').eq('id', userId).maybeSingle()
+  ]);
+
+  return {
+    version: 2,
+    exported_at: new Date().toISOString(),
+    user_id: userId,
+    user_profile: userProfile || null,
+    workouts: workouts || [],
+    exercises: exercises || [],
+    workout_exercises: workoutExercises || [],
+    sessions: sessions || [],
+    sets: sets || [],
+    body_logs: bodyLogs || [],
+  };
 }
 
 export async function deleteAllLogs(userId: string) {
   await supabase.from('sets').delete().eq('user_id', userId);
   await supabase.from('sessions').delete().eq('user_id', userId);
+  await supabase.from('body_logs').delete().eq('user_id', userId);
 }
 
 export async function importAllLogs(userId: string, data: any) {
-  if (!data || !Array.isArray(data.sessions) || !Array.isArray(data.sets)) {
+  if (!data || typeof data !== 'object') {
     throw new Error('Invalid JSON structure');
   }
 
-  if (data.sessions.length > 0) {
-    await supabase.from('sessions').upsert(data.sessions);
+  // 1. Restore User Profile & Settings if present
+  if (data.user_profile) {
+    try {
+      await supabase.from('users').upsert({
+        ...data.user_profile,
+        id: userId,
+        updated_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn('Failed to restore user profile:', e);
+    }
   }
-  if (data.sets.length > 0) {
-    await supabase.from('sets').upsert(data.sets);
+
+  // 2. Restore Exercises first (needed for foreign keys)
+  if (Array.isArray(data.exercises) && data.exercises.length > 0) {
+    const cleanExercises = data.exercises.map((ex: any) => ({
+      ...ex,
+      user_id: userId,
+    }));
+    await supabase.from('exercises').upsert(cleanExercises);
+  }
+
+  // 3. Restore Workouts (Routines)
+  if (Array.isArray(data.workouts) && data.workouts.length > 0) {
+    const cleanWorkouts = data.workouts.map((w: any) => ({
+      ...w,
+      user_id: userId,
+    }));
+    await supabase.from('workouts').upsert(cleanWorkouts);
+  }
+
+  // 4. Restore Workout-Exercises Junction
+  if (Array.isArray(data.workout_exercises) && data.workout_exercises.length > 0) {
+    const cleanJunction = data.workout_exercises.map((we: any) => ({
+      ...we,
+      user_id: userId,
+    }));
+    await supabase.from('workout_exercises').upsert(cleanJunction);
+  }
+
+  // 5. Restore Sessions (Workout Logs)
+  if (Array.isArray(data.sessions) && data.sessions.length > 0) {
+    const cleanSessions = data.sessions.map((s: any) => ({
+      ...s,
+      user_id: userId,
+    }));
+    await supabase.from('sessions').upsert(cleanSessions);
+  }
+
+  // 6. Restore Sets
+  if (Array.isArray(data.sets) && data.sets.length > 0) {
+    const cleanSets = data.sets.map((st: any) => ({
+      ...st,
+      user_id: userId,
+    }));
+    await supabase.from('sets').upsert(cleanSets);
+  }
+
+  // 7. Restore Body Logs (Weigh-ins & BMI)
+  if (Array.isArray(data.body_logs) && data.body_logs.length > 0) {
+    const cleanBodyLogs = data.body_logs.map((bl: any) => ({
+      ...bl,
+      user_id: userId,
+    }));
+    await supabase.from('body_logs').upsert(cleanBodyLogs, { onConflict: 'user_id,log_date' });
   }
 }
 

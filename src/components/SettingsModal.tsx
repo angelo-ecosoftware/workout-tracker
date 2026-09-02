@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { usePWA } from '../context/PWAContext.tsx';
 import { useTheme } from '../context/ThemeContext.tsx';
-import { X, Download, Upload, Trash2, LogOut, Loader2, AlertTriangle, Smartphone, Check, Share2, Layers, Timer, Zap, UserCheck, Sun, Moon, Monitor } from 'lucide-react';
+import { X, Download, Upload, Trash2, LogOut, Loader2, AlertTriangle, Smartphone, Check, Share2, Layers, Timer, Zap, UserCheck, Sun, Moon, Monitor, HardDriveDownload, HardDriveUpload } from 'lucide-react';
 import { exportAllLogs, deleteAllLogs, importAllLogs, fetchWorkoutsData, saveWorkoutsAndExercises } from '../lib/supabaseData.ts';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { Workout, Exercise } from '../models.ts';
@@ -125,14 +125,19 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `workout_logs_${new Date().toISOString().split('T')[0]}.json`;
+      
+      // Sanitize username or display name for the file name (e.g., "john_doe_data.json")
+      const rawName = user.displayName || user.email?.split('@')[0] || 'user';
+      const cleanUsername = rawName.toLowerCase().replace(/[^a-z0-9_-]/g, '_').replace(/_+/g, '_').trim();
+      a.download = `${cleanUsername}_data.json`;
+      
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
-      console.error('Failed to export logs:', e);
-      alert('Failed to export logs.');
+      console.error('Failed to save complete backup:', e);
+      alert('Failed to save complete backup.');
     } finally {
       setIsExporting(false);
     }
@@ -147,12 +152,12 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
       const text = await file.text();
       const data = JSON.parse(text);
       await importAllLogs(user.uid, data);
-      alert('Logs imported successfully!');
+      alert('All routines, exercises, and workout history restored successfully!');
       onClose();
       window.location.reload();
     } catch (err) {
-      console.error('Failed to import logs:', err);
-      alert('Failed to import logs. Please check the file format.');
+      console.error('Failed to restore data file:', err);
+      alert('Failed to restore data file. Please ensure it is a valid backup JSON file.');
     } finally {
       setIsImporting(false);
       if (fileInputRef.current) {
@@ -391,41 +396,60 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          <button
-            onClick={handleExport}
-            disabled={isExporting}
-            className="flex items-center gap-2.5 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#333] rounded-xl text-left transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
-              {isExporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+          {/* User Data Backup & Restore Section */}
+          <div className="pt-2">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-gray-500 font-bold px-1 mb-2">
+              Data Backup & Transfer
             </div>
-            <div className="min-w-0">
-              <div className="font-bold text-xs sm:text-sm text-white">Export logs (JSON)</div>
-              <div className="text-[11px] text-gray-500 line-clamp-1">Download backup file</div>
-            </div>
-          </button>
 
-          <input
-            type="file"
-            accept=".json"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            className="hidden"
-          />
+            <div className="space-y-2">
+              <button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="flex items-center gap-2.5 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#333] rounded-xl text-left transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
+                  {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <HardDriveDownload className="w-4 h-4" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-xs sm:text-sm text-white flex items-center justify-between">
+                    <span>Save All Data & Routines</span>
+                    <span className="text-[10px] font-mono text-blue-400 font-normal">.JSON</span>
+                  </div>
+                  <div className="text-[11px] text-gray-400 line-clamp-1">
+                    Download routines, exercises, weigh-ins & workout history in one file
+                  </div>
+                </div>
+              </button>
 
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isImporting}
-            className="flex items-center gap-2.5 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#333] rounded-xl text-left transition-colors disabled:opacity-50 cursor-pointer"
-          >
-            <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center text-green-500 shrink-0">
-              {isImporting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+              <input
+                type="file"
+                accept=".json"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isImporting}
+                className="flex items-center gap-2.5 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#333] rounded-xl text-left transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] shrink-0">
+                  {isImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <HardDriveUpload className="w-4 h-4" />}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-xs sm:text-sm text-white flex items-center justify-between">
+                    <span>Restore Data from File</span>
+                    <span className="text-[10px] font-mono text-[#C0FF00] font-normal">RESTORE</span>
+                  </div>
+                  <div className="text-[11px] text-gray-400 line-clamp-1">
+                    Load saved routines, exercises & workout history from backup
+                  </div>
+                </div>
+              </button>
             </div>
-            <div className="min-w-0">
-              <div className="font-bold text-xs sm:text-sm text-white">Import logs (JSON)</div>
-              <div className="text-[11px] text-gray-500 line-clamp-1">Restore from backup file</div>
-            </div>
-          </button>
+          </div>
 
           {!showConfirmReset ? (
             <button
@@ -436,7 +460,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <Trash2 className="w-3.5 h-3.5" />
               </div>
               <div className="min-w-0">
-                <div className="font-bold text-xs sm:text-sm text-red-500">Reset all logs</div>
+                <div className="font-bold text-xs sm:text-sm text-red-500">Reset all logs & weigh-ins</div>
                 <div className="text-[11px] text-gray-500 line-clamp-1">Permanently delete history</div>
               </div>
             </button>
