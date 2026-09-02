@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { processOfflineQueue, getQueuedOfflineSessions } from '../utils/offlineQueue.ts';
+// import { processOfflineQueue, getQueuedOfflineSessions } from '../utils/offlineQueue.ts';
 
 interface PWAContextType {
   installPrompt: any;
@@ -34,15 +34,21 @@ export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [pendingSyncCount, setPendingSyncCount] = useState<number>(0);
 
   const refreshPendingCount = async () => {
+    // Offline queue temporarily disabled
+    /*
     try {
       const queued = await getQueuedOfflineSessions();
       setPendingSyncCount(queued.length);
     } catch (e) {
       console.warn('Failed to inspect offline queue count:', e);
     }
+    */
+    setPendingSyncCount(0);
   };
 
   const triggerManualSync = async () => {
+    // Offline queue temporarily disabled
+    /*
     if (!navigator.onLine) return;
     try {
       await processOfflineQueue();
@@ -50,18 +56,18 @@ export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } catch (e) {
       console.warn('Manual sync trigger failed:', e);
     }
+    */
   };
 
   useEffect(() => {
-    // Initial sync count check
-    refreshPendingCount();
-
     // Online / Offline network listeners
     const handleOnline = async () => {
       setIsOnline(true);
-      // Auto-flush queue whenever network connectivity is re-established
+      // Offline queue auto-flush disabled for now
+      /*
       await processOfflineQueue();
       await refreshPendingCount();
+      */
     };
 
     const handleOffline = () => {
@@ -76,10 +82,8 @@ export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     window.addEventListener('offline', handleOffline);
     window.addEventListener('offline_queue_updated', handleQueueUpdate);
 
-    // If online on initial load, attempt to flush any pending queue from prior sessions
-    if (navigator.onLine) {
-      processOfflineQueue().then(() => refreshPendingCount());
-    }
+    // Initial check
+    refreshPendingCount();
 
     return () => {
       window.removeEventListener('online', handleOnline);

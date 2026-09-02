@@ -45,7 +45,8 @@ export const Header: React.FC = () => {
               </div>
             )}
 
-            {/* Pending sync queue badge */}
+            {/* Pending sync queue badge - disabled for now */}
+            {/*
             {pendingSyncCount > 0 && (
               <button
                 onClick={handleSyncClick}
@@ -61,6 +62,7 @@ export const Header: React.FC = () => {
                 <span>{pendingSyncCount} queued</span>
               </button>
             )}
+            */}
 
             {/* Desktop User Pill */}
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1a] border border-[#222] rounded-xl">

@@ -10,7 +10,7 @@ import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { WelcomeModal } from './WelcomeModal.tsx';
 import { saveDraftPhotosToStorage, loadDraftPhotosFromStorage, clearDraftPhotosFromStorage } from '../utils/draftPhotoStorage.ts';
-import { enqueueOfflineSession, processOfflineQueue } from '../utils/offlineQueue.ts';
+// import { enqueueOfflineSession, processOfflineQueue } from '../utils/offlineQueue.ts';
 
 export const WorkoutDayTracker: React.FC = () => {
   const { user } = useAuth();
@@ -547,7 +547,8 @@ export const WorkoutDayTracker: React.FC = () => {
          completedAtDate = new Date(parseInt(y), parseInt(m)-1, parseInt(d), baseTime.getHours(), baseTime.getMinutes(), baseTime.getSeconds());
       }
 
-      // Check network connectivity - if offline, enqueue directly to IndexedDB
+      // Offline queue disabled for now
+      /*
       if (!navigator.onLine) {
         await enqueueOfflineSession(
           user!.uid,
@@ -573,6 +574,7 @@ export const WorkoutDayTracker: React.FC = () => {
         setTimeout(() => setSuccessMsg(null), 5000);
         return;
       }
+      */
 
       // Upload progress photos to S3/Supabase storage if selected
       let uploadedPhotoUrls: string[] = [];
@@ -599,6 +601,9 @@ export const WorkoutDayTracker: React.FC = () => {
           sessionStartedAtDate
         );
       } catch (networkErr: any) {
+        console.error('Failed saving workout session:', networkErr);
+        throw networkErr;
+        /*
         // If Supabase request fails due to sudden network drop / timeout, fallback to offline queue
         console.warn('Direct Supabase save failed, queuing offline:', networkErr);
         await enqueueOfflineSession(
@@ -622,6 +627,7 @@ export const WorkoutDayTracker: React.FC = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => setSuccessMsg(null), 5000);
         return;
+        */
       }
 
       // Clear local auto-save draft checkpoint upon successful log
