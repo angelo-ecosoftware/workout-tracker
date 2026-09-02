@@ -13,13 +13,13 @@ import {
   Candy,
   Droplet,
   Sparkles,
-  Edit2,
-  Check,
   Search,
   ShoppingCart,
+  Link as LinkIcon,
   Loader2,
   X,
-  ExternalLink,
+  Check,
+  Package,
 } from 'lucide-react';
 import {
   FoodItemNutrition,
@@ -56,17 +56,27 @@ export const DietaryView: React.FC = () => {
     totalFiber: 0,
   });
 
-  // Modal / Add Food Flow States
+  // Modal Flow States
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showAHImportModal, setShowAHImportModal] = useState(false);
+  const [activeModalTab, setActiveModalTab] = useState<'shelf' | 'link' | 'list' | 'custom'>('shelf');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Selected Food to Log
+  // Selected Food for logging
   const [selectedFoodItem, setSelectedFoodItem] = useState<FoodItemNutrition | null>(null);
   const [portionGrams, setPortionGrams] = useState<number>(100);
 
+  // Single AH Product Link Input State
+  const [singleLinkInput, setSingleLinkInput] = useState('');
+  const [singleLinkLoading, setSingleLinkLoading] = useState(false);
+  const [singleLinkError, setSingleLinkError] = useState<string | null>(null);
+
+  // AH Shared List Input State
+  const [listLinkInput, setListLinkInput] = useState('');
+  const [listLinkLoading, setListLinkLoading] = useState(false);
+  const [listLinkError, setListLinkError] = useState<string | null>(null);
+  const [listExtractedProducts, setListExtractedProducts] = useState<any[]>([]);
+
   // New Custom Food Form State
-  const [isCreatingNewFood, setIsCreatingNewFood] = useState(false);
   const [newFoodName, setNewFoodName] = useState('');
   const [newFoodBrand, setNewFoodBrand] = useState('');
   const [newFoodKcal, setNewFoodKcal] = useState<number | ''>('');
@@ -75,12 +85,6 @@ export const DietaryView: React.FC = () => {
   const [newFoodSugar, setNewFoodSugar] = useState<number | ''>('');
   const [newFoodFat, setNewFoodFat] = useState<number | ''>('');
   const [newFoodFiber, setNewFoodFiber] = useState<number | ''>('');
-
-  // Albert Heijn shared list URL state
-  const [ahListUrl, setAhListUrl] = useState('https://www.ah.nl/mijnlijst/gedeelde-lijst/2241f734-e626-45d6-804b-254efb8bf1a8');
-  const [ahLoading, setAhLoading] = useState(false);
-  const [ahError, setAhError] = useState<string | null>(null);
-  const [ahExtractedProducts, setAhExtractedProducts] = useState<any[]>([]);
 
   // Load Catalog & Daily Log when user or selected date changes
   useEffect(() => {
@@ -100,7 +104,6 @@ export const DietaryView: React.FC = () => {
 
   const isToday = selectedDate === new Date().toISOString().split('T')[0];
 
-  // Helper for formatted date display
   const formatDateTitle = (dateStr: string) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString('nl-NL', {
@@ -142,7 +145,7 @@ export const DietaryView: React.FC = () => {
     setSelectedFoodItem(null);
   };
 
-  // Update Amount / Grams of an existing entry inline
+  // Update Amount / Grams inline
   const handleUpdateEntryGrams = (entryId: string, newGrams: number) => {
     const g = Math.max(1, newGrams);
     const updatedEntries = dailyLog.entries.map((entry) => {
@@ -188,7 +191,7 @@ export const DietaryView: React.FC = () => {
     saveDailyDietaryLog(userId, updatedLog);
   };
 
-  // Create & Save New Custom Food to Catalog
+  // Create & Save New Custom Food
   const handleSaveNewCustomFood = () => {
     if (!newFoodName.trim()) return;
 
@@ -209,8 +212,6 @@ export const DietaryView: React.FC = () => {
     setCatalog(updatedCatalog);
     saveFoodCatalog(userId, updatedCatalog);
 
-    // Reset create form
-    setIsCreatingNewFood(false);
     setNewFoodName('');
     setNewFoodBrand('');
     setNewFoodKcal('');
@@ -220,11 +221,43 @@ export const DietaryView: React.FC = () => {
     setNewFoodFat('');
     setNewFoodFiber('');
 
-    // Immediately select this new food for logging
     setSelectedFoodItem(newFood);
+    setActiveModalTab('shelf');
   };
 
-  // AH List Extractor
+  // 1. Fetch Single AH Product Link
+  const handleFetchSingleProductLink = async () => {
+    if (!singleLinkInput.trim()) return;
+    setSingleLinkLoading(true);
+    setSingleLinkError(null);
+
+    try {
+      const res = await fetch(`/api/ah-product-link?url=${encodeURIComponent(singleLinkInput.trim())}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Failed to fetch (status ${res.status})`);
+      }
+      const data = await res.json();
+      if (!data.success || !data.product) {
+        throw new Error('Could not parse nutrition for this product link');
+      }
+
+      const prod = data.product;
+      const updatedCatalog = [prod, ...catalog.filter((c) => c.name.toLowerCase() !== prod.name.toLowerCase())];
+      setCatalog(updatedCatalog);
+      saveFoodCatalog(userId, updatedCatalog);
+
+      setSingleLinkInput('');
+      setSelectedFoodItem(prod);
+      setActiveModalTab('shelf');
+    } catch (err: any) {
+      setSingleLinkError(err.message || 'Could not load product details.');
+    } finally {
+      setSingleLinkLoading(false);
+    }
+  };
+
+  // 2. Fetch AH Shared Grocery List
   const extractListId = (url: string): string => {
     const clean = url.trim();
     const match = clean.match(/gedeelde-lijst\/([a-zA-Z0-9_-]+)/);
@@ -232,57 +265,50 @@ export const DietaryView: React.FC = () => {
     return clean;
   };
 
-  const handleFetchAHList = async () => {
-    setAhLoading(true);
-    setAhError(null);
-    setAhExtractedProducts([]);
+  const handleFetchSharedList = async () => {
+    if (!listLinkInput.trim()) return;
+    setListLinkLoading(true);
+    setListLinkError(null);
+    setListExtractedProducts([]);
 
     try {
-      const listId = extractListId(ahListUrl);
-      if (!listId) throw new Error('Please enter a valid Albert Heijn shared list link or ID');
-
+      const listId = extractListId(listLinkInput);
       const res = await fetch(`/api/ah-shared-list?listId=${encodeURIComponent(listId)}`);
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || `Failed to fetch (status ${res.status})`);
+        throw new Error(errData.error || `Failed to fetch list (status ${res.status})`);
       }
-
       const data = await res.json();
       if (!data.success || !Array.isArray(data.products)) {
         throw new Error(data.error || 'Invalid list response');
       }
-
-      setAhExtractedProducts(data.products);
+      setListExtractedProducts(data.products);
     } catch (err: any) {
-      setAhError(err.message || 'Failed to extract AH list.');
+      setListLinkError(err.message || 'Failed to extract grocery list.');
     } finally {
-      setAhLoading(false);
+      setListLinkLoading(false);
     }
   };
 
-  // Add AH Product to User's Catalog
-  const handleImportAHProductToCatalog = (prod: any) => {
-    // Check if already in catalog
-    const existing = catalog.find((c) => c.name.toLowerCase() === prod.title.toLowerCase());
+  const handleImportListItemToShelf = (p: any) => {
+    const existing = catalog.find((c) => c.name.toLowerCase() === p.title.toLowerCase());
     if (existing) {
       setSelectedFoodItem(existing);
-      setShowAHImportModal(false);
-      setShowAddModal(true);
+      setActiveModalTab('shelf');
       return;
     }
 
-    // Default intelligent baseline for the product (can be fine-tuned)
     const newFood: FoodItemNutrition = {
-      id: `ah_${prod.id || Date.now()}`,
-      name: prod.title,
-      brand: prod.brand || 'AH',
-      servingUnit: prod.salesUnitSize?.includes('l') || prod.salesUnitSize?.includes('ml') ? 'ml' : 'gram',
-      kcalPer100g: prod.title.toLowerCase().includes('rijst') ? 355 : prod.title.toLowerCase().includes('kip') ? 110 : prod.title.toLowerCase().includes('melk') ? 47 : 100,
-      proteinPer100g: prod.title.toLowerCase().includes('kip') ? 23.5 : prod.title.toLowerCase().includes('rijst') ? 8.5 : prod.title.toLowerCase().includes('melk') ? 3.6 : 5.0,
-      carbsPer100g: prod.title.toLowerCase().includes('rijst') ? 77.0 : prod.title.toLowerCase().includes('melk') ? 4.8 : 0.0,
-      sugarPer100g: prod.title.toLowerCase().includes('melk') ? 4.8 : 0.0,
-      fatPer100g: prod.title.toLowerCase().includes('kip') ? 1.8 : prod.title.toLowerCase().includes('melk') ? 1.5 : 1.0,
-      fiberPer100g: prod.title.toLowerCase().includes('rijst') ? 1.5 : 0.0,
+      id: `ah_${p.id || Date.now()}`,
+      name: p.title,
+      brand: p.brand || 'AH',
+      servingUnit: p.salesUnitSize?.includes('l') || p.salesUnitSize?.includes('ml') ? 'ml' : 'gram',
+      kcalPer100g: p.title.toLowerCase().includes('rijst') ? 355 : p.title.toLowerCase().includes('kip') ? 110 : p.title.toLowerCase().includes('melk') ? 47 : 100,
+      proteinPer100g: p.title.toLowerCase().includes('kip') ? 23.5 : p.title.toLowerCase().includes('rijst') ? 8.5 : p.title.toLowerCase().includes('melk') ? 3.6 : 5.0,
+      carbsPer100g: p.title.toLowerCase().includes('rijst') ? 77.0 : p.title.toLowerCase().includes('melk') ? 4.8 : 0.0,
+      sugarPer100g: p.title.toLowerCase().includes('melk') ? 4.8 : 0.0,
+      fatPer100g: p.title.toLowerCase().includes('kip') ? 1.8 : p.title.toLowerCase().includes('melk') ? 1.5 : 1.0,
+      fiberPer100g: p.title.toLowerCase().includes('rijst') ? 1.5 : 0.0,
     };
 
     const updatedCatalog = [newFood, ...catalog];
@@ -290,11 +316,10 @@ export const DietaryView: React.FC = () => {
     saveFoodCatalog(userId, updatedCatalog);
 
     setSelectedFoodItem(newFood);
-    setShowAHImportModal(false);
-    setShowAddModal(true);
+    setActiveModalTab('shelf');
   };
 
-  // Multi-term insensitive fuzzy search
+  // Search Filter
   const filteredCatalog = catalog.filter((item) => {
     if (!searchQuery.trim()) return true;
     const terms = searchQuery.toLowerCase().trim().split(/\s+/);
@@ -335,7 +360,7 @@ export const DietaryView: React.FC = () => {
         </button>
       </div>
 
-      {/* 2. Daily Log Product List Section */}
+      {/* 2. Daily Log Food Items */}
       <div className="bg-[#111] border border-[#222] rounded-3xl p-4 sm:p-6 space-y-4 shadow-xl">
         <div className="flex items-center justify-between border-b border-[#222] pb-3">
           <div>
@@ -344,30 +369,21 @@ export const DietaryView: React.FC = () => {
               Logged Food Items ({dailyLog.entries.length})
             </h2>
             <p className="font-sans text-[11px] text-gray-500 uppercase tracking-wider font-semibold mt-0.5">
-              Enter portion grams — recalculates live
+              Enter portion grams — live macro scaling
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setShowAHImportModal(true)}
-              className="px-3 py-2 bg-[#00ade6]/10 hover:bg-[#00ade6]/20 border border-[#00ade6]/30 text-[#00ade6] font-sans text-xs font-bold uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
-            >
-              <ShoppingCart className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">AH List</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setSelectedFoodItem(null);
-                setShowAddModal(true);
-              }}
-              className="px-3.5 py-2 bg-[#C0FF00] hover:bg-[#a8e000] text-black font-sans text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(192,255,0,0.2)] cursor-pointer"
-            >
-              <Plus className="w-4 h-4 stroke-[3]" />
-              Add Food
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              setSelectedFoodItem(null);
+              setActiveModalTab('shelf');
+              setShowAddModal(true);
+            }}
+            className="px-4 py-2 bg-[#C0FF00] hover:bg-[#a8e000] text-black font-sans text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(192,255,0,0.2)] cursor-pointer"
+          >
+            <Plus className="w-4 h-4 stroke-[3]" />
+            Add Food
+          </button>
         </div>
 
         {/* Empty State */}
@@ -380,18 +396,17 @@ export const DietaryView: React.FC = () => {
               No Food Logged For {isToday ? 'Today' : selectedDate}
             </p>
             <p className="font-sans text-xs text-gray-600 mt-1 max-w-xs mx-auto">
-              Tap "Add Food" or import from Albert Heijn list to start logging your meals and track your macros.
+              Tap "Add Food" to search your shelf, paste an AH product link, or import your grocery list.
             </p>
           </div>
         ) : (
-          /* List of Logged Products for the Day */
+          /* List of Logged Products */
           <div className="space-y-3">
             {dailyLog.entries.map((entry, idx) => (
               <div
                 key={entry.id}
                 className="p-3.5 sm:p-4 bg-[#161616] border border-[#222] hover:border-[#333] rounded-2xl transition-all"
               >
-                {/* Product Name & Gram Input Row */}
                 <div className="flex items-start justify-between gap-3 mb-2.5">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -438,7 +453,7 @@ export const DietaryView: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Per-Product Macro Pill Breakdown */}
+                {/* Macro Pills Breakdown */}
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 pt-2 border-t border-[#202020] text-center font-mono text-xs">
                   <div className="bg-[#101010] p-1.5 rounded-lg border border-[#1f1f1f]">
                     <div className="text-[9px] text-gray-500 uppercase font-sans font-bold">Kcal</div>
@@ -471,7 +486,7 @@ export const DietaryView: React.FC = () => {
         )}
       </div>
 
-      {/* 3. Small Clean Macro Overview Card (Directly Under the Product List) */}
+      {/* 3. Clean Daily Macro Totals Overview */}
       <div className="bg-[#111] border border-[#222] rounded-3xl p-5 sm:p-6 shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-[#C0FF00] rounded-full blur-[100px] opacity-[0.05] pointer-events-none" />
 
@@ -488,7 +503,6 @@ export const DietaryView: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3 relative z-10 font-mono">
-          {/* Kcal */}
           <div className="bg-[#161616] border border-[#262626] p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-gray-400 text-xs font-sans font-bold uppercase">
               <span>Kcal</span>
@@ -500,7 +514,6 @@ export const DietaryView: React.FC = () => {
             <div className="text-[9px] text-gray-500 font-sans mt-0.5">Total Calories</div>
           </div>
 
-          {/* Eiwit */}
           <div className="bg-[#161616] border border-[#C0FF00]/25 p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-[#C0FF00] text-xs font-sans font-bold uppercase">
               <span>Eiwit</span>
@@ -512,7 +525,6 @@ export const DietaryView: React.FC = () => {
             <div className="text-[9px] text-gray-500 font-sans mt-0.5">Protein</div>
           </div>
 
-          {/* Koolhydraten */}
           <div className="bg-[#161616] border border-[#262626] p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-amber-400 text-xs font-sans font-bold uppercase">
               <span>KH</span>
@@ -524,7 +536,6 @@ export const DietaryView: React.FC = () => {
             <div className="text-[9px] text-gray-500 font-sans mt-0.5">Carbohydrates</div>
           </div>
 
-          {/* Suikers */}
           <div className="bg-[#161616] border border-[#262626] p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-orange-400 text-xs font-sans font-bold uppercase">
               <span>Suikers</span>
@@ -536,7 +547,6 @@ export const DietaryView: React.FC = () => {
             <div className="text-[9px] text-gray-500 font-sans mt-0.5">Sugars</div>
           </div>
 
-          {/* Vet */}
           <div className="bg-[#161616] border border-[#262626] p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-rose-400 text-xs font-sans font-bold uppercase">
               <span>Vet</span>
@@ -548,7 +558,6 @@ export const DietaryView: React.FC = () => {
             <div className="text-[9px] text-gray-500 font-sans mt-0.5">Fats</div>
           </div>
 
-          {/* Vezels */}
           <div className="bg-[#161616] border border-[#262626] p-3 rounded-2xl flex flex-col justify-between">
             <div className="flex items-center justify-between text-emerald-400 text-xs font-sans font-bold uppercase">
               <span>Vezels</span>
@@ -563,12 +572,12 @@ export const DietaryView: React.FC = () => {
       </div>
 
       {/* ========================================================================= */}
-      {/* MODAL 1: ADD FOOD TO DAILY LOG (Search Catalog or Create Custom) */}
+      {/* MINIMAL UNIFIED ADD FOOD MODAL */}
       {/* ========================================================================= */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-150">
           <div className="bg-[#141414] border border-[#262626] rounded-3xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150">
-            {/* Modal Header */}
+            {/* Modal Top Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#222]">
               <div className="flex items-center gap-2">
                 <Apple className="w-5 h-5 text-[#C0FF00]" />
@@ -579,7 +588,6 @@ export const DietaryView: React.FC = () => {
               <button
                 onClick={() => {
                   setShowAddModal(false);
-                  setIsCreatingNewFood(false);
                   setSelectedFoodItem(null);
                 }}
                 className="p-1.5 hover:bg-[#222] rounded-full text-gray-400 hover:text-white cursor-pointer"
@@ -588,22 +596,62 @@ export const DietaryView: React.FC = () => {
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className="p-5 overflow-y-auto space-y-4 flex-1">
-              {!isCreatingNewFood ? (
-                <>
-                  {/* Search Bar */}
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search food (e.g. Kipfilet, Basmatirijst)..."
-                      className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white font-sans placeholder:text-gray-600 outline-none transition-colors"
-                    />
-                  </div>
+            {/* Minimal Sub-Tabs Header */}
+            <div className="flex border-b border-[#222] bg-[#0d0d0d] p-1 font-sans text-xs">
+              <button
+                onClick={() => setActiveModalTab('shelf')}
+                className={`flex-1 py-2 rounded-xl font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                  activeModalTab === 'shelf'
+                    ? 'bg-[#222] text-[#C0FF00]'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Package className="w-3.5 h-3.5" />
+                <span>My Shelf</span>
+              </button>
 
+              <button
+                onClick={() => setActiveModalTab('link')}
+                className={`flex-1 py-2 rounded-xl font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                  activeModalTab === 'link'
+                    ? 'bg-[#222] text-[#00ade6]'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <LinkIcon className="w-3.5 h-3.5" />
+                <span>AH Link</span>
+              </button>
+
+              <button
+                onClick={() => setActiveModalTab('list')}
+                className={`flex-1 py-2 rounded-xl font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                  activeModalTab === 'list'
+                    ? 'bg-[#222] text-[#00ade6]'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <ShoppingCart className="w-3.5 h-3.5" />
+                <span>AH List</span>
+              </button>
+
+              <button
+                onClick={() => setActiveModalTab('custom')}
+                className={`flex-1 py-2 rounded-xl font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                  activeModalTab === 'custom'
+                    ? 'bg-[#222] text-amber-400'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Custom</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+              {/* TAB 1: SEARCH & LOG FROM SHELF */}
+              {activeModalTab === 'shelf' && (
+                <>
                   {/* Selected Food Portion Config */}
                   {selectedFoodItem ? (
                     <div className="p-4 bg-[#1b1b1b] border border-[#C0FF00]/40 rounded-2xl space-y-3">
@@ -616,7 +664,7 @@ export const DietaryView: React.FC = () => {
                             {selectedFoodItem.name}
                           </h4>
                           <p className="text-[11px] font-mono text-gray-400 mt-0.5">
-                            Per 100g: {selectedFoodItem.kcalPer100g} kcal | {selectedFoodItem.proteinPer100g}g protein
+                            Per 100g: {selectedFoodItem.kcalPer100g} kcal • {selectedFoodItem.proteinPer100g}g protein
                           </p>
                         </div>
                         <button
@@ -639,7 +687,7 @@ export const DietaryView: React.FC = () => {
                             step="1"
                             value={portionGrams}
                             onChange={(e) => setPortionGrams(Number(e.target.value) || 0)}
-                            className="w-28 bg-[#101010] border border-[#333] focus:border-[#C0FF00] rounded-xl px-3 py-2 text-center text-sm font-mono font-bold text-[#C0FF00] outline-none"
+                            className="w-24 bg-[#101010] border border-[#333] focus:border-[#C0FF00] rounded-xl px-3 py-2 text-center text-sm font-mono font-bold text-[#C0FF00] outline-none"
                           />
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {[30, 40, 50, 100, 150, 200].map((g) => (
@@ -660,7 +708,7 @@ export const DietaryView: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Live Recalculated Preview */}
+                      {/* Live Calculated Preview */}
                       {(() => {
                         const preview = calculatePortionNutrients(selectedFoodItem, portionGrams);
                         return (
@@ -702,87 +750,193 @@ export const DietaryView: React.FC = () => {
                       </button>
                     </div>
                   ) : (
-                    /* Food Item Selection List */
-                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                      {filteredCatalog.length === 0 ? (
-                        <div className="text-center py-8 bg-[#181818] border border-dashed border-[#2b2b2b] rounded-2xl">
-                          <p className="font-sans text-xs text-gray-400">
-                            No foods found matching "{searchQuery}"
-                          </p>
-                          <button
-                            onClick={() => {
-                              setNewFoodName(searchQuery);
-                              setIsCreatingNewFood(true);
-                            }}
-                            className="mt-2 text-xs font-sans text-[#C0FF00] underline font-bold cursor-pointer"
-                          >
-                            + Create "{searchQuery}" as custom food
-                          </button>
-                        </div>
-                      ) : (
-                        filteredCatalog.map((item) => (
-                          <div
-                            key={item.id}
-                            onClick={() => {
-                              setSelectedFoodItem(item);
-                              setPortionGrams(100);
-                            }}
-                            className="p-3 bg-[#181818] border border-[#262626] hover:border-[#C0FF00]/60 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-all group"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-sans text-xs font-bold text-white group-hover:text-[#C0FF00] transition-colors">
-                                  {item.name}
-                                </span>
-                                {item.brand && (
-                                  <span className="text-[9px] font-mono font-bold uppercase text-gray-400 bg-[#242424] px-1.5 py-0.2 rounded">
-                                    {item.brand}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 text-[10px] font-mono text-gray-400 mt-1 flex-wrap">
-                                <span className="text-white font-semibold">{item.kcalPer100g} kcal</span>
-                                <span>•</span>
-                                <span className="text-[#C0FF00]">E: {item.proteinPer100g}g</span>
-                                <span>•</span>
-                                <span className="text-amber-400">KH: {item.carbsPer100g}g</span>
-                                <span>•</span>
-                                <span className="text-rose-400">V: {item.fatPer100g}g</span>
-                                <span>•</span>
-                                <span className="text-emerald-400">Vez: {item.fiberPer100g}g</span>
-                              </div>
-                            </div>
-                            <span className="text-[10px] font-mono text-[#C0FF00] group-hover:translate-x-0.5 uppercase font-bold shrink-0 transition-transform">
-                              Select →
-                            </span>
+                    <>
+                      {/* Search Bar */}
+                      <div className="relative">
+                        <Search className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Search your shelf (e.g. Kipfilet, Kwark, Melk)..."
+                          className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white font-sans placeholder:text-gray-600 outline-none transition-colors"
+                        />
+                      </div>
+
+                      {/* Shelf Item List */}
+                      <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                        {filteredCatalog.length === 0 ? (
+                          <div className="text-center py-8 bg-[#181818] border border-dashed border-[#2b2b2b] rounded-2xl">
+                            <p className="font-sans text-xs text-gray-400">
+                              No foods found matching "{searchQuery}"
+                            </p>
+                            <button
+                              onClick={() => {
+                                setNewFoodName(searchQuery);
+                                setActiveModalTab('custom');
+                              }}
+                              className="mt-2 text-xs font-sans text-[#C0FF00] underline font-bold cursor-pointer"
+                            >
+                              + Create "{searchQuery}" as custom food
+                            </button>
                           </div>
-                        ))
-                      )}
+                        ) : (
+                          filteredCatalog.map((item) => (
+                            <div
+                              key={item.id}
+                              onClick={() => {
+                                setSelectedFoodItem(item);
+                                setPortionGrams(100);
+                              }}
+                              className="p-3 bg-[#181818] border border-[#262626] hover:border-[#C0FF00]/60 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-all group"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="font-sans text-xs font-bold text-white group-hover:text-[#C0FF00] transition-colors">
+                                    {item.name}
+                                  </span>
+                                  {item.brand && (
+                                    <span className="text-[9px] font-mono font-bold uppercase text-gray-400 bg-[#242424] px-1.5 py-0.2 rounded">
+                                      {item.brand}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] font-mono text-gray-400 mt-1 flex-wrap">
+                                  <span className="text-white font-semibold">{item.kcalPer100g} kcal</span>
+                                  <span>•</span>
+                                  <span className="text-[#C0FF00]">E: {item.proteinPer100g}g</span>
+                                  <span>•</span>
+                                  <span className="text-amber-400">KH: {item.carbsPer100g}g</span>
+                                  <span>•</span>
+                                  <span className="text-rose-400">V: {item.fatPer100g}g</span>
+                                  <span>•</span>
+                                  <span className="text-emerald-400">Vez: {item.fiberPer100g}g</span>
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-mono text-[#C0FF00] group-hover:translate-x-0.5 uppercase font-bold shrink-0 transition-transform">
+                                Select →
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+
+              {/* TAB 2: PASTE SINGLE AH PRODUCT LINK */}
+              {activeModalTab === 'link' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-mono uppercase tracking-wider text-gray-400 font-bold mb-1">
+                      Albert Heijn Product Link or wi-code
+                    </label>
+                    <p className="text-[11px] text-gray-500 font-sans mb-2">
+                      Paste any product link from ah.nl (e.g. <code>https://www.ah.nl/producten/product/wi441199/...</code>)
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={singleLinkInput}
+                        onChange={(e) => setSingleLinkInput(e.target.value)}
+                        placeholder="https://www.ah.nl/producten/product/wi..."
+                        className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#00ade6] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono outline-none"
+                      />
+                      <button
+                        onClick={handleFetchSingleProductLink}
+                        disabled={singleLinkLoading || !singleLinkInput.trim()}
+                        className="px-4 py-2.5 bg-[#00ade6] hover:bg-[#0096c7] text-white font-sans text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                      >
+                        {singleLinkLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LinkIcon className="w-4 h-4" />}
+                        Extract
+                      </button>
+                    </div>
+                  </div>
+
+                  {singleLinkError && (
+                    <div className="p-3 bg-red-950/40 border border-red-900/60 rounded-xl text-xs text-red-300">
+                      {singleLinkError}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 3: PASTE AH SHARED GROCERY LIST */}
+              {activeModalTab === 'list' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-mono uppercase tracking-wider text-gray-400 font-bold mb-1">
+                      Albert Heijn Shared Grocery List Link
+                    </label>
+                    <p className="text-[11px] text-gray-500 font-sans mb-2">
+                      Share your cart/list from the AH app or web and paste the link below:
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={listLinkInput}
+                        onChange={(e) => setListLinkInput(e.target.value)}
+                        placeholder="https://www.ah.nl/mijnlijst/gedeelde-lijst/..."
+                        className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#00ade6] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono outline-none"
+                      />
+                      <button
+                        onClick={handleFetchSharedList}
+                        disabled={listLinkLoading || !listLinkInput.trim()}
+                        className="px-4 py-2.5 bg-[#00ade6] hover:bg-[#0096c7] text-white font-sans text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                      >
+                        {listLinkLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                        Fetch
+                      </button>
+                    </div>
+                  </div>
+
+                  {listLinkError && (
+                    <div className="p-3 bg-red-950/40 border border-red-900/60 rounded-xl text-xs text-red-300">
+                      {listLinkError}
                     </div>
                   )}
 
-                  <div className="pt-2 border-t border-[#222] flex items-center justify-between">
-                    <button
-                      onClick={() => setIsCreatingNewFood(true)}
-                      className="text-xs font-sans text-[#C0FF00] hover:underline flex items-center gap-1 cursor-pointer"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Create New Custom Food (per 100g)
-                    </button>
-                  </div>
-                </>
-              ) : (
-                /* Custom Food Item Creator Form */
+                  {listExtractedProducts.length > 0 && (
+                    <div className="space-y-2 pt-2 border-t border-[#222]">
+                      <div className="text-xs font-mono text-gray-400 font-bold uppercase">
+                        List Products ({listExtractedProducts.length}) — Click + to add to shelf:
+                      </div>
+                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        {listExtractedProducts.map((p, i) => (
+                          <div
+                            key={p.id || i}
+                            className="p-3 bg-[#181818] border border-[#262626] hover:border-[#00ade6]/50 rounded-xl flex items-center justify-between gap-3 transition-colors"
+                          >
+                            <div className="min-w-0">
+                              <div className="font-sans text-xs font-bold text-white truncate">
+                                {p.title}
+                              </div>
+                              <div className="text-[10px] font-mono text-gray-500 mt-0.5">
+                                {p.brand} • {p.salesUnitSize}
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleImportListItemToShelf(p)}
+                              className="px-3 py-1.5 bg-[#C0FF00] hover:bg-[#a8e000] text-black font-sans text-xs font-black uppercase tracking-wider rounded-lg cursor-pointer shrink-0"
+                            >
+                              + Add
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 4: CREATE CUSTOM FOOD */}
+              {activeModalTab === 'custom' && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-mono font-bold uppercase text-white">
-                      New Food (Values per 100g)
+                      New Custom Food (Values per 100g)
                     </span>
-                    <button
-                      onClick={() => setIsCreatingNewFood(false)}
-                      className="text-xs text-gray-400 hover:text-white underline cursor-pointer"
-                    >
-                      Back to list
-                    </button>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2">
@@ -792,17 +946,17 @@ export const DietaryView: React.FC = () => {
                         type="text"
                         value={newFoodName}
                         onChange={(e) => setNewFoodName(e.target.value)}
-                        placeholder="e.g. Kwark, Tonijn"
+                        placeholder="e.g. Protein shake"
                         className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl px-3 py-2 text-xs text-white outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Brand / Merk</label>
+                      <label className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Brand / Source</label>
                       <input
                         type="text"
                         value={newFoodBrand}
                         onChange={(e) => setNewFoodBrand(e.target.value)}
-                        placeholder="e.g. AH, Melkunie"
+                        placeholder="e.g. Homemade"
                         className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl px-3 py-2 text-xs text-white outline-none"
                       />
                     </div>
@@ -882,93 +1036,8 @@ export const DietaryView: React.FC = () => {
                     disabled={!newFoodName.trim()}
                     className="w-full mt-3 py-2.5 bg-[#C0FF00] hover:bg-[#a8e000] text-black font-sans text-xs font-black uppercase tracking-wider rounded-xl cursor-pointer disabled:opacity-40 transition-all"
                   >
-                    Save to My Food Shelf
+                    Save to My Shelf
                   </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* MODAL 2: ALBERT HEIJN SHARED LIST IMPORTER */}
-      {/* ========================================================================= */}
-      {showAHImportModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-[#141414] border border-[#262626] rounded-3xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#222]">
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5 text-[#00ade6]" />
-                <h3 className="font-display text-base font-black uppercase tracking-wider text-white">
-                  Albert Heijn List Importer
-                </h3>
-              </div>
-              <button
-                onClick={() => setShowAHImportModal(false)}
-                className="p-1.5 hover:bg-[#222] rounded-full text-gray-400 hover:text-white cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-5 overflow-y-auto space-y-4 flex-1">
-              <label className="block text-xs font-mono uppercase tracking-wider text-gray-400 font-bold">
-                Albert Heijn Shared List Link
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={ahListUrl}
-                  onChange={(e) => setAhListUrl(e.target.value)}
-                  placeholder="https://www.ah.nl/mijnlijst/gedeelde-lijst/..."
-                  className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#00ade6] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono outline-none"
-                />
-                <button
-                  onClick={handleFetchAHList}
-                  disabled={ahLoading || !ahListUrl.trim()}
-                  className="px-4 py-2.5 bg-[#00ade6] hover:bg-[#0096c7] text-white font-sans text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
-                >
-                  {ahLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                  Fetch
-                </button>
-              </div>
-
-              {ahError && (
-                <div className="p-3 bg-red-950/40 border border-red-900/60 rounded-xl text-xs text-red-300">
-                  {ahError}
-                </div>
-              )}
-
-              {ahExtractedProducts.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-[#222]">
-                  <div className="text-xs font-mono text-gray-400 font-bold uppercase">
-                    Extracted Products ({ahExtractedProducts.length}) — Tap to log:
-                  </div>
-                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                    {ahExtractedProducts.map((p, i) => (
-                      <div
-                        key={p.id || i}
-                        className="p-3 bg-[#181818] border border-[#262626] hover:border-[#00ade6]/50 rounded-xl flex items-center justify-between gap-3 transition-colors"
-                      >
-                        <div className="min-w-0">
-                          <div className="font-sans text-xs font-bold text-white truncate">
-                            {p.title}
-                          </div>
-                          <div className="text-[10px] font-mono text-gray-500 mt-0.5">
-                            {p.brand} • {p.salesUnitSize}
-                          </div>
-                        </div>
-
-                        <button
-                          onClick={() => handleImportAHProductToCatalog(p)}
-                          className="px-3 py-1.5 bg-[#C0FF00] hover:bg-[#a8e000] text-black font-sans text-xs font-black uppercase tracking-wider rounded-lg cursor-pointer shrink-0"
-                        >
-                          + Log
-                        </button>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               )}
             </div>
