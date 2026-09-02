@@ -45,9 +45,10 @@ export function parseDutchNutritionTable(html: string): {
   const end = html.indexOf('</table>', start);
   const tableSection = html.slice(start, end !== -1 ? end + 8 : start + 6000);
 
-  // Check direct kcal occurrence in the table section
+  // Check direct kcal / kc occurrence in the table section
   const fullKcalMatch =
-    tableSection.match(/(\d+(?:[.,]\d+)?)\s*kcal/i) || tableSection.match(/kcal\s*(\d+(?:[.,]\d+)?)/i);
+    tableSection.match(/(\d+(?:[.,]\d+)?)\s*(?:kcal|kc\b)/i) ||
+    tableSection.match(/(?:kcal|kc\b)\s*(\d+(?:[.,]\d+)?)/i);
   if (fullKcalMatch) {
     kcalPer100g = parseFloat(fullKcalMatch[1].replace(',', '.'));
   }
@@ -63,8 +64,8 @@ export function parseDutchNutritionTable(html: string): {
       .toLowerCase();
 
     if (!kcalPer100g && cleaned.startsWith('energie') && !cleaned.includes('referentie')) {
-      let m = cleaned.match(/(\d+(?:[.,]\d+)?)\s*kcal/);
-      if (!m) m = cleaned.match(/kcal\s*(\d+(?:[.,]\d+)?)/);
+      let m = cleaned.match(/(\d+(?:[.,]\d+)?)\s*(?:kcal|kc\b)/);
+      if (!m) m = cleaned.match(/(?:kcal|kc\b)\s*(\d+(?:[.,]\d+)?)/);
       if (m) kcalPer100g = parseFloat(m[1].replace(',', '.'));
     }
     if (cleaned.startsWith('vetten') || cleaned.startsWith('vet ') || cleaned.startsWith('vet:')) {
@@ -322,7 +323,44 @@ export const dirkAdapter: StoreScraperAdapter = {
 };
 
 // -------------------------------------------------------------
-// ADAPTER 4: Generic Fallback (Plus, Aldi, Lidl, etc.)
+// ADAPTER 4: PLUS Supermarkt (plus.nl)
+// -------------------------------------------------------------
+export const plusAdapter: StoreScraperAdapter = {
+  name: 'PLUS',
+  canHandle(url: string) {
+    return url.toLowerCase().includes('plus.nl');
+  },
+  normalizeUrl(rawUrl: string) {
+    const clean = rawUrl.trim().split('?')[0];
+    return `https://www.plus.nl/ECOP_HotCache_Eng/rest/ResourceManagement/Preload?url=${encodeURIComponent(clean)}`;
+  },
+  parse(html: string, url: string): ProductScraperResult {
+    const { title, brand } = extractSchemaAndHeadings(html, 'PLUS');
+    const nutrition = parseDutchNutritionTable(html);
+
+    const plusIdMatch = url.match(/-(\d+)(?:[/?#]|$)/) || url.match(/product\/([^/?#]+)/i);
+    const productId = plusIdMatch ? `plus_${plusIdMatch[1]}` : `plus_${Date.now()}`;
+
+    const isDrink =
+      html.toLowerCase().includes('per 100 milliliter') ||
+      html.toLowerCase().includes('per 100 ml') ||
+      title.toLowerCase().includes('melk') ||
+      title.toLowerCase().includes('drank') ||
+      title.toLowerCase().includes('sap');
+
+    return {
+      id: productId,
+      name: title,
+      brand: brand || 'PLUS',
+      servingUnit: isDrink ? 'ml' : 'gram',
+      ...nutrition,
+      sourceUrl: url,
+    };
+  },
+};
+
+// -------------------------------------------------------------
+// ADAPTER 5: Generic Fallback (Aldi, Lidl, etc.)
 // -------------------------------------------------------------
 export const genericAdapter: StoreScraperAdapter = {
   name: 'Generic Store',
@@ -358,11 +396,13 @@ export const genericAdapter: StoreScraperAdapter = {
 
 // -------------------------------------------------------------
 // Registry of all Store Adapters
+// (Easily register future stores here: Jumbo, AH, Dirk, Plus, etc.)
 // -------------------------------------------------------------
 export const STORE_SCRAPERS: StoreScraperAdapter[] = [
   jumboAdapter,
   albertHeijnAdapter,
   dirkAdapter,
+  plusAdapter,
   genericAdapter,
 ];
 
