@@ -109,9 +109,10 @@ export const DietaryView: React.FC = () => {
 
     // Fetch from Supabase Hive-Mind
     setIsLoadingCatalog(true);
-    fetchHiveMindFoodCatalog()
+    fetchHiveMindFoodCatalog(undefined, userId)
       .then((remoteFoods) => {
-        if (remoteFoods && remoteFoods.length > 0) {
+        // Always reflect latest database state (even if empty or after records were deleted)
+        if (remoteFoods !== undefined) {
           setCatalog(remoteFoods);
           saveFoodCatalog(userId, remoteFoods);
         }
@@ -123,7 +124,7 @@ export const DietaryView: React.FC = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery.trim().length >= 2) {
-        fetchHiveMindFoodCatalog(searchQuery.trim()).then((results) => {
+        fetchHiveMindFoodCatalog(searchQuery.trim(), userId).then((results) => {
           if (results && results.length > 0) {
             // Merge with existing catalog without duplicates
             setCatalog((prev) => {
@@ -138,7 +139,7 @@ export const DietaryView: React.FC = () => {
     }, 280);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, userId]);
 
   // Today string helper (YYYY-MM-DD)
   const todayStr = new Date().toISOString().split('T')[0];

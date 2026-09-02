@@ -92,7 +92,7 @@ export async function fetchHiveMindFoodCatalog(searchQuery?: string, currentUser
     }
 
     const { data, error } = await query;
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       const mapped = data
         .map(mapSupabaseRowToFoodItem)
         .filter((item) => {
@@ -103,21 +103,24 @@ export async function fetchHiveMindFoodCatalog(searchQuery?: string, currentUser
           return true; // Public verified store items visible to everyone
         });
 
-      try {
-        localStorage.setItem('hive_mind_food_catalog_cache', JSON.stringify(mapped));
-      } catch (e) {}
+      // Update local storage cache to stay in sync with the database (even if empty after deletions)
+      if (!searchQuery) {
+        try {
+          localStorage.setItem('hive_mind_food_catalog_cache', JSON.stringify(mapped));
+        } catch (e) {}
+      }
       return mapped;
     }
   } catch (err) {
     console.warn('Error fetching hive mind foods:', err);
   }
 
-  // Fallback to local cache or defaults
+  // Fallback to local cache ONLY if offline/fetch error
   try {
     const raw = localStorage.getItem('hive_mind_food_catalog_cache');
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed.filter((item: FoodItemNutrition) => {
           if (item.isCustom) {
             return currentUserId && item.userId === currentUserId;
