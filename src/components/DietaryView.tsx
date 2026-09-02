@@ -32,8 +32,8 @@ import {
   getStoreMetadata,
   cleanProductTitle,
   isHouseBrand,
-  fuzzyMatch,
 } from '../lib/storeBranding.ts';
+import { searchFoodItems } from '../lib/foodSearch.ts';
 import {
   getSavedFoodCatalog,
   saveFoodCatalog,
@@ -452,18 +452,8 @@ export const DietaryView: React.FC = () => {
     }
   };
 
-  // Search Filter with Typo-Tolerant Fuzzy Search (e.g. "kpi" -> "kip")
-  const filteredCatalog = catalog.filter((item) => {
-    if (!searchQuery.trim()) return true;
-    const storeMeta = getStoreMetadata(item.sourceUrl, item.id);
-    return fuzzyMatch(searchQuery, [
-      item.name,
-      item.brand,
-      cleanProductTitle(item.name),
-      storeMeta?.name,
-      storeMeta?.badgeLabel,
-    ]);
-  });
+  // Intelligent ranked search with typo tolerance and exact prefix prioritization
+  const filteredCatalog = searchFoodItems(catalog, searchQuery, 200);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300 pb-12">

@@ -84,7 +84,7 @@ export async function fetchHiveMindFoodCatalog(searchQuery?: string, currentUser
       .from('food_items')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(250);
+      .limit(500);
 
     if (searchQuery && searchQuery.trim().length > 0) {
       const q = searchQuery.trim();
@@ -103,7 +103,7 @@ export async function fetchHiveMindFoodCatalog(searchQuery?: string, currentUser
           return true; // Public verified store items visible to everyone
         });
 
-      // Update local storage cache to stay in sync with the database (even if empty after deletions)
+      // Update local storage cache with general catalog to stay in sync with the database
       if (!searchQuery) {
         try {
           localStorage.setItem('hive_mind_food_catalog_cache', JSON.stringify(mapped));
