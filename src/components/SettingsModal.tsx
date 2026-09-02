@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
 import { usePWA } from '../context/PWAContext.tsx';
 import { useTheme } from '../context/ThemeContext.tsx';
-import { X, Download, Upload, Trash2, LogOut, Loader2, AlertTriangle, Smartphone, Check, Share2, Layers, Timer, Zap, UserCheck, Sun, Moon, Monitor, HardDriveDownload, HardDriveUpload } from 'lucide-react';
-import { exportAllLogs, deleteAllLogs, importAllLogs, fetchWorkoutsData, saveWorkoutsAndExercises } from '../lib/supabaseData.ts';
+import { X, LogOut, Loader2, Smartphone, Check, Share2, Layers, Timer, Zap, UserCheck, Sun, Moon, Monitor, HardDriveDownload, HardDriveUpload } from 'lucide-react';
+import { exportAllLogs, importAllLogs, fetchWorkoutsData, saveWorkoutsAndExercises } from '../lib/supabaseData.ts';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { Workout, Exercise } from '../models.ts';
 
@@ -18,8 +18,6 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { theme, setTheme } = useTheme();
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
-  const [showConfirmReset, setShowConfirmReset] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [isRoutineEditorOpen, setIsRoutineEditorOpen] = useState(false);
   const [userWorkouts, setUserWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
@@ -163,28 +161,6 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    }
-  };
-
-  const handleReset = async () => {
-    setIsResetting(true);
-    try {
-      await deleteAllLogs(user.uid);
-      try {
-        const { clearAllQueuedOfflineSessions } = await import('../utils/offlineQueue.ts');
-        await clearAllQueuedOfflineSessions();
-      } catch (err) {
-        console.warn('Failed to clear offline queue on reset:', err);
-      }
-      setShowConfirmReset(false);
-      onClose();
-      // Reload the page to clear state
-      window.location.reload();
-    } catch (e) {
-      console.error('Failed to reset logs:', e);
-      alert('Failed to reset logs.');
-    } finally {
-      setIsResetting(false);
     }
   };
 
@@ -450,47 +426,6 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
               </button>
             </div>
           </div>
-
-          {!showConfirmReset ? (
-            <button
-              onClick={() => setShowConfirmReset(true)}
-              className="flex items-center gap-2.5 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-red-900/50 rounded-xl text-left transition-colors cursor-pointer"
-            >
-              <div className="w-7 h-7 rounded-lg bg-red-500/10 flex items-center justify-center text-red-500 shrink-0">
-                <Trash2 className="w-3.5 h-3.5" />
-              </div>
-              <div className="min-w-0">
-                <div className="font-bold text-xs sm:text-sm text-red-500">Reset all logs & weigh-ins</div>
-                <div className="text-[11px] text-gray-500 line-clamp-1">Permanently delete history</div>
-              </div>
-            </button>
-          ) : (
-            <div className="p-2.5 bg-red-500/10 border border-red-900/50 rounded-xl flex flex-col gap-2">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-                <div>
-                  <div className="font-bold text-xs text-red-500 uppercase tracking-tight">Are you sure?</div>
-                  <div className="text-[11px] text-red-400/80 mt-0.5">This will delete all logs permanently.</div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 mt-0.5">
-                <button
-                  onClick={() => setShowConfirmReset(false)}
-                  disabled={isResetting}
-                  className="flex-1 py-1.5 bg-transparent border border-red-900/50 text-red-400 text-[10px] font-bold rounded-lg hover:bg-red-900/20 transition-colors uppercase tracking-wider"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleReset}
-                  disabled={isResetting}
-                  className="flex-1 py-1.5 bg-red-500 text-white text-[10px] font-bold rounded-lg hover:bg-red-600 transition-colors uppercase tracking-wider flex items-center justify-center gap-1.5"
-                >
-                  {isResetting ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Yes, Delete'}
-                </button>
-              </div>
-            </div>
-          )}
 
           <div className="h-px bg-[#222] my-0.5" />
 
