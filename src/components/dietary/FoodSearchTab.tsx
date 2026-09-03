@@ -74,8 +74,17 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
               type="number"
               min="1"
               step="1"
-              value={portionGrams}
-              onChange={(e) => setPortionGrams(Number(e.target.value) || 0)}
+              value={portionGrams === 0 ? '' : portionGrams}
+              placeholder="0"
+              onChange={(e) => {
+                const rawVal = e.target.value;
+                if (rawVal === '') {
+                  setPortionGrams(0);
+                } else {
+                  const parsed = parseInt(rawVal, 10);
+                  setPortionGrams(isNaN(parsed) ? 0 : Math.max(0, parsed));
+                }
+              }}
               className="w-24 bg-[#101010] border border-[#333] focus:border-[#C0FF00] rounded-xl px-3 py-2 text-center text-sm font-mono font-bold text-[#C0FF00] outline-none"
             />
             <div className="flex items-center gap-1.5 flex-wrap">

@@ -57,6 +57,7 @@ export const useDietaryTracking = (userId: string) => {
   // Custom Food Form States
   const [newFoodName, setNewFoodName] = useState('');
   const [newFoodBrand, setNewFoodBrand] = useState('');
+  const [newFoodBarcode, setNewFoodBarcode] = useState('');
   const [newFoodKcal, setNewFoodKcal] = useState<number | ''>('');
   const [newFoodProtein, setNewFoodProtein] = useState<number | ''>('');
   const [newFoodCarbs, setNewFoodCarbs] = useState<number | ''>('');
@@ -380,6 +381,7 @@ export const useDietaryTracking = (userId: string) => {
       id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `custom_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       name: newFoodName.trim(),
       brand: newFoodBrand.trim() || undefined,
+      barcode: newFoodBarcode.trim() || undefined,
       kcalPer100g: clampMacro(newFoodKcal),
       proteinPer100g: clampMacro(newFoodProtein),
       carbsPer100g: clampMacro(newFoodCarbs),
@@ -399,6 +401,7 @@ export const useDietaryTracking = (userId: string) => {
     // Reset Form
     setNewFoodName('');
     setNewFoodBrand('');
+    setNewFoodBarcode('');
     setNewFoodKcal('');
     setNewFoodProtein('');
     setNewFoodCarbs('');
@@ -448,6 +451,8 @@ export const useDietaryTracking = (userId: string) => {
     setNewFoodName,
     newFoodBrand,
     setNewFoodBrand,
+    newFoodBarcode,
+    setNewFoodBarcode,
     newFoodKcal,
     setNewFoodKcal,
     newFoodProtein,

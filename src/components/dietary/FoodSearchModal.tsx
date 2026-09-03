@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Camera,
   Link as LinkIcon,
   ListPlus,
   Plus,
@@ -59,6 +60,8 @@ interface FoodSearchModalProps {
   setNewFoodName: (val: string) => void;
   newFoodBrand: string;
   setNewFoodBrand: (val: string) => void;
+  newFoodBarcode?: string;
+  setNewFoodBarcode?: (val: string) => void;
   newFoodKcal: number | '';
   setNewFoodKcal: (val: number | '') => void;
   newFoodProtein: number | '';
@@ -110,6 +113,8 @@ export const FoodSearchModal: React.FC<FoodSearchModalProps> = ({
   setNewFoodName,
   newFoodBrand,
   setNewFoodBrand,
+  newFoodBarcode,
+  setNewFoodBarcode,
   newFoodKcal,
   setNewFoodKcal,
   newFoodProtein,
@@ -253,6 +258,8 @@ export const FoodSearchModal: React.FC<FoodSearchModalProps> = ({
               setNewFoodName={setNewFoodName}
               newFoodBrand={newFoodBrand}
               setNewFoodBrand={setNewFoodBrand}
+              newFoodBarcode={newFoodBarcode}
+              setNewFoodBarcode={setNewFoodBarcode}
               newFoodKcal={newFoodKcal}
               setNewFoodKcal={setNewFoodKcal}
               newFoodProtein={newFoodProtein}

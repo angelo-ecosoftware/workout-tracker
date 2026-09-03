@@ -1,5 +1,5 @@
 import React from 'react';
-import { Apple, Plus, Trash2 } from 'lucide-react';
+import { Apple, Plus, ScanBarcode, Trash2 } from 'lucide-react';
 import { LoggedDietaryEntry } from '../../models.ts';
 
 interface LoggedFoodListProps {
@@ -7,6 +7,7 @@ interface LoggedFoodListProps {
   selectedDate: string;
   isToday: boolean;
   onOpenAddModal: () => void;
+  onOpenBarcodeScanner?: () => void;
   onUpdateEntryGrams: (entryId: string, grams: number) => void;
   onDeleteEntry: (entryId: string) => void;
 }
@@ -16,6 +17,7 @@ export const LoggedFoodList: React.FC<LoggedFoodListProps> = ({
   selectedDate,
   isToday,
   onOpenAddModal,
+  onOpenBarcodeScanner,
   onUpdateEntryGrams,
   onDeleteEntry,
 }) => {
@@ -32,13 +34,27 @@ export const LoggedFoodList: React.FC<LoggedFoodListProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={onOpenAddModal}
-          className="px-4 py-2 bg-[#C0FF00] hover:bg-[#a8e000] text-black font-sans text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(192,255,0,0.2)] cursor-pointer"
-        >
-          <Plus className="w-4 h-4 stroke-[3]" />
-          Log Food
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpenBarcodeScanner && (
+            <button
+              onClick={onOpenBarcodeScanner}
+              title="Scan barcode with camera"
+              aria-label="Scan barcode with camera"
+              className="p-2 sm:px-3 sm:py-2 bg-[#1b1b1b] hover:bg-[#252525] border border-[#333] hover:border-[#C0FF00]/50 text-white font-sans text-xs font-bold uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <ScanBarcode className="w-4 h-4 text-[#C0FF00]" />
+              <span className="hidden sm:inline">Scan</span>
+            </button>
+          )}
+
+          <button
+            onClick={onOpenAddModal}
+            className="px-4 py-2 bg-[#C0FF00] hover:bg-[#a8e000] text-black font-sans text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all shadow-[0_0_15px_rgba(192,255,0,0.2)] cursor-pointer"
+          >
+            <Plus className="w-4 h-4 stroke-[3]" />
+            Log Food
+          </button>
+        </div>
       </div>
 
       {/* Empty State */}

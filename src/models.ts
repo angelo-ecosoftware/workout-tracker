@@ -122,6 +122,7 @@ export interface FoodItemNutrition {
   fatPer100g: number;
   fiberPer100g: number;
   sourceUrl?: string;
+  barcode?: string;
   // Package sizing and user isolation
   packageWeightGrams?: number;
   pieceCount?: number;

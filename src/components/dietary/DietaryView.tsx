@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { DietaryDateNavigator } from './DietaryDateNavigator.tsx';
 import { DietaryDailyMacroTotals } from './DietaryDailyMacroTotals.tsx';
 import { LoggedFoodList } from './LoggedFoodList.tsx';
 import { FoodSearchModal, StoreMetadata } from './FoodSearchModal.tsx';
+import { BarcodeScannerModal } from './BarcodeScannerModal.tsx';
 import { useDietaryTracking } from './useDietaryTracking.ts';
 
 interface DietaryViewProps {
@@ -13,6 +14,7 @@ interface DietaryViewProps {
 export const DietaryView: React.FC<DietaryViewProps> = ({ userId: propUserId }) => {
   const { user } = useAuth();
   const userId = propUserId || user?.id || 'anonymous';
+  const [isBarcodeScannerOpen, setIsBarcodeScannerOpen] = useState(false);
 
   const {
     todayStr,
@@ -55,6 +57,8 @@ export const DietaryView: React.FC<DietaryViewProps> = ({ userId: propUserId }) 
     setNewFoodName,
     newFoodBrand,
     setNewFoodBrand,
+    newFoodBarcode,
+    setNewFoodBarcode,
     newFoodKcal,
     setNewFoodKcal,
     newFoodProtein,
@@ -163,6 +167,7 @@ export const DietaryView: React.FC<DietaryViewProps> = ({ userId: propUserId }) 
           setSelectedFoodItem(null);
           setIsAddModalOpen(true);
         }}
+        onOpenBarcodeScanner={() => setIsBarcodeScannerOpen(true)}
         onUpdateEntryGrams={handleUpdateEntryGrams}
         onDeleteEntry={handleDeleteEntry}
       />
@@ -207,6 +212,8 @@ export const DietaryView: React.FC<DietaryViewProps> = ({ userId: propUserId }) 
         setNewFoodName={setNewFoodName}
         newFoodBrand={newFoodBrand}
         setNewFoodBrand={setNewFoodBrand}
+        newFoodBarcode={newFoodBarcode}
+        setNewFoodBarcode={setNewFoodBarcode}
         newFoodKcal={newFoodKcal}
         setNewFoodKcal={setNewFoodKcal}
         newFoodProtein={newFoodProtein}
@@ -220,6 +227,24 @@ export const DietaryView: React.FC<DietaryViewProps> = ({ userId: propUserId }) 
         newFoodFiber={newFoodFiber}
         setNewFoodFiber={setNewFoodFiber}
         onSaveNewCustomFood={handleSaveNewCustomFood}
+      />
+
+      {/* 5. Live Barcode Camera Scanner */}
+      <BarcodeScannerModal
+        isOpen={isBarcodeScannerOpen}
+        onClose={() => setIsBarcodeScannerOpen(false)}
+        currentUserId={userId}
+        onProductDetected={(detectedProduct) => {
+          setSelectedFoodItem(detectedProduct);
+          setPortionGrams(detectedProduct.packageWeightGrams || 100);
+          setIsAddModalOpen(true);
+          setActiveModalTab('search');
+        }}
+        onManualEntryRequested={(barcode) => {
+          setNewFoodBarcode(barcode);
+          setIsAddModalOpen(true);
+          setActiveModalTab('custom');
+        }}
       />
     </div>
   );

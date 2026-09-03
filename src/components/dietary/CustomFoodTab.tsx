@@ -6,6 +6,8 @@ interface CustomFoodTabProps {
   setNewFoodName: (val: string) => void;
   newFoodBrand: string;
   setNewFoodBrand: (val: string) => void;
+  newFoodBarcode?: string;
+  setNewFoodBarcode?: (val: string) => void;
   newFoodKcal: number | '';
   setNewFoodKcal: (val: number | '') => void;
   newFoodProtein: number | '';
@@ -26,6 +28,8 @@ export const CustomFoodTab: React.FC<CustomFoodTabProps> = ({
   setNewFoodName,
   newFoodBrand,
   setNewFoodBrand,
+  newFoodBarcode,
+  setNewFoodBarcode,
   newFoodKcal,
   setNewFoodKcal,
   newFoodProtein,
@@ -58,7 +62,7 @@ export const CustomFoodTab: React.FC<CustomFoodTabProps> = ({
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         <div>
           <label className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Product Name *</label>
           <input
@@ -77,6 +81,17 @@ export const CustomFoodTab: React.FC<CustomFoodTabProps> = ({
             onChange={(e) => setNewFoodBrand(e.target.value)}
             placeholder="e.g. Homemade"
             className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl px-3 py-2 text-xs text-white outline-none"
+          />
+        </div>
+        <div>
+          <label className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Barcode (EAN-13 / UPC)</label>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={newFoodBarcode || ''}
+            onChange={(e) => setNewFoodBarcode && setNewFoodBarcode(e.target.value)}
+            placeholder="e.g. 8710400000000"
+            className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl px-3 py-2 text-xs font-mono text-white outline-none"
           />
         </div>
       </div>
