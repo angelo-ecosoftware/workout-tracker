@@ -373,9 +373,15 @@ describe('Full-Matrix CRUD and Error Status Code Coverage for Food & Dietary Ent
           {
             id: 'entry_1',
             foodItemId: 'ah_wi456789',
-            foodItemName: 'AH Biologische Magere Kwark',
+            name: 'AH Biologische Magere Kwark',
             brand: 'AH Biologisch',
-            grams: 500, // 5 * 10g protein = 50g, 5 * 56kcal = 280kcal
+            amountGrams: 500, // 5 * 10g protein = 50g, 5 * 56kcal = 280kcal
+            kcalPer100g: 56,
+            proteinPer100g: 10,
+            carbsPer100g: 3.5,
+            sugarPer100g: 3.5,
+            fatPer100g: 0.2,
+            fiberPer100g: 0,
             calculatedKcal: 280,
             calculatedProtein: 50,
             calculatedCarbs: 17.5,
@@ -407,9 +413,15 @@ describe('Full-Matrix CRUD and Error Status Code Coverage for Food & Dietary Ent
         {
           id: 'entry_2',
           foodItemId: 'jumbo_109283',
-          foodItemName: 'Jumbo Scharrel Kipfilet',
+          name: 'Jumbo Scharrel Kipfilet',
           brand: 'Jumbo',
-          grams: 200,
+          amountGrams: 200,
+          kcalPer100g: 110,
+          proteinPer100g: 23.5,
+          carbsPer100g: 0,
+          sugarPer100g: 0,
+          fatPer100g: 1.8,
+          fiberPer100g: 0,
           calculatedKcal: 220,
           calculatedProtein: 47,
           calculatedCarbs: 0,
@@ -455,9 +467,15 @@ describe('Full-Matrix CRUD and Error Status Code Coverage for Food & Dietary Ent
           {
             id: 'entry_to_del',
             foodItemId: 'ah_wi456789',
-            foodItemName: 'AH Kwark',
+            name: 'AH Kwark',
             brand: 'AH',
-            grams: 250,
+            amountGrams: 250,
+            kcalPer100g: 56,
+            proteinPer100g: 10,
+            carbsPer100g: 3.5,
+            sugarPer100g: 3.5,
+            fatPer100g: 0.2,
+            fiberPer100g: 0,
             calculatedKcal: 140,
             calculatedProtein: 25,
             calculatedCarbs: 8.7,
@@ -515,7 +533,7 @@ describe('Full-Matrix CRUD and Error Status Code Coverage for Food & Dietary Ent
 
       const { data, error } = await supabase.from('food_items').delete().eq('id', 'non_existent_id');
       expect(error).toBeNull();
-      expect(data?.count).toBe(0);
+      expect((data as any)?.count).toBe(0);
       expect(mockFoodItemsTable).toHaveLength(1);
     });
   });

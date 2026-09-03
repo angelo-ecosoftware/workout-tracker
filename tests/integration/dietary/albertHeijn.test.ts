@@ -122,8 +122,8 @@ describe('Albert Heijn (AH) Product Ingestion & Database Insert Test', () => {
       carbsPer100g: 3.5,
       sugarPer100g: 3.5,
       fatPer100g: 0.2,
-      packageGrams: 500,
-      verified: true,
+      fiberPer100g: 0,
+      packageWeightGrams: 500,
       sourceUrl: 'https://www.ah.nl/producten/product/wi456789/ah-biologische-magere-kwark',
     };
 
