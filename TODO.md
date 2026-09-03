@@ -48,15 +48,18 @@ This document tracks identified architectural improvements, edge case handling, 
   - **Issue**: Gym basements with poor cellular reception fail Supabase completion requests.
   - **Action**: Queue offline session completions and set logs in `IndexedDB` and trigger background sync once connectivity is restored via `navigator.onLine` and `window.addEventListener('online')`.
 
+---
 
+## 5. Backlog & Active Ideas
+*For expanded product ideas, anatomy guides, and role-based permissions, see [IDEAS.md](IDEAS.md).*
 
-homepage eventually
-
-implement water intake 
-
-implment calories system
-wger excercise system with gifs
-
-compress image size ins s3 storage bucket
-
-zoekbalk werk niet goed bij product zoeken en cijffer 0 gaat niet weg 
+- [ ] **Homepage & Landing Experience**
+- [ ] **Water Intake Tracking**
+- [ ] **Barcode Product Scanner (Albert Heijn / Open Food Facts Indexing)**
+- [ ] **WGER Exercise Library & Muscle Target Visuals (Red Target Anatomy)**
+- [ ] **1:1 Exercise Video & Form Guidance Links**
+- [ ] **S3 / Storage Image Compression Pipeline**
+- [ ] **Dietary Input Leading Zero (`0`) Input Bug Fix**
+- [ ] **Last Known Weight Set Auto-Population Review**
+- [ ] **Sleep Hours & Energy Level Persistence in Session History**
+- [ ] **Role-Based Access Control (Athlete / Coach / Admin)** 
