@@ -7,7 +7,7 @@ import {
   BodyMeasurementLog,
   FoodItemNutrition,
   DailyDietaryLog,
-} from '../../src/models.ts';
+} from '../../../src/models.ts';
 
 export const userFactory = {
   build: (overrides: Partial<UserProfile> = {}): UserProfile => ({

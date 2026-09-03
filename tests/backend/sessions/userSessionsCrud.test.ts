@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { fetchWorkoutHistory } from '../../../src/lib/db/sessions.ts';
-import { sessionFactory, setFactory } from '../../fixtures/factories.ts';
+import { sessionFactory, setFactory } from '../../shared/fixtures/factories.ts';
 
 let mockSessionsDb: any[] = [];
 let shouldFailDb = false;

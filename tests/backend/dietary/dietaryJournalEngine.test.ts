@@ -6,7 +6,7 @@ import {
   computeDailyTotals,
 } from '../../../src/lib/dietaryData.ts';
 import { FoodItemNutrition, LoggedDietaryEntry } from '../../../src/models.ts';
-import { foodItemFactory } from '../../fixtures/factories.ts';
+import { foodItemFactory } from '../../shared/fixtures/factories.ts';
 
 let mockFoodItemsDb: any[] = [];
 let shouldFailDb = false;

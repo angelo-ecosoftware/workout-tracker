@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SessionEngine, SetLogger } from '../../../src/engine.ts';
 import { updateSessionNotes, updateSessionPhotos, updateSessionDate } from '../../../src/lib/db/sessions.ts';
-import { sessionFactory, setFactory, userFactory, workoutFactory, exerciseFactory } from '../../fixtures/factories.ts';
+import { sessionFactory, setFactory, userFactory, workoutFactory, exerciseFactory } from '../../shared/fixtures/factories.ts';
 
 let mockSessionsDb: any[] = [];
 let shouldFailDb = false;

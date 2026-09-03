@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { logDailyBodyWeight, fetchBodyMeasurementLogs } from '../../../src/lib/db/biometrics.ts';
-import { bodyMeasurementFactory } from '../../fixtures/factories.ts';
+import { bodyMeasurementFactory } from '../../shared/fixtures/factories.ts';
 
 let mockBodyLogsDb: any[] = [];
 let shouldFailDb = false;

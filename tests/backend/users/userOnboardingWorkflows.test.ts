@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { initializeUser, saveUserMetrics } from '../../../src/lib/db/users.ts';
 import { UserProfile, UserMetrics } from '../../../src/models.ts';
-import { userFactory } from '../../fixtures/factories.ts';
+import { userFactory } from '../../shared/fixtures/factories.ts';
 
 let mockUsersDb: any[] = [];
 let shouldFailDb = false;

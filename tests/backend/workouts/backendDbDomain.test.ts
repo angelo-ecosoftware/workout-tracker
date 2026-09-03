@@ -6,7 +6,7 @@ import {
   fetchWorkoutHistory,
   deleteSessions,
 } from '../../../src/lib/supabaseData.ts';
-import { workoutFactory } from '../../fixtures/factories.ts';
+import { workoutFactory } from '../../shared/fixtures/factories.ts';
 
 // Mock the underlying Supabase client to test data domain logic deterministically
 vi.mock('../../../src/lib/supabase.ts', () => {

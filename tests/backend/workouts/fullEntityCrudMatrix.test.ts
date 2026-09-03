@@ -28,7 +28,7 @@ import {
   exerciseFactory,
   sessionFactory,
   setFactory,
-} from '../../fixtures/factories.ts';
+} from '../../shared/fixtures/factories.ts';
 import { FoodItemNutrition, DailyDietaryLog } from '../../../src/models.ts';
 
 // -------------------------------------------------------------

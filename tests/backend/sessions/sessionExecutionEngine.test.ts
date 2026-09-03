@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { deleteSessions, fetchWorkoutHistory } from '../../../src/lib/db/sessions.ts';
 import { Session, WorkoutSet } from '../../../src/models.ts';
-import { sessionFactory, setFactory } from '../../fixtures/factories.ts';
+import { sessionFactory, setFactory } from '../../shared/fixtures/factories.ts';
 
 let mockSessionsDb: any[] = [];
 let mockSetsDb: any[] = [];
