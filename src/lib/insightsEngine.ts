@@ -10,6 +10,13 @@ export interface HeatmapDay {
   workoutNames: string[];
 }
 
+export interface OverallSummaryStats {
+  totalWorkouts: number;
+  totalVolumeKg: number;
+  totalSets: number;
+  totalReps: number;
+}
+
 export interface RestDisciplineMetrics {
   totalRestSeconds: number;
   recordedRestIntervalsCount: number;
