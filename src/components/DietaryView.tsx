@@ -176,8 +176,12 @@ export const DietaryView: React.FC = () => {
   // Add Item to Daily Log
   const handleAddEntryToLog = (item: FoodItemNutrition, grams: number) => {
     const calculated = calculatePortionNutrients(item, grams);
+    const entryId = typeof crypto !== 'undefined' && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : `diet_entry_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+
     const newEntry: LoggedDietaryEntry = {
-      id: `diet_entry_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      id: entryId,
       foodItemId: item.id,
       name: item.name,
       brand: item.brand,

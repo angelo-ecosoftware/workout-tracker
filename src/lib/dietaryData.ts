@@ -51,13 +51,16 @@ export function mapSupabaseRowToFoodItem(row: any): FoodItemNutrition {
     packageWeightGrams: row.package_weight_grams ? Number(row.package_weight_grams) : undefined,
     pieceCount: row.piece_count ? Number(row.piece_count) : undefined,
     isCustom: Boolean(row.is_custom),
-    userId: row.user_id || row.created_by,
+    userId: row.user_id || undefined,
   };
 }
 
-export function mapFoodItemToSupabaseRow(item: FoodItemNutrition, createdBy: string = 'community') {
+export function mapFoodItemToSupabaseRow(item: FoodItemNutrition, createdByUserId?: string) {
+  const isCustom = Boolean(item.isCustom);
+  const resolvedUserId = isCustom ? (item.userId || createdByUserId || null) : null;
+
   return {
-    id: item.id || `food_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: item.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `food_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`),
     name: item.name,
     brand: item.brand || '',
     serving_unit: item.servingUnit || 'gram',
@@ -70,9 +73,9 @@ export function mapFoodItemToSupabaseRow(item: FoodItemNutrition, createdBy: str
     source_url: item.sourceUrl || null,
     package_weight_grams: item.packageWeightGrams || null,
     piece_count: item.pieceCount || null,
-    is_custom: Boolean(item.isCustom),
-    user_id: item.userId || createdBy,
-    created_by: createdBy,
+    is_custom: isCustom,
+    user_id: resolvedUserId,
+    created_by: isCustom ? (resolvedUserId || 'user') : 'community',
     updated_at: new Date().toISOString(),
   };
 }
@@ -100,7 +103,7 @@ export async function fetchHiveMindFoodCatalog(searchQuery?: string, currentUser
           if (item.isCustom) {
             return currentUserId && (item.userId === currentUserId);
           }
-          return true; // Public verified store items visible to everyone
+          return true; // Public verified store items (user_id IS NULL or 'community') visible to everyone
         });
 
       // Update local storage cache with general catalog to stay in sync with the database
@@ -324,7 +327,9 @@ export async function persistDailyDietaryLog(userId: string, log: DailyDietaryLo
 
       if (log.entries.length > 0) {
         const rows = log.entries.map((e) => ({
-          id: e.id || `entry_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+          id: e.id && !e.id.startsWith('entry_') && !e.id.startsWith('diet_entry_')
+            ? e.id
+            : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `diet_entry_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`),
           dietary_log_id: logId,
           user_id: userId,
           food_item_id: e.foodItemId,
