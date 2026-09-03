@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, X, RefreshCw, AlertCircle, Sparkles, Check, Flashlight } from 'lucide-react';
+import { Camera, X, RefreshCw, AlertCircle, Sparkles, Check, Flashlight, Plus, ArrowRight, Flame, Scale } from 'lucide-react';
 import { FoodItemNutrition } from '../../models.ts';
 import { lookupBarcodeProduct } from '../../lib/barcodeService.ts';
 
@@ -25,6 +25,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const [status, setStatus] = useState<'idle' | 'requesting_camera' | 'scanning' | 'resolving' | 'found' | 'error' | 'not_found'>('idle');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [scannedCode, setScannedCode] = useState<string | null>(null);
+  const [detectedItem, setDetectedItem] = useState<FoodItemNutrition | null>(null);
+  const [portionGrams, setPortionGrams] = useState<number>(100);
   const [manualCodeInput, setManualCodeInput] = useState('');
   const [hasTorch, setHasTorch] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
@@ -52,11 +54,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     try {
       const result = await lookupBarcodeProduct(clean, currentUserId);
       if (result.found && result.item) {
+        setDetectedItem(result.item);
+        setPortionGrams(result.item.packageWeightGrams || 100);
         setStatus('found');
-        setTimeout(() => {
-          onProductDetected(result.item!);
-          onClose();
-        }, 500);
       } else {
         setStatus('not_found');
         setErrorMessage(result.error || `Barcode ${clean} was not found in database or Open Food Facts.`);
@@ -64,6 +64,13 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     } catch (err: any) {
       setStatus('error');
       setErrorMessage(err.message || 'Error occurred while looking up barcode.');
+    }
+  };
+
+  const handleConfirmProduct = () => {
+    if (detectedItem) {
+      onProductDetected(detectedItem);
+      onClose();
     }
   };
 
@@ -161,6 +168,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     if (isOpen) {
       setStatus('idle');
       setScannedCode(null);
+      setDetectedItem(null);
       setErrorMessage(null);
       setManualCodeInput('');
       startCameraScanning();
@@ -252,12 +260,84 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
             </div>
           )}
 
-          {status === 'found' && (
-            <div className="absolute inset-0 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center space-y-2">
-              <div className="w-12 h-12 rounded-full bg-[#C0FF00]/20 border border-[#C0FF00] flex items-center justify-center text-[#C0FF00]">
-                <Check className="w-6 h-6 stroke-[3]" />
+          {status === 'found' && detectedItem && (
+            <div className="absolute inset-0 bg-black/92 backdrop-blur-md flex flex-col justify-between p-5 animate-fade-in z-20">
+              {/* Header Badge */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-[#C0FF00]/20 border border-[#C0FF00] flex items-center justify-center text-[#C0FF00]">
+                    <Check className="w-4 h-4 stroke-[3]" />
+                  </div>
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#C0FF00]">
+                    Product Recognized
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
+                  {detectedItem.barcode}
+                </span>
               </div>
-              <p className="text-sm font-bold text-white">Product Recognized!</p>
+
+              {/* Product Info Card */}
+              <div className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-4 my-auto space-y-3 shadow-lg">
+                <div>
+                  {detectedItem.brand && (
+                    <span className="text-[10px] font-mono font-bold uppercase text-[#C0FF00] bg-[#C0FF00]/10 px-2 py-0.5 rounded-md">
+                      {detectedItem.brand}
+                    </span>
+                  )}
+                  <h3 className="font-sans text-base font-black text-white mt-1.5 line-clamp-2">
+                    {detectedItem.name}
+                  </h3>
+                  {detectedItem.packageWeightGrams ? (
+                    <p className="text-[11px] font-mono text-gray-400 mt-0.5">
+                      Pack Size: <span className="text-white font-bold">{detectedItem.packageWeightGrams}g</span>
+                    </p>
+                  ) : null}
+                </div>
+
+                {/* Macro Badges Grid */}
+                <div className="grid grid-cols-4 gap-2 pt-2 border-t border-[#262626]">
+                  <div className="bg-[#121212] border border-[#282828] rounded-xl p-2 text-center">
+                    <span className="block text-[9px] font-mono uppercase text-gray-400 font-bold">Kcal</span>
+                    <span className="text-xs font-mono font-black text-white">{detectedItem.kcalPer100g}</span>
+                    <span className="block text-[8px] text-gray-400 font-mono">/100g</span>
+                  </div>
+                  <div className="bg-[#121212] border border-[#282828] rounded-xl p-2 text-center">
+                    <span className="block text-[9px] font-mono uppercase text-[#38bdf8] font-bold">Protein</span>
+                    <span className="text-xs font-mono font-black text-[#38bdf8]">{detectedItem.proteinPer100g}g</span>
+                    <span className="block text-[8px] text-gray-400 font-mono">/100g</span>
+                  </div>
+                  <div className="bg-[#121212] border border-[#282828] rounded-xl p-2 text-center">
+                    <span className="block text-[9px] font-mono uppercase text-[#fbbf24] font-bold">Carbs</span>
+                    <span className="text-xs font-mono font-black text-[#fbbf24]">{detectedItem.carbsPer100g}g</span>
+                    <span className="block text-[8px] text-gray-400 font-mono">/100g</span>
+                  </div>
+                  <div className="bg-[#121212] border border-[#282828] rounded-xl p-2 text-center">
+                    <span className="block text-[9px] font-mono uppercase text-[#f87171] font-bold">Fat</span>
+                    <span className="text-xs font-mono font-black text-[#f87171]">{detectedItem.fatPer100g}g</span>
+                    <span className="block text-[8px] text-gray-400 font-mono">/100g</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={startCameraScanning}
+                  className="px-3.5 py-2.5 rounded-xl bg-[#202020] hover:bg-[#2a2a2a] border border-[#333] text-gray-300 hover:text-white text-xs font-mono font-bold cursor-pointer transition-colors"
+                >
+                  Scan Another
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmProduct}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#C0FF00] hover:bg-[#b0f000] text-black text-xs font-bold font-mono uppercase tracking-wider cursor-pointer shadow-[0_0_15px_rgba(192,255,0,0.3)] transition-all"
+                >
+                  <span>Log Food Item</span>
+                  <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+                </button>
+              </div>
             </div>
           )}
 
