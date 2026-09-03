@@ -42,8 +42,9 @@ describe('RoutineEditorModal Component (Dynamic Behavioral Suite)', () => {
     expect(screen.getByText('Barbell Bench Press')).toBeInTheDocument();
   });
 
-  it('allows adding a new workout routine day dynamically', async () => {
+  it('allows adding a new workout routine day, renaming it, and saving', async () => {
     const user = userEvent.setup();
+    const onSaveWorkouts = vi.fn().mockResolvedValue(undefined);
 
     render(
       <RoutineEditorModal
@@ -51,14 +52,65 @@ describe('RoutineEditorModal Component (Dynamic Behavioral Suite)', () => {
         onClose={vi.fn()}
         userId="usr_test"
         workouts={[pushWorkout]}
-        onSaveWorkouts={vi.fn()}
+        onSaveWorkouts={onSaveWorkouts}
       />
     );
 
     const addDayBtn = screen.getByRole('button', { name: /add routine day/i });
     await user.click(addDayBtn);
 
-    expect(screen.getByDisplayValue('Day 2 - Custom Routine')).toBeInTheDocument();
+    const nameInput = screen.getByDisplayValue('Day 2 - Custom Routine');
+    expect(nameInput).toBeInTheDocument();
+
+    await user.clear(nameInput);
+    await user.type(nameInput, 'Day 2: Pull Hypertrophy');
+    expect(nameInput).toHaveValue('Day 2: Pull Hypertrophy');
+
+    const saveBtn = screen.getByRole('button', { name: /save changes/i });
+    await user.click(saveBtn);
+
+    expect(onSaveWorkouts).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'wk_push' }),
+        expect.objectContaining({ name: 'Day 2: Pull Hypertrophy', order: 2 }),
+      ])
+    );
+  });
+
+  it('allows removing an exercise from a routine and saving updated exercise list', async () => {
+    const user = userEvent.setup();
+    const onSaveWorkouts = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <RoutineEditorModal
+        isOpen={true}
+        onClose={vi.fn()}
+        userId="usr_test"
+        workouts={[pushWorkout]}
+        onSaveWorkouts={onSaveWorkouts}
+      />
+    );
+
+    expect(screen.getByText('Barbell Bench Press')).toBeInTheDocument();
+
+    // Click delete exercise button
+    const deleteExBtn = screen.getByTitle(/delete exercise/i);
+    await user.click(deleteExBtn);
+
+    expect(screen.queryByText('Barbell Bench Press')).not.toBeInTheDocument();
+
+    const saveBtn = screen.getByRole('button', { name: /save changes/i });
+    await user.click(saveBtn);
+
+    expect(onSaveWorkouts).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'wk_push',
+          exercises: [],
+          exerciseIds: [],
+        }),
+      ])
+    );
   });
 
   it('dispatches onSaveWorkouts when clicking save changes', async () => {

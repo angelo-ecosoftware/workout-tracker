@@ -1,6 +1,7 @@
 import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { LoggedFoodList } from '../../../../src/components/dietary/LoggedFoodList.tsx';
 import { LoggedDietaryEntry } from '../../../../src/models.ts';
 
@@ -27,13 +28,14 @@ describe('LoggedFoodList Component', () => {
     expect(screen.getByText(/no food logged for 2026-09-01/i)).toBeInTheDocument();
   });
 
-  it('triggers onOpenAddModal callback when Log Food button is clicked', () => {
+  it('triggers onOpenAddModal callback when Log Food button is clicked', async () => {
+    const user = userEvent.setup();
     render(<LoggedFoodList {...defaultProps} />);
 
     const logFoodBtn = screen.getByRole('button', { name: /log food/i });
-    fireEvent.click(logFoodBtn);
+    await user.click(logFoodBtn);
 
-    expect(defaultProps.onOpenAddModal).toHaveBeenCalled();
+    expect(defaultProps.onOpenAddModal).toHaveBeenCalledTimes(1);
   });
 
   it('renders logged entries with names, brands, portion input, and macro breakdown', () => {
@@ -75,8 +77,10 @@ describe('LoggedFoodList Component', () => {
     expect(screen.getByText('27g')).toBeInTheDocument();
   });
 
-  it('calls onUpdateEntryGrams when the portion size input changes', () => {
-    const mockEntries: LoggedDietaryEntry[] = [
+  it('calls onUpdateEntryGrams when the portion size input changes with realistic typing', async () => {
+    const user = userEvent.setup();
+    const onUpdateEntryGrams = vi.fn();
+    let entriesState: LoggedDietaryEntry[] = [
       {
         id: 'entry-1',
         foodItemId: 'item-1',
@@ -99,15 +103,128 @@ describe('LoggedFoodList Component', () => {
       },
     ];
 
-    render(<LoggedFoodList {...defaultProps} entries={mockEntries} />);
+    // Controlled wrapper to simulate parent state management
+    const ControlledHarness = () => {
+      const [entries, setEntries] = React.useState(entriesState);
+      return (
+        <LoggedFoodList
+          {...defaultProps}
+          entries={entries}
+          onUpdateEntryGrams={(id, grams) => {
+            onUpdateEntryGrams(id, grams);
+            setEntries((prev) =>
+              prev.map((e) => (e.id === id ? { ...e, amountGrams: grams } : e))
+            );
+          }}
+        />
+      );
+    };
 
-    const gramsInput = screen.getByDisplayValue('150');
-    fireEvent.change(gramsInput, { target: { value: '200' } });
+    render(<ControlledHarness />);
 
-    expect(defaultProps.onUpdateEntryGrams).toHaveBeenCalledWith('entry-1', 200);
+    const gramsInput = screen.getByRole('spinbutton');
+    expect(gramsInput).toHaveValue(150);
+
+    // Realistic user interaction: focus, clear existing value, and type new grams
+    await user.clear(gramsInput);
+    await user.type(gramsInput, '200');
+
+    expect(gramsInput).toHaveValue(200);
+    expect(onUpdateEntryGrams).toHaveBeenLastCalledWith('entry-1', 200);
   });
 
-  it('calls onDeleteEntry when the delete trash button is clicked', () => {
+  it('updates portion value correctly when user clicks and types into a 0-filled input without clearing first', async () => {
+    const user = userEvent.setup();
+    const onUpdateEntryGrams = vi.fn();
+    const mockZeroEntry: LoggedDietaryEntry[] = [
+      {
+        id: 'entry-zero',
+        foodItemId: 'item-zero',
+        name: 'Protein Shake',
+        amountGrams: 0,
+        kcalPer100g: 100,
+        proteinPer100g: 20,
+        carbsPer100g: 2,
+        sugarPer100g: 1,
+        fatPer100g: 1,
+        fiberPer100g: 0,
+        calculatedKcal: 0,
+        calculatedProtein: 0,
+        calculatedCarbs: 0,
+        calculatedSugar: 0,
+        calculatedFat: 0,
+        calculatedFiber: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
+    const StatefulZeroHarness = () => {
+      const [entries, setEntries] = React.useState(mockZeroEntry);
+      return (
+        <LoggedFoodList
+          {...defaultProps}
+          entries={entries}
+          onUpdateEntryGrams={(id, grams) => {
+            onUpdateEntryGrams(id, grams);
+            setEntries((prev) =>
+              prev.map((e) => (e.id === id ? { ...e, amountGrams: grams } : e))
+            );
+          }}
+        />
+      );
+    };
+
+    render(<StatefulZeroHarness />);
+
+    const gramsInput = screen.getByRole('spinbutton');
+    expect(gramsInput).toHaveValue(0);
+
+    // User directly clicks and types '150' without manually pressing backspace or clear
+    await user.type(gramsInput, '150');
+
+    // Number('0150') is parsed by Number(e.target.value) || 0 resulting in numeric 150
+    expect(onUpdateEntryGrams).toHaveBeenLastCalledWith('entry-zero', 150);
+    expect(gramsInput).toHaveValue(150);
+  });
+
+  it('handles clearing portion input and falls back to 0 without NaN', async () => {
+    const user = userEvent.setup();
+    const onUpdateEntryGrams = vi.fn();
+    const mockEntries: LoggedDietaryEntry[] = [
+      {
+        id: 'entry-fallback',
+        foodItemId: 'item-fallback',
+        name: 'Oatmeal',
+        amountGrams: 50,
+        kcalPer100g: 389,
+        proteinPer100g: 16.9,
+        carbsPer100g: 66.3,
+        sugarPer100g: 0,
+        fatPer100g: 6.9,
+        fiberPer100g: 10.6,
+        calculatedKcal: 194.5,
+        calculatedProtein: 8.5,
+        calculatedCarbs: 33.2,
+        calculatedSugar: 0,
+        calculatedFat: 3.5,
+        calculatedFiber: 5.3,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
+    render(<LoggedFoodList {...defaultProps} entries={mockEntries} onUpdateEntryGrams={onUpdateEntryGrams} />);
+
+    const gramsInput = screen.getByRole('spinbutton');
+    await user.clear(gramsInput);
+
+    expect(onUpdateEntryGrams).toHaveBeenCalledWith('entry-fallback', 0);
+  });
+
+  it('calls onDeleteEntry when the delete trash button is clicked', async () => {
+    const user = userEvent.setup();
+    const onDeleteEntry = vi.fn();
     const mockEntries: LoggedDietaryEntry[] = [
       {
         id: 'entry-del-1',
@@ -131,11 +248,11 @@ describe('LoggedFoodList Component', () => {
       },
     ];
 
-    render(<LoggedFoodList {...defaultProps} entries={mockEntries} />);
+    render(<LoggedFoodList {...defaultProps} entries={mockEntries} onDeleteEntry={onDeleteEntry} />);
 
     const deleteBtn = screen.getByTitle(/remove product/i);
-    fireEvent.click(deleteBtn);
+    await user.click(deleteBtn);
 
-    expect(defaultProps.onDeleteEntry).toHaveBeenCalledWith('entry-del-1');
+    expect(onDeleteEntry).toHaveBeenCalledWith('entry-del-1');
   });
 });
