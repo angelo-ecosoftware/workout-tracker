@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Workout, Exercise, ExerciseType } from '../models.ts';
+import { Workout, Exercise } from '../../models.ts';
 import { 
-  X, Plus, Trash2, Edit3, Save, Dumbbell, Calendar, 
-  ChevronDown, ChevronUp, Layers, Check, AlertCircle, RefreshCw, Search
+  X, Trash2, Save, Layers, Check, AlertCircle, RefreshCw, Search
 } from 'lucide-react';
-import { ExerciseSearchPicker } from './ExerciseSearchPicker.tsx';
-import { ConfirmModal } from './ConfirmModal.tsx';
+import { ExerciseSearchPicker } from '../workout/ExerciseSearchPicker.tsx';
+import { ConfirmModal } from '../ui/ConfirmModal.tsx';
+import { RoutineDaySelector } from './RoutineDaySelector.tsx';
+import { RoutineExerciseItem } from './RoutineExerciseItem.tsx';
 
 interface RoutineEditorModalProps {
   isOpen: boolean;
@@ -18,7 +19,7 @@ interface RoutineEditorModalProps {
 export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   isOpen,
   onClose,
-  userId,
+  userId: _userId,
   workouts: initialWorkouts,
   onSaveWorkouts,
 }) => {
@@ -70,7 +71,6 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
     if (workoutToDeleteIndex === null) return;
     const index = workoutToDeleteIndex;
     const filtered = workouts.filter((_, i) => i !== index);
-    // Re-index orders cleanly
     const reindexed = filtered.map((w, i) => ({ ...w, order: i + 1 }));
     setWorkouts(reindexed);
     setSelectedWorkoutIndex(Math.max(0, Math.min(index, reindexed.length - 1)));
@@ -218,40 +218,12 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
           )}
 
           {/* Routine Tabs / Selector */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-[10px] font-bold text-[#C0FF00] uppercase tracking-widest font-mono">
-                Routine Days ({workouts.length})
-              </label>
-              <button
-                type="button"
-                onClick={handleAddWorkoutDay}
-                className="flex items-center gap-1 text-[10px] font-mono font-bold text-black bg-[#C0FF00] hover:bg-[#a6dc00] px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
-              >
-                <Plus className="w-3 h-3" /> Add Routine Day
-              </button>
-            </div>
-
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {workouts.map((w, idx) => {
-                const isActive = selectedWorkoutIndex === idx;
-                return (
-                  <button
-                    key={w.id || idx}
-                    type="button"
-                    onClick={() => setSelectedWorkoutIndex(idx)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold font-mono shrink-0 transition-all cursor-pointer border ${
-                      isActive 
-                        ? 'bg-[#C0FF00] text-black border-[#C0FF00] shadow-[0_0_15px_rgba(192,255,0,0.2)]'
-                        : 'bg-[#181818] text-gray-300 border-[#262626] hover:border-[#383838]'
-                    }`}
-                  >
-                    Day {w.order || idx + 1}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <RoutineDaySelector
+            workouts={workouts}
+            selectedWorkoutIndex={selectedWorkoutIndex}
+            onSelectIndex={setSelectedWorkoutIndex}
+            onAddWorkoutDay={handleAddWorkoutDay}
+          />
 
           {/* Active Workout Details */}
           {currentWorkout ? (
@@ -309,140 +281,19 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {currentWorkout.exercises.map((ex, exIdx) => {
-                      const isEditing = editingExerciseId === ex.id;
-                      return (
-                        <div 
-                          key={ex.id || exIdx}
-                          className="bg-[#111111] border border-[#222222] rounded-xl p-3 space-y-2.5 transition-all"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <span className="w-5 h-5 rounded bg-[#1a1a1a] text-[10px] font-mono font-bold text-gray-400 flex items-center justify-center shrink-0">
-                                {exIdx + 1}
-                              </span>
-                              {isEditing ? (
-                                <input
-                                  type="text"
-                                  value={ex.name}
-                                  onChange={(e) => handleUpdateExercise(ex.id, { name: e.target.value })}
-                                  className="w-full bg-[#181818] border border-[#383838] focus:border-[#C0FF00] rounded-lg px-2.5 py-1 text-xs font-bold text-white focus:outline-none"
-                                />
-                              ) : (
-                                <div className="truncate font-display font-bold text-xs text-white">
-                                  {ex.name}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="flex items-center gap-1 shrink-0">
-                              <button
-                                type="button"
-                                disabled={exIdx === 0}
-                                onClick={() => handleMoveExercise(exIdx, 'up')}
-                                className="p-1 hover:bg-[#222] text-gray-400 hover:text-white disabled:opacity-30 rounded cursor-pointer"
-                                title="Move up"
-                              >
-                                <ChevronUp className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                disabled={exIdx === currentWorkout.exercises.length - 1}
-                                onClick={() => handleMoveExercise(exIdx, 'down')}
-                                className="p-1 hover:bg-[#222] text-gray-400 hover:text-white disabled:opacity-30 rounded cursor-pointer"
-                                title="Move down"
-                              >
-                                <ChevronDown className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setEditingExerciseId(isEditing ? null : ex.id)}
-                                className="p-1 hover:bg-[#222] text-gray-400 hover:text-[#C0FF00] rounded cursor-pointer"
-                                title="Edit specs"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteExercise(ex.id)}
-                                className="p-1 hover:bg-red-500/10 text-gray-500 hover:text-red-400 rounded cursor-pointer"
-                                title="Delete exercise"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Exercise Specs (Sets, Reps, Type) */}
-                          {isEditing && (
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-[#1e1e1e] text-[10px] font-mono">
-                              <div>
-                                <label className="text-gray-500 block mb-0.5">Type</label>
-                                <select
-                                  value={ex.type}
-                                  onChange={(e) => handleUpdateExercise(ex.id, { type: e.target.value as ExerciseType })}
-                                  className="w-full bg-[#181818] border border-[#333] rounded-lg px-2 py-1 text-gray-200 focus:outline-none focus:border-[#C0FF00]"
-                                >
-                                  <option value="strength">Strength (Weight/Reps)</option>
-                                  <option value="timed">Timed (Seconds)</option>
-                                </select>
-                              </div>
-                              <div>
-                                <label className="text-gray-500 block mb-0.5">Target Sets</label>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max="10"
-                                  value={ex.targetSets}
-                                  onChange={(e) => handleUpdateExercise(ex.id, { targetSets: parseInt(e.target.value, 10) || 1 })}
-                                  className="w-full bg-[#181818] border border-[#333] rounded-lg px-2 py-1 text-gray-200 focus:outline-none focus:border-[#C0FF00]"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-gray-500 block mb-0.5">
-                                  {ex.type === 'timed' ? 'Target Sec (Min)' : 'Rep Min'}
-                                </label>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max="300"
-                                  value={ex.targetRepMin}
-                                  onChange={(e) => handleUpdateExercise(ex.id, { targetRepMin: parseInt(e.target.value, 10) || 1 })}
-                                  className="w-full bg-[#181818] border border-[#333] rounded-lg px-2 py-1 text-gray-200 focus:outline-none focus:border-[#C0FF00]"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-gray-500 block mb-0.5">
-                                  {ex.type === 'timed' ? 'Target Sec (Max)' : 'Rep Max'}
-                                </label>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max="300"
-                                  value={ex.targetRepMax}
-                                  onChange={(e) => handleUpdateExercise(ex.id, { targetRepMax: parseInt(e.target.value, 10) || 1 })}
-                                  className="w-full bg-[#181818] border border-[#333] rounded-lg px-2 py-1 text-gray-200 focus:outline-none focus:border-[#C0FF00]"
-                                />
-                              </div>
-                            </div>
-                          )}
-
-                          {!isEditing && (
-                            <div className="flex items-center gap-3 text-[10px] font-mono text-gray-400">
-                              <span className="bg-[#181818] px-2 py-0.5 rounded border border-[#222]">
-                                {ex.targetSets} sets
-                              </span>
-                              <span className="bg-[#181818] px-2 py-0.5 rounded border border-[#222]">
-                                {ex.type === 'timed' ? `${ex.targetRepMin}-${ex.targetRepMax} sec` : `${ex.targetRepMin}-${ex.targetRepMax} reps`}
-                              </span>
-                              <span className="text-gray-500 uppercase">
-                                {ex.type}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                    {currentWorkout.exercises.map((ex, exIdx) => (
+                      <RoutineExerciseItem
+                        key={ex.id || exIdx}
+                        exercise={ex}
+                        index={exIdx}
+                        isEditing={editingExerciseId === ex.id}
+                        totalExercises={currentWorkout.exercises.length}
+                        onToggleEdit={() => setEditingExerciseId(editingExerciseId === ex.id ? null : ex.id)}
+                        onMove={(dir) => handleMoveExercise(exIdx, dir)}
+                        onUpdate={(updates) => handleUpdateExercise(ex.id, updates)}
+                        onDelete={() => handleDeleteExercise(ex.id)}
+                      />
+                    ))}
                   </div>
                 )}
               </div>

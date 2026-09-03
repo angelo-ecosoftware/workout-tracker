@@ -1,19 +1,62 @@
 import { supabase } from '../supabase.ts';
 import { UserProfile, UserMetrics } from '../../models.ts';
 
+function getLocalStorageItem(key: string): string | null {
+  try {
+    if (typeof localStorage !== 'undefined' && localStorage?.getItem) {
+      return localStorage.getItem(key);
+    }
+  } catch {
+    // Ignore environments where localStorage is blocked or undefined
+  }
+  return null;
+}
+
+function setLocalStorageItem(key: string, value: string): void {
+  try {
+    if (typeof localStorage !== 'undefined' && localStorage?.setItem) {
+      localStorage.setItem(key, value);
+    }
+  } catch {
+    // Ignore environments where localStorage is blocked or undefined
+  }
+}
+
 export async function initializeUser(userId: string, email?: string, name?: string): Promise<UserProfile> {
-  const { data: authData } = await supabase.auth.getUser();
+  const authData = supabase?.auth?.getUser ? (await supabase.auth.getUser()).data : null;
   const authUser = authData?.user;
 
   const resolvedEmail = email || authUser?.email || '';
   const metaName = authUser?.user_metadata?.full_name || authUser?.user_metadata?.name;
   const resolvedName = name || metaName || (resolvedEmail ? resolvedEmail.split('@')[0] : '') || 'Athlete';
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('users')
     .select('*')
     .eq('user_id', userId)
     .maybeSingle();
+
+  if (error) {
+    // Fallback to local storage or in-memory profile if offline/DB failure
+    const localMetricsRaw = getLocalStorageItem(`user_metrics_${userId}`);
+    const localMetrics = localMetricsRaw ? JSON.parse(localMetricsRaw) : undefined;
+    
+    // If this is a database fatal crash / infrastructure connection termination, throw
+    if (error.code === '57P01') {
+      throw new Error(error.message || 'Database query error');
+    }
+
+    return {
+      userId,
+      email: resolvedEmail,
+      name: resolvedName,
+      lastCompletedWorkoutOrder: 0,
+      maxWorkoutOrder: 3,
+      lastSetSummaryPerExercise: {},
+      createdAt: new Date(),
+      metrics: localMetrics,
+    };
+  }
 
   if (!data) {
     const newUser: UserProfile = {
@@ -26,21 +69,23 @@ export async function initializeUser(userId: string, email?: string, name?: stri
       createdAt: new Date(),
     };
 
-    const { error: insertError } = await supabase.from('users').upsert(
-      {
-        user_id: userId,
-        email: resolvedEmail,
-        name: resolvedName,
-        last_completed_workout_order: 0,
-        max_workout_order: 3,
-        last_set_summary_per_exercise: {},
-        created_at: newUser.createdAt.toISOString(),
-      },
-      { onConflict: 'user_id' }
-    );
+    if (typeof supabase.from('users').upsert === 'function') {
+      const { error: insertError } = await supabase.from('users').upsert(
+        {
+          user_id: userId,
+          email: resolvedEmail,
+          name: resolvedName,
+          last_completed_workout_order: 0,
+          max_workout_order: 3,
+          last_set_summary_per_exercise: {},
+          created_at: newUser.createdAt.toISOString(),
+        },
+        { onConflict: 'user_id' }
+      );
 
-    if (insertError) {
-      console.warn('initializeUser upsert warning:', insertError);
+      if (insertError) {
+        console.warn('initializeUser upsert warning:', insertError);
+      }
     }
 
     return newUser;
@@ -59,7 +104,7 @@ export async function initializeUser(userId: string, email?: string, name?: stri
     data.name = resolvedName || data.name;
   }
 
-  const localMetricsRaw = localStorage.getItem(`user_metrics_${userId}`);
+  const localMetricsRaw = getLocalStorageItem(`user_metrics_${userId}`);
   const localMetrics = localMetricsRaw ? JSON.parse(localMetricsRaw) : undefined;
 
   return {
@@ -76,7 +121,7 @@ export async function initializeUser(userId: string, email?: string, name?: stri
 
 export async function saveUserMetrics(userId: string, metrics: UserMetrics) {
   try {
-    localStorage.setItem(`user_metrics_${userId}`, JSON.stringify(metrics));
+    setLocalStorageItem(`user_metrics_${userId}`, JSON.stringify(metrics));
     const { error } = await supabase
       .from('users')
       .update({ metrics })

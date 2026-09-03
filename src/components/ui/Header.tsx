@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext.tsx';
-import { usePWA } from '../context/PWAContext.tsx';
+import { useAuth } from '../../context/AuthContext.tsx';
+import { usePWA } from '../../context/PWAContext.tsx';
 import { Dumbbell, Settings, User, WifiOff, RefreshCw } from 'lucide-react';
-import { SettingsModal } from './SettingsModal.tsx';
-import { ProfileModal } from './ProfileModal.tsx';
-import { UserMetrics, Workout } from '../models.ts';
-import { initializeUser, fetchWorkoutsData } from '../lib/supabaseData.ts';
+import { SettingsModal } from '../modals/SettingsModal.tsx';
+import { ProfileModal } from '../modals/ProfileModal.tsx';
+import { UserMetrics, Workout } from '../../models.ts';
+import { initializeUser, fetchWorkoutsData } from '../../lib/supabaseData.ts';
 
 export const Header: React.FC = () => {
   const { user } = useAuth();

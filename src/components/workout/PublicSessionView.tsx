@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { fetchPublicWorkoutSession } from '../lib/supabaseData.ts';
-import { Session, WorkoutSet } from '../models.ts';
+import { fetchPublicWorkoutSession } from '../../lib/supabaseData.ts';
+import { Session, WorkoutSet } from '../../models.ts';
 import { Activity, Calendar, Clock, Loader2, Dumbbell, Flame, Scale, FileText, Camera, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface PublicWorkoutData {

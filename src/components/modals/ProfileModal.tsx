@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { User, X, Calendar, Ruler, Weight, Target, Dumbbell, MapPin, Sparkles, Check, FileText } from 'lucide-react';
-import { AuthUser } from '../context/AuthContext.tsx';
-import { UserMetrics, Workout } from '../models.ts';
-import { saveUserMetrics } from '../lib/supabaseData.ts';
+import { User, X, Dumbbell, MapPin, Sparkles, Check } from 'lucide-react';
+import { AuthUser } from '../../context/AuthContext.tsx';
+import { UserMetrics, Workout } from '../../models.ts';
+import { saveUserMetrics } from '../../lib/supabaseData.ts';
+import { ProfileBiometricsSection } from './ProfileBiometricsSection.tsx';
+import { ProfileGoalsSection } from './ProfileGoalsSection.tsx';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -12,16 +14,6 @@ interface ProfileModalProps {
   routines?: Workout[];
   onMetricsUpdated?: (newMetrics: UserMetrics) => void;
 }
-
-const STANDARD_GOALS = [
-  'Build Muscle (Hypertrophy)',
-  'Increase Strength (Powerlifting)',
-  'Fat Loss & Cutting',
-  'Endurance & Conditioning',
-  'Athletic Performance',
-  'Health & Longevity',
-  'Rehabilitation & Mobility',
-];
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
   isOpen,
@@ -157,90 +149,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         <form onSubmit={handleSave} className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
           
           {/* Section: Core Biometrics */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-[#C0FF00] flex items-center gap-1.5">
-              <Ruler className="w-3.5 h-3.5" /> Biometrics & Body
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Date of Birth & Age */}
-              <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-3 focus-within:border-[#C0FF00]/60 transition-colors">
-                <label className="text-[10px] uppercase font-bold text-gray-400 flex items-center justify-between mb-1">
-                  <span className="flex items-center gap-1"><Calendar className="w-3 h-3 text-[#C0FF00]" /> Date of Birth</span>
-                  {calculatedAge !== null && (
-                    <span className="text-[#C0FF00] font-mono font-black">{calculatedAge} yrs</span>
-                  )}
-                </label>
-                <input 
-                  type="date"
-                  value={dob}
-                  max={new Date().toISOString().split('T')[0]}
-                  onClick={(e) => {
-                    try {
-                      if ('showPicker' in HTMLInputElement.prototype) {
-                        (e.target as HTMLInputElement).showPicker();
-                      }
-                    } catch {}
-                  }}
-                  onChange={(e) => setDob(e.target.value)}
-                  className="w-full bg-[#111] border border-[#333] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#C0FF00] [color-scheme:dark] cursor-pointer"
-                />
-              </div>
-
-              {/* Gender */}
-              <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-3 focus-within:border-[#C0FF00]/60 transition-colors">
-                <label className="text-[10px] uppercase font-bold text-gray-400 block mb-1">
-                  Gender
-                </label>
-                <select 
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value as any)}
-                  className="w-full bg-[#111] border border-[#333] rounded-lg px-2.5 py-1.5 text-xs text-white font-sans focus:outline-none focus:border-[#C0FF00]"
-                >
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                  <option value="prefer_not_to_say">Prefer not to say</option>
-                </select>
-              </div>
-
-              {/* Height */}
-              <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-3 focus-within:border-[#C0FF00]/60 transition-colors">
-                <label className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1 mb-1">
-                  <Ruler className="w-3 h-3 text-[#C0FF00]" /> Height (cm)
-                </label>
-                <input 
-                  type="number"
-                  inputMode="decimal"
-                  step="0.5"
-                  min="50"
-                  max="280"
-                  placeholder="e.g. 182"
-                  value={height}
-                  onChange={(e) => setHeight(e.target.value)}
-                  className="w-full bg-[#111] border border-[#333] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#C0FF00]"
-                />
-              </div>
-
-              {/* Weight */}
-              <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-3 focus-within:border-[#C0FF00]/60 transition-colors">
-                <label className="text-[10px] uppercase font-bold text-gray-400 flex items-center gap-1 mb-1">
-                  <Weight className="w-3 h-3 text-[#C0FF00]" /> Current Weight (kg)
-                </label>
-                <input 
-                  type="number"
-                  inputMode="decimal"
-                  step="0.1"
-                  min="20"
-                  max="400"
-                  placeholder="e.g. 78.5"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  className="w-full bg-[#111] border border-[#333] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono focus:outline-none focus:border-[#C0FF00]"
-                />
-              </div>
-            </div>
-          </div>
+          <ProfileBiometricsSection
+            dob={dob}
+            setDob={setDob}
+            calculatedAge={calculatedAge}
+            gender={gender}
+            setGender={setGender}
+            height={height}
+            setHeight={setHeight}
+            weight={weight}
+            setWeight={setWeight}
+          />
 
           {/* Section: Training & Experience */}
           <div className="space-y-3">
@@ -312,46 +231,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
           </div>
 
-          {/* Section: Fitness Goals */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-[#C0FF00] flex items-center gap-1.5">
-              <Target className="w-3.5 h-3.5" /> Fitness Goals
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {STANDARD_GOALS.map((goal) => {
-                const isSelected = selectedGoals.includes(goal);
-                return (
-                  <button
-                    key={goal}
-                    type="button"
-                    onClick={() => toggleGoal(goal)}
-                    className={`flex items-center justify-between p-2.5 rounded-xl border text-left text-xs font-semibold transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#C0FF00]/10 border-[#C0FF00] text-white'
-                        : 'bg-[#181818] border-[#2a2a2a] text-gray-400 hover:border-gray-600'
-                    }`}
-                  >
-                    <span>{goal}</span>
-                    {isSelected && <Check className="w-3.5 h-3.5 text-[#C0FF00] shrink-0" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Section: Optional Body Measurements */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-1.5">
-              <FileText className="w-3.5 h-3.5 text-gray-400" /> Body Measurements & Notes <span className="text-[10px] text-gray-500 font-normal lowercase">(optional)</span>
-            </h3>
-            <textarea
-              value={bodyNotes}
-              onChange={(e) => setBodyNotes(e.target.value)}
-              placeholder="e.g. Arms: 38cm, Chest: 104cm, Waist: 82cm, Thighs: 58cm, or any personal notes..."
-              rows={3}
-              className="w-full bg-[#181818] border border-[#2a2a2a] focus:border-[#C0FF00] rounded-xl p-3 text-xs text-white placeholder-gray-600 focus:outline-none transition-colors resize-y font-mono"
-            />
-          </div>
+          {/* Section: Fitness Goals & Measurements */}
+          <ProfileGoalsSection
+            selectedGoals={selectedGoals}
+            toggleGoal={toggleGoal}
+            bodyNotes={bodyNotes}
+            setBodyNotes={setBodyNotes}
+          />
 
           {/* Save Button */}
           <div className="pt-2">

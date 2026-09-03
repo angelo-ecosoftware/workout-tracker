@@ -35,6 +35,9 @@ vi.mock('../../../src/lib/supabase.ts', () => {
 
   return {
     supabase: {
+      auth: {
+        getUser: vi.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+      },
       from: vi.fn((table: string) => createBuilder(table)),
     },
   };

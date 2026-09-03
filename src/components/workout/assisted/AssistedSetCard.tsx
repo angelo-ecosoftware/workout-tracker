@@ -1,5 +1,5 @@
 import React from 'react';
-import { Exercise } from '../../models.ts';
+import { Exercise } from '../../../models.ts';
 import { Play, Check, Eye } from 'lucide-react';
 import { WgerExerciseInfo } from '../WgerExerciseInfo.tsx';
 

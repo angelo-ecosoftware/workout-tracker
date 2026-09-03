@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext.tsx';
-import { usePWA } from '../context/PWAContext.tsx';
+import { useAuth } from '../../context/AuthContext.tsx';
+import { usePWA } from '../../context/PWAContext.tsx';
 import { Dumbbell, ShieldAlert, Loader2, Download, Smartphone, X, Share2, PlusSquare, ArrowRight } from 'lucide-react';
 
 export const LoginScreen: React.FC = () => {

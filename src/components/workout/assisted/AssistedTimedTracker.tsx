@@ -1,9 +1,9 @@
 import React from 'react';
-import { Workout, Exercise, UserProfile } from '../models.ts';
-import { useAssistedTracker, SetTimingRecord } from '../hooks/useAssistedTracker.ts';
-import { AssistedRestTimerCard } from './assisted/AssistedRestTimerCard.tsx';
-import { AssistedSetCard } from './assisted/AssistedSetCard.tsx';
-import { AssistedCompletedCard } from './assisted/AssistedCompletedCard.tsx';
+import { Workout, Exercise, UserProfile } from '../../../models.ts';
+import { useAssistedTracker, SetTimingRecord } from '../../../hooks/useAssistedTracker.ts';
+import { AssistedRestTimerCard } from './AssistedRestTimerCard.tsx';
+import { AssistedSetCard } from './AssistedSetCard.tsx';
+import { AssistedCompletedCard } from './AssistedCompletedCard.tsx';
 
 export type { SetTimingRecord };
 

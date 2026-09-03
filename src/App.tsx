@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { PWAProvider } from './context/PWAContext.tsx';
 import { ThemeProvider } from './context/ThemeContext.tsx';
-import { LoginScreen } from './components/LoginScreen.tsx';
-import { Header } from './components/Header.tsx';
-import { WorkoutDayTracker } from './components/WorkoutDayTracker.tsx';
-import { WorkoutHistory } from './components/WorkoutHistory.tsx';
-import { InsightsView } from './components/InsightsView.tsx';
-import { DietaryView } from './components/DietaryView.tsx';
-import { PublicSessionView } from './components/PublicSessionView.tsx';
-import { ErrorBoundary } from './components/ErrorBoundary.tsx';
+import { LoginScreen } from './components/auth/LoginScreen.tsx';
+import { Header } from './components/ui/Header.tsx';
+import { WorkoutDayTracker } from './components/workout/WorkoutDayTracker.tsx';
+import { WorkoutHistory } from './components/workout/WorkoutHistory.tsx';
+import { InsightsView } from './components/insights/InsightsView.tsx';
+import { DietaryView } from './components/dietary/DietaryView.tsx';
+import { PublicSessionView } from './components/workout/PublicSessionView.tsx';
+import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
 import { Loader2 } from 'lucide-react';
 
 // Extract public session ID from query param (?session=xxx or ?share=xxx) or hash (#/share/xxx or #/session/xxx)

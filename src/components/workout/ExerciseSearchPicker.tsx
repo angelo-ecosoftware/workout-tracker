@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Plus, Check, Dumbbell, Sparkles, X, Tag } from 'lucide-react';
-import { ExerciseSearchEngine } from '../lib/exerciseSearch.ts';
-import { CatalogExercise } from '../data/exerciseCatalog.ts';
-import { Exercise } from '../models.ts';
+import { ExerciseSearchEngine } from '../../lib/exerciseSearch.ts';
+import { CatalogExercise } from '../../data/exerciseCatalog.ts';
+import { Exercise } from '../../models.ts';
 
 interface ExerciseSearchPickerProps {
   onSelectExercise: (exercise: Partial<Exercise>) => void;
