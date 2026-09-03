@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { scrapeProductFromUrl } from "./api/scraperRegistry.js";
+import { resolveAlbertHeijnBarcode } from "./api/barcode-lookup.js";
 
 dotenv.config();
 
@@ -149,6 +150,27 @@ async function startServer() {
 
   app.all("/api/product-link", handleProductLink);
   app.all("/api/ah-product-link", handleProductLink);
+
+  // API 4: Supermarket Barcode Lookup (Albert Heijn GTIN + FIR nutrition table)
+  const handleBarcodeLookup = async (req: express.Request, res: express.Response) => {
+    const barcode = (req.query.barcode || req.body?.barcode) as string;
+    if (!barcode || typeof barcode !== "string") {
+      return res.status(400).json({ error: "Missing required parameter: barcode" });
+    }
+
+    try {
+      const product = await resolveAlbertHeijnBarcode(barcode);
+      if (!product) {
+        return res.status(404).json({ error: `Barcode ${barcode} not found` });
+      }
+      return res.status(200).json(product);
+    } catch (err: any) {
+      console.error("Barcode Lookup Error:", err);
+      return res.status(500).json({ error: err.message || "Failed to lookup barcode" });
+    }
+  };
+
+  app.all("/api/barcode-lookup", handleBarcodeLookup);
 
   // Vite static middleware mount path routing
   if (process.env.NODE_ENV !== "production") {

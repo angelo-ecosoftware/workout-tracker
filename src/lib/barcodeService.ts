@@ -4,7 +4,7 @@ import { mapSupabaseRowToFoodItem, saveHiveMindFoodItem } from './dietaryData.ts
 
 export interface BarcodeLookupResult {
   found: boolean;
-  source: 'database' | 'openfoodfacts' | 'none';
+  source: 'database' | 'openfoodfacts' | 'supermarket' | 'none';
   item: FoodItemNutrition | null;
   error?: string;
 }
@@ -119,36 +119,51 @@ export async function lookupBarcodeProduct(barcode: string, currentUserId?: stri
       },
     });
 
-    if (!response.ok) {
-      return { found: false, source: 'openfoodfacts', item: null, error: `Product not found (${response.status})` };
-    }
+    if (response.ok) {
+      const payload = await response.json();
+      if (payload.status === 1 && payload.product) {
+        const normalized = normalizeOpenFoodFactsProduct(payload, cleanCode);
+        if (normalized) {
+          // Auto-persist into hive-mind database so future scans resolve instantly
+          try {
+            await saveHiveMindFoodItem(normalized, currentUserId);
+          } catch (saveErr) {
+            console.warn('Could not auto-save Open Food Facts product to database:', saveErr);
+          }
 
-    const payload = await response.json();
-    if (payload.status === 1 && payload.product) {
-      const normalized = normalizeOpenFoodFactsProduct(payload, cleanCode);
-      if (normalized) {
-        // Auto-persist into hive-mind database so future scans resolve instantly
+          return {
+            found: true,
+            source: 'openfoodfacts',
+            item: normalized,
+          };
+        }
+      }
+    }
+  } catch (apiErr: any) {
+    console.warn('Open Food Facts API lookup skipped/failed:', apiErr);
+  }
+
+  // 3. Fallback: Supermarket Direct Barcode Resolver (Albert Heijn Mobile Services GTIN & FIR)
+  try {
+    const smRes = await fetch(`/api/barcode-lookup?barcode=${encodeURIComponent(cleanCode)}`);
+    if (smRes.ok) {
+      const supermarketItem = (await smRes.json()) as FoodItemNutrition;
+      if (supermarketItem && supermarketItem.name) {
         try {
-          await saveHiveMindFoodItem(normalized, currentUserId);
+          await saveHiveMindFoodItem(supermarketItem, currentUserId);
         } catch (saveErr) {
-          console.warn('Could not auto-save Open Food Facts product to database:', saveErr);
+          console.warn('Could not auto-save supermarket barcode item to database:', saveErr);
         }
 
         return {
           found: true,
-          source: 'openfoodfacts',
-          item: normalized,
+          source: 'supermarket',
+          item: supermarketItem,
         };
       }
     }
-  } catch (apiErr: any) {
-    console.error('Open Food Facts API error:', apiErr);
-    return {
-      found: false,
-      source: 'openfoodfacts',
-      item: null,
-      error: apiErr.message || 'Network error while fetching product data',
-    };
+  } catch (smErr) {
+    console.warn('Supermarket barcode fallback lookup error:', smErr);
   }
 
   return { found: false, source: 'none', item: null, error: 'No product matches this barcode.' };
