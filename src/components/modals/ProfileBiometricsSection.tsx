@@ -84,8 +84,6 @@ export const ProfileBiometricsSection: React.FC<ProfileBiometricsSectionProps> =
             type="number"
             inputMode="decimal"
             step="0.5"
-            min="50"
-            max="280"
             placeholder="e.g. 182"
             value={height}
             onChange={(e) => setHeight(e.target.value)}
@@ -102,8 +100,6 @@ export const ProfileBiometricsSection: React.FC<ProfileBiometricsSectionProps> =
             type="number"
             inputMode="decimal"
             step="0.1"
-            min="20"
-            max="400"
             placeholder="e.g. 78.5"
             value={weight}
             onChange={(e) => setWeight(e.target.value)}

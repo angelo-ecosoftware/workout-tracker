@@ -82,4 +82,48 @@ describe('ProfileModal Component (Dynamic Behavioral Suite)', () => {
     );
     expect(onMetricsUpdated).toHaveBeenCalledTimes(1);
   });
+
+  it('triggers confirmation warning dialog when biometric values exceed typical boundaries', async () => {
+    const user = userEvent.setup();
+    const onMetricsUpdated = vi.fn();
+
+    render(
+      <ProfileModal
+        isOpen={true}
+        onClose={vi.fn()}
+        user={mockUser}
+        onMetricsUpdated={onMetricsUpdated}
+      />
+    );
+
+    const heightInput = screen.getByPlaceholderText(/182/i);
+    const weightInput = screen.getByPlaceholderText(/78.5/i);
+
+    // Enter out-of-range height (320 cm) and weight (15 kg)
+    await user.clear(heightInput);
+    await user.type(heightInput, '320');
+
+    await user.clear(weightInput);
+    await user.type(weightInput, '15');
+
+    const saveBtn = screen.getByRole('button', { name: /save profile/i });
+    await user.click(saveBtn);
+
+    // Confirmation warning modal should appear
+    expect(screen.getByText(/confirm biometric measurements/i)).toBeInTheDocument();
+    expect(screen.getByText(/are you sure this information is correct\?/i)).toBeInTheDocument();
+    expect(mockSaveUserMetrics).not.toHaveBeenCalled();
+
+    // Confirm save
+    const confirmBtn = screen.getByRole('button', { name: /yes, save anyway/i });
+    await user.click(confirmBtn);
+
+    expect(mockSaveUserMetrics).toHaveBeenCalledWith(
+      'usr_profile_athlete',
+      expect.objectContaining({
+        height: 320,
+        weight: 15,
+      })
+    );
+  });
 });

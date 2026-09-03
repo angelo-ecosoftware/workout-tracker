@@ -6,9 +6,7 @@ import { DailyDietaryLog } from '../../../../src/models.ts';
 
 describe('DietaryDailyMacroTotals Component', () => {
   const mockSummary: DailyDietaryLog = {
-    id: 'log-123',
-    userId: 'user-1',
-    logDate: '2026-09-03',
+    date: '2026-09-03',
     totalKcal: 2450,
     totalProtein: 185.5,
     totalCarbs: 260.0,
@@ -33,8 +31,6 @@ describe('DietaryDailyMacroTotals Component', () => {
         calculatedSugar: 0,
         calculatedFat: 7.2,
         calculatedFiber: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
       {
         id: 'entry-2',
@@ -53,12 +49,8 @@ describe('DietaryDailyMacroTotals Component', () => {
         calculatedSugar: 0,
         calculatedFat: 6.9,
         calculatedFiber: 10.6,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     ],
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 
   it('renders macronutrient headers and logged items counter', () => {
@@ -96,9 +88,7 @@ describe('DietaryDailyMacroTotals Component', () => {
 
   it('handles empty entries gracefully with zero counts', () => {
     const emptySummary: DailyDietaryLog = {
-      id: 'log-empty',
-      userId: 'user-1',
-      logDate: '2026-09-03',
+      date: '2026-09-03',
       totalKcal: 0,
       totalProtein: 0,
       totalCarbs: 0,
@@ -106,8 +96,6 @@ describe('DietaryDailyMacroTotals Component', () => {
       totalFat: 0,
       totalFiber: 0,
       entries: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
     };
 
     render(<DietaryDailyMacroTotals summary={emptySummary} />);

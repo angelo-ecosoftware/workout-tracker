@@ -3,6 +3,7 @@ import { User, X, Dumbbell, MapPin, Sparkles, Check } from 'lucide-react';
 import { AuthUser } from '../../context/AuthContext.tsx';
 import { UserMetrics, Workout } from '../../models.ts';
 import { saveUserMetrics } from '../../lib/supabaseData.ts';
+import { ConfirmModal } from '../ui/ConfirmModal.tsx';
 import { ProfileBiometricsSection } from './ProfileBiometricsSection.tsx';
 import { ProfileGoalsSection } from './ProfileGoalsSection.tsx';
 
@@ -33,6 +34,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [bodyNotes, setBodyNotes] = useState(initialMetrics?.bodyMeasurementsNotes || '');
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [warningModalConfig, setWarningModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    description: '',
+    onConfirm: () => {},
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -79,8 +91,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const persistProfileMetrics = async () => {
     setIsSaving(true);
     const updatedMetrics: UserMetrics = {
       dateOfBirth: dob || undefined,
@@ -103,6 +114,36 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     setTimeout(() => {
       onClose();
     }, 600);
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const parsedHeight = height ? parseFloat(height) : NaN;
+    const parsedWeight = weight ? parseFloat(weight) : NaN;
+
+    const warnings: string[] = [];
+    if (!isNaN(parsedHeight) && (parsedHeight < 50 || parsedHeight > 280)) {
+      warnings.push(`Height (${parsedHeight} cm) is outside the typical 50–280 cm range.`);
+    }
+    if (!isNaN(parsedWeight) && (parsedWeight < 20 || parsedWeight > 400)) {
+      warnings.push(`Weight (${parsedWeight} kg) is outside the typical 20–400 kg range.`);
+    }
+
+    if (warnings.length > 0) {
+      setWarningModalConfig({
+        isOpen: true,
+        title: 'Confirm Biometric Measurements',
+        description: `${warnings.join(' ')} Are you sure this information is correct?`,
+        onConfirm: () => {
+          setWarningModalConfig((prev) => ({ ...prev, isOpen: false }));
+          persistProfileMetrics();
+        },
+      });
+      return;
+    }
+
+    await persistProfileMetrics();
   };
 
   return (
@@ -259,6 +300,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </div>
         </form>
       </div>
+
+      <ConfirmModal
+        isOpen={warningModalConfig.isOpen}
+        title={warningModalConfig.title}
+        description={warningModalConfig.description}
+        onConfirm={warningModalConfig.onConfirm}
+        onCancel={() => setWarningModalConfig((prev) => ({ ...prev, isOpen: false }))}
+        confirmText="Yes, Save Anyway"
+        cancelText="Review"
+        confirmVariant="primary"
+      />
     </div>
   );
 };

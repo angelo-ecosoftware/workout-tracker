@@ -37,23 +37,23 @@ vi.mock('../../../src/lib/dietaryData.ts', () => ({
   calculatePortionNutrients: (food: any, grams: number) => {
     const ratio = (grams || 0) / 100;
     return {
-      kcal: Math.round((food.kcalPer100g || 0) * ratio),
-      proteinGrams: Number(((food.proteinPer100g || 0) * ratio).toFixed(1)),
-      carbsGrams: Number(((food.carbsPer100g || 0) * ratio).toFixed(1)),
-      sugarGrams: Number(((food.sugarPer100g || 0) * ratio).toFixed(1)),
-      fatGrams: Number(((food.fatPer100g || 0) * ratio).toFixed(1)),
-      fiberGrams: Number(((food.fiberPer100g || 0) * ratio).toFixed(1)),
+      calculatedKcal: Math.round((food.kcalPer100g || 0) * ratio),
+      calculatedProtein: Number(((food.proteinPer100g || 0) * ratio).toFixed(1)),
+      calculatedCarbs: Number(((food.carbsPer100g || 0) * ratio).toFixed(1)),
+      calculatedSugar: Number(((food.sugarPer100g || 0) * ratio).toFixed(1)),
+      calculatedFat: Number(((food.fatPer100g || 0) * ratio).toFixed(1)),
+      calculatedFiber: Number(((food.fiberPer100g || 0) * ratio).toFixed(1)),
     };
   },
   computeDailyTotals: (entries: any[]) => {
     return entries.reduce(
       (acc, entry) => ({
-        totalKcal: acc.totalKcal + (entry.kcal || 0),
-        totalProtein: Number((acc.totalProtein + (entry.proteinGrams || 0)).toFixed(1)),
-        totalCarbs: Number((acc.totalCarbs + (entry.carbsGrams || 0)).toFixed(1)),
-        totalSugar: Number((acc.totalSugar + (entry.sugarGrams || 0)).toFixed(1)),
-        totalFat: Number((acc.totalFat + (entry.fatGrams || 0)).toFixed(1)),
-        totalFiber: Number((acc.totalFiber + (entry.fiberGrams || 0)).toFixed(1)),
+        totalKcal: acc.totalKcal + (entry.calculatedKcal || 0),
+        totalProtein: Number((acc.totalProtein + (entry.calculatedProtein || 0)).toFixed(1)),
+        totalCarbs: Number((acc.totalCarbs + (entry.calculatedCarbs || 0)).toFixed(1)),
+        totalSugar: Number((acc.totalSugar + (entry.calculatedSugar || 0)).toFixed(1)),
+        totalFat: Number((acc.totalFat + (entry.calculatedFat || 0)).toFixed(1)),
+        totalFiber: Number((acc.totalFiber + (entry.calculatedFiber || 0)).toFixed(1)),
       }),
       {
         totalKcal: 0,
@@ -116,8 +116,8 @@ describe('useDietaryTracking Hook (Dynamic Reactive State Machine)', () => {
     expect(result.current.entries).toHaveLength(1);
     expect(result.current.entries[0].name).toBe('Chicken Breast Raw');
     expect(result.current.entries[0].amountGrams).toBe(200);
-    expect(result.current.entries[0].kcal).toBe(240);
-    expect(result.current.entries[0].proteinGrams).toBe(50);
+    expect(result.current.entries[0].calculatedKcal).toBe(240);
+    expect(result.current.entries[0].calculatedProtein).toBe(50);
     expect(result.current.summary.totalKcal).toBe(240);
     expect(result.current.summary.totalProtein).toBe(50);
   });
@@ -146,7 +146,7 @@ describe('useDietaryTracking Hook (Dynamic Reactive State Machine)', () => {
     });
 
     expect(result.current.entries[0].amountGrams).toBe(250);
-    expect(result.current.entries[0].kcal).toBe(325);
+    expect(result.current.entries[0].calculatedKcal).toBe(325);
     expect(result.current.summary.totalKcal).toBe(325);
   });
 

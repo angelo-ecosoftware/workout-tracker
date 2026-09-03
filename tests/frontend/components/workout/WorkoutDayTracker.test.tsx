@@ -34,9 +34,11 @@ describe('WorkoutDayTracker Component', () => {
 
     vi.spyOn(AuthContext, 'useAuth').mockReturnValue({
       user: mockUser as any,
+      token: 'mock-token',
       loading: false,
       loginWithGoogle: vi.fn(),
       logout: vi.fn(),
+      switchAccount: vi.fn(),
     });
 
     vi.mocked(SupabaseData.initializeUser).mockResolvedValue({

@@ -374,16 +374,18 @@ export const useDietaryTracking = (userId: string) => {
   const handleSaveNewCustomFood = async () => {
     if (!newFoodName.trim()) return;
 
+    const clampMacro = (val: number | '') => Math.max(0, Number(val) || 0);
+
     const newFood: FoodItemNutrition = {
       id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `custom_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       name: newFoodName.trim(),
       brand: newFoodBrand.trim() || undefined,
-      kcalPer100g: Number(newFoodKcal) || 0,
-      proteinPer100g: Number(newFoodProtein) || 0,
-      carbsPer100g: Number(newFoodCarbs) || 0,
-      sugarPer100g: Number(newFoodSugar) || 0,
-      fatPer100g: Number(newFoodFat) || 0,
-      fiberPer100g: Number(newFoodFiber) || 0,
+      kcalPer100g: clampMacro(newFoodKcal),
+      proteinPer100g: clampMacro(newFoodProtein),
+      carbsPer100g: clampMacro(newFoodCarbs),
+      sugarPer100g: clampMacro(newFoodSugar),
+      fatPer100g: clampMacro(newFoodFat),
+      fiberPer100g: clampMacro(newFoodFiber),
       isCustom: true,
       userId,
     };

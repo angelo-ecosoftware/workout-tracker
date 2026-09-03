@@ -188,9 +188,6 @@ export function useWorkoutSession(user: AuthUser | null) {
         savedAt: new Date().toISOString(),
       };
       localStorage.setItem(key, JSON.stringify(payload));
-      if (user) {
-        localStorage.setItem(`workout_draft_latest_${user.uid}`, JSON.stringify(payload));
-      }
       setLastAutoSavedTime(
         new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
       );
@@ -205,9 +202,6 @@ export function useWorkoutSession(user: AuthUser | null) {
     if (key) {
       try {
         localStorage.removeItem(key);
-        if (user) {
-          localStorage.removeItem(`workout_draft_latest_${user.uid}`);
-        }
         setLastAutoSavedTime(null);
       } catch (e) {
         console.warn('Could not remove draft checkpoint', e);
@@ -298,10 +292,7 @@ export function useWorkoutSession(user: AuthUser | null) {
       const draftKey = getDraftKey(activeWorkout.id);
       if (draftKey) {
         try {
-          let rawDraft = localStorage.getItem(draftKey);
-          if (!rawDraft && user) {
-            rawDraft = localStorage.getItem(`workout_draft_latest_${user.uid}`);
-          }
+          const rawDraft = localStorage.getItem(draftKey);
           if (rawDraft) {
             const parsedDraft = JSON.parse(rawDraft);
             if (parsedDraft && parsedDraft.inputs && Object.keys(parsedDraft.inputs).length > 0) {
@@ -384,7 +375,12 @@ export function useWorkoutSession(user: AuthUser | null) {
       if (isNaN(baseNum)) return prev;
 
       let nextVal = baseNum + step;
-      if (nextVal < 0) nextVal = 0;
+      if (field === 'difficulty') {
+        if (nextVal < 1) nextVal = 1;
+        if (nextVal > 10) nextVal = 10;
+      } else {
+        if (nextVal < 0) nextVal = 0;
+      }
 
       const formatted =
         field === 'weight'
@@ -417,6 +413,13 @@ export function useWorkoutSession(user: AuthUser | null) {
       const parts = sanitized.split('.');
       if (parts.length > 2) {
         sanitized = parts[0] + '.' + parts.slice(1).join('');
+      }
+    } else if (field === 'difficulty') {
+      sanitized = value.replace(/[^0-9]/g, '');
+      if (sanitized !== '') {
+        const num = parseInt(sanitized, 10);
+        if (num > 10) sanitized = '10';
+        else if (num < 1 && sanitized !== '0') sanitized = '1';
       }
     } else {
       sanitized = value.replace(/[^0-9]/g, '');
@@ -525,7 +528,13 @@ export function useWorkoutSession(user: AuthUser | null) {
 
           if (isTimed) {
             const secNum = parseInt(inputValues.durationSeconds || '', 10);
-            const diffNum = parseInt(inputValues.difficulty || '', 10);
+            let diffNum: number | null = parseInt(inputValues.difficulty || '', 10);
+            if (isNaN(diffNum)) {
+              diffNum = null;
+            } else {
+              if (diffNum < 1) diffNum = 1;
+              if (diffNum > 10) diffNum = 10;
+            }
 
             if (isNaN(secNum)) {
               throw new Error(`Invalid duration seconds detected on "${ex.name}" Set #${i}. Please correct.`);
@@ -537,7 +546,7 @@ export function useWorkoutSession(user: AuthUser | null) {
               weight: null,
               reps: null,
               durationSeconds: secNum,
-              difficulty: isNaN(diffNum) ? null : diffNum,
+              difficulty: diffNum,
               startedAt: recordedSetTiming?.startedAt,
               completedAt: recordedSetTiming?.completedAt,
               restSeconds: recordedSetTiming?.restSeconds,

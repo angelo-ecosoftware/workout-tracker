@@ -37,9 +37,13 @@ if (typeof window !== 'undefined' && !window.ResizeObserver) {
 // Polyfill IntersectionObserver for JSDOM
 if (typeof window !== 'undefined' && !window.IntersectionObserver) {
   class IntersectionObserver {
+    root = null;
+    rootMargin = '';
+    thresholds = [];
+    takeRecords = vi.fn(() => []);
     observe = vi.fn();
     unobserve = vi.fn();
     disconnect = vi.fn();
   }
-  window.IntersectionObserver = IntersectionObserver;
+  window.IntersectionObserver = IntersectionObserver as any;
 }

@@ -40,6 +40,16 @@ export const CustomFoodTab: React.FC<CustomFoodTabProps> = ({
   setNewFoodFiber,
   onSaveNewCustomFood,
 }) => {
+  const sanitizeNonNegative = (val: string, setter: (num: number | '') => void) => {
+    if (val === '') {
+      setter('');
+      return;
+    }
+    const clean = val.replace(/[^0-9.]/g, '');
+    const num = parseFloat(clean);
+    setter(isNaN(num) ? '' : Math.max(0, num));
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
@@ -77,8 +87,9 @@ export const CustomFoodTab: React.FC<CustomFoodTabProps> = ({
           <input
             type="number"
             step="0.1"
+            min="0"
             value={newFoodKcal}
-            onChange={(e) => setNewFoodKcal(e.target.value === '' ? '' : Number(e.target.value))}
+            onChange={(e) => sanitizeNonNegative(e.target.value, setNewFoodKcal)}
             placeholder="0"
             className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl px-2 py-1.5 text-xs text-center text-white outline-none"
           />
@@ -88,8 +99,9 @@ export const CustomFoodTab: React.FC<CustomFoodTabProps> = ({
           <input
             type="number"
             step="0.1"
+            min="0"
             value={newFoodProtein}
-            onChange={(e) => setNewFoodProtein(e.target.value === '' ? '' : Number(e.target.value))}
+            onChange={(e) => sanitizeNonNegative(e.target.value, setNewFoodProtein)}
             placeholder="0"
             className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl px-2 py-1.5 text-xs text-center text-white outline-none"
           />
@@ -99,8 +111,9 @@ export const CustomFoodTab: React.FC<CustomFoodTabProps> = ({
           <input
             type="number"
             step="0.1"
+            min="0"
             value={newFoodCarbs}
-            onChange={(e) => setNewFoodCarbs(e.target.value === '' ? '' : Number(e.target.value))}
+            onChange={(e) => sanitizeNonNegative(e.target.value, setNewFoodCarbs)}
             placeholder="0"
             className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl px-2 py-1.5 text-xs text-center text-white outline-none"
           />
@@ -110,8 +123,9 @@ export const CustomFoodTab: React.FC<CustomFoodTabProps> = ({
           <input
             type="number"
             step="0.1"
+            min="0"
             value={newFoodSugar}
-            onChange={(e) => setNewFoodSugar(e.target.value === '' ? '' : Number(e.target.value))}
+            onChange={(e) => sanitizeNonNegative(e.target.value, setNewFoodSugar)}
             placeholder="0"
             className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl px-2 py-1.5 text-xs text-center text-white outline-none"
           />
@@ -121,8 +135,9 @@ export const CustomFoodTab: React.FC<CustomFoodTabProps> = ({
           <input
             type="number"
             step="0.1"
+            min="0"
             value={newFoodFat}
-            onChange={(e) => setNewFoodFat(e.target.value === '' ? '' : Number(e.target.value))}
+            onChange={(e) => sanitizeNonNegative(e.target.value, setNewFoodFat)}
             placeholder="0"
             className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl px-2 py-1.5 text-xs text-center text-white outline-none"
           />
@@ -132,8 +147,9 @@ export const CustomFoodTab: React.FC<CustomFoodTabProps> = ({
           <input
             type="number"
             step="0.1"
+            min="0"
             value={newFoodFiber}
-            onChange={(e) => setNewFoodFiber(e.target.value === '' ? '' : Number(e.target.value))}
+            onChange={(e) => sanitizeNonNegative(e.target.value, setNewFoodFiber)}
             placeholder="0"
             className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl px-2 py-1.5 text-xs text-center text-white outline-none"
           />

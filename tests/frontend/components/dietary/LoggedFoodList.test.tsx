@@ -58,8 +58,6 @@ describe('LoggedFoodList Component', () => {
         calculatedSugar: 0.3,
         calculatedFat: 0.5,
         calculatedFiber: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     ];
 
@@ -98,8 +96,6 @@ describe('LoggedFoodList Component', () => {
         calculatedSugar: 0,
         calculatedFat: 5.4,
         calculatedFiber: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     ];
 
@@ -154,8 +150,6 @@ describe('LoggedFoodList Component', () => {
         calculatedSugar: 0,
         calculatedFat: 0,
         calculatedFiber: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     ];
 
@@ -209,8 +203,6 @@ describe('LoggedFoodList Component', () => {
         calculatedSugar: 0,
         calculatedFat: 3.5,
         calculatedFiber: 5.3,
-        createdAt: new Date(),
-        updatedAt: new Date(),
       },
     ];
 
@@ -243,8 +235,7 @@ describe('LoggedFoodList Component', () => {
         calculatedSugar: 0,
         calculatedFat: 5.4,
         calculatedFiber: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+
       },
     ];
 
