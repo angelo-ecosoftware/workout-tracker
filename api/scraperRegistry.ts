@@ -12,6 +12,7 @@ export interface ProductScraperResult {
   sourceUrl: string;
   packageWeightGrams?: number;
   pieceCount?: number;
+  barcode?: string;
 }
 
 export interface StoreScraperAdapter {
@@ -116,9 +117,11 @@ export function parseDutchNutritionTable(html: string): {
 export function extractSchemaAndHeadings(
   html: string,
   defaultBrand: string
-): { title: string; brand: string } {
+): { title: string; brand: string; barcode?: string; packageWeightGrams?: number } {
   let title = 'Product';
   let brand = defaultBrand;
+  let barcode: string | undefined;
+  let packageWeightGrams: number | undefined;
 
   const jsonLdMatches = html.match(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi) || [];
   for (const jld of jsonLdMatches) {
@@ -143,6 +146,20 @@ export function extractSchemaAndHeadings(
         if (node.brand) {
           if (typeof node.brand === 'string') brand = node.brand;
           else if (node.brand?.name) brand = node.brand.name;
+        }
+        if (node.gtin13 || node.gtin8 || node.gtin14 || node.gtin) {
+          barcode = String(node.gtin13 || node.gtin8 || node.gtin14 || node.gtin).trim();
+        }
+        if (node.weight?.value && typeof node.weight.value === 'string') {
+          const wtMatch = node.weight.value.match(/(\d+(?:[.,]\d+)?)\s*(?:g|gram)\b/i);
+          if (wtMatch) {
+            packageWeightGrams = Math.round(parseFloat(wtMatch[1].replace(',', '.')));
+          } else {
+            const kgMatch = node.weight.value.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i);
+            if (kgMatch) {
+              packageWeightGrams = Math.round(parseFloat(kgMatch[1].replace(',', '.')) * 1000);
+            }
+          }
         }
       }
     } catch (e) {}
@@ -181,7 +198,7 @@ export function extractSchemaAndHeadings(
     .replace(/^(AH|Albert Heijn|Jumbo|PLUS|Dirk)\s+/i, '')
     .trim();
 
-  return { title, brand };
+  return { title, brand, barcode, packageWeightGrams };
 }
 
 // -------------------------------------------------------------
@@ -345,7 +362,7 @@ export const albertHeijnAdapter: StoreScraperAdapter = {
     return url;
   },
   parse(html: string, url: string): ProductScraperResult {
-    const { title, brand } = extractSchemaAndHeadings(html, 'AH');
+    const { title, brand, barcode, packageWeightGrams } = extractSchemaAndHeadings(html, 'AH');
     const nutrition = parseDutchNutritionTable(html);
     const sizing = extractPackageSizing(title, html);
 
@@ -362,9 +379,11 @@ export const albertHeijnAdapter: StoreScraperAdapter = {
       id: productId,
       name: title,
       brand,
+      barcode,
       servingUnit: isDrink ? 'ml' : 'gram',
       ...nutrition,
-      ...sizing,
+      packageWeightGrams: packageWeightGrams || sizing.packageWeightGrams,
+      pieceCount: sizing.pieceCount,
       sourceUrl: url,
     };
   },
