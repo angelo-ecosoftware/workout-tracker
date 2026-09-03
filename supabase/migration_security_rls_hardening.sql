@@ -9,7 +9,16 @@
 
 -- ==========================================
 -- 1. FORCE ROW LEVEL SECURITY (RLS) ON ALL TABLES
+-- Ensure columns exist before creating policies referencing them
 -- ==========================================
+ALTER TABLE IF EXISTS public.exercises
+  ADD COLUMN IF NOT EXISTS is_custom BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS user_id TEXT;
+
+ALTER TABLE IF EXISTS public.food_items
+  ADD COLUMN IF NOT EXISTS is_custom BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS user_id TEXT;
+
 ALTER TABLE IF EXISTS public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.users FORCE ROW LEVEL SECURITY;
 
