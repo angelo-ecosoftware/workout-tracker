@@ -41,7 +41,13 @@ export function parseDutchNutritionTable(html: string): {
   let fatPer100g = 0;
   let fiberPer100g = 0;
 
-  const start = html.indexOf('Voedingswaarden');
+  let start = html.indexOf('Voedingswaarden');
+  if (start === -1) {
+    start = html.indexOf('Voedingswaarde');
+  }
+  if (start === -1) {
+    start = html.toLowerCase().indexOf('voedingswaarde');
+  }
   if (start === -1) {
     return { kcalPer100g, proteinPer100g, carbsPer100g, sugarPer100g, fatPer100g, fiberPer100g };
   }
