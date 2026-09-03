@@ -1,4 +1,13 @@
-import { Workout, Exercise, UserProfile, Session, WorkoutSet } from '../../src/models.ts';
+import {
+  Workout,
+  Exercise,
+  UserProfile,
+  Session,
+  WorkoutSet,
+  BodyMeasurementLog,
+  FoodItemNutrition,
+  DailyDietaryLog,
+} from '../../src/models.ts';
 
 export const userFactory = {
   build: (overrides: Partial<UserProfile> = {}): UserProfile => ({
@@ -60,6 +69,7 @@ export const sessionFactory = {
     photos: [],
     ...overrides,
   }),
+  create: (overrides: Partial<Session> = {}): Session => sessionFactory.build(overrides),
 };
 
 export const setFactory = {
@@ -75,4 +85,59 @@ export const setFactory = {
     loggedAt: new Date(),
     ...overrides,
   }),
+};
+
+export const workoutSetFactory = setFactory;
+
+export const bodyMeasurementFactory = {
+  build: (overrides: Partial<BodyMeasurementLog> = {}): BodyMeasurementLog => ({
+    id: `log_${Math.random().toString(36).substring(2, 9)}`,
+    userId: 'user_1',
+    logDate: '2025-05-01',
+    weightKg: 80.0,
+    heightCm: 180,
+    calculatedBmi: 24.7,
+    waistCm: 82.0,
+    bodyFatPercentage: 14.5,
+    notes: 'Morning weigh-in',
+    source: 'manual',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  }),
+  create: (overrides: Partial<BodyMeasurementLog> = {}): BodyMeasurementLog => bodyMeasurementFactory.build(overrides),
+};
+
+export const foodItemFactory = {
+  build: (overrides: Partial<FoodItemNutrition> = {}): FoodItemNutrition => ({
+    id: `food_${Math.random().toString(36).substring(2, 9)}`,
+    name: 'Standard Whey Isolate',
+    brand: 'Optimum Nutrition',
+    servingUnit: 'gram',
+    kcalPer100g: 375,
+    proteinPer100g: 82.0,
+    carbsPer100g: 3.5,
+    sugarPer100g: 1.2,
+    fatPer100g: 1.5,
+    fiberPer100g: 0.5,
+    packageWeightGrams: 1000,
+    isCustom: false,
+    ...overrides,
+  }),
+  create: (overrides: Partial<FoodItemNutrition> = {}): FoodItemNutrition => foodItemFactory.build(overrides),
+};
+
+export const dailyDietaryLogFactory = {
+  build: (overrides: Partial<DailyDietaryLog> = {}): DailyDietaryLog => ({
+    date: '2025-05-15',
+    entries: [],
+    totalKcal: 0,
+    totalProtein: 0,
+    totalCarbs: 0,
+    totalSugar: 0,
+    totalFat: 0,
+    totalFiber: 0,
+    ...overrides,
+  }),
+  create: (overrides: Partial<DailyDietaryLog> = {}): DailyDietaryLog => dailyDietaryLogFactory.build(overrides),
 };
