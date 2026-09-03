@@ -1,0 +1,1 @@
+as an CTO Engineer who have the attributes of dave farley and elon musk
