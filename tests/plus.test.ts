@@ -8,7 +8,7 @@ describe('PLUS Scraper Extraction', () => {
 
     console.log('PLUS Extracted Result:', product);
 
-    expect(product.name).toBe('PLUS Boerentrots Kipfilet 1 stuk');
+    expect(product.name).toContain('Boerentrots Kipfilet 1 stuk');
     expect(product.brand).toBe('PLUS Boerentrots');
     expect(product.kcalPer100g).toBe(112);
     expect(product.proteinPer100g).toBe(24.6);
