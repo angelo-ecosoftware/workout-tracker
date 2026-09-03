@@ -389,11 +389,11 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="font-bold text-xs sm:text-sm text-white flex items-center justify-between">
-                    <span>Save All Data & Routines</span>
+                    <span>Save All Data & Nutrition</span>
                     <span className="text-[10px] font-mono text-blue-400 font-normal">.JSON</span>
                   </div>
                   <div className="text-[11px] text-gray-400 line-clamp-1">
-                    Download routines, exercises, weigh-ins & workout history in one file
+                    Download routines, exercises, weigh-ins, workout & dietary logs in one file
                   </div>
                 </div>
               </button>
@@ -420,7 +420,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     <span className="text-[10px] font-mono text-[#C0FF00] font-normal">RESTORE</span>
                   </div>
                   <div className="text-[11px] text-gray-400 line-clamp-1">
-                    Load saved routines, exercises & workout history from backup
+                    Load saved routines, exercises, weigh-ins & dietary logs from backup
                   </div>
                 </div>
               </button>

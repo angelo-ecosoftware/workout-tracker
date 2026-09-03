@@ -826,7 +826,7 @@ export async function fetchBodyMeasurementLogs(userId: string): Promise<import('
 }
 
 export async function exportAllLogs(userId: string) {
-  // Fetch complete dataset for the user: Workouts (Routines), Exercises, Workout-Exercise links, Sessions, Sets, Body Logs, and User Profile
+  // Fetch complete dataset for the user: Workouts (Routines), Exercises, Workout-Exercise links, Sessions, Sets, Body Logs, Dietary Logs & Entries, Custom Food Items, and User Profile
   const [
     { data: workouts },
     { data: exercises },
@@ -834,6 +834,9 @@ export async function exportAllLogs(userId: string) {
     { data: sessions },
     { data: sets },
     { data: bodyLogs },
+    { data: dietaryLogs },
+    { data: dietaryLogEntries },
+    { data: customFoodItems },
     { data: userProfile }
   ] = await Promise.all([
     supabase.from('workouts').select('*').eq('user_id', userId),
@@ -842,11 +845,14 @@ export async function exportAllLogs(userId: string) {
     supabase.from('sessions').select('*').eq('user_id', userId),
     supabase.from('sets').select('*').eq('user_id', userId),
     supabase.from('body_logs').select('*').eq('user_id', userId),
+    supabase.from('dietary_logs').select('*').eq('user_id', userId),
+    supabase.from('dietary_log_entries').select('*').eq('user_id', userId),
+    supabase.from('food_items').select('*').eq('user_id', userId),
     supabase.from('users').select('*').eq('id', userId).maybeSingle()
   ]);
 
   return {
-    version: 2,
+    version: 3,
     exported_at: new Date().toISOString(),
     user_id: userId,
     user_profile: userProfile || null,
@@ -856,6 +862,9 @@ export async function exportAllLogs(userId: string) {
     sessions: sessions || [],
     sets: sets || [],
     body_logs: bodyLogs || [],
+    dietary_logs: dietaryLogs || [],
+    dietary_log_entries: dietaryLogEntries || [],
+    custom_food_items: customFoodItems || [],
   };
 }
 
@@ -863,6 +872,8 @@ export async function deleteAllLogs(userId: string) {
   await supabase.from('sets').delete().eq('user_id', userId);
   await supabase.from('sessions').delete().eq('user_id', userId);
   await supabase.from('body_logs').delete().eq('user_id', userId);
+  await supabase.from('dietary_log_entries').delete().eq('user_id', userId);
+  await supabase.from('dietary_logs').delete().eq('user_id', userId);
 }
 
 export async function importAllLogs(userId: string, data: any) {
@@ -935,6 +946,33 @@ export async function importAllLogs(userId: string, data: any) {
       user_id: userId,
     }));
     await supabase.from('body_logs').upsert(cleanBodyLogs, { onConflict: 'user_id,log_date' });
+  }
+
+  // 8. Restore Custom Food Items
+  if (Array.isArray(data.custom_food_items) && data.custom_food_items.length > 0) {
+    const cleanCustomFoods = data.custom_food_items.map((cf: any) => ({
+      ...cf,
+      user_id: userId,
+    }));
+    await supabase.from('food_items').upsert(cleanCustomFoods, { onConflict: 'id' });
+  }
+
+  // 9. Restore Daily Dietary Summaries
+  if (Array.isArray(data.dietary_logs) && data.dietary_logs.length > 0) {
+    const cleanDietaryLogs = data.dietary_logs.map((dl: any) => ({
+      ...dl,
+      user_id: userId,
+    }));
+    await supabase.from('dietary_logs').upsert(cleanDietaryLogs, { onConflict: 'user_id,log_date' });
+  }
+
+  // 10. Restore Granular Dietary Log Entries
+  if (Array.isArray(data.dietary_log_entries) && data.dietary_log_entries.length > 0) {
+    const cleanDietaryEntries = data.dietary_log_entries.map((de: any) => ({
+      ...de,
+      user_id: userId,
+    }));
+    await supabase.from('dietary_log_entries').upsert(cleanDietaryEntries, { onConflict: 'id' });
   }
 }
 
