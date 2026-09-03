@@ -1,102 +1,734 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.tsx';
-import { useWorkoutSession } from '../hooks/useWorkoutSession.ts';
-import { saveWorkoutsAndExercises } from '../lib/supabaseData.ts';
-import { Dumbbell, Loader2, CheckCircle2 } from 'lucide-react';
-import { AssistedTimedTracker } from './AssistedTimedTracker.tsx';
+import { Workout, Exercise, UserProfile } from '../models.ts';
+import { fetchWorkoutsData, getUserProgressState, logSessionCompletion, seedTemplatesIfMissing, saveWorkoutsAndExercises } from '../lib/supabaseData.ts';
+import { uploadWorkoutPhotos } from '../lib/storage.ts';
+import { SessionEngine, ProgressionEngine } from '../engine.ts';
+import { Dumbbell, Calendar, Zap, ChevronRight, CheckCircle2, Loader2, Eye, EyeOff, Timer, FileText, Settings, Plus, Camera, Image, Trash2, FolderOpen, Scale } from 'lucide-react';
+import { AssistedTimedTracker, SetTimingRecord } from './AssistedTimedTracker.tsx';
+import { WgerExerciseInfo } from './WgerExerciseInfo.tsx';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { WelcomeModal } from './WelcomeModal.tsx';
-import { RoutineSelectorGrid } from './workout/RoutineSelectorGrid.tsx';
-import { WorkoutHeader } from './workout/WorkoutHeader.tsx';
-import { SessionBiomarkersForm } from './workout/SessionBiomarkersForm.tsx';
-import { ExerciseAccordionItem } from './workout/ExerciseAccordionItem.tsx';
-import { EmptyRoutinesCard } from './workout/EmptyRoutinesCard.tsx';
+import { saveDraftPhotosToStorage, loadDraftPhotosFromStorage, clearDraftPhotosFromStorage } from '../utils/draftPhotoStorage.ts';
+import { logDailyBodyWeight } from '../lib/supabaseData.ts';
+// import { enqueueOfflineSession, processOfflineQueue } from '../utils/offlineQueue.ts';
 
 export const WorkoutDayTracker: React.FC = () => {
   const { user } = useAuth();
-  const {
-    workouts,
-    setWorkouts,
-    activeWorkout,
-    setActiveWorkout,
-    expandedExerciseId,
-    setExpandedExerciseId,
-    userProfile,
-    suggestedDay,
-    loading,
-    loggingWorkout,
-    errorMsg,
-    successMsg,
-    isRoutineEditorOpen,
-    setIsRoutineEditorOpen,
-    showWelcomeModal,
-    setShowWelcomeModal,
-    sleepHours,
-    setSleepHours,
-    energyScore,
-    setEnergyScore,
-    sessionNotes,
-    setSessionNotes,
-    bodyWeightKg,
-    setBodyWeightKg,
-    selectedPhotos,
-    photoPreviews,
-    isUploadingPhotos,
-    fileInputRef,
-    cameraInputRef,
-    sessionDate,
-    setSessionDate,
-    lastAutoSavedTime,
-    isAssistedMode,
-    restDurationSeconds,
-    assistedFinished,
-    setAssistedFinished,
-    setAssistedSessionTimings,
-    inputs,
-    handlePhotoSelect,
-    handleRemovePhoto,
-    saveDraftCheckpoint,
-    loadWorkflowState,
-    updateInputValue,
-    handleTextChange,
-    getProgressionAdvice,
-    handleLogWorkout,
-  } = useWorkoutSession(user);
+  
+  // App/workflow state
+  const [workouts, setWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
+  const [activeWorkout, setActiveWorkout] = useState<(Workout & { exercises: Exercise[] }) | null>(null);
+  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [lastSessionDay, setLastSessionDay] = useState<number | null>(null);
+  const [suggestedDay, setSuggestedDay] = useState<number>(1);
+  const [loading, setLoading] = useState(true);
+  const [loggingWorkout, setLoggingWorkout] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [isRoutineEditorOpen, setIsRoutineEditorOpen] = useState(false);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+
+  // Recovery & Note States
+  const [sleepHours, setSleepHours] = useState(8);
+  const [energyScore, setEnergyScore] = useState(7);
+  const [sessionNotes, setSessionNotes] = useState('');
+  const [bodyWeightKg, setBodyWeightKg] = useState<string>('');
+  const [selectedPhotos, setSelectedPhotos] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [sessionDate, setSessionDate] = useState(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [lastAutoSavedTime, setLastAutoSavedTime] = useState<string | null>(null);
+
+  // Assisted Timed Workout Mode state
+  const [isAssistedMode, setIsAssistedMode] = useState<boolean>(() => {
+    return localStorage.getItem('setting_assisted_timed_workout') === 'true';
+  });
+  const [restDurationSeconds, setRestDurationSeconds] = useState<number>(() => {
+    const val = localStorage.getItem('setting_rest_duration_seconds');
+    return val ? parseInt(val, 10) : 5;
+  });
+  const [assistedFinished, setAssistedFinished] = useState(false);
+  const [assistedSessionTimings, setAssistedSessionTimings] = useState<{
+    startedAt?: Date;
+    completedAt?: Date;
+    setTimings?: Record<string, SetTimingRecord>;
+  } | null>(null);
+
+  // Sync settings when modified from SettingsModal
+  useEffect(() => {
+    const handleSettingsUpdate = () => {
+      setIsAssistedMode(localStorage.getItem('setting_assisted_timed_workout') === 'true');
+      const restVal = localStorage.getItem('setting_rest_duration_seconds');
+      if (restVal) setRestDurationSeconds(parseInt(restVal, 10));
+    };
+
+    window.addEventListener('workout_settings_updated', handleSettingsUpdate);
+    return () => window.removeEventListener('workout_settings_updated', handleSettingsUpdate);
+  }, []);
+
+  // Screen Wake Lock API to keep the screen active during workouts
+  useEffect(() => {
+    if (!activeWorkout) return;
+
+    let wakeLockSentinel: any = null;
+
+    const requestWakeLock = async () => {
+      if ('wakeLock' in navigator && document.visibilityState === 'visible') {
+        try {
+          wakeLockSentinel = await (navigator as any).wakeLock.request('screen');
+        } catch (err) {
+          console.warn('Screen wake lock request failed:', err);
+        }
+      }
+    };
+
+    requestWakeLock();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLockSentinel) {
+        wakeLockSentinel.release().catch(() => {});
+        wakeLockSentinel = null;
+      }
+    };
+  }, [activeWorkout]);
+
+  // Active workout entry inputs state
+  // Key format: `${exerciseId}-${setNumber}` (setNumber starts from 1)
+  const [inputs, setInputs] = useState<Record<string, {
+    weight: string;
+    reps: string;
+    durationSeconds?: string;
+    difficulty?: string;
+  }>>({});
+
+  // LocalStorage keys for draft preservation
+  const getDraftKey = (workoutId?: string) => {
+    if (!user) return null;
+    return `workout_draft_${user.uid}_${workoutId || activeWorkout?.id || 'default'}`;
+  };
+
+  // Handle photo file selection (up to 5)
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const remainingSlots = 5 - selectedPhotos.length;
+    if (remainingSlots <= 0) {
+      setErrorMsg('You can upload a maximum of 5 photos per session.');
+      return;
+    }
+
+    const newFiles = files.slice(0, remainingSlots);
+    const updatedFiles = [...selectedPhotos, ...newFiles];
+    setSelectedPhotos(updatedFiles);
+
+    // Create local object URLs for instant visual preview
+    const newPreviews = newFiles.map((f) => URL.createObjectURL(f));
+    setPhotoPreviews((prev) => [...prev, ...newPreviews]);
+
+    // Persist draft photos to IndexedDB so they survive full app reloads & closures
+    if (user && activeWorkout) {
+      await saveDraftPhotosToStorage(user.uid, activeWorkout.id, updatedFiles);
+    }
+
+    if (e.target) e.target.value = '';
+  };
+
+  const handleRemovePhoto = async (index: number) => {
+    const updatedFiles = selectedPhotos.filter((_, i) => i !== index);
+    setSelectedPhotos(updatedFiles);
+    setPhotoPreviews((prev) => {
+      const targetUrl = prev[index];
+      if (targetUrl) URL.revokeObjectURL(targetUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+
+    if (user && activeWorkout) {
+      await saveDraftPhotosToStorage(user.uid, activeWorkout.id, updatedFiles);
+    }
+  };
+
+  // Helper to save current draft checkpoint to localStorage
+  const saveDraftCheckpoint = (
+    newInputs: Record<string, any>,
+    workoutId?: string,
+    curDate?: string,
+    curSleep?: number,
+    curEnergy?: number,
+    curNotes?: string,
+    curWeight?: string
+  ) => {
+    const key = getDraftKey(workoutId);
+    if (!key) return;
+    try {
+      const payload = {
+        workoutId: workoutId || activeWorkout?.id,
+        inputs: newInputs,
+        sessionDate: curDate ?? sessionDate,
+        sleepHours: curSleep ?? sleepHours,
+        energyScore: curEnergy ?? energyScore,
+        notes: curNotes ?? sessionNotes,
+        bodyWeightKg: curWeight ?? bodyWeightKg,
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem(key, JSON.stringify(payload));
+      // Also backup to a generic latest draft key for safety
+      if (user) {
+        localStorage.setItem(`workout_draft_latest_${user.uid}`, JSON.stringify(payload));
+      }
+      setLastAutoSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    } catch (e) {
+      console.warn('Could not save draft checkpoint to localStorage', e);
+    }
+  };
+
+  // Helper to clear draft once workout is successfully completed & logged
+  const clearDraftCheckpoint = async (workoutId?: string) => {
+    const targetWkId = workoutId || activeWorkout?.id;
+    const key = getDraftKey(targetWkId);
+    if (key) {
+      try {
+        localStorage.removeItem(key);
+        if (user) {
+          localStorage.removeItem(`workout_draft_latest_${user.uid}`);
+        }
+        setLastAutoSavedTime(null);
+      } catch (e) {
+        console.warn('Could not remove draft checkpoint', e);
+      }
+    }
+    if (user && targetWkId) {
+      await clearDraftPhotosFromStorage(user.uid, targetWkId);
+    }
+  };
+
+  // 1. Initial configuration load
+  const loadWorkflowState = async () => {
+    try {
+      setLoading(true);
+      setErrorMsg(null);
+      
+      if (!user) {
+        console.log("No user, aborting loadWorkflowState");
+        return;
+      }
+
+      console.log("Starting seedTemplatesIfMissing...");
+      await seedTemplatesIfMissing(user.uid);
+      console.log("Finished seedTemplatesIfMissing.");
+
+      console.log("Starting Promise.all for fetching data...");
+      const [wData, userProgress] = await Promise.all([
+        fetchWorkoutsData(user.uid),
+        getUserProgressState(user.uid)
+      ]);
+      console.log("Finished Promise.all.", wData, userProgress);
+
+      const progressState = userProgress.profile;
+      setWorkouts(wData.combinedWorkouts);
+      setUserProfile(progressState);
+
+      // Only show the welcome modal if the user was just newly registered (first time in public.users)
+      // AND has not yet dismissed it in this browser session/storage.
+      const welcomeKey = `welcome_shown_${user.uid}`;
+      if (userProgress.isNewUser && !localStorage.getItem(welcomeKey)) {
+        setShowWelcomeModal(true);
+      }
+
+      const computedNextDay = SessionEngine.calculateNextWorkoutOrder(progressState, wData.combinedWorkouts);
+      setSuggestedDay(computedNextDay);
+      
+      if (progressState.lastCompletedWorkoutOrder) {
+        setLastSessionDay(progressState.lastCompletedWorkoutOrder);
+      } else {
+        setLastSessionDay(null);
+      }
+
+      // Auto-set workout to the suggested day
+      const targetW = wData.combinedWorkouts.find(w => w.order === computedNextDay) || wData.combinedWorkouts[0];
+      setActiveWorkout(targetW || null);
+
+    } catch (err: any) {
+      console.error("loadWorkflowState ERROR:", err);
+      setErrorMsg(`Failed to synchronize active workout progression. ERROR: ${err.message}`);
+    } finally {
+      console.log("loadWorkflowState FINALLY reached - setting loading to false");
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      loadWorkflowState();
+    }
+  }, [user]);
+
+  // 2. Load previous sets cache & draft state (including photos) whenever active workout switches
+  useEffect(() => {
+    if (!activeWorkout || !userProfile || !user) return;
+
+    if (activeWorkout.exercises && activeWorkout.exercises.length > 0) {
+      setExpandedExerciseId(activeWorkout.exercises[0].id);
+    } else {
+      setExpandedExerciseId(null);
+    }
+
+    // Restore draft photos from IndexedDB if user previously picked photos
+    loadDraftPhotosFromStorage(user.uid, activeWorkout.id).then((restoredFiles) => {
+      if (restoredFiles && restoredFiles.length > 0) {
+        setSelectedPhotos(restoredFiles);
+        // Revoke old previews first
+        setPhotoPreviews((prev) => {
+          prev.forEach((url) => URL.revokeObjectURL(url));
+          return restoredFiles.map((f) => URL.createObjectURL(f));
+        });
+      }
+    });
+
+    const prepopulateInputs = () => {
+      // Determine user's previous body weight from profile metrics or local cache
+      const cachedProfileWeight = userProfile.weightKg || userProfile.metrics?.weight;
+      if (cachedProfileWeight && !bodyWeightKg) {
+        setBodyWeightKg(String(cachedProfileWeight));
+      }
+
+      // Check if user has an existing saved draft checkpoint in device localStorage
+      const draftKey = getDraftKey(activeWorkout.id);
+      if (draftKey) {
+        try {
+          let rawDraft = localStorage.getItem(draftKey);
+          if (!rawDraft && user) {
+            rawDraft = localStorage.getItem(`workout_draft_latest_${user.uid}`);
+          }
+          if (rawDraft) {
+            const parsedDraft = JSON.parse(rawDraft);
+            if (parsedDraft && parsedDraft.inputs && Object.keys(parsedDraft.inputs).length > 0) {
+              setInputs(parsedDraft.inputs);
+              if (parsedDraft.sessionDate) setSessionDate(parsedDraft.sessionDate);
+              if (parsedDraft.sleepHours != null) setSleepHours(parsedDraft.sleepHours);
+              if (parsedDraft.energyScore != null) setEnergyScore(parsedDraft.energyScore);
+              if (parsedDraft.notes != null) setSessionNotes(parsedDraft.notes);
+              if (parsedDraft.bodyWeightKg != null) setBodyWeightKg(String(parsedDraft.bodyWeightKg));
+              if (parsedDraft.savedAt) {
+                const dateObj = new Date(parsedDraft.savedAt);
+                setLastAutoSavedTime(dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+              }
+              return;
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to parse draft from localStorage', e);
+        }
+      }
+
+      const newInputs: Record<string, { weight: string; reps: string; durationSeconds: string; difficulty: string }> = {};
+
+      activeWorkout.exercises.forEach((ex) => {
+        const cachedEx = ProgressionEngine.evaluateProgression(ex.id, userProfile.lastSetSummaryPerExercise);
+        
+        // Prepopulate sets inputs using the previous set specs (or defaults)
+        for (let i = 1; i <= ex.targetSets; i++) {
+          if (ex.type === 'timed') {
+            const dsVal = cachedEx && cachedEx.lastDurationSeconds != null
+              ? cachedEx.lastDurationSeconds.toString()
+              : (ex.targetRepMin?.toString() || '60');
+
+            newInputs[`${ex.id}-${i}`] = {
+              weight: '',
+              reps: '',
+              durationSeconds: dsVal,
+              difficulty: '7',
+            };
+          } else {
+            const wtVal = cachedEx && cachedEx.lastWeight != null
+              ? cachedEx.lastWeight.toString()
+              : '20';
+            const rpVal = cachedEx && cachedEx.lastReps != null
+              ? cachedEx.lastReps.toString()
+              : (ex.targetRepMin?.toString() || '10');
+
+            newInputs[`${ex.id}-${i}`] = {
+              weight: wtVal,
+              reps: rpVal,
+              durationSeconds: '',
+              difficulty: '',
+            };
+          }
+        }
+      });
+
+      setInputs(newInputs);
+    };
+
+    prepopulateInputs();
+  }, [activeWorkout, userProfile]);
+
+  // Utility to handle incrementing/decrementing numeric inputs easily
+  const updateInputValue = (key: string, field: 'weight' | 'reps' | 'durationSeconds' | 'difficulty', step: number) => {
+    setInputs(prev => {
+      const current = prev[key] || { weight: '20', reps: '10', durationSeconds: '30', difficulty: '7' };
+      const baseNum = parseFloat(current[field] || '0');
+      if (isNaN(baseNum)) return prev;
+
+      let nextVal = baseNum + step;
+      if (nextVal < 0) nextVal = 0;
+
+      // Ensure integers only for reps, duration, difficulty, and clean rounded non-negative values for weight
+      const formatted = field === 'weight' 
+        ? (nextVal % 1 === 0 ? nextVal.toString() : (Math.round(nextVal * 10) / 10).toString()) 
+        : Math.round(nextVal).toString();
+
+      const updated = {
+        ...prev,
+        [key]: {
+          ...current,
+          [field]: formatted
+        }
+      };
+
+      // Auto-save checkpoint immediately on any click / step modification
+      saveDraftCheckpoint(updated);
+
+      return updated;
+    });
+  };
+
+  const handleTextChange = (key: string, field: 'weight' | 'reps' | 'durationSeconds' | 'difficulty', value: string) => {
+    // Only allow positive numbers/integers (0+)
+    let sanitized = value;
+    if (field === 'weight') {
+      // Allow positive integers or single decimal point
+      sanitized = value.replace(/[^0-9.]/g, '');
+      const parts = sanitized.split('.');
+      if (parts.length > 2) {
+        sanitized = parts[0] + '.' + parts.slice(1).join('');
+      }
+    } else {
+      // Reps, durationSeconds, difficulty: strictly non-negative integers only (0-9)
+      sanitized = value.replace(/[^0-9]/g, '');
+    }
+
+    setInputs(prev => {
+      const current = prev[key] || { weight: '20', reps: '10', durationSeconds: '30', difficulty: '7' };
+      const updated = {
+        ...prev,
+        [key]: {
+          ...current,
+          [field]: sanitized
+        }
+      };
+
+      // Auto-save checkpoint on every keystroke
+      saveDraftCheckpoint(updated);
+
+      return updated;
+    });
+  };
+
+  // 3. Compute Auto Progression triggers based on user's previous logged history
+  const getProgressionAdvice = (ex: Exercise): { action: 'increase' | 'keep' | 'loading'; details: string } => {
+    if (!userProfile) return { action: 'loading', details: 'Checking history...' };
+    
+    const cachedEx = ProgressionEngine.evaluateProgression(ex.id, userProfile.lastSetSummaryPerExercise);
+    
+    if (!cachedEx) {
+      return { action: 'keep', details: 'First log. Start focused.' };
+    }
+
+    if (ex.type === 'timed') {
+      const hitMaxDuration = (cachedEx.lastDurationSeconds || 0) >= ex.targetRepMax;
+
+      if (hitMaxDuration) {
+        return {
+          action: 'increase',
+          details: `Time Target Cleared! Increase time (+5s) or add lever difficulty.`
+        };
+      } else {
+        const lastDuration = cachedEx.lastDurationSeconds || 30;
+        return {
+          action: 'keep',
+          details: `Hold clean form. Target ${ex.targetRepMax}s (last: ${lastDuration}s).`
+        };
+      }
+    }
+
+    const maxRepsConstraint = ex.targetRepMax;
+    const hitMaxReps = (cachedEx.lastReps || 0) >= maxRepsConstraint;
+
+    if (hitMaxReps) {
+      // Suggest increase weight
+      const lastAvgWeight = Number(cachedEx.lastWeight || 0);
+      const proposedNewWeight = lastAvgWeight + 2.5;
+      return {
+        action: 'increase',
+        details: `Progression Hit! Try ${proposedNewWeight.toFixed(1)}kg (+2.5kg)`
+      };
+    } else {
+      // Keep weight
+      return {
+        action: 'keep',
+        details: `Keep weight at current ${Number(cachedEx.lastWeight || 20)}kg to master reps.`
+      };
+    }
+  };
+
+  // 4. Submit logs handler
+  const handleLogWorkout = async () => {
+    if (!activeWorkout) return;
+
+    setLoggingWorkout(true);
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      // Consolidate sets values from input map
+      const finalSetsPayload: Array<{
+        exerciseId: string;
+        setNumber: number;
+        weight?: number | null;
+        reps?: number | null;
+        durationSeconds?: number | null;
+        difficulty?: number | null;
+        startedAt?: Date | null;
+        completedAt?: Date | null;
+        restSeconds?: number | null;
+      }> = [];
+
+      for (const ex of activeWorkout.exercises) {
+        for (let i = 1; i <= ex.targetSets; i++) {
+          const key = `${ex.id}-${i}`;
+          const isTimed = ex.type === 'timed';
+          const defaultInput = isTimed
+            ? { weight: '', reps: '', durationSeconds: (ex.targetRepMin?.toString() || '30'), difficulty: '7' }
+            : { weight: '20', reps: '10', durationSeconds: '', difficulty: '' };
+
+          const inputValues = inputs[key] || defaultInput;
+
+          const setTimingKey = `${ex.id}-${i}`;
+          const recordedSetTiming = assistedSessionTimings?.setTimings?.[setTimingKey];
+
+          if (isTimed) {
+            const secNum = parseInt(inputValues.durationSeconds || '', 10);
+            const diffNum = parseInt(inputValues.difficulty || '', 10);
+
+            if (isNaN(secNum)) {
+              throw new Error(`Invalid duration seconds detected on "${ex.name}" Set #${i}. Please correct.`);
+            }
+
+            finalSetsPayload.push({
+              exerciseId: ex.id,
+              setNumber: i,
+              weight: null,
+              reps: null,
+              durationSeconds: secNum,
+              difficulty: isNaN(diffNum) ? null : diffNum,
+              startedAt: recordedSetTiming?.startedAt,
+              completedAt: recordedSetTiming?.completedAt,
+              restSeconds: recordedSetTiming?.restSeconds,
+            });
+          } else {
+            const weightNum = parseFloat(inputValues.weight || '');
+            const repsNum = parseInt(inputValues.reps || '', 10);
+
+            if (isNaN(weightNum) || isNaN(repsNum)) {
+              throw new Error(`Invalid weight or reps detected on "${ex.name}" Set #${i}. Please correct.`);
+            }
+
+            finalSetsPayload.push({
+              exerciseId: ex.id,
+              setNumber: i,
+              weight: weightNum,
+              reps: repsNum,
+              durationSeconds: recordedSetTiming?.durationSeconds || null,
+              difficulty: null,
+              startedAt: recordedSetTiming?.startedAt,
+              completedAt: recordedSetTiming?.completedAt,
+              restSeconds: recordedSetTiming?.restSeconds,
+            });
+          }
+        }
+      }
+
+      let completedAtDate = assistedSessionTimings?.completedAt || undefined;
+      let sessionStartedAtDate = assistedSessionTimings?.startedAt || undefined;
+
+      if (sessionDate) {
+         // Create a date in local time using the provided date, but keeping time
+         const baseTime = completedAtDate || new Date();
+         const [y, m, d] = sessionDate.split('-');
+         completedAtDate = new Date(parseInt(y), parseInt(m)-1, parseInt(d), baseTime.getHours(), baseTime.getMinutes(), baseTime.getSeconds());
+      }
+
+      // Offline queue disabled for now
+      /*
+      if (!navigator.onLine) {
+        await enqueueOfflineSession(
+          user!.uid,
+          activeWorkout.id,
+          finalSetsPayload,
+          activeWorkout.exercises,
+          completedAtDate,
+          sessionNotes,
+          selectedPhotos,
+          sessionStartedAtDate
+        );
+
+        // Clear local auto-save draft checkpoint
+        clearDraftCheckpoint(activeWorkout.id);
+        setSessionNotes('');
+        setSelectedPhotos([]);
+        photoPreviews.forEach((url) => URL.revokeObjectURL(url));
+        setPhotoPreviews([]);
+        setAssistedSessionTimings(null);
+
+        setSuccessMsg(`Workout saved offline! It will automatically sync once connection is restored.`);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setTimeout(() => setSuccessMsg(null), 5000);
+        return;
+      }
+      */
+
+      // Upload progress photos to S3/Supabase storage if selected
+      let uploadedPhotoUrls: string[] = [];
+      if (selectedPhotos.length > 0 && user) {
+        setIsUploadingPhotos(true);
+        try {
+          uploadedPhotoUrls = await uploadWorkoutPhotos(user.uid, selectedPhotos);
+        } catch (uploadErr: any) {
+          console.warn('Photos upload error, continuing session save:', uploadErr);
+        } finally {
+          setIsUploadingPhotos(false);
+        }
+      }
+
+      try {
+        await logSessionCompletion(
+          user!.uid,
+          activeWorkout.id,
+          finalSetsPayload,
+          activeWorkout.exercises,
+          completedAtDate,
+          sessionNotes,
+          uploadedPhotoUrls,
+          sessionStartedAtDate
+        );
+
+        // If a bodyweight is logged for this session, upsert a daily bodyweight entry
+        const parsedWeight = parseFloat(bodyWeightKg);
+        if (!isNaN(parsedWeight) && parsedWeight > 0) {
+          const userHeight = userProfile?.heightCm || userProfile?.metrics?.height;
+          await logDailyBodyWeight(user!.uid, {
+            date: sessionDate,
+            weightKg: parsedWeight,
+            heightCm: userHeight,
+            source: 'workout_session',
+            notes: sessionNotes || undefined,
+          });
+        }
+      } catch (networkErr: any) {
+        console.error('Failed saving workout session:', networkErr);
+        throw networkErr;
+      }
+
+      // Clear local auto-save draft checkpoint upon successful log
+      clearDraftCheckpoint(activeWorkout.id);
+      setSessionNotes('');
+      setSelectedPhotos([]);
+      photoPreviews.forEach((url) => URL.revokeObjectURL(url));
+      setPhotoPreviews([]);
+      setAssistedSessionTimings(null);
+
+      setSuccessMsg(`Workout successfully saved! Next workout Day updated.`);
+      
+      // Fast refresh and scroll up
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      await loadWorkflowState();
+      
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to log workout session details.');
+    } finally {
+      setLoggingWorkout(false);
+    }
+  };
 
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-[#C0FF00]" />
-        <span className="font-mono text-xs text-gray-400 uppercase tracking-widest font-semibold">
-          Hydrating session metrics...
-        </span>
+        <span className="font-mono text-xs text-gray-400 uppercase tracking-widest font-semibold">Hydrating session metrics...</span>
       </div>
     );
   }
 
   if (workouts.length === 0) {
     return (
-      <EmptyRoutinesCard
-        showWelcomeModal={showWelcomeModal}
-        onCloseWelcomeModal={() => {
-          if (user) {
-            localStorage.setItem(`welcome_shown_${user.uid}`, 'true');
-          }
-          setShowWelcomeModal(false);
-        }}
-        isRoutineEditorOpen={isRoutineEditorOpen}
-        onOpenRoutineEditor={() => setIsRoutineEditorOpen(true)}
-        onCloseRoutineEditor={() => setIsRoutineEditorOpen(false)}
-        userId={user?.uid || ''}
-        workouts={workouts}
-        onSaveWorkouts={async (updatedWorkouts) => {
-          if (!user) return;
-          await saveWorkoutsAndExercises(user.uid, updatedWorkouts);
-          setWorkouts(updatedWorkouts);
-          setIsRoutineEditorOpen(false);
-          await loadWorkflowState();
-        }}
-      />
+      <div className="bg-[#111] border border-[#222] rounded-[24px] p-8 text-center shadow-xl space-y-4 relative">
+        <WelcomeModal
+          isOpen={showWelcomeModal}
+          onClose={() => {
+            if (user) {
+              localStorage.setItem(`welcome_shown_${user.uid}`, 'true');
+            }
+            setShowWelcomeModal(false);
+          }}
+        />
+
+        <div className="w-12 h-12 mx-auto rounded-2xl bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00]">
+          <Plus className="w-6 h-6" />
+        </div>
+        <div>
+          <h3 className="font-display font-black italic text-lg text-white uppercase tracking-tight">
+            No Routines Configured
+          </h3>
+          <p className="text-gray-400 text-xs font-sans max-w-sm mx-auto mt-1">
+            You currently have no routines or exercises assigned to your account.
+          </p>
+        </div>
+
+        <div className="pt-2">
+          <button
+            type="button"
+            onClick={() => setIsRoutineEditorOpen(true)}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#C0FF00] hover:bg-[#a6dc00] text-black font-display font-black italic uppercase text-xs tracking-wider transition-all shadow-[0_0_20px_rgba(192,255,0,0.2)] cursor-pointer"
+          >
+            <Settings className="w-4 h-4" /> Configure your routine now
+          </button>
+        </div>
+
+        {/* Routine Editor Modal when 0 routines */}
+        {user && (
+          <RoutineEditorModal
+            isOpen={isRoutineEditorOpen}
+            onClose={() => setIsRoutineEditorOpen(false)}
+            userId={user.uid}
+            workouts={workouts}
+            onSaveWorkouts={async (updatedWorkouts) => {
+              await saveWorkoutsAndExercises(user.uid, updatedWorkouts);
+              setWorkouts(updatedWorkouts);
+              setIsRoutineEditorOpen(false);
+              // Re-load workflow state to refresh UI
+              await loadWorkflowState();
+            }}
+          />
+        )}
+      </div>
     );
   }
 
@@ -111,110 +743,602 @@ export const WorkoutDayTracker: React.FC = () => {
           setShowWelcomeModal(false);
         }}
       />
-
-      {/* Routine split selector */}
+      {/* Routine split selector - only visible in standard mode or after assisted sets are done */}
       {(!isAssistedMode || assistedFinished) && (
-        <RoutineSelectorGrid
-          workouts={workouts}
-          activeWorkout={activeWorkout}
-          suggestedDay={suggestedDay}
-          onSelectWorkout={setActiveWorkout}
-        />
+        <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl relative overflow-hidden">
+          <label className="block text-[10px] font-bold text-[#C0FF00] uppercase tracking-widest mb-3 font-mono">
+            Select Routine
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {workouts.map((w) => {
+              const isSuggested = suggestedDay === w.order;
+              const isActive = activeWorkout?.id === w.id;
+
+              return (
+                <button
+                  key={w.id}
+                  onClick={() => {
+                    setActiveWorkout(w);
+                    setErrorMsg(null);
+                  }}
+                  className={`py-3 px-3 rounded-xl text-left transition-all border relative cursor-pointer ${
+                    isActive 
+                      ? 'border-none bg-[#C0FF00] text-black font-black shadow-[0_0_25px_rgba(192,255,0,0.25)]' 
+                      : 'border-[#222] bg-[#1a1a1a] hover:bg-[#252525] text-gray-300 hover:text-white'
+                  }`}
+                >
+                  <div className="font-display font-black text-[11px] tracking-tight uppercase">
+                    {w.name.split(' (')[0]}
+                  </div>
+                  <div className={`text-[9px] truncate font-sans font-semibold mt-0.5 uppercase tracking-wide ${isActive ? 'text-black/70' : 'text-gray-500'}`}>
+                    {w.name.includes('(') ? `(${w.name.split('(')[1]}` : ''}
+                  </div>
+
+                  {isSuggested && !isActive && (
+                    <span className="absolute -top-1 -right-1 flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C0FF00] opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#C0FF00]"></span>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          
+          {lastSessionDay && (
+            <div className="mt-4 text-[10px] text-gray-500 font-sans flex items-center justify-between border-t border-[#222] pt-3">
+              <span className="font-mono">LAST COMPLETED ROUTINE: <strong className="text-gray-200">{workouts.find(w => w.order === lastSessionDay)?.name || lastSessionDay}</strong></span>
+              <span className="flex items-center gap-1.5 text-[#C0FF00] font-bold font-mono">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#C0FF00] inline-block animate-pulse"></span>
+                SUGGESTED: {workouts.find(w => w.order === suggestedDay)?.name.split(' (')[0] || suggestedDay}
+              </span>
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Routine Editor Modal */}
-      {user && (
-        <RoutineEditorModal
-          isOpen={isRoutineEditorOpen}
-          onClose={() => setIsRoutineEditorOpen(false)}
-          userId={user.uid}
-          workouts={workouts}
-          onSaveWorkouts={async (updatedWorkouts) => {
-            await saveWorkoutsAndExercises(user.uid, updatedWorkouts);
-            setWorkouts(updatedWorkouts);
-            setIsRoutineEditorOpen(false);
-            await loadWorkflowState();
-          }}
-        />
-      )}
-
-      {/* Active Workout Session Details & Set Logging */}
       {activeWorkout && (
         <div className="space-y-6">
-          {/* Header with Title & Stats / Day overview */}
-          <WorkoutHeader
-            workout={activeWorkout}
-            onOpenRoutineEditor={() => setIsRoutineEditorOpen(true)}
-          />
+          
+          {/* Section 2: Recovery Metrics Header block - only in standard mode or after assisted sets finish */}
+          {(!isAssistedMode || assistedFinished) && (
+            <div className="bg-[#111111] border border-[#222] rounded-[24px] p-5 shadow-xl space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#222] pb-4 gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-display font-black italic text-lg text-white uppercase tracking-tight">
+                      {activeWorkout.name}
+                    </h3>
+                    {lastAutoSavedTime && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold bg-[#C0FF00]/10 text-[#C0FF00] border border-[#C0FF00]/20">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#C0FF00] animate-pulse"></span>
+                        Auto-saved ({lastAutoSavedTime})
+                      </span>
+                    )}
+                  </div>
+                  <div className="h-[2px] bg-gradient-to-r from-[#C0FF00] to-transparent w-36 mt-1 opacity-50"></div>
+                </div>
 
-          {/* Assisted Mode Flow vs Standard Form View */}
+                <div className="relative shrink-0 w-full sm:w-auto">
+                  <input
+                    type="date"
+                    value={sessionDate}
+                    onChange={(e) => {
+                      setSessionDate(e.target.value);
+                      saveDraftCheckpoint(inputs, activeWorkout.id, e.target.value, sleepHours, energyScore, sessionNotes);
+                    }}
+                    className="w-full sm:w-auto pl-8 pr-3 py-1.5 text-xs border border-[#333] rounded-xl bg-[#1a1a1a] text-white font-mono focus:outline-none focus:border-[#C0FF00]"
+                  />
+                  <Calendar className="w-3.5 h-3.5 text-gray-500 absolute left-2.5 top-2.5" />
+                </div>
+              </div>
+
+              {/* Recovery Sliders */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-gray-400">
+                    <span className="uppercase tracking-wider font-mono">Sleep (Hrs)</span>
+                    <span className="font-mono text-[#C0FF00] bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#222]">
+                      {sleepHours} hrs
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="4"
+                    max="12"
+                    step="0.5"
+                    value={sleepHours}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      setSleepHours(val);
+                      saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, val, energyScore, sessionNotes);
+                    }}
+                    className="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#C0FF00]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-gray-400">
+                    <span className="uppercase tracking-wider font-mono">Energy (1-10)</span>
+                    <span className="font-mono text-[#C0FF00] bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#222]">
+                      {energyScore} / 10
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    step="1"
+                    value={energyScore}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setEnergyScore(val);
+                      saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, sleepHours, val, sessionNotes);
+                    }}
+                    className="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#C0FF00]"
+                  />
+                </div>
+              </div>
+
+              {/* Routine Day Note Input */}
+              <div className="space-y-1.5 pt-3 border-t border-[#222]">
+                <div className="flex items-center justify-between text-[11px] font-bold text-gray-400 font-mono">
+                  <span className="uppercase tracking-wider flex items-center gap-1.5 text-gray-300">
+                    <FileText className="w-3.5 h-3.5 text-[#C0FF00]" />
+                    Routine Notes / Remarks
+                  </span>
+                  <span className="text-[10px] text-gray-500 font-normal">Optional</span>
+                </div>
+                <textarea
+                  value={sessionNotes}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSessionNotes(val);
+                    saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, sleepHours, energyScore, val, bodyWeightKg);
+                  }}
+                  placeholder="e.g., Felt strong on pushups, shoulder felt great, tweaked grip width..."
+                  rows={2}
+                  className="w-full bg-[#161616] border border-[#2e2e2e] focus:border-[#C0FF00] rounded-xl p-3 text-xs text-white placeholder-gray-600 focus:outline-none transition-colors resize-y font-sans"
+                />
+              </div>
+
+              {/* Bodyweight for Session / Day (Auto-filled from previous, editable) */}
+              <div className="pt-3 border-t border-[#222]">
+                <div className="bg-[#141414] border border-[#282828] hover:border-[#383838] transition-colors rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-lg bg-[#C0FF00]/10 text-[#C0FF00] shrink-0">
+                      <Scale className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-[11px] font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                        Today's Bodyweight
+                        <span className="text-[9px] font-sans font-normal text-[#C0FF00] bg-[#C0FF00]/10 px-1.5 py-0.2 rounded border border-[#C0FF00]/20">
+                          auto-filled
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-gray-400 font-sans">
+                        Updates your daily weight & BMI progression log for {sessionDate}.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
+                    <div className="relative">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="20"
+                        max="350"
+                        placeholder="kg"
+                        value={bodyWeightKg}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setBodyWeightKg(val);
+                          saveDraftCheckpoint(inputs, activeWorkout.id, sessionDate, sleepHours, energyScore, sessionNotes, val);
+                        }}
+                        className="w-24 bg-[#1e1e1e] border border-[#333] focus:border-[#C0FF00] rounded-lg px-2.5 py-1.5 text-xs text-white font-mono font-bold text-right pr-7 focus:outline-none transition-colors"
+                      />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono text-gray-500 pointer-events-none">
+                        kg
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Progress Photos of the Day (Up to 5) */}
+              <div className="space-y-2 pt-3 border-t border-[#222]">
+                <div className="flex items-center justify-between text-[11px] font-bold text-gray-400 font-mono">
+                  <span className="uppercase tracking-wider flex items-center gap-1.5 text-gray-300">
+                    <Camera className="w-3.5 h-3.5 text-[#C0FF00]" />
+                    Photo of the Day ({selectedPhotos.length}/5)
+                  </span>
+                  <span className="text-[10px] text-gray-500 font-normal">Optional</span>
+                </div>
+
+                {/* Direct Camera Capture (forces mobile camera shutter) */}
+                <input
+                  type="file"
+                  ref={cameraInputRef}
+                  onChange={handlePhotoSelect}
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                />
+
+                {/* File / Photo Library / File Manager Picker */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handlePhotoSelect}
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                />
+
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5 pt-1">
+                  {photoPreviews.map((previewUrl, index) => (
+                    <div
+                      key={index}
+                      className="relative group aspect-square rounded-xl overflow-hidden border border-[#333] bg-[#1a1a1a]"
+                    >
+                      <img
+                        src={previewUrl}
+                        alt={`Workout snap ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePhoto(index)}
+                        className="absolute top-1 right-1 p-1 rounded-lg bg-black/80 hover:bg-red-600 text-white transition-colors cursor-pointer opacity-90"
+                        title="Remove photo"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+
+                  {selectedPhotos.length < 5 && (
+                    <div className="flex gap-2 col-span-3 sm:col-span-2">
+                      {/* Button 1: Take Photo with Camera */}
+                      <button
+                        type="button"
+                        onClick={() => cameraInputRef.current?.click()}
+                        className="flex-1 aspect-square flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#333] hover:border-[#C0FF00] bg-[#161616] hover:bg-[#1f1f1f] text-gray-400 hover:text-[#C0FF00] transition-all cursor-pointer p-2"
+                        title="Take Photo with Camera"
+                      >
+                        <Camera className="w-4 h-4" />
+                        <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-center">Camera</span>
+                      </button>
+
+                      {/* Button 2: Upload from Files / Gallery */}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex-1 aspect-square flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-[#333] hover:border-[#C0FF00] bg-[#161616] hover:bg-[#1f1f1f] text-gray-400 hover:text-[#C0FF00] transition-all cursor-pointer p-2"
+                        title="Choose from Gallery or File Manager"
+                      >
+                        <FolderOpen className="w-4 h-4" />
+                        <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-center">Files / Gallery</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Section 3: Assisted Timed Mode vs Standard Full Exercise List */}
           {isAssistedMode && !assistedFinished ? (
             <AssistedTimedTracker
               workout={activeWorkout}
               userProfile={userProfile}
-              restDurationSeconds={restDurationSeconds}
               inputs={inputs}
               onUpdateInput={updateInputValue}
               onSetTextInput={handleTextChange}
               onFinishAllSets={(timings) => {
-                setAssistedSessionTimings(timings || null);
+                if (timings) setAssistedSessionTimings(timings);
                 setAssistedFinished(true);
               }}
+              onExitAssistedMode={() => {
+                setIsAssistedMode(false);
+                localStorage.setItem('setting_assisted_timed_workout', 'false');
+                window.dispatchEvent(new Event('workout_settings_updated'));
+              }}
+              restDurationSeconds={restDurationSeconds}
             />
           ) : (
-            /* Standard Full-List Form Workout View */
-            <div className="space-y-4">
-              {/* Date & Recovery / Biomarker Inputs */}
-              <SessionBiomarkersForm
-                sessionDate={sessionDate}
-                onSessionDateChange={(val) => {
-                  setSessionDate(val);
-                  saveDraftCheckpoint(inputs, activeWorkout.id, val);
-                }}
-                sleepHours={sleepHours}
-                onSleepHoursChange={(val) => {
-                  setSleepHours(val);
-                  saveDraftCheckpoint(inputs, activeWorkout.id, undefined, val);
-                }}
-                energyScore={energyScore}
-                onEnergyScoreChange={(val) => {
-                  setEnergyScore(val);
-                  saveDraftCheckpoint(inputs, activeWorkout.id, undefined, undefined, val);
-                }}
-                bodyWeightKg={bodyWeightKg}
-                onBodyWeightChange={(val) => {
-                  setBodyWeightKg(val);
-                  saveDraftCheckpoint(inputs, activeWorkout.id, undefined, undefined, undefined, undefined, val);
-                }}
-                sessionNotes={sessionNotes}
-                onSessionNotesChange={(val) => {
-                  setSessionNotes(val);
-                  saveDraftCheckpoint(inputs, activeWorkout.id, undefined, undefined, undefined, val);
-                }}
-                selectedPhotos={selectedPhotos}
-                photoPreviews={photoPreviews}
-                fileInputRef={fileInputRef}
-                cameraInputRef={cameraInputRef}
-                onPhotoSelect={handlePhotoSelect}
-                onRemovePhoto={handleRemovePhoto}
-                lastAutoSavedTime={lastAutoSavedTime}
-              />
+            <div className="space-y-5">
+              {isAssistedMode && assistedFinished && (
+                <div className="bg-[#141414] border border-[#C0FF00]/40 rounded-2xl p-4 flex items-center justify-between shadow-lg">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 flex items-center justify-center text-[#C0FF00]">
+                      <Timer className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="font-display font-black text-xs uppercase tracking-wider text-white">
+                        Workout Sheet (All Sets Completed)
+                      </span>
+                      <p className="text-[10px] font-mono text-gray-400">Review weights and timings before logging</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAssistedFinished(false)}
+                    className="text-[10px] font-mono font-bold text-[#C0FF00] hover:underline cursor-pointer"
+                  >
+                    Re-open Assisted Flow
+                  </button>
+                </div>
+              )}
 
-              {/* Exercise Logs Accordion List */}
-              {activeWorkout.exercises.map((ex, exIndex) => (
-                <ExerciseAccordionItem
-                  key={ex.id}
-                  exercise={ex}
-                  exerciseIndex={exIndex}
-                  isExpanded={expandedExerciseId === ex.id}
-                  onToggleExpand={() => setExpandedExerciseId(expandedExerciseId === ex.id ? null : ex.id)}
-                  advice={getProgressionAdvice(ex)}
-                  inputs={inputs}
-                  onUpdateInputValue={updateInputValue}
-                  onTextChange={handleTextChange}
-                />
-              ))}
-            </div>
+              {activeWorkout.exercises.map((ex) => {
+                const cachedEx = userProfile?.lastSetSummaryPerExercise?.[ex.id];
+                const advice = getProgressionAdvice(ex);
+                const isExpanded = expandedExerciseId === ex.id;
+
+              return (
+                <div key={ex.id} className={`bg-[#111] border rounded-[24px] shadow-xl transition-all ${isExpanded ? 'border-[#333] p-5 space-y-4' : 'border-[#222] hover:border-[#333] p-4'}`}>
+                  {/* Exercise metadata details header */}
+                  <div 
+                    className={`flex flex-col sm:flex-row sm:items-start justify-between gap-3 cursor-pointer ${isExpanded ? 'border-b border-[#1f1f1f] pb-3' : ''}`}
+                    onClick={() => setExpandedExerciseId(isExpanded ? null : ex.id)}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h4 className={`font-display font-black text-base tracking-tight uppercase hover:text-[#C0FF00] transition-colors ${isExpanded ? 'text-white' : 'text-gray-300'}`}>
+                          {ex.name}
+                        </h4>
+                        {!isExpanded && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setExpandedExerciseId(ex.id); }}
+                            className="p-1.5 text-gray-500 hover:text-white bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                        )}
+                        {isExpanded && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setExpandedExerciseId(null); }}
+                            className="p-1.5 text-[#C0FF00] bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors self-start ml-3 sm:hidden"
+                          >
+                            <EyeOff className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                      <p className="font-sans text-[11px] text-gray-400 mt-0.5 uppercase tracking-wider font-semibold">
+                        Target Volume: <span className="text-[#C0FF00] font-mono">{ex.targetSets} sets × {ex.targetRepMin}-{ex.targetRepMax} {ex.type === 'timed' ? 'seconds' : 'reps'}</span>
+                      </p>
+                    </div>
+
+                    {/* Dynamic Auto-progression coach recommendation badge */}
+                    <div className="flex items-center gap-3">
+                      {advice.action === 'increase' ? (
+                        <div className="bg-[#C0FF00] text-black rounded-xl px-3 py-1 flex items-center gap-1.5 shrink-0 shadow-[0_0_15px_rgba(192,255,0,0.15)]">
+                          <Zap className="w-3.5 h-3.5 fill-black text-black" />
+                          <span className="text-[10px] sm:text-xs font-black uppercase tracking-tight font-sans">
+                            {advice.details}
+                          </span>
+                        </div>
+                      ) : advice.action === 'keep' && cachedEx && isExpanded ? (
+                        <div className="bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-xl px-2.5 py-1 flex items-center gap-1.5 shrink-0">
+                          <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wide text-gray-400">
+                            {advice.details}
+                          </span>
+                        </div>
+                      ) : null}
+                      
+                      {isExpanded && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setExpandedExerciseId(null); }}
+                          className="hidden sm:block p-1.5 text-[#C0FF00] bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors hover:bg-[#222]"
+                        >
+                          <EyeOff className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <>
+                      <WgerExerciseInfo exerciseName={ex.name} />
+                      {/* Previous Historical Reference sub-line */}
+                  {cachedEx && (
+                    <div className="bg-[#1a1a1a] rounded-xl border border-[#222] p-3 flex flex-col gap-2 text-[10px] font-mono text-gray-400">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-sans font-extrabold text-[8px] uppercase tracking-widest text-[#C0FF00] border border-[#C0FF00]/40 px-1.5 py-0.5 rounded">
+                          LAST LOG
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {ex.type === 'timed' ? (
+                          <div className="bg-[#222] border border-[#333] px-2 py-1.5 rounded-lg">
+                            <span className="text-white font-bold">{cachedEx.lastDurationSeconds}s</span>
+                          </div>
+                        ) : (
+                          <div className="bg-[#222] border border-[#333] px-2 py-1.5 rounded-lg">
+                            <span className="text-white font-bold">{cachedEx.lastWeight}kg</span>
+                            <span className="mx-1 text-gray-600">x</span>
+                            <span className="text-[#C0FF00] font-bold">{cachedEx.lastReps}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Active Entry fields grid */}
+                  <div className="space-y-3">
+                    {/* Rows header */}
+                    <div className="hidden sm:grid grid-cols-12 gap-3 text-[9px] font-black text-gray-500 uppercase tracking-widest px-2 pb-1.5 font-mono">
+                      <div className="col-span-3">SET</div>
+                      <div className="col-span-5 text-center">{ex.type === 'timed' ? 'DURATION (SECONDS)' : 'WEIGHT (KG)'}</div>
+                      <div className="col-span-4 text-center">{ex.type === 'timed' ? 'DIFFICULTY (1-10)' : 'REPS'}</div>
+                    </div>
+
+                    {/* Entry sets lines */}
+                    {Array.from({ length: ex.targetSets }).map((_, index) => {
+                      const setNum = index + 1;
+                      const inputKey = `${ex.id}-${setNum}`;
+                      const values = inputs[inputKey] || { weight: '20', reps: '10', durationSeconds: '30', difficulty: '7' };
+
+                      return (
+                        <div 
+                          key={setNum}
+                          className="flex flex-col sm:grid sm:grid-cols-12 gap-3 items-stretch sm:items-center bg-[#1a1a1a] border border-[#222] p-4 sm:p-2 rounded-xl hover:border-[#333] transition-colors"
+                        >
+                          {/* Label set number */}
+                          <div className="col-span-3 flex items-center justify-between sm:justify-start gap-1 font-mono text-xs font-bold text-gray-300 border-b border-[#2d2d2d] sm:border-0 pb-1.5 sm:pb-0 mb-1.5 sm:mb-0">
+                            <span className="uppercase tracking-wider text-[#C0FF00]">SET {setNum}</span>
+                            <span className="sm:hidden font-sans font-semibold text-[10px] text-gray-500">
+                              TARGET: {ex.targetRepMin}-{ex.targetRepMax} {ex.type === 'timed' ? 's' : 'reps'}
+                            </span>
+                          </div>
+
+                          {ex.type === 'timed' ? (
+                            <>
+                              {/* Duration seconds quick adjust */}
+                              <div className="col-span-5 flex items-center justify-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => updateInputValue(inputKey, 'durationSeconds', -10)}
+                                  className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
+                                >
+                                  -10s
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => updateInputValue(inputKey, 'durationSeconds', -5)}
+                                  className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
+                                >
+                                  -5s
+                                </button>
+                                
+                                <input
+                                  type="text"
+                                  value={values.durationSeconds || ''}
+                                  onChange={(e) => handleTextChange(inputKey, 'durationSeconds', e.target.value)}
+                                  className="w-18 px-1 py-1 bg-[#111] border border-[#333] rounded-lg text-center text-xs font-mono font-black text-white focus:outline-none focus:ring-1 focus:ring-[#C0FF00]"
+                                  placeholder="Secs"
+                                />
+                                
+                                <button
+                                  type="button"
+                                  onClick={() => updateInputValue(inputKey, 'durationSeconds', 5)}
+                                  className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
+                                >
+                                  +5s
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => updateInputValue(inputKey, 'durationSeconds', 10)}
+                                  className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
+                                >
+                                  +10s
+                                </button>
+                              </div>
+
+                              {/* Difficulty Rating */}
+                              <div className="col-span-4 flex items-center justify-center gap-1.5 mt-2 sm:mt-0">
+                                <button
+                                  type="button"
+                                  onClick={() => updateInputValue(inputKey, 'difficulty', -1)}
+                                  className="p-1 px-2 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-xs cursor-pointer select-none"
+                                >
+                                  -1
+                                </button>
+                                <input
+                                  type="text"
+                                  value={values.difficulty || ''}
+                                  onChange={(e) => handleTextChange(inputKey, 'difficulty', e.target.value)}
+                                  className="w-14 px-1 py-1 bg-[#111] border border-[#333] rounded-lg text-center text-xs font-mono font-black text-[#C0FF00] focus:outline-none focus:ring-1 focus:ring-[#C0FF00]"
+                                  placeholder="1-10"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => updateInputValue(inputKey, 'difficulty', 1)}
+                                  className="p-1 px-2 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-xs cursor-pointer select-none"
+                                >
+                                  +1
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              {/* Weight inputs Quick Adjust */}
+                              <div className="col-span-5 flex items-center justify-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => updateInputValue(inputKey, 'weight', -2.5)}
+                                  className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
+                                >
+                                  -2.5
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => updateInputValue(inputKey, 'weight', -0.5)}
+                                  className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
+                                >
+                                  -0.5
+                                </button>
+                                
+                                <input
+                                  type="text"
+                                  value={values.weight || ''}
+                                  onChange={(e) => handleTextChange(inputKey, 'weight', e.target.value)}
+                                  className="w-18 px-1 py-1 bg-[#111] border border-[#333] rounded-lg text-center text-xs font-mono font-black text-white focus:outline-none focus:ring-1 focus:ring-[#C0FF00]"
+                                />
+                                
+                                <button
+                                  type="button"
+                                  onClick={() => updateInputValue(inputKey, 'weight', 0.5)}
+                                  className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
+                                >
+                                  +0.5
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => updateInputValue(inputKey, 'weight', 2.5)}
+                                  className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
+                                >
+                                  +2.5
+                                </button>
+                              </div>
+
+                              {/* Reps selector */}
+                              <div className="col-span-4 flex items-center justify-center gap-1.5 mt-2 sm:mt-0">
+                                <button
+                                  type="button"
+                                  onClick={() => updateInputValue(inputKey, 'reps', -1)}
+                                  className="p-1 px-2 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-xs cursor-pointer select-none"
+                                >
+                                  -1
+                                </button>
+                                <input
+                                  type="text"
+                                  value={values.reps || ''}
+                                  onChange={(e) => handleTextChange(inputKey, 'reps', e.target.value)}
+                                  className="w-14 px-1 py-1 bg-[#111] border border-[#333] rounded-lg text-center text-xs font-mono font-black text-[#C0FF00] focus:outline-none focus:ring-1 focus:ring-[#C0FF00]"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => updateInputValue(inputKey, 'reps', 1)}
+                                  className="p-1 px-2 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-xs cursor-pointer select-none"
+                                >
+                                  +1
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
           )}
 
           {errorMsg && (
@@ -230,7 +1354,7 @@ export const WorkoutDayTracker: React.FC = () => {
             </div>
           )}
 
-          {/* Direct log submit button */}
+          {/* Direct log submit button - only visible in standard mode or after assisted sets finish */}
           {(!isAssistedMode || assistedFinished) && (
             <button
               onClick={handleLogWorkout}

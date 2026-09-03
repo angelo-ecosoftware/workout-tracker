@@ -11,12 +11,12 @@ interface AssistedSetCardProps {
   currentSetKey: string;
   currentValues: { weight: string; reps: string; durationSeconds?: string; difficulty?: string };
   showWgerInfo: boolean;
-  onToggleWgerInfo: () => void;
+  setShowWgerInfo: (val: boolean) => void;
   onUpdateInput: (key: string, field: 'weight' | 'reps' | 'durationSeconds' | 'difficulty', step: number) => void;
   onSetTextInput: (key: string, field: 'weight' | 'reps' | 'durationSeconds' | 'difficulty', value: string) => void;
+  onSkipSet: () => void;
   onStartSet: () => void;
   onFinishSet: () => void;
-  onSkipSet: () => void;
 }
 
 export const AssistedSetCard: React.FC<AssistedSetCardProps> = ({
@@ -27,15 +27,16 @@ export const AssistedSetCard: React.FC<AssistedSetCardProps> = ({
   currentSetKey,
   currentValues,
   showWgerInfo,
-  onToggleWgerInfo,
+  setShowWgerInfo,
   onUpdateInput,
   onSetTextInput,
+  onSkipSet,
   onStartSet,
   onFinishSet,
-  onSkipSet,
 }) => {
   return (
     <div className="bg-[#111111] border border-[#2a2a2a] rounded-2xl sm:rounded-[28px] p-4 sm:p-7 space-y-4 sm:space-y-6 shadow-2xl relative overflow-hidden">
+      
       {/* Top exercise title & target */}
       <div className="flex items-start justify-between gap-3 border-b border-[#222] pb-4">
         <div className="min-w-0 flex-1">
@@ -48,13 +49,7 @@ export const AssistedSetCard: React.FC<AssistedSetCardProps> = ({
             </h3>
           </div>
           <div className="text-[11px] font-mono text-gray-400 mt-1.5 flex items-center gap-2 flex-wrap">
-            <span>
-              Target:{' '}
-              <strong className="text-[#C0FF00]">
-                {currentExercise.targetRepMin}-{currentExercise.targetRepMax}{' '}
-                {currentExercise.type === 'timed' ? 'seconds' : 'reps'}
-              </strong>
-            </span>
+            <span>Target: <strong className="text-[#C0FF00]">{currentExercise.targetRepMin}-{currentExercise.targetRepMax} {currentExercise.type === 'timed' ? 'seconds' : 'reps'}</strong></span>
             <span>•</span>
             <span className="uppercase text-gray-500 font-bold">{currentExercise.type}</span>
           </div>
@@ -62,7 +57,7 @@ export const AssistedSetCard: React.FC<AssistedSetCardProps> = ({
 
         <button
           type="button"
-          onClick={onToggleWgerInfo}
+          onClick={() => setShowWgerInfo(!showWgerInfo)}
           className="px-2.5 py-1.5 bg-[#181818] hover:bg-[#222] border border-[#333] rounded-xl text-[10px] sm:text-[11px] font-mono text-gray-300 flex items-center gap-1.5 cursor-pointer shrink-0"
         >
           <Eye className="w-3.5 h-3.5 text-[#C0FF00]" />
@@ -254,6 +249,7 @@ export const AssistedSetCard: React.FC<AssistedSetCardProps> = ({
           </button>
         )}
       </div>
+
     </div>
   );
 };

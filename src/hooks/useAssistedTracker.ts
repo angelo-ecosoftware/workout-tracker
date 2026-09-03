@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Workout, Exercise } from '../models.ts';
 import { playThreeSecondVibrateAlarm } from '../utils/sound.ts';
 
@@ -9,9 +9,7 @@ export interface SetTimingRecord {
   restSeconds?: number;
 }
 
-export type AssistedPhase = 'ready' | 'in_progress' | 'resting' | 'completed_all';
-
-interface UseAssistedTrackerProps {
+interface UseAssistedTrackerOptions {
   workout: Workout & { exercises: Exercise[] };
   inputs: Record<string, { weight: string; reps: string; durationSeconds?: string; difficulty?: string }>;
   onSetTextInput: (key: string, field: 'weight' | 'reps' | 'durationSeconds' | 'difficulty', value: string) => void;
@@ -25,11 +23,12 @@ export function useAssistedTracker({
   onSetTextInput,
   onFinishAllSets,
   restDurationSeconds = 5,
-}: UseAssistedTrackerProps) {
+}: UseAssistedTrackerOptions) {
   const exercises = workout.exercises || [];
   const totalExercises = exercises.length;
   const assistedStateKey = workout.id ? `assisted_tracker_state_${workout.id}` : '';
 
+  // Initialize state with localStorage persisted snapshot if available
   const getSavedAssistedState = () => {
     if (!assistedStateKey) return null;
     try {
@@ -103,7 +102,7 @@ export function useAssistedTracker({
     }
     return 1;
   });
-  const [phase, setPhase] = useState<AssistedPhase>(() => {
+  const [phase, setPhase] = useState<'ready' | 'in_progress' | 'resting' | 'completed_all'>(() => {
     if (initialSavedState && initialSavedState.phase) {
       return initialSavedState.phase;
     }
@@ -132,10 +131,10 @@ export function useAssistedTracker({
   const setTimingsRef = useRef<Record<string, SetTimingRecord>>(initialSavedState?.setTimings ?? {});
   const timerRef = useRef<any>(null);
 
-  const persistState = useCallback((overrides?: Partial<{
+  const persistState = (overrides?: Partial<{
     exerciseIndex: number;
     setNumber: number;
-    phase: AssistedPhase;
+    phase: 'ready' | 'in_progress' | 'resting' | 'completed_all';
     setStartTime: number | null;
     restStartTime: number | null;
     restTargetEndTime: number | null;
@@ -159,81 +158,26 @@ export function useAssistedTracker({
     } catch (e) {
       console.warn('Could not persist assisted tracker state', e);
     }
-  }, [assistedStateKey, exerciseIndex, setNumber, phase, setStartTime, recordedDurations]);
+  };
 
-  const clearPersistedState = useCallback(() => {
+  const clearPersistedState = () => {
     if (!assistedStateKey) return;
     try {
       localStorage.removeItem(assistedStateKey);
     } catch (e) {
       console.warn('Could not clear assisted tracker state', e);
     }
-  }, [assistedStateKey]);
+  };
 
   const currentExercise = exercises[exerciseIndex];
   const currentSetKey = currentExercise ? `${currentExercise.id}-${setNumber}` : '';
   const currentValues = currentSetKey ? (inputs[currentSetKey] || { weight: '20', reps: '10', durationSeconds: '30', difficulty: '7' }) : null;
 
-  const advanceToNextStep = useCallback(() => {
-    if (!currentExercise) return;
-
-    if (setNumber < currentExercise.targetSets) {
-      const nextSet = setNumber + 1;
-      setSetNumber(nextSet);
-      setPhase('ready');
-      restTargetEndTimeRef.current = null;
-      persistState({
-        setNumber: nextSet,
-        phase: 'ready',
-        setStartTime: null,
-        restStartTime: null,
-        restTargetEndTime: null,
-      });
-    } else {
-      if (exerciseIndex < totalExercises - 1) {
-        const nextIdx = exerciseIndex + 1;
-        setExerciseIndex(nextIdx);
-        setSetNumber(1);
-        setPhase('ready');
-        restTargetEndTimeRef.current = null;
-        persistState({
-          exerciseIndex: nextIdx,
-          setNumber: 1,
-          phase: 'ready',
-          setStartTime: null,
-          restStartTime: null,
-          restTargetEndTime: null,
-        });
-      } else {
-        setPhase('completed_all');
-        clearPersistedState();
-        onFinishAllSets({
-          startedAt: sessionStartTimeRef.current || undefined,
-          completedAt: new Date(),
-          setTimings: { ...setTimingsRef.current },
-        });
-      }
-    }
-  }, [currentExercise, setNumber, exerciseIndex, totalExercises, persistState, clearPersistedState, onFinishAllSets]);
-
-  const finishRestInterval = useCallback(() => {
-    if (restStartTimeRef.current && currentSetKey) {
-      const restDuration = Math.max(1, Math.round((Date.now() - restStartTimeRef.current) / 1000));
-      setTimingsRef.current[currentSetKey] = {
-        ...setTimingsRef.current[currentSetKey],
-        restSeconds: restDuration,
-      };
-      restStartTimeRef.current = null;
-      restTargetEndTimeRef.current = null;
-    }
-    advanceToNextStep();
-  }, [currentSetKey, advanceToNextStep]);
-
   useEffect(() => {
     if (phase === 'resting') {
       const now = Date.now();
       let targetEndTime = restTargetEndTimeRef.current;
-
+      
       if (!targetEndTime) {
         restStartTimeRef.current = now;
         const durationMs = restDurationSeconds * 1000;
@@ -287,7 +231,7 @@ export function useAssistedTracker({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [phase, exerciseIndex, setNumber, restDurationSeconds, finishRestInterval, persistState]);
+  }, [phase, exerciseIndex, setNumber, restDurationSeconds]);
 
   const handleStartSet = () => {
     const now = new Date();
@@ -348,7 +292,7 @@ export function useAssistedTracker({
       });
     } else {
       const now = Date.now();
-      const targetEndTime = now + restDurationSeconds * 1000;
+      const targetEndTime = now + (restDurationSeconds * 1000);
       restStartTimeRef.current = now;
       restTargetEndTimeRef.current = targetEndTime;
 
@@ -361,6 +305,19 @@ export function useAssistedTracker({
         recordedDurations: updatedDurations,
       });
     }
+  };
+
+  const finishRestInterval = () => {
+    if (restStartTimeRef.current && currentSetKey) {
+      const restDuration = Math.max(1, Math.round((Date.now() - restStartTimeRef.current) / 1000));
+      setTimingsRef.current[currentSetKey] = {
+        ...setTimingsRef.current[currentSetKey],
+        restSeconds: restDuration,
+      };
+      restStartTimeRef.current = null;
+      restTargetEndTimeRef.current = null;
+    }
+    advanceToNextStep();
   };
 
   const handleSkipSet = () => {
@@ -391,10 +348,70 @@ export function useAssistedTracker({
     }
   };
 
+  const advanceToNextStep = () => {
+    if (!currentExercise) return;
+
+    if (setNumber < currentExercise.targetSets) {
+      const nextSet = setNumber + 1;
+      setSetNumber(nextSet);
+      setPhase('ready');
+      restTargetEndTimeRef.current = null;
+      persistState({
+        setNumber: nextSet,
+        phase: 'ready',
+        setStartTime: null,
+        restStartTime: null,
+        restTargetEndTime: null,
+      });
+    } else {
+      if (exerciseIndex < totalExercises - 1) {
+        const nextIdx = exerciseIndex + 1;
+        setExerciseIndex(nextIdx);
+        setSetNumber(1);
+        setPhase('ready');
+        restTargetEndTimeRef.current = null;
+        persistState({
+          exerciseIndex: nextIdx,
+          setNumber: 1,
+          phase: 'ready',
+          setStartTime: null,
+          restStartTime: null,
+          restTargetEndTime: null,
+        });
+      } else {
+        setPhase('completed_all');
+        clearPersistedState();
+        onFinishAllSets({
+          startedAt: sessionStartTimeRef.current || undefined,
+          completedAt: new Date(),
+          setTimings: { ...setTimingsRef.current },
+        });
+      }
+    }
+  };
+
   const handleSkipRest = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     finishRestInterval();
   };
+
+  const handleRestart = () => {
+    clearPersistedState();
+    setExerciseIndex(0);
+    setSetNumber(1);
+    setPhase('ready');
+    setSetStartTime(null);
+    sessionStartTimeRef.current = null;
+    restStartTimeRef.current = null;
+    restTargetEndTimeRef.current = null;
+    setTimingsRef.current = {};
+  };
+
+  const totalRestSeconds = restDurationSeconds || 5;
+  const progressFraction = Math.max(0, Math.min(1, restTimeLeft / totalRestSeconds));
+  const circleRadius = 70;
+  const circleCircumference = 2 * Math.PI * circleRadius;
+  const strokeDashoffset = circleCircumference * (1 - progressFraction);
 
   return {
     exercises,
@@ -403,14 +420,18 @@ export function useAssistedTracker({
     setNumber,
     phase,
     restTimeLeft,
-    showWgerInfo,
-    setShowWgerInfo,
     currentExercise,
     currentSetKey,
     currentValues,
+    showWgerInfo,
+    setShowWgerInfo,
+    circleRadius,
+    circleCircumference,
+    strokeDashoffset,
     handleStartSet,
     handleFinishSet,
     handleSkipSet,
     handleSkipRest,
+    handleRestart,
   };
 }

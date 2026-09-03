@@ -3,25 +3,25 @@ import { SkipForward } from 'lucide-react';
 
 interface AssistedRestTimerCardProps {
   restTimeLeft: number;
-  totalRestSeconds: number;
+  circleRadius: number;
+  circleCircumference: number;
+  strokeDashoffset: number;
   onSkipRest: () => void;
 }
 
 export const AssistedRestTimerCard: React.FC<AssistedRestTimerCardProps> = ({
   restTimeLeft,
-  totalRestSeconds,
+  circleRadius,
+  circleCircumference,
+  strokeDashoffset,
   onSkipRest,
 }) => {
-  const circleRadius = 70;
-  const circleCircumference = 2 * Math.PI * circleRadius;
-  const progressFraction = Math.max(0, Math.min(1, restTimeLeft / (totalRestSeconds || 5)));
-  const strokeDashoffset = circleCircumference * (1 - progressFraction);
-
   return (
     <div className="bg-[#0c0c0c] border border-[#222] rounded-3xl sm:rounded-[32px] p-6 sm:p-10 text-center flex flex-col items-center justify-center space-y-6 shadow-2xl animate-in zoom-in-95 duration-200 min-h-[360px] sm:min-h-[420px]">
       {/* Circular Countdown Gauge */}
       <div className="relative w-44 h-44 sm:w-56 sm:h-56 flex items-center justify-center">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 160 160">
+          {/* Background Track */}
           <circle
             cx="80"
             cy="80"
@@ -30,6 +30,7 @@ export const AssistedRestTimerCard: React.FC<AssistedRestTimerCardProps> = ({
             stroke="#1c1c1c"
             strokeWidth="10"
           />
+          {/* Animated Progress Ring */}
           <circle
             cx="80"
             cy="80"
@@ -42,11 +43,12 @@ export const AssistedRestTimerCard: React.FC<AssistedRestTimerCardProps> = ({
             strokeDashoffset={strokeDashoffset}
             className="transition-[stroke-dashoffset] duration-100 ease-linear"
             style={{
-              filter: 'drop-shadow(0 0 12px rgba(192, 255, 0, 0.45))',
+              filter: 'drop-shadow(0 0 12px rgba(192, 255, 0, 0.45))'
             }}
           />
         </svg>
 
+        {/* Time in center */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="font-display font-black text-4xl sm:text-5xl text-[#C0FF00] tracking-tight italic font-mono drop-shadow-[0_0_15px_rgba(192,255,0,0.4)]">
             {restTimeLeft}s

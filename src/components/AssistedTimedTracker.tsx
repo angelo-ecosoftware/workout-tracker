@@ -32,11 +32,14 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
     setNumber,
     phase,
     restTimeLeft,
-    showWgerInfo,
-    setShowWgerInfo,
     currentExercise,
     currentSetKey,
     currentValues,
+    showWgerInfo,
+    setShowWgerInfo,
+    circleRadius,
+    circleCircumference,
+    strokeDashoffset,
     handleStartSet,
     handleFinishSet,
     handleSkipSet,
@@ -59,16 +62,18 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
 
   return (
     <div className="space-y-4 max-w-lg mx-auto w-full">
-      {/* 1. Rest Countdown Overlay */}
+      {/* REST COUNTDOWN OVERLAY - Circular Timer Only */}
       {phase === 'resting' && (
         <AssistedRestTimerCard
           restTimeLeft={restTimeLeft}
-          totalRestSeconds={restDurationSeconds}
+          circleRadius={circleRadius}
+          circleCircumference={circleCircumference}
+          strokeDashoffset={strokeDashoffset}
           onSkipRest={handleSkipRest}
         />
       )}
 
-      {/* 2. Active Exercise Set Card */}
+      {/* ACTIVE FOCUSED SET CARD */}
       {(phase === 'ready' || phase === 'in_progress') && currentExercise && currentValues && (
         <AssistedSetCard
           exerciseIndex={exerciseIndex}
@@ -78,16 +83,16 @@ export const AssistedTimedTracker: React.FC<AssistedTimedTrackerProps> = ({
           currentSetKey={currentSetKey}
           currentValues={currentValues}
           showWgerInfo={showWgerInfo}
-          onToggleWgerInfo={() => setShowWgerInfo(!showWgerInfo)}
+          setShowWgerInfo={setShowWgerInfo}
           onUpdateInput={onUpdateInput}
           onSetTextInput={onSetTextInput}
+          onSkipSet={handleSkipSet}
           onStartSet={handleStartSet}
           onFinishSet={handleFinishSet}
-          onSkipSet={handleSkipSet}
         />
       )}
 
-      {/* 3. All Completed Celebration Banner */}
+      {/* ALL COMPLETED CONGRATS BANNER */}
       {phase === 'completed_all' && <AssistedCompletedCard />}
     </div>
   );
