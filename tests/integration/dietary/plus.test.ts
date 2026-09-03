@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scrapeProductFromUrl } from '../api/scraperRegistry';
+import { scrapeProductFromUrl } from '../../../api/scraperRegistry.ts';
 
 describe('PLUS Scraper Extraction', () => {
   it('extracts PLUS Boerentrots Kipfilet from live PLUS.nl product URL', async () => {

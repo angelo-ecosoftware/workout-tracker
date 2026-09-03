@@ -5,11 +5,11 @@ import {
   saveWorkoutsAndExercises,
   fetchWorkoutHistory,
   deleteSessions,
-} from '../src/lib/supabaseData.ts';
-import { workoutFactory } from './fixtures/factories.ts';
+} from '../../../src/lib/supabaseData.ts';
+import { workoutFactory } from '../../fixtures/factories.ts';
 
 // Mock the underlying Supabase client to test data domain logic deterministically
-vi.mock('../src/lib/supabase.ts', () => {
+vi.mock('../../../src/lib/supabase.ts', () => {
   let mockTableData: Record<string, any[]> = {
     users: [],
     workouts: [],
@@ -121,7 +121,7 @@ vi.mock('../src/lib/supabase.ts', () => {
 
 describe('Database Domain Services - Supabase Persistence Layer', () => {
   beforeEach(async () => {
-    const { supabase } = await import('../src/lib/supabase.ts');
+    const { supabase } = await import('../../../src/lib/supabase.ts');
     (supabase as any).__resetDb();
   });
 

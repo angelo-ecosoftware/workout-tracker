@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { scrapeProductFromHtml, dirkAdapter } from '../api/scraperRegistry';
+import { scrapeProductFromHtml, dirkAdapter } from '../../../api/scraperRegistry.ts';
 
 describe('Dirk Scraper Extraction', () => {
   it('extracts Vleeschmeesters Kipfilet accurately from live Dirk.nl URL', async () => {

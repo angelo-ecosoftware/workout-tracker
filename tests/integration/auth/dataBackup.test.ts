@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { exportAllLogs, importAllLogs } from '../src/lib/supabaseData.ts';
+import { exportAllLogs, importAllLogs } from '../../../src/lib/supabaseData.ts';
 
 describe('exportAllLogs & importAllLogs data backup integrity', () => {
   const TEST_BACKUP_DATA = {

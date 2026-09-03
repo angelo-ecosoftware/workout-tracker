@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import groceryListHandler from '../api/grocery-list.ts';
-import productLinkHandler from '../api/product-link.ts';
+import groceryListHandler from '../../../api/grocery-list.ts';
+import productLinkHandler from '../../../api/product-link.ts';
 
 // Lightweight mock HTTP request/response dispatcher
 async function dispatchHandler(

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ExerciseSearchEngine } from '../src/lib/exerciseSearch.ts';
+import { ExerciseSearchEngine } from '../../../src/lib/exerciseSearch.ts';
 
 describe('ExerciseSearchEngine (wger dataset + Fuse.js fuzzy search)', () => {
   it('should find "Bench Press" when user types typo "brenk pres"', () => {

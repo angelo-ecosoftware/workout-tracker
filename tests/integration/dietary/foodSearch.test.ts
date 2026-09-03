@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { searchFoodItems } from '../src/lib/foodSearch.ts';
-import { FoodItemNutrition } from '../src/models.ts';
+import { searchFoodItems } from '../../../src/lib/foodSearch.ts';
+import { FoodItemNutrition } from '../../../src/models.ts';
 
 const mockCatalog: FoodItemNutrition[] = [
   {

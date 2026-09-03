@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
-import { Workout, Exercise } from '../src/models.ts';
+import { Workout, Exercise } from '../../../src/models.ts';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || (import.meta as any).env?.VITE_SUPABASE_URL || '';
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY || (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';

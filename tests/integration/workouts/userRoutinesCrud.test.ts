@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Workout, Exercise } from '../src/models.ts';
+import { Workout, Exercise } from '../../../src/models.ts';
 
 const TEST_USER = {
   idx: 2,

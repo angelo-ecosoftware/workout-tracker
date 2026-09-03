@@ -12,7 +12,7 @@ import {
   deleteSessions,
   fetchWorkoutHistory,
   fetchSetsForSession,
-} from '../src/lib/supabaseData.ts';
+} from '../../../src/lib/supabaseData.ts';
 import {
   saveHiveMindFoodItem,
   saveHiveMindFoodItems,
@@ -21,15 +21,15 @@ import {
   saveDailyDietaryLog,
   calculatePortionNutrients,
   computeDailyTotals,
-} from '../src/lib/dietaryData.ts';
+} from '../../../src/lib/dietaryData.ts';
 import {
   userFactory,
   workoutFactory,
   exerciseFactory,
   sessionFactory,
   setFactory,
-} from './fixtures/factories.ts';
-import { FoodItemNutrition, DailyDietaryLog } from '../src/models.ts';
+} from '../../fixtures/factories.ts';
+import { FoodItemNutrition, DailyDietaryLog } from '../../../src/models.ts';
 
 // -------------------------------------------------------------
 // Deterministic Supabase In-Memory Mock Store with Full Query Simulation
@@ -48,7 +48,7 @@ let mockDb: Record<string, any[]> = {
 let shouldSimulateError = false;
 let simulatedErrorMessage = 'Internal database transaction error';
 
-vi.mock('../src/lib/supabase.ts', () => {
+vi.mock('../../../src/lib/supabase.ts', () => {
   const createQueryBuilder = (table: string) => {
     let currentData = [...(mockDb[table] || [])];
 

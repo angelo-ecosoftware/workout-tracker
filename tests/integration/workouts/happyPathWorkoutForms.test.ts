@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { SessionEngine, SetLogger, ProgressionEngine } from '../src/engine.ts';
-import { UserProfile, Workout, Exercise } from '../src/models.ts';
-import { calculateInsights, calculateExerciseProgression } from '../src/lib/insightsEngine.ts';
-import { compressWorkoutImage } from '../src/utils/imageCompressor.ts';
+import { SessionEngine, SetLogger, ProgressionEngine } from '../../../src/engine.ts';
+import { UserProfile, Workout, Exercise } from '../../../src/models.ts';
+import { calculateInsights, calculateExerciseProgression } from '../../../src/lib/insightsEngine.ts';
+import { compressWorkoutImage } from '../../../src/utils/imageCompressor.ts';
 
 describe('End-to-End Happy Path Tests: All Forms & Tracking Cases', () => {
 
