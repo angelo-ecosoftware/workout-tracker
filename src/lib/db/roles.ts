@@ -335,7 +335,7 @@ export async function createCoachInvite(
 ): Promise<CoachAthleteLink> {
   const inviteCode = `invite_${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
   const payload: any = {
-    id: `link_${Date.now()}`,
+    id: `link_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     coach_id: coachId,
     specialty,
     status: 'pending' as LinkStatus,
@@ -370,11 +370,14 @@ export async function createCoachInvite(
 }
 
 export async function fetchInviteByCode(inviteCode: string): Promise<CoachAthleteLink | null> {
+  if (!inviteCode) return null;
+  const cleanCode = inviteCode.trim();
+
   try {
     const { data, error } = await supabase
       .from('coach_athlete_links')
       .select('*')
-      .eq('invite_code', inviteCode.trim())
+      .eq('invite_code', cleanCode)
       .eq('status', 'pending')
       .maybeSingle();
 
@@ -403,11 +406,12 @@ export async function fetchInviteByCode(inviteCode: string): Promise<CoachAthlet
 }
 
 export async function acceptCoachLinkByCode(inviteCode: string, athleteId: string, athleteName?: string): Promise<CoachAthleteLink | null> {
-  try {
-    const invite = await fetchInviteByCode(inviteCode);
-    if (!invite) return null;
+  if (!inviteCode || !athleteId) return null;
+  const cleanCode = inviteCode.trim();
 
-    const { error } = await supabase
+  try {
+    // 1. Direct atomic update by invite_code & status='pending'
+    const { data, error } = await supabase
       .from('coach_athlete_links')
       .update({
         status: 'accepted',
@@ -415,15 +419,52 @@ export async function acceptCoachLinkByCode(inviteCode: string, athleteId: strin
         athlete_name: athleteName || 'Athlete',
         updated_at: new Date().toISOString(),
       })
-      .eq('id', invite.id);
+      .eq('invite_code', cleanCode)
+      .eq('status', 'pending')
+      .select()
+      .maybeSingle();
 
-    if (error) {
-      console.error('Failed to accept coach invite by code:', error);
+    if (!error && data) {
+      return {
+        id: data.id,
+        coachId: data.coach_id,
+        athleteId: data.athlete_id,
+        specialty: data.specialty || 'strength',
+        status: 'accepted',
+        inviteCode: data.invite_code,
+        notes: data.notes,
+        coachName: data.coach_name || 'Coach',
+        athleteName: athleteName || 'Athlete',
+        createdAt: new Date(data.created_at || Date.now()),
+        updatedAt: new Date(data.updated_at || Date.now()),
+      };
+    }
+
+    // 2. If direct update didn't match (already claimed or id match fallback)
+    const existing = await fetchInviteByCode(cleanCode);
+    if (!existing) {
+      return null;
+    }
+
+    const { data: fallbackData, error: fallbackErr } = await supabase
+      .from('coach_athlete_links')
+      .update({
+        status: 'accepted',
+        athlete_id: athleteId,
+        athlete_name: athleteName || 'Athlete',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id)
+      .select()
+      .maybeSingle();
+
+    if (fallbackErr || !fallbackData) {
+      console.error('Failed to claim coach link:', fallbackErr);
       return null;
     }
 
     return {
-      ...invite,
+      ...existing,
       status: 'accepted',
       athleteId,
       athleteName,
