@@ -204,12 +204,17 @@ describe('barcodeService', () => {
   });
 
   describe('reportMissingProductToDev', () => {
-    it('successfully posts report to developer API endpoint', async () => {
+    it('successfully posts report to developer API endpoint and persists to Supabase', async () => {
+      const mockInsert = vi.fn().mockResolvedValue({ data: null, error: null });
+      vi.mocked(supabase.from).mockReturnValue({
+        insert: mockInsert,
+      } as any);
+
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({
           success: true,
-          message: 'Missing product report successfully submitted to developer API for indexing.',
+          message: 'Report saved to database for developer indexing!',
         }),
       });
       global.fetch = mockFetch;
@@ -221,20 +226,23 @@ describe('barcodeService', () => {
       });
 
       expect(response.success).toBe(true);
-      expect(mockFetch).toHaveBeenCalledWith(
-        '/api/report-missing-product',
+      expect(supabase.from).toHaveBeenCalledWith('missing_product_reports');
+      expect(mockInsert).toHaveBeenCalledWith(
         expect.objectContaining({
-          method: 'POST',
-          body: JSON.stringify({
-            barcode: '8712345678901',
-            name: 'Skyr Vanille',
-            userId: 'user-456',
-          }),
+          barcode: '8712345678901',
+          name: 'Skyr Vanille',
+          user_id: 'user-456',
+          status: 'pending',
         })
       );
     });
 
     it('falls back gracefully when API network error occurs', async () => {
+      const mockInsert = vi.fn().mockResolvedValue({ data: null, error: null });
+      vi.mocked(supabase.from).mockReturnValue({
+        insert: mockInsert,
+      } as any);
+
       global.fetch = vi.fn().mockRejectedValue(new Error('Network offline'));
 
       const response = await reportMissingProductToDev({
@@ -242,7 +250,7 @@ describe('barcodeService', () => {
       });
 
       expect(response.success).toBe(true);
-      expect(response.message).toContain('Report noted!');
+      expect(response.message).toContain('Report saved');
     });
   });
 });

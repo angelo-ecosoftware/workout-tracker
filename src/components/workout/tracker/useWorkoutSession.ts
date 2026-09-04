@@ -642,7 +642,7 @@ export function useWorkoutSession(user: AuthUser | null) {
           const recordedSetTiming = assistedSessionTimings?.setTimings?.[setTimingKey];
 
           if (isTimed) {
-            const secNum = parseInt(inputValues.durationSeconds || '', 10);
+            let secNum = parseInt(inputValues.durationSeconds || '', 10);
             let diffNum: number | null = parseInt(inputValues.difficulty || '', 10);
             if (isNaN(diffNum)) {
               diffNum = null;
@@ -652,11 +652,12 @@ export function useWorkoutSession(user: AuthUser | null) {
             }
 
             if (isNaN(secNum)) {
-              throw new Error(`Invalid duration seconds detected on "${ex.name}" Set #${i}. Please correct.`);
-            }
-
-            if (secNum > 3600) {
+              secNum = 0;
+              warnings.push(`${ex.name} (Set ${i}): Duration is empty or non-numeric (will record as 0s).`);
+            } else if (secNum > 3600) {
               warnings.push(`${ex.name} (Set ${i}): Duration (${secNum}s) exceeds 1 hour.`);
+            } else if (secNum <= 0) {
+              warnings.push(`${ex.name} (Set ${i}): Duration is 0s.`);
             }
 
             finalSetsPayload.push({
@@ -671,23 +672,25 @@ export function useWorkoutSession(user: AuthUser | null) {
               restSeconds: recordedSetTiming?.restSeconds,
             });
           } else {
-            const weightNum = parseFloat(inputValues.weight || '');
-            const repsNum = parseInt(inputValues.reps || '', 10);
+            let weightNum = parseFloat(inputValues.weight || '');
+            let repsNum = parseInt(inputValues.reps || '', 10);
 
-            if (isNaN(weightNum) || isNaN(repsNum)) {
-              throw new Error(`Invalid weight or reps detected on "${ex.name}" Set #${i}. Please correct.`);
-            }
-
-            if (weightNum > 350) {
+            if (isNaN(weightNum)) {
+              weightNum = 0;
+              warnings.push(`${ex.name} (Set ${i}): Weight is empty or non-numeric (will record as 0 kg).`);
+            } else if (weightNum > 350) {
               warnings.push(`${ex.name} (Set ${i}): Weight (${weightNum} kg) is unusually high (>350 kg).`);
             } else if (weightNum < 0) {
               warnings.push(`${ex.name} (Set ${i}): Weight (${weightNum} kg) is negative.`);
             }
 
-            if (repsNum > 100) {
+            if (isNaN(repsNum)) {
+              repsNum = 0;
+              warnings.push(`${ex.name} (Set ${i}): Rep count is empty or non-numeric (will record as 0 reps).`);
+            } else if (repsNum > 100) {
               warnings.push(`${ex.name} (Set ${i}): Rep count (${repsNum} reps) is unusually high (>100 reps).`);
             } else if (repsNum <= 0) {
-              warnings.push(`${ex.name} (Set ${i}): Rep count (${repsNum}) must be at least 1.`);
+              warnings.push(`${ex.name} (Set ${i}): Rep count is 0.`);
             }
 
             if (cachedEx?.lastWeight && cachedEx.lastWeight >= 20 && weightNum >= cachedEx.lastWeight * 3) {

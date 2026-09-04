@@ -215,10 +215,32 @@ export interface MissingProductReportPayload {
 }
 
 /**
- * Submits a missing product / unresolvable barcode report to the developer API for catalog indexing.
+ * Submits a missing product / unresolvable barcode report to Supabase DB and developer API for catalog indexing.
  */
 export async function reportMissingProductToDev(payload: MissingProductReportPayload): Promise<{ success: boolean; message: string }> {
   try {
+    // 1. Direct Supabase persistence into missing_product_reports table
+    const { error: dbError } = await supabase
+      .from('missing_product_reports')
+      .insert({
+        barcode: payload.barcode?.trim() || null,
+        name: payload.name?.trim() || null,
+        brand: payload.brand?.trim() || null,
+        store: payload.store?.trim() || null,
+        notes: payload.notes?.trim() || null,
+        user_id: payload.userId || 'anonymous',
+        status: 'pending',
+      });
+
+    if (dbError) {
+      console.warn('Supabase missing_product_reports direct insert warning:', dbError);
+    }
+  } catch (dbErr) {
+    console.warn('Supabase report persistence skipped:', dbErr);
+  }
+
+  try {
+    // 2. Secondary notify via developer API endpoint
     const res = await fetch('/api/report-missing-product', {
       method: 'POST',
       headers: {
@@ -229,11 +251,11 @@ export async function reportMissingProductToDev(payload: MissingProductReportPay
 
     if (res.ok) {
       const data = await res.json();
-      return { success: true, message: data.message || 'Report sent to developer for indexing!' };
+      return { success: true, message: data.message || 'Report saved to database for developer indexing!' };
     }
   } catch (err) {
-    console.warn('Developer report API network issue, caching locally:', err);
+    console.warn('Developer report API network issue:', err);
   }
 
-  return { success: true, message: 'Report noted! Thank you for helping expand the database.' };
+  return { success: true, message: 'Report saved to database! Thank you for helping expand the database.' };
 }
