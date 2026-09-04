@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dumbbell, Loader2, CheckCircle2 } from 'lucide-react';
+import { Dumbbell, Loader2, CheckCircle2, ArrowRight, BookOpen } from 'lucide-react';
 
 interface WorkoutSubmitButtonProps {
   errorMsg: string | null;
@@ -25,9 +25,22 @@ export const WorkoutSubmitButton: React.FC<WorkoutSubmitButtonProps> = ({
       )}
 
       {successMsg && (
-        <div className="p-4 bg-emerald-950/40 border border-emerald-900/60 text-[#C0FF00] text-xs rounded-xl font-mono flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-[#C0FF00]" />
-          <span className="uppercase tracking-wide font-black">{successMsg}</span>
+        <div className="p-4 bg-emerald-950/50 border border-emerald-900/60 text-[#C0FF00] text-xs rounded-xl font-mono flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[#C0FF00] shrink-0" />
+            <span className="uppercase tracking-wide font-black">{successMsg}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('switch_app_tab', { detail: 'history' }));
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#C0FF00] text-black font-display font-black text-[11px] uppercase tracking-wider hover:bg-[#a6dc00] transition-colors cursor-pointer self-start sm:self-auto shrink-0"
+          >
+            <BookOpen className="w-3.5 h-3.5" />
+            <span>View in Log Book</span>
+            <ArrowRight className="w-3 h-3" />
+          </button>
         </div>
       )}
 
