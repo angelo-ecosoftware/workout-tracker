@@ -80,6 +80,8 @@ export async function fetchWorkoutHistory(userId: string) {
     workoutId: s.workout_id,
     status: s.status,
     completedAt: s.completed_at ? new Date(s.completed_at) : null,
+    sleepHours: s.sleep_hours != null ? Number(s.sleep_hours) : undefined,
+    energyScore: s.energy_score != null ? Number(s.energy_score) : undefined,
     notes: s.notes || undefined,
     photos: Array.isArray(s.photos) ? s.photos : undefined,
     startedAt: s.started_at ? new Date(s.started_at) : undefined,
@@ -132,8 +134,8 @@ export async function fetchPublicWorkoutSession(sessionId: string) {
       userId: sessionData.user_id,
       workoutId: sessionData.workout_id,
       status: sessionData.status,
-      completedAt: sessionData.completed_at ? new Date(sessionData.completed_at) : null,
-      notes: sessionData.notes || undefined,
+      completedAt: sessionData.completed_at ? new Date(sessionData.completed_at) : null,      sleepHours: sessionData.sleep_hours != null ? Number(sessionData.sleep_hours) : undefined,
+      energyScore: sessionData.energy_score != null ? Number(sessionData.energy_score) : undefined,      notes: sessionData.notes || undefined,
       photos: Array.isArray(sessionData.photos) ? sessionData.photos : undefined,
       startedAt: sessionData.started_at ? new Date(sessionData.started_at) : undefined,
     },
@@ -179,7 +181,9 @@ export async function logSessionCompletion(
   notes?: string,
   photos?: string[],
   sessionStartedAt?: Date,
-  _idempotencyKey?: string
+  _idempotencyKey?: string,
+  sleepHours?: number,
+  energyScore?: number
 ) {
   const { data: authData } = await supabase.auth.getUser();
   const authUser = authData?.user;
@@ -227,6 +231,13 @@ export async function logSessionCompletion(
     completed_at: completedTimestamp,
   };
 
+  if (sleepHours != null && !isNaN(sleepHours)) {
+    sessionPayload.sleep_hours = sleepHours;
+  }
+  if (energyScore != null && !isNaN(energyScore)) {
+    sessionPayload.energy_score = energyScore;
+  }
+
   if (notes && notes.trim().length > 0) {
     sessionPayload.notes = notes.trim();
   }
@@ -249,6 +260,14 @@ export async function logSessionCompletion(
     }
     if (sessionErr.message.includes('notes') && 'notes' in sessionPayload) {
       delete sessionPayload.notes;
+      shouldRetry = true;
+    }
+    if (sessionErr.message.includes('sleep_hours') && 'sleep_hours' in sessionPayload) {
+      delete sessionPayload.sleep_hours;
+      shouldRetry = true;
+    }
+    if (sessionErr.message.includes('energy_score') && 'energy_score' in sessionPayload) {
+      delete sessionPayload.energy_score;
       shouldRetry = true;
     }
     if (shouldRetry) {

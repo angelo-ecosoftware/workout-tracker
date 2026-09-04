@@ -172,7 +172,8 @@ describe('LoggedFoodList Component', () => {
     render(<StatefulZeroHarness />);
 
     const gramsInput = screen.getByRole('spinbutton');
-    expect(gramsInput).toHaveValue(0);
+    // When amountGrams is 0, input renders placeholder "0" with empty string to avoid leading zeros
+    expect(gramsInput).toHaveValue(null);
 
     // User directly clicks and types '150' without manually pressing backspace or clear
     await user.type(gramsInput, '150');

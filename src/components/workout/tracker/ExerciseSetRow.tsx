@@ -132,6 +132,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             <input
               type="text"
               value={values.weight || ''}
+              onFocus={(e) => e.target.select()}
               onChange={(e) => onTextInput(inputKey, 'weight', e.target.value)}
               className="w-18 px-1 py-1 bg-[#111] border border-[#333] rounded-lg text-center text-xs font-mono font-black text-white focus:outline-none focus:ring-1 focus:ring-[#C0FF00]"
             />
@@ -164,6 +165,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             <input
               type="text"
               value={values.reps || ''}
+              onFocus={(e) => e.target.select()}
               onChange={(e) => onTextInput(inputKey, 'reps', e.target.value)}
               className="w-14 px-1 py-1 bg-[#111] border border-[#333] rounded-lg text-center text-xs font-mono font-black text-[#C0FF00] focus:outline-none focus:ring-1 focus:ring-[#C0FF00]"
             />

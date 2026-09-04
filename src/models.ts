@@ -86,6 +86,8 @@ export interface Session {
   status: 'in_progress' | 'completed';
   startedAt: Date;
   completedAt: Date | null;
+  sleepHours?: number | null;
+  energyScore?: number | null;
   notes?: string | null;
   photos?: string[] | null;
 }

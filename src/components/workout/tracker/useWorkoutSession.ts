@@ -611,7 +611,10 @@ export function useWorkoutSession(user: AuthUser | null) {
           completedAtDate,
           sessionNotes,
           uploadedPhotoUrls,
-          sessionStartedAtDate
+          sessionStartedAtDate,
+          undefined,
+          sleepHours,
+          energyScore
         );
 
         const parsedWeight = parseFloat(bodyWeightKg);

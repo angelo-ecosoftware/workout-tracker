@@ -475,7 +475,9 @@ export async function logSessionCompletion(
   notes?: string,
   photos?: string[],
   sessionStartedAt?: Date,
-  _idempotencyKey?: string
+  _idempotencyKey?: string,
+  sleepHours?: number,
+  energyScore?: number
 ) {
   const { data: authData } = await supabase.auth.getUser();
   const authUser = authData?.user;
@@ -524,6 +526,13 @@ export async function logSessionCompletion(
     completed_at: completedTimestamp,
   };
 
+  if (sleepHours != null && !isNaN(sleepHours)) {
+    sessionPayload.sleep_hours = sleepHours;
+  }
+  if (energyScore != null && !isNaN(energyScore)) {
+    sessionPayload.energy_score = energyScore;
+  }
+
   if (notes && notes.trim().length > 0) {
     sessionPayload.notes = notes.trim();
   }
@@ -538,7 +547,7 @@ export async function logSessionCompletion(
     .select()
     .single();
 
-  // Graceful fallback if the Supabase table has not run the migration for the 'photos' or 'notes' column yet
+  // Graceful fallback if the Supabase table has not run the migration for optional columns yet
   if (sessionErr && sessionErr.message) {
     let shouldRetry = false;
     if (sessionErr.message.includes('photos') && 'photos' in sessionPayload) {
@@ -549,6 +558,14 @@ export async function logSessionCompletion(
     if (sessionErr.message.includes('notes') && 'notes' in sessionPayload) {
       console.warn('Supabase sessions table missing "notes" column. Retrying insert without notes field.');
       delete sessionPayload.notes;
+      shouldRetry = true;
+    }
+    if (sessionErr.message.includes('sleep_hours') && 'sleep_hours' in sessionPayload) {
+      delete sessionPayload.sleep_hours;
+      shouldRetry = true;
+    }
+    if (sessionErr.message.includes('energy_score') && 'energy_score' in sessionPayload) {
+      delete sessionPayload.energy_score;
       shouldRetry = true;
     }
     if (shouldRetry) {

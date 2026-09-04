@@ -105,10 +105,18 @@ export const LoggedFoodList: React.FC<LoggedFoodListProps> = ({
                       type="number"
                       min="1"
                       step="1"
-                      value={entry.amountGrams}
-                      onChange={(e) =>
-                        onUpdateEntryGrams(entry.id, Number(e.target.value) || 0)
-                      }
+                      value={entry.amountGrams === 0 ? '' : entry.amountGrams}
+                      placeholder="0"
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        if (raw === '') {
+                          onUpdateEntryGrams(entry.id, 0);
+                        } else {
+                          const parsed = parseInt(raw, 10);
+                          onUpdateEntryGrams(entry.id, isNaN(parsed) ? 0 : Math.max(0, parsed));
+                        }
+                      }}
                       className="w-14 bg-transparent text-right font-mono text-xs font-bold text-[#C0FF00] outline-none"
                     />
                     <span className="text-[10px] font-mono font-bold text-gray-500 ml-1">

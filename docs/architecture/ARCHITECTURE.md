@@ -68,6 +68,9 @@ src/
 │   │   ├── users.ts
 │   │   ├── biometrics.ts
 │   │   └── backup.ts
+│   ├── bakeryPluDictionary.ts     # Pre-seeded PLU dictionary & scale barcode matcher
+│   ├── barcodeService.ts          # Multi-tier barcode & hive-mind resolver
+│   ├── storeBranding.ts           # Store badges, clean titles & deep linking
 │   ├── dietaryData.ts
 │   ├── foodSearch.ts
 │   ├── exerciseSearch.ts

@@ -123,3 +123,7 @@ Combining the strengths of these repositories produces a best-in-class exercise 
 
 
 if not found report software developer in api
+
+eight must update after a logged session of profile
+
+are you sure modal if user add unrealistic values on kg sets etc etc 

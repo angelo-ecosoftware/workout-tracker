@@ -99,6 +99,7 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
                 step="1"
                 value={portionGrams === 0 ? '' : portionGrams}
                 placeholder="0"
+                onFocus={(e) => e.target.select()}
                 onChange={(e) => {
                   const rawVal = e.target.value;
                   if (rawVal === '') {
