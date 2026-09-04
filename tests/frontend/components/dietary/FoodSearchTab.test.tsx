@@ -63,4 +63,20 @@ describe('FoodSearchTab - Portion Grams Input & Leading Zero Handling', () => {
 
     expect(setPortionGrams).toHaveBeenCalled();
   });
+
+  it('renders ml quick portion buttons and labels when servingUnit is ml', () => {
+    const liquidItem: FoodItemNutrition = {
+      ...mockItem,
+      id: 'milk-1',
+      name: 'Halfvolle Melk',
+      servingUnit: 'ml',
+      packageWeightGrams: 1000,
+    };
+    render(<FoodSearchTab {...defaultProps} selectedFoodItem={liquidItem} portionGrams={250} />);
+
+    expect(screen.getByText(/Amount Consumed \(ML\)/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '250ml' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pak (1000ml)' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Log 250ml into/i })).toBeInTheDocument();
+  });
 });

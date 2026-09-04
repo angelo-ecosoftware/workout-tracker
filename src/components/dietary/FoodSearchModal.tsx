@@ -62,6 +62,8 @@ interface FoodSearchModalProps {
   setNewFoodBrand: (val: string) => void;
   newFoodBarcode?: string;
   setNewFoodBarcode?: (val: string) => void;
+  newFoodServingUnit?: 'gram' | 'ml';
+  setNewFoodServingUnit?: (unit: 'gram' | 'ml') => void;
   newFoodKcal: number | '';
   setNewFoodKcal: (val: number | '') => void;
   newFoodProtein: number | '';
@@ -115,6 +117,8 @@ export const FoodSearchModal: React.FC<FoodSearchModalProps> = ({
   setNewFoodBrand,
   newFoodBarcode,
   setNewFoodBarcode,
+  newFoodServingUnit,
+  setNewFoodServingUnit,
   newFoodKcal,
   setNewFoodKcal,
   newFoodProtein,
@@ -260,6 +264,8 @@ export const FoodSearchModal: React.FC<FoodSearchModalProps> = ({
               setNewFoodBrand={setNewFoodBrand}
               newFoodBarcode={newFoodBarcode}
               setNewFoodBarcode={setNewFoodBarcode}
+              newFoodServingUnit={newFoodServingUnit}
+              setNewFoodServingUnit={setNewFoodServingUnit}
               newFoodKcal={newFoodKcal}
               setNewFoodKcal={setNewFoodKcal}
               newFoodProtein={newFoodProtein}

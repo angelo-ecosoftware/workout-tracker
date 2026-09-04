@@ -30,7 +30,7 @@ export const LoggedFoodList: React.FC<LoggedFoodListProps> = ({
             Logged Food Items ({entries.length})
           </h2>
           <p className="font-sans text-[11px] text-gray-500 uppercase tracking-wider font-semibold mt-0.5">
-            Enter portion grams — live macro scaling
+            Enter portion amount (g / ml) — live macro scaling
           </p>
         </div>
 
@@ -90,7 +90,7 @@ export const LoggedFoodList: React.FC<LoggedFoodListProps> = ({
                       </span>
                     )}
                     <span className="text-[10px] font-mono text-gray-500">
-                      (Ref: {entry.kcalPer100g} kcal / 100g)
+                      (Ref: {entry.kcalPer100g} kcal / {entry.servingUnit === 'ml' ? '100ml' : '100g'})
                     </span>
                   </div>
                   <div className="font-sans text-sm font-bold text-white mt-1">
@@ -98,7 +98,7 @@ export const LoggedFoodList: React.FC<LoggedFoodListProps> = ({
                   </div>
                 </div>
 
-                {/* Portion Grams Quick Edit */}
+                {/* Portion Amount Quick Edit */}
                 <div className="flex items-center gap-2 shrink-0">
                   <div className="flex items-center bg-[#0d0d0d] border border-[#333] focus-within:border-[#C0FF00] rounded-xl px-2.5 py-1">
                     <input
@@ -111,7 +111,9 @@ export const LoggedFoodList: React.FC<LoggedFoodListProps> = ({
                       }
                       className="w-14 bg-transparent text-right font-mono text-xs font-bold text-[#C0FF00] outline-none"
                     />
-                    <span className="text-[10px] font-mono font-bold text-gray-500 ml-1">g</span>
+                    <span className="text-[10px] font-mono font-bold text-gray-500 ml-1">
+                      {entry.servingUnit === 'ml' ? 'ml' : 'g'}
+                    </span>
                   </div>
 
                   <button

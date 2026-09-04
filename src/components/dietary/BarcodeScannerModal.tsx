@@ -302,7 +302,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                   </h3>
                   {detectedItem.packageWeightGrams ? (
                     <p className="text-[11px] font-mono text-gray-400 mt-0.5">
-                      Pack Size: <span className="text-white font-bold">{detectedItem.packageWeightGrams}g</span>
+                      Pack Size: <span className="text-white font-bold">{detectedItem.packageWeightGrams}{detectedItem.servingUnit === 'ml' ? 'ml' : 'g'}</span>
                     </p>
                   ) : null}
                 </div>
@@ -312,22 +312,22 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                   <div className="bg-[#121212] border border-[#282828] rounded-xl p-2 text-center">
                     <span className="block text-[9px] font-mono uppercase text-gray-400 font-bold">Kcal</span>
                     <span className="text-xs font-mono font-black text-white">{detectedItem.kcalPer100g}</span>
-                    <span className="block text-[8px] text-gray-400 font-mono">/100g</span>
+                    <span className="block text-[8px] text-gray-400 font-mono">/{detectedItem.servingUnit === 'ml' ? '100ml' : '100g'}</span>
                   </div>
                   <div className="bg-[#121212] border border-[#282828] rounded-xl p-2 text-center">
                     <span className="block text-[9px] font-mono uppercase text-[#38bdf8] font-bold">Protein</span>
                     <span className="text-xs font-mono font-black text-[#38bdf8]">{detectedItem.proteinPer100g}g</span>
-                    <span className="block text-[8px] text-gray-400 font-mono">/100g</span>
+                    <span className="block text-[8px] text-gray-400 font-mono">/{detectedItem.servingUnit === 'ml' ? '100ml' : '100g'}</span>
                   </div>
                   <div className="bg-[#121212] border border-[#282828] rounded-xl p-2 text-center">
                     <span className="block text-[9px] font-mono uppercase text-[#fbbf24] font-bold">Carbs</span>
                     <span className="text-xs font-mono font-black text-[#fbbf24]">{detectedItem.carbsPer100g}g</span>
-                    <span className="block text-[8px] text-gray-400 font-mono">/100g</span>
+                    <span className="block text-[8px] text-gray-400 font-mono">/{detectedItem.servingUnit === 'ml' ? '100ml' : '100g'}</span>
                   </div>
                   <div className="bg-[#121212] border border-[#282828] rounded-xl p-2 text-center">
                     <span className="block text-[9px] font-mono uppercase text-[#f87171] font-bold">Fat</span>
                     <span className="text-xs font-mono font-black text-[#f87171]">{detectedItem.fatPer100g}g</span>
-                    <span className="block text-[8px] text-gray-400 font-mono">/100g</span>
+                    <span className="block text-[8px] text-gray-400 font-mono">/{detectedItem.servingUnit === 'ml' ? '100ml' : '100g'}</span>
                   </div>
                 </div>
               </div>

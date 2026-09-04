@@ -135,7 +135,8 @@ export interface LoggedDietaryEntry {
   foodItemId: string;
   name: string;
   brand?: string;
-  amountGrams: number; // e.g. 40g
+  amountGrams: number; // e.g. 40g or 250ml
+  servingUnit?: string; // 'gram' or 'ml'
   // Base 100g values for recalculation
   kcalPer100g: number;
   proteinPer100g: number;

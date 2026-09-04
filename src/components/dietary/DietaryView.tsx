@@ -59,6 +59,8 @@ export const DietaryView: React.FC<DietaryViewProps> = ({ userId: propUserId }) 
     setNewFoodBrand,
     newFoodBarcode,
     setNewFoodBarcode,
+    newFoodServingUnit,
+    setNewFoodServingUnit,
     newFoodKcal,
     setNewFoodKcal,
     newFoodProtein,
@@ -214,6 +216,8 @@ export const DietaryView: React.FC<DietaryViewProps> = ({ userId: propUserId }) 
         setNewFoodBrand={setNewFoodBrand}
         newFoodBarcode={newFoodBarcode}
         setNewFoodBarcode={setNewFoodBarcode}
+        newFoodServingUnit={newFoodServingUnit}
+        setNewFoodServingUnit={setNewFoodServingUnit}
         newFoodKcal={newFoodKcal}
         setNewFoodKcal={setNewFoodKcal}
         newFoodProtein={newFoodProtein}

@@ -41,6 +41,9 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
 }) => {
   if (selectedFoodItem) {
     const preview = calculatePortionNutrients(selectedFoodItem, portionGrams);
+    const isLiquid = selectedFoodItem.servingUnit === 'ml';
+    const unitLabel = isLiquid ? 'ml' : 'g';
+    const baseUnitText = isLiquid ? '100ml' : '100g';
 
     return (
       <div className="p-4 bg-[#1b1b1b] border border-[#C0FF00]/40 rounded-2xl space-y-3">
@@ -53,7 +56,7 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
               {selectedFoodItem.name}
             </h4>
             <p className="text-[11px] font-mono text-gray-400 mt-0.5">
-              Per 100g: {selectedFoodItem.kcalPer100g} kcal • {selectedFoodItem.proteinPer100g}g protein
+              Per {baseUnitText}: {selectedFoodItem.kcalPer100g} kcal • {selectedFoodItem.proteinPer100g}g protein
             </p>
           </div>
           <button
@@ -64,43 +67,45 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
           </button>
         </div>
 
-        {/* Gram Input & Quick Buttons */}
+        {/* Gram / ML Input & Quick Buttons */}
         <div>
           <label className="block text-[11px] font-mono uppercase tracking-wider text-gray-400 font-bold mb-1.5">
-            Amount Consumed (Grams / ML)
+            Amount Consumed ({isLiquid ? 'ML' : 'Grams'})
           </label>
           <div className="flex items-center gap-2">
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={portionGrams === 0 ? '' : portionGrams}
-              placeholder="0"
-              onChange={(e) => {
-                const rawVal = e.target.value;
-                if (rawVal === '') {
-                  setPortionGrams(0);
-                } else {
-                  const parsed = parseInt(rawVal, 10);
-                  setPortionGrams(isNaN(parsed) ? 0 : Math.max(0, parsed));
-                }
-              }}
-              className="w-24 bg-[#101010] border border-[#333] focus:border-[#C0FF00] rounded-xl px-3 py-2 text-center text-sm font-mono font-bold text-[#C0FF00] outline-none"
-            />
+            <div className="relative">
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={portionGrams === 0 ? '' : portionGrams}
+                placeholder="0"
+                onChange={(e) => {
+                  const rawVal = e.target.value;
+                  if (rawVal === '') {
+                    setPortionGrams(0);
+                  } else {
+                    const parsed = parseInt(rawVal, 10);
+                    setPortionGrams(isNaN(parsed) ? 0 : Math.max(0, parsed));
+                  }
+                }}
+                className="w-24 bg-[#101010] border border-[#333] focus:border-[#C0FF00] rounded-xl px-3 py-2 text-center text-sm font-mono font-bold text-[#C0FF00] outline-none"
+              />
+            </div>
             <div className="flex items-center gap-1.5 flex-wrap">
-              {/* Standard portion buttons */}
-              {[30, 50, 100, 150, 200].map((g) => (
+              {/* Standard portion buttons matching serving_unit */}
+              {(isLiquid ? [100, 200, 250, 300, 500] : [30, 50, 100, 150, 200]).map((amt) => (
                 <button
-                  key={g}
+                  key={amt}
                   type="button"
-                  onClick={() => setPortionGrams(g)}
+                  onClick={() => setPortionGrams(amt)}
                   className={`px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold cursor-pointer transition-colors ${
-                    portionGrams === g
+                    portionGrams === amt
                       ? 'bg-[#C0FF00] text-black'
                       : 'bg-[#252525] hover:bg-[#303030] text-gray-300'
                   }`}
                 >
-                  {g}g
+                  {amt}{unitLabel}
                 </button>
               ))}
 
@@ -115,7 +120,7 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
                       : 'bg-[#1e293b] hover:bg-[#334155] text-[#38bdf8] border border-[#00ade6]/40'
                   }`}
                 >
-                  Pak ({selectedFoodItem.packageWeightGrams}g)
+                  Pak ({selectedFoodItem.packageWeightGrams}{unitLabel})
                 </button>
               )}
 
@@ -135,14 +140,14 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
                       : 'bg-[#3b2a1a] hover:bg-[#4a3520] text-amber-300 border border-amber-500/40'
                   }`}
                 >
-                  1 stuk (~{Math.round(selectedFoodItem.packageWeightGrams / selectedFoodItem.pieceCount)}g)
+                  1 stuk (~{Math.round(selectedFoodItem.packageWeightGrams / selectedFoodItem.pieceCount)}{unitLabel})
                 </button>
               )}
             </div>
           </div>
         </div>
 
-        {/* Live Calculated Preview */}
+        {/* Live Calculated Preview - Protein, Carbs, Fat, Sugar, Fiber strictly in grams */}
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-1 bg-[#121212] p-2 rounded-xl text-center font-mono text-xs border border-[#2a2a2a]">
           <div>
             <div className="text-[9px] text-gray-500 uppercase">Calories</div>
@@ -175,7 +180,7 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
           className="w-full py-2.5 bg-[#C0FF00] hover:bg-[#a8e000] text-black font-sans text-xs font-black uppercase tracking-wider rounded-xl cursor-pointer transition-all shadow-[0_0_15px_rgba(192,255,0,0.25)] flex items-center justify-center gap-2"
         >
           <Check className="w-4 h-4 stroke-[3]" />
-          Log {portionGrams}g into {formatDateTitle(selectedDate)}
+          Log {portionGrams}{unitLabel} into {formatDateTitle(selectedDate)}
         </button>
       </div>
     );

@@ -58,6 +58,7 @@ export const useDietaryTracking = (userId: string) => {
   const [newFoodName, setNewFoodName] = useState('');
   const [newFoodBrand, setNewFoodBrand] = useState('');
   const [newFoodBarcode, setNewFoodBarcode] = useState('');
+  const [newFoodServingUnit, setNewFoodServingUnit] = useState<'gram' | 'ml'>('gram');
   const [newFoodKcal, setNewFoodKcal] = useState<number | ''>('');
   const [newFoodProtein, setNewFoodProtein] = useState<number | ''>('');
   const [newFoodCarbs, setNewFoodCarbs] = useState<number | ''>('');
@@ -170,6 +171,7 @@ export const useDietaryTracking = (userId: string) => {
       name: food.name,
       brand: food.brand,
       amountGrams: grams,
+      servingUnit: food.servingUnit || 'gram',
       kcalPer100g: food.kcalPer100g,
       proteinPer100g: food.proteinPer100g,
       carbsPer100g: food.carbsPer100g,
@@ -397,6 +399,7 @@ export const useDietaryTracking = (userId: string) => {
       name: newFoodName.trim(),
       brand: newFoodBrand.trim() || undefined,
       barcode: newFoodBarcode.trim() || undefined,
+      servingUnit: newFoodServingUnit || 'gram',
       kcalPer100g: clampMacro(newFoodKcal),
       proteinPer100g: clampMacro(newFoodProtein),
       carbsPer100g: clampMacro(newFoodCarbs),
@@ -410,13 +413,14 @@ export const useDietaryTracking = (userId: string) => {
     const saved = await saveHiveMindFoodItem(newFood, userId);
 
     setSelectedFoodItem(saved);
-    setPortionGrams(100);
+    setPortionGrams(saved.servingUnit === 'ml' ? 250 : 100);
     setActiveModalTab('search');
 
     // Reset Form
     setNewFoodName('');
     setNewFoodBrand('');
     setNewFoodBarcode('');
+    setNewFoodServingUnit('gram');
     setNewFoodKcal('');
     setNewFoodProtein('');
     setNewFoodCarbs('');
@@ -468,6 +472,8 @@ export const useDietaryTracking = (userId: string) => {
     setNewFoodBrand,
     newFoodBarcode,
     setNewFoodBarcode,
+    newFoodServingUnit,
+    setNewFoodServingUnit,
     newFoodKcal,
     setNewFoodKcal,
     newFoodProtein,

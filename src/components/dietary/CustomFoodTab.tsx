@@ -8,6 +8,8 @@ interface CustomFoodTabProps {
   setNewFoodBrand: (val: string) => void;
   newFoodBarcode?: string;
   setNewFoodBarcode?: (val: string) => void;
+  newFoodServingUnit?: 'gram' | 'ml';
+  setNewFoodServingUnit?: (unit: 'gram' | 'ml') => void;
   newFoodKcal: number | '';
   setNewFoodKcal: (val: number | '') => void;
   newFoodProtein: number | '';
@@ -30,6 +32,8 @@ export const CustomFoodTab: React.FC<CustomFoodTabProps> = ({
   setNewFoodBrand,
   newFoodBarcode,
   setNewFoodBarcode,
+  newFoodServingUnit = 'gram',
+  setNewFoodServingUnit,
   newFoodKcal,
   setNewFoodKcal,
   newFoodProtein,
@@ -54,12 +58,36 @@ export const CustomFoodTab: React.FC<CustomFoodTabProps> = ({
     setter(isNaN(num) ? '' : Math.max(0, num));
   };
 
+  const isMl = newFoodServingUnit === 'ml';
+
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-xs font-mono font-bold uppercase text-white">
-          New Custom Food (Values per 100g)
+          New Custom Food (Values per {isMl ? '100ml' : '100g'})
         </span>
+        {setNewFoodServingUnit && (
+          <div className="flex items-center gap-1 bg-[#1c1c1c] p-1 rounded-xl border border-[#333]">
+            <button
+              type="button"
+              onClick={() => setNewFoodServingUnit('gram')}
+              className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold cursor-pointer transition-colors ${
+                !isMl ? 'bg-[#C0FF00] text-black' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Grams (g)
+            </button>
+            <button
+              type="button"
+              onClick={() => setNewFoodServingUnit('ml')}
+              className={`px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold cursor-pointer transition-colors ${
+                isMl ? 'bg-[#00ade6] text-black' : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Milliliters (ml)
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -98,7 +126,7 @@ export const CustomFoodTab: React.FC<CustomFoodTabProps> = ({
 
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
         <div>
-          <label className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Calories / 100g</label>
+          <label className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Calories / {isMl ? '100ml' : '100g'}</label>
           <input
             type="number"
             step="0.1"
