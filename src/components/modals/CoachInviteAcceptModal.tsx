@@ -37,13 +37,15 @@ export const CoachInviteAcceptModal: React.FC<CoachInviteAcceptModalProps> = ({
       setErrorMsg(null);
       const res = await acceptCoachLinkByCode(inviteCode, athleteId, athleteName);
       if (!res) {
-        throw new Error('This invitation code is invalid, expired, or has already been accepted.');
+        throw new Error('Could not accept this invite. It may have expired or already been claimed.');
       }
       setSuccess(true);
       setTimeout(() => {
         if (onAccepted) onAccepted();
         onClose();
-      }, 1000);
+        // Force refresh connections state
+        window.location.reload();
+      }, 800);
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to accept coach invitation.');
     } finally {

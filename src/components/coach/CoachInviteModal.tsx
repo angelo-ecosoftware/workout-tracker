@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   QrCode,
   Link as LinkIcon,
@@ -42,7 +42,7 @@ export const CoachInviteModal: React.FC<CoachInviteModalProps> = ({
     return `${origin}?coach_invite=${code}`;
   };
 
-  const handleCreateInvite = async (e?: React.FormEvent) => {
+  const handleCreateInvite = async (e?: React.FormEvent): Promise<string | null> => {
     if (e) e.preventDefault();
     try {
       const invite = await createCoachInvite(
@@ -51,20 +51,25 @@ export const CoachInviteModal: React.FC<CoachInviteModalProps> = ({
         athleteEmail.trim() || undefined,
         coachName
       );
-      setCreatedInviteCode(invite.inviteCode || 'INVITE_CODE');
+      const code = invite.inviteCode || null;
+      setCreatedInviteCode(code);
       setStatusMsg({ type: 'success', text: 'Invitation created successfully!' });
       if (onInviteCreated) onInviteCreated();
+      return code;
     } catch (err: any) {
       console.error('Failed to create coach invite:', err);
       setStatusMsg({ type: 'error', text: 'Failed to generate invitation.' });
+      return null;
     }
   };
 
   const handleCopyLink = async () => {
-    if (!createdInviteCode) {
-      await handleCreateInvite();
+    let code = createdInviteCode;
+    if (!code) {
+      code = await handleCreateInvite();
     }
-    const link = generateInviteLink(createdInviteCode || 'ACTIVE_INVITE');
+    if (!code) return;
+    const link = generateInviteLink(code);
     try {
       await navigator.clipboard.writeText(link);
       setCopiedLink(true);
@@ -73,6 +78,15 @@ export const CoachInviteModal: React.FC<CoachInviteModalProps> = ({
       window.prompt('Copy invite link:', link);
     }
   };
+
+  useEffect(() => {
+    if (isOpen && coachId) {
+      // Pre-generate an invite code on open if none exists yet
+      if (!createdInviteCode) {
+        handleCreateInvite();
+      }
+    }
+  }, [isOpen, coachId]);
 
   return (
     <div
