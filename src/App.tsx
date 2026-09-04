@@ -241,14 +241,16 @@ const GymAppContent: React.FC = () => {
           /* Athlete & Client-Inspection Navigation Tabs */
           <>
             <div className="flex bg-[#111] border border-[#222] rounded-full p-1 w-full max-w-xl mx-auto mb-8 font-sans flex-wrap gap-1">
-              <button 
-                onClick={() => setActiveTab('tracker')}
-                className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-                  activeTab === 'tracker' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Today's Session
-              </button>
+              {!inspectingClient && (
+                <button 
+                  onClick={() => setActiveTab('tracker')}
+                  className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                    activeTab === 'tracker' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Today's Session
+                </button>
+              )}
               <button 
                 onClick={() => setActiveTab('history')}
                 className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
@@ -276,7 +278,7 @@ const GymAppContent: React.FC = () => {
             </div>
 
             <div>
-              {activeTab === 'tracker' && <WorkoutDayTracker />}
+              {!inspectingClient && activeTab === 'tracker' && <WorkoutDayTracker />}
               {activeTab === 'history' && (
                 <WorkoutHistory
                   targetUserId={inspectingClient?.athleteId}
