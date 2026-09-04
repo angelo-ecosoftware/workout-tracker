@@ -126,7 +126,8 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
               <span className="flex items-center gap-1.5 bg-[#1a1a1a] px-2.5 py-1 rounded-lg">
                 <Clock className="w-3.5 h-3.5" />
                 {session.completedAt ? session.completedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-              </span>              {session.sleepHours != null && (
+              </span>
+              {session.sleepHours != null && (
                 <span className="flex items-center gap-1.5 bg-[#1a1a1a] px-2.5 py-1 rounded-lg text-gray-300 border border-[#262626]">
                   <span className="text-[#C0FF00] font-bold">💤 {session.sleepHours}h</span>
                   <span className="text-[10px] text-gray-500">sleep</span>
@@ -137,7 +138,8 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
                   <span className="text-amber-400 font-bold">⚡ {session.energyScore}/10</span>
                   <span className="text-[10px] text-gray-500">energy</span>
                 </span>
-              )}              <button 
+              )}
+              <button 
                 onClick={(e) => { e.stopPropagation(); onStartDateEdit(session); }}
                 className="p-1 hover:text-[#C0FF00] transition-colors rounded-lg hover:bg-[#1a1a1a]"
                 title="Edit Date"
