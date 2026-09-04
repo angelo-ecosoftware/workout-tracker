@@ -11,6 +11,9 @@ import { DietaryView } from './components/dietary/DietaryView.tsx';
 import { PublicSessionView } from './components/workout/PublicSessionView.tsx';
 import { CoachPortalView } from './components/coach/CoachPortalView.tsx';
 import { CoachViewAsBanner } from './components/coach/CoachViewAsBanner.tsx';
+import { CoachInviteAcceptModal } from './components/modals/CoachInviteAcceptModal.tsx';
+import { fetchInviteByCode } from './lib/db/roles.ts';
+import { CoachAthleteLink } from './models.ts';
 import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
 import { Loader2, UserCheck, Dumbbell } from 'lucide-react';
 
@@ -26,6 +29,22 @@ function getPublicSessionIdFromUrl(): string | null {
     if (match && match[1]) return match[1];
   } catch (e) {
     console.warn('Error reading URL parameters:', e);
+  }
+  return null;
+}
+
+// Extract coach invite code from query param (?coach_invite=xxx or ?invite=xxx)
+function getCoachInviteCodeFromUrl(): string | null {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('coach_invite') || urlParams.get('invite');
+    if (code) return code.trim();
+
+    const hash = window.location.hash;
+    const match = hash.match(/#(?:coach_invite|invite)\/([a-zA-Z0-9_-]+)/);
+    if (match && match[1]) return match[1].trim();
+  } catch (e) {
+    console.warn('Error reading coach invite URL parameters:', e);
   }
   return null;
 }
@@ -57,6 +76,8 @@ const GymAppContent: React.FC = () => {
   const { user, loading, token, isCoach, specialty } = useAuth();
   const [activeTab, setActiveTabState] = useState<TabType>(() => getInitialTab());
   const [publicSessionId, setPublicSessionId] = useState<string | null>(() => getPublicSessionIdFromUrl());
+  const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => getCoachInviteCodeFromUrl());
+  const [coachInviteData, setCoachInviteData] = useState<CoachAthleteLink | null>(null);
   const [inspectingClient, setInspectingClient] = useState<{ athleteId: string; athleteName: string } | null>(null);
   const [coachPersonalWorkoutMode, setCoachPersonalWorkoutMode] = useState<boolean>(() => {
     return localStorage.getItem('coach_personal_workout_mode') === 'true';
@@ -77,6 +98,7 @@ const GymAppContent: React.FC = () => {
   useEffect(() => {
     const handlePopState = () => {
       setPublicSessionId(getPublicSessionIdFromUrl());
+      setPendingInviteCode(getCoachInviteCodeFromUrl());
       const hash = window.location.hash.toLowerCase();
       if (hash.includes('coach') || hash.includes('roster')) setActiveTabState('coach');
       else if (hash.includes('history') || hash.includes('logbook')) setActiveTabState('history');
@@ -101,6 +123,17 @@ const GymAppContent: React.FC = () => {
       window.removeEventListener('switch_app_tab' as any, handleCustomTabSwitch as any);
     };
   }, []);
+
+  // Fetch coach invite metadata when pendingInviteCode is detected in URL
+  useEffect(() => {
+    if (pendingInviteCode && user) {
+      fetchInviteByCode(pendingInviteCode).then((invite) => {
+        if (invite) {
+          setCoachInviteData(invite);
+        }
+      });
+    }
+  }, [pendingInviteCode, user]);
 
   // If a public workout session is requested, show public read-only card directly without forcing login
   if (publicSessionId) {
@@ -258,6 +291,27 @@ const GymAppContent: React.FC = () => {
           </>
         )}
       </main>
+
+      {/* Coach Invitation Acceptance Modal (Triggered automatically when opening ?coach_invite=xxx) */}
+      {pendingInviteCode && user && (
+        <CoachInviteAcceptModal
+          isOpen={Boolean(pendingInviteCode)}
+          onClose={() => {
+            setPendingInviteCode(null);
+            setCoachInviteData(null);
+            window.history.pushState({}, '', window.location.pathname);
+          }}
+          inviteCode={pendingInviteCode}
+          athleteId={user.uid}
+          athleteName={user.displayName}
+          coachInviteData={coachInviteData}
+          onAccepted={() => {
+            setPendingInviteCode(null);
+            setCoachInviteData(null);
+            window.history.pushState({}, '', window.location.pathname);
+          }}
+        />
+      )}
     </div>
   );
 };

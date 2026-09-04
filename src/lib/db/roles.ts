@@ -334,26 +334,32 @@ export async function createCoachInvite(
   coachName?: string
 ): Promise<CoachAthleteLink> {
   const inviteCode = `invite_${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-  const payload = {
+  const payload: any = {
     id: `link_${Date.now()}`,
     coach_id: coachId,
-    athlete_id: athleteIdOrEmail?.includes('@') ? coachId : (athleteIdOrEmail || coachId), // Pending resolution
     specialty,
     status: 'pending' as LinkStatus,
     invite_code: inviteCode,
     coach_name: coachName || 'Coach',
   };
 
+  if (athleteIdOrEmail && !athleteIdOrEmail.includes('@')) {
+    payload.athlete_id = athleteIdOrEmail;
+  }
+
   try {
-    await supabase.from('coach_athlete_links').insert(payload);
-  } catch {
-    // ignore
+    const { error } = await supabase.from('coach_athlete_links').insert(payload);
+    if (error) {
+      console.error('Supabase error inserting coach invite:', error);
+    }
+  } catch (e) {
+    console.error('Exception creating coach invite:', e);
   }
 
   return {
     id: payload.id,
     coachId,
-    athleteId: payload.athlete_id,
+    athleteId: payload.athlete_id || '',
     specialty,
     status: 'pending',
     inviteCode,
@@ -363,11 +369,81 @@ export async function createCoachInvite(
   };
 }
 
-export async function acceptCoachLink(linkId: string, athleteId: string): Promise<void> {
+export async function fetchInviteByCode(inviteCode: string): Promise<CoachAthleteLink | null> {
+  try {
+    const { data, error } = await supabase
+      .from('coach_athlete_links')
+      .select('*')
+      .eq('invite_code', inviteCode.trim())
+      .eq('status', 'pending')
+      .maybeSingle();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return {
+      id: data.id,
+      coachId: data.coach_id,
+      athleteId: data.athlete_id,
+      specialty: data.specialty || 'strength',
+      status: data.status as LinkStatus,
+      inviteCode: data.invite_code,
+      notes: data.notes,
+      coachName: data.coach_name || 'Coach',
+      coachEmail: data.coach_email,
+      athleteName: data.athlete_name,
+      athleteEmail: data.athlete_email,
+      createdAt: new Date(data.created_at || Date.now()),
+      updatedAt: new Date(data.updated_at || Date.now()),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function acceptCoachLinkByCode(inviteCode: string, athleteId: string, athleteName?: string): Promise<CoachAthleteLink | null> {
+  try {
+    const invite = await fetchInviteByCode(inviteCode);
+    if (!invite) return null;
+
+    const { error } = await supabase
+      .from('coach_athlete_links')
+      .update({
+        status: 'accepted',
+        athlete_id: athleteId,
+        athlete_name: athleteName || 'Athlete',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', invite.id);
+
+    if (error) {
+      console.error('Failed to accept coach invite by code:', error);
+      return null;
+    }
+
+    return {
+      ...invite,
+      status: 'accepted',
+      athleteId,
+      athleteName,
+    };
+  } catch (err) {
+    console.error('Exception accepting coach link:', err);
+    return null;
+  }
+}
+
+export async function acceptCoachLink(linkId: string, athleteId: string, athleteName?: string): Promise<void> {
   try {
     await supabase
       .from('coach_athlete_links')
-      .update({ status: 'accepted', athlete_id: athleteId, updated_at: new Date().toISOString() })
+      .update({
+        status: 'accepted',
+        athlete_id: athleteId,
+        athlete_name: athleteName || 'Athlete',
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', linkId);
   } catch {
     // ignore
