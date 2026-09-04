@@ -27,6 +27,7 @@ interface AuthContextType {
   refreshUserRole: () => Promise<void>;
   requestCoachRole: (specialty: CoachSpecialty) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
+  loginWithEmailPassword: (email: string, pass: string) => Promise<void>;
   switchAccount: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -131,6 +132,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginWithEmailPassword = async (email: string, pass: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: pass,
+      });
+      if (error) throw error;
+      const mapped = mapSupabaseUser(data?.user ?? null);
+      setUser(mapped);
+      setToken(data?.session?.access_token ?? null);
+      if (mapped?.uid) {
+        await loadRoleForUser(mapped.uid);
+      }
+    } catch (err: any) {
+      console.error("Email login failed:", err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const switchAccount = async () => {
     setLoading(true);
     try {
@@ -193,6 +216,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshUserRole,
         requestCoachRole,
         loginWithGoogle,
+        loginWithEmailPassword,
         switchAccount,
         logout,
       }}

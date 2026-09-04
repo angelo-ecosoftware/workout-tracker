@@ -10,6 +10,7 @@ import { InsightsView } from './components/insights/InsightsView.tsx';
 import { DietaryView } from './components/dietary/DietaryView.tsx';
 import { PublicSessionView } from './components/workout/PublicSessionView.tsx';
 import { CoachPortalView } from './components/coach/CoachPortalView.tsx';
+import { AdminPortalView } from './components/admin/AdminPortalView.tsx';
 import { CoachViewAsBanner } from './components/coach/CoachViewAsBanner.tsx';
 import { CoachInviteAcceptModal } from './components/modals/CoachInviteAcceptModal.tsx';
 import { fetchInviteByCode } from './lib/db/roles.ts';
@@ -49,11 +50,12 @@ function getCoachInviteCodeFromUrl(): string | null {
   return null;
 }
 
-type TabType = 'tracker' | 'history' | 'insights' | 'dietary' | 'coach';
+type TabType = 'tracker' | 'history' | 'insights' | 'dietary' | 'coach' | 'admin';
 
 function getInitialTab(): TabType {
   try {
     const hash = (typeof window !== 'undefined' ? window.location.hash : '').toLowerCase();
+    if (hash.includes('admin')) return 'admin';
     if (hash.includes('coach') || hash.includes('roster')) return 'coach';
     if (hash.includes('history') || hash.includes('logbook')) return 'history';
     if (hash.includes('insights')) return 'insights';
@@ -62,7 +64,7 @@ function getInitialTab(): TabType {
 
     if (typeof localStorage !== 'undefined') {
       const stored = localStorage.getItem('workout_tracker_active_tab') as TabType;
-      if (stored && ['tracker', 'history', 'insights', 'dietary', 'coach'].includes(stored)) {
+      if (stored && ['tracker', 'history', 'insights', 'dietary', 'coach', 'admin'].includes(stored)) {
         return stored;
       }
     }
@@ -73,7 +75,7 @@ function getInitialTab(): TabType {
 }
 
 const GymAppContent: React.FC = () => {
-  const { user, loading, token, isCoach, specialty } = useAuth();
+  const { user, loading, token, isCoach, isAdmin, specialty } = useAuth();
   const [activeTab, setActiveTabState] = useState<TabType>(() => getInitialTab());
   const [publicSessionId, setPublicSessionId] = useState<string | null>(() => getPublicSessionIdFromUrl());
   const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => getCoachInviteCodeFromUrl());
@@ -100,7 +102,8 @@ const GymAppContent: React.FC = () => {
       setPublicSessionId(getPublicSessionIdFromUrl());
       setPendingInviteCode(getCoachInviteCodeFromUrl());
       const hash = window.location.hash.toLowerCase();
-      if (hash.includes('coach') || hash.includes('roster')) setActiveTabState('coach');
+      if (hash.includes('admin')) setActiveTabState('admin');
+      else if (hash.includes('coach') || hash.includes('roster')) setActiveTabState('coach');
       else if (hash.includes('history') || hash.includes('logbook')) setActiveTabState('history');
       else if (hash.includes('insights')) setActiveTabState('insights');
       else if (hash.includes('dietary')) setActiveTabState('dietary');
@@ -275,6 +278,16 @@ const GymAppContent: React.FC = () => {
               >
                 Dietary
               </button>
+              {isAdmin && !inspectingClient && (
+                <button 
+                  onClick={() => setActiveTab('admin')}
+                  className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                    activeTab === 'admin' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-purple-400 hover:text-purple-300'
+                  }`}
+                >
+                  Admin
+                </button>
+              )}
             </div>
 
             <div>
@@ -290,6 +303,9 @@ const GymAppContent: React.FC = () => {
               )}
               {activeTab === 'dietary' && (
                 <DietaryView userId={inspectingClient?.athleteId} />
+              )}
+              {isAdmin && activeTab === 'admin' && (
+                <AdminPortalView />
               )}
             </div>
           </>
