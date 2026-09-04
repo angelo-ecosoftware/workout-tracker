@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import {
   fetchWorkoutHistory,
@@ -6,6 +6,7 @@ import {
   fetchWorkoutsData,
   initializeUser,
   fetchBodyMeasurementLogs,
+  fetchSavedRoutinePrograms,
 } from '../../lib/supabaseData.ts';
 import {
   calculateInsights,
@@ -13,7 +14,7 @@ import {
   InsightsMetrics,
   ExerciseProgressionReport,
 } from '../../lib/insightsEngine.ts';
-import { Session, WorkoutSet, Exercise, UserMetrics, BodyMeasurementLog } from '../../models.ts';
+import { Session, WorkoutSet, Exercise, UserMetrics, BodyMeasurementLog, SavedRoutineProgram } from '../../models.ts';
 import { ExerciseProgressionCard } from '../workout/ExerciseProgressionCard.tsx';
 import {
   Calendar,
@@ -29,25 +30,30 @@ import { InsightsHeatmapCard } from './InsightsHeatmapCard.tsx';
 import { InsightsBmiCard, BmiCategoryInfo } from './InsightsBmiCard.tsx';
 import { WeeklyVolumeChart } from './WeeklyVolumeChart.tsx';
 import { RestPacingCard } from './RestPacingCard.tsx';
+import { ProgramScopeSelector } from './ProgramScopeSelector.tsx';
 
 export const InsightsView: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [metrics, setMetrics] = useState<InsightsMetrics | null>(null);
   const [userMetrics, setUserMetrics] = useState<UserMetrics | null>(null);
   const [bodyLogs, setBodyLogs] = useState<BodyMeasurementLog[]>([]);
+  const [savedPrograms, setSavedPrograms] = useState<SavedRoutineProgram[]>([]);
+  const [selectedProgramId, setSelectedProgramId] = useState<string>('all');
   const [hoveredDay, setHoveredDay] = useState<any | null>(null);
   const [hoveredBmiDay, setHoveredBmiDay] = useState<any | null>(null);
   const [activeInfoKey, setActiveInfoKey] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'heatmap' | 'bmi'>('heatmap');
 
+  // Raw data from DB
+  const [rawSessions, setRawSessions] = useState<Session[]>([]);
+  const [rawSets, setRawSets] = useState<WorkoutSet[]>([]);
+  const [rawWorkoutsData, setRawWorkoutsData] = useState<any>(null);
+
   // Per-exercise progression state
   const [exercisesList, setExercisesList] = useState<Exercise[]>([]);
   const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
   const [exerciseReport, setExerciseReport] = useState<ExerciseProgressionReport | null>(null);
-  const [allSessions, setAllSessions] = useState<Session[]>([]);
-  const [allSetsData, setAllSetsData] = useState<WorkoutSet[]>([]);
 
   useEffect(() => {
     async function loadData() {
@@ -61,12 +67,13 @@ export const InsightsView: React.FC = () => {
         setLoading(true);
         setErrorMsg(null);
 
-        const [historySessions, allSets, workoutsData, userProfile, historicalBodyLogs] = await Promise.all([
+        const [historySessions, allSets, workoutsData, userProfile, historicalBodyLogs, progs] = await Promise.all([
           fetchWorkoutHistory(user.uid),
           fetchAllSetsForUser(user.uid),
           fetchWorkoutsData(user.uid),
           initializeUser(user.uid, user.email, user.displayName),
           fetchBodyMeasurementLogs(user.uid),
+          fetchSavedRoutinePrograms(user.uid),
         ]);
 
         if (userProfile?.metrics) {
@@ -84,22 +91,11 @@ export const InsightsView: React.FC = () => {
         }
 
         setBodyLogs(historicalBodyLogs || []);
-
-        const workoutMap = new Map(
-          workoutsData.combinedWorkouts.map((w) => [w.id, w.name])
-        );
-
-        const calculated = calculateInsights(
-          historySessions,
-          allSets,
-          workoutsData.exercisesList,
-          workoutMap
-        );
-
-        setMetrics(calculated);
+        setSavedPrograms(progs || []);
+        setRawSessions(historySessions);
+        setRawSets(allSets);
+        setRawWorkoutsData(workoutsData);
         setExercisesList(workoutsData.exercisesList);
-        setAllSessions(historySessions);
-        setAllSetsData(allSets);
 
         // Find exercises that actually have logged sets
         const loggedExIds = new Set(allSets.map((s) => s.exerciseId));
@@ -127,6 +123,41 @@ export const InsightsView: React.FC = () => {
     loadData();
   }, [user, authLoading]);
 
+  // Scoped calculation based on selectedProgramId
+  const { filteredSessions, filteredSets, workoutMap } = useMemo(() => {
+    if (!rawWorkoutsData) {
+      return { filteredSessions: rawSessions, filteredSets: rawSets, workoutMap: new Map() };
+    }
+
+    const map = new Map(rawWorkoutsData.combinedWorkouts.map((w: any) => [w.id, w.name]));
+
+    if (selectedProgramId === 'all') {
+      return { filteredSessions: rawSessions, filteredSets: rawSets, workoutMap: map };
+    }
+
+    const selectedProg = savedPrograms.find((p) => p.id === selectedProgramId);
+    if (!selectedProg || !selectedProg.programData?.workouts) {
+      return { filteredSessions: rawSessions, filteredSets: rawSets, workoutMap: map };
+    }
+
+    const progWorkoutIds = new Set(selectedProg.programData.workouts.map((w) => w.id));
+    const progSessions = rawSessions.filter((s) => progWorkoutIds.has(s.workoutId));
+    const progSessionIds = new Set(progSessions.map((s) => s.id));
+    const progSets = rawSets.filter((st) => progSessionIds.has(st.sessionId));
+
+    return { filteredSessions: progSessions, filteredSets: progSets, workoutMap: map };
+  }, [selectedProgramId, savedPrograms, rawSessions, rawSets, rawWorkoutsData]);
+
+  const metrics = useMemo(() => {
+    if (!rawWorkoutsData) return null;
+    return calculateInsights(
+      filteredSessions,
+      filteredSets,
+      rawWorkoutsData.exercisesList,
+      workoutMap
+    );
+  }, [filteredSessions, filteredSets, rawWorkoutsData, workoutMap]);
+
   // Handle exercise select change
   const handleSelectExercise = (exId: string) => {
     setSelectedExerciseId(exId);
@@ -134,7 +165,7 @@ export const InsightsView: React.FC = () => {
       setExerciseReport(null);
       return;
     }
-    const rep = calculateExerciseProgression(exId, allSessions, allSetsData, exercisesList);
+    const rep = calculateExerciseProgression(exId, filteredSessions, filteredSets, exercisesList);
     setExerciseReport(rep);
   };
 
@@ -253,6 +284,15 @@ export const InsightsView: React.FC = () => {
           Last 90 Days
         </div>
       </div>
+
+      {/* Program Scope Selector (Global vs Specific Saved Program) */}
+      {savedPrograms.length > 0 && (
+        <ProgramScopeSelector
+          programs={savedPrograms}
+          selectedProgramId={selectedProgramId}
+          onSelectProgram={setSelectedProgramId}
+        />
+      )}
 
       {/* Hero Metrics Row */}
       <InsightsHeroMetrics

@@ -1081,3 +1081,7 @@ export async function saveWorkoutsAndExercises(
     console.warn('Junction table sync note:', jErr);
   }
 }
+
+// Re-export roles, coaching, privacy, and routine library APIs
+export * from './db/roles.ts';
+

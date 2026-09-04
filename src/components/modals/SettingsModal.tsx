@@ -1,14 +1,17 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { usePWA } from '../../context/PWAContext.tsx';
-import { X, LogOut, Loader2, Layers, UserCheck } from 'lucide-react';
+import { X, LogOut, Loader2, Layers, UserCheck, Bookmark, Shield } from 'lucide-react';
 import { exportAllLogs, importAllLogs, fetchWorkoutsData, saveWorkoutsAndExercises } from '../../lib/supabaseData.ts';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
+import { SavedRoutinesLibraryModal } from './SavedRoutinesLibraryModal.tsx';
+import { PrivacySettingsModal } from '../settings/PrivacySettingsModal.tsx';
 import { Workout, Exercise } from '../../models.ts';
 import { SettingsThemeSection } from './SettingsThemeSection.tsx';
 import { SettingsAssistedWorkoutSection } from './SettingsAssistedWorkoutSection.tsx';
 import { SettingsBackupSection } from './SettingsBackupSection.tsx';
 import { SettingsPWASection } from './SettingsPWASection.tsx';
+import { CoachConnectionsSection } from '../settings/CoachConnectionsSection.tsx';
 
 interface Props {
   isOpen: boolean;
@@ -22,6 +25,8 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [isImporting, setIsImporting] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [isRoutineEditorOpen, setIsRoutineEditorOpen] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [userWorkouts, setUserWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
 
@@ -231,6 +236,63 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
               </div>
             </button>
 
+            {/* Saved Routines Library Button */}
+            <button
+              onClick={async () => {
+                try {
+                  const data = await fetchWorkoutsData(user.uid);
+                  setUserWorkouts(data.combinedWorkouts);
+                } catch {
+                  // ignore
+                }
+                setIsLibraryOpen(true);
+              }}
+              className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
+                  <Bookmark className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-xs sm:text-sm text-white truncate">
+                    Saved Routines Library
+                  </div>
+                  <div className="text-[11px] text-gray-500 truncate">
+                    Switch programs & saved splits
+                  </div>
+                </div>
+              </div>
+              <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
+                Library
+              </div>
+            </button>
+
+            {/* Privacy & Visibility Settings Button */}
+            <button
+              onClick={() => setIsPrivacyOpen(true)}
+              className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
+                  <Shield className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-xs sm:text-sm text-white truncate">
+                    Privacy & Visibility
+                  </div>
+                  <div className="text-[11px] text-gray-500 truncate">
+                    Public modules, peer sharing & coach access
+                  </div>
+                </div>
+              </div>
+              <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
+                Privacy
+              </div>
+            </button>
+
+            {/* Coach Connections & Proposals */}
+            <CoachConnectionsSection userId={user.uid} />
+
             {/* PWA Section */}
             <SettingsPWASection
               isMobile={isMobile}
@@ -298,6 +360,29 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           userId={user.uid}
           workouts={userWorkouts}
           onSaveWorkouts={handleSaveRoutines}
+        />
+      )}
+
+      {/* Saved Routines Library Modal */}
+      {isLibraryOpen && (
+        <SavedRoutinesLibraryModal
+          isOpen={isLibraryOpen}
+          onClose={() => setIsLibraryOpen(false)}
+          userId={user.uid}
+          currentWorkouts={userWorkouts}
+          onProgramActivated={async (activatedWorkouts) => {
+            setUserWorkouts(activatedWorkouts);
+            window.location.reload();
+          }}
+        />
+      )}
+
+      {/* Privacy Settings Modal */}
+      {isPrivacyOpen && (
+        <PrivacySettingsModal
+          isOpen={isPrivacyOpen}
+          onClose={() => setIsPrivacyOpen(false)}
+          userId={user.uid}
         />
       )}
     </>

@@ -3,7 +3,7 @@ import { FileText, Edit2, Save, Loader2 } from 'lucide-react';
 
 interface SessionNotesSectionProps {
   sessionId: string;
-  notes: string | null;
+  notes?: string | null;
   isEditing: boolean;
   editingValue: string;
   isSaving: boolean;

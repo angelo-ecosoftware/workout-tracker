@@ -166,3 +166,119 @@ export interface DailyDietaryLog {
   totalFat: number;
   totalFiber: number;
 }
+
+// ==========================================
+// RBAC, Coaching & Privacy Models
+// ==========================================
+
+export type AppRole = 'athlete' | 'coach' | 'admin';
+export type CoachSpecialty = 'strength' | 'nutrition' | 'head_coach';
+export type LinkStatus = 'pending' | 'accepted' | 'declined' | 'revoked';
+export type ProposalStatus = 'proposed' | 'applied' | 'rejected';
+
+export interface UserRoleInfo {
+  userId: string;
+  role: AppRole;
+  specialty?: CoachSpecialty | null;
+  isApproved: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CoachAthleteLink {
+  id: string;
+  coachId: string;
+  athleteId: string;
+  specialty: CoachSpecialty;
+  status: LinkStatus;
+  inviteCode?: string | null;
+  notes?: string | null;
+  coachName?: string;
+  coachEmail?: string;
+  athleteName?: string;
+  athleteEmail?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface UserPrivacySettings {
+  userId: string;
+  isPublicProfile: boolean;
+  shareWorkouts: boolean;
+  shareBiometrics: boolean;
+  shareDietary: boolean;
+  sharePhotos: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface UserPeerShare {
+  id: string;
+  ownerId: string;
+  granteeId: string;
+  granteeName?: string;
+  granteeEmail?: string;
+  shareWorkouts: boolean;
+  shareBiometrics: boolean;
+  shareDietary: boolean;
+  createdAt?: Date;
+}
+
+export interface SavedRoutineProgram {
+  id: string;
+  userId: string;
+  title: string;
+  description?: string | null;
+  isActive: boolean;
+  sourceCoachId?: string | null;
+  sourceCoachName?: string | null;
+  programData: {
+    workouts: (Workout & { exercises: Exercise[] })[];
+  };
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface RoutineProposal {
+  id: string;
+  coachId: string;
+  athleteId: string;
+  title: string;
+  description?: string | null;
+  programPayload: {
+    workouts: (Workout & { exercises: Exercise[] })[];
+  };
+  status: ProposalStatus;
+  coachName?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CoachMacroPrescription {
+  id: string;
+  coachId: string;
+  athleteId: string;
+  targetKcal: number;
+  targetProteinG: number;
+  targetCarbsG: number;
+  targetFatG: number;
+  targetFiberG?: number | null;
+  notes?: string | null;
+  isActive: boolean;
+  coachName?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface WorkoutSetCoachFeedback {
+  id: string;
+  setId: string;
+  sessionId: string;
+  coachId: string;
+  athleteId: string;
+  videoUrl?: string | null;
+  timestampMarker?: string | null;
+  cueText: string;
+  coachName?: string;
+  createdAt: Date;
+}

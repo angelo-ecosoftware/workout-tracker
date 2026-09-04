@@ -46,6 +46,11 @@ interface SessionDetailCardProps {
   uploadingPhotoSessionId: string | null;
   onTriggerAddPhoto: (sessionId: string, source: 'camera' | 'files') => void;
   onDeletePhoto: (sessionId: string, photoIndex: number) => void;
+  // Coach Context
+  athleteId?: string;
+  coachId?: string;
+  coachName?: string;
+  isCoach?: boolean;
 }
 
 export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
@@ -77,6 +82,10 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
   uploadingPhotoSessionId,
   onTriggerAddPhoto,
   onDeletePhoto,
+  athleteId,
+  coachId,
+  coachName,
+  isCoach,
 }) => {
   return (
     <div className="bg-[#111] border border-[#222] rounded-[24px] p-6 shadow-xl">
@@ -168,7 +177,7 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
       {/* Session Notes */}
       <SessionNotesSection
         sessionId={session.id}
-        notes={session.notes}
+        notes={session.notes ?? null}
         isEditing={isEditingNotes}
         editingValue={editingNotesValue}
         isSaving={isSavingNotes}
@@ -201,7 +210,14 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
       />
 
       {/* Sets Table / Groups */}
-      <SessionSetTable sets={session.sets} />
+      <SessionSetTable
+        sets={session.sets}
+        sessionId={session.id}
+        athleteId={athleteId}
+        coachId={coachId}
+        coachName={coachName}
+        isCoach={isCoach}
+      />
     </div>
   );
 };

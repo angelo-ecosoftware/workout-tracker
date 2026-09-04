@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Workout, Exercise } from '../../models.ts';
 import { 
-  X, Trash2, Save, Layers, Check, AlertCircle, RefreshCw, Search
+  X, Trash2, Save, Layers, Check, AlertCircle, RefreshCw, Search, Bookmark
 } from 'lucide-react';
 import { ExerciseSearchPicker } from '../workout/ExerciseSearchPicker.tsx';
 import { ConfirmModal } from '../ui/ConfirmModal.tsx';
 import { RoutineDaySelector } from './RoutineDaySelector.tsx';
 import { RoutineExerciseItem } from './RoutineExerciseItem.tsx';
+import { SavedRoutinesLibraryModal } from './SavedRoutinesLibraryModal.tsx';
 
 interface RoutineEditorModalProps {
   isOpen: boolean;
@@ -19,7 +20,7 @@ interface RoutineEditorModalProps {
 export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   isOpen,
   onClose,
-  userId: _userId,
+  userId,
   workouts: initialWorkouts,
   onSaveWorkouts,
 }) => {
@@ -29,6 +30,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   const [selectedWorkoutIndex, setSelectedWorkoutIndex] = useState<number>(0);
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
   const [isSearchPickerOpen, setIsSearchPickerOpen] = useState(false);
+  const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -196,12 +198,22 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
               <p className="text-[10px] font-mono text-gray-400">Configure split days, exercise order, and rep/set targets</p>
             </div>
           </div>
-          <button 
-            onClick={onClose}
-            className="p-1.5 hover:bg-[#222] rounded-xl text-gray-400 hover:text-white transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsLibraryOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1f1f1f] hover:bg-[#2a2a2a] border border-[#333] text-gray-200 text-xs font-mono font-bold transition-all cursor-pointer"
+            >
+              <Bookmark className="w-3.5 h-3.5 text-[#C0FF00]" />
+              <span className="hidden sm:inline">Saved Library</span>
+            </button>
+            <button 
+              onClick={onClose}
+              className="p-1.5 hover:bg-[#222] rounded-xl text-gray-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content Body */}
@@ -348,6 +360,22 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
         onConfirm={confirmDeleteWorkoutDay}
         onCancel={() => setWorkoutToDeleteIndex(null)}
       />
+
+      {/* Saved Routines Library Modal */}
+      {isLibraryOpen && (
+        <SavedRoutinesLibraryModal
+          isOpen={isLibraryOpen}
+          onClose={() => setIsLibraryOpen(false)}
+          userId={userId}
+          currentWorkouts={workouts}
+          onProgramActivated={async (activatedWorkouts) => {
+            setWorkouts(activatedWorkouts);
+            setSelectedWorkoutIndex(0);
+            setIsLibraryOpen(false);
+            await onSaveWorkouts(activatedWorkouts);
+          }}
+        />
+      )}
     </div>
   );
 };

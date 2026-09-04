@@ -19,8 +19,12 @@ import { ConfirmModal } from '../ui/ConfirmModal.tsx';
 import { PopulatedSession, SessionDetailCard } from './history/SessionDetailCard.tsx';
 import { SessionGridCard } from './history/SessionGridCard.tsx';
 
-export const WorkoutHistory: React.FC = () => {
+export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientMode?: boolean }> = ({
+  targetUserId,
+  isReadOnlyClientMode = false,
+}) => {
   const { user, loading: authLoading } = useAuth();
+  const activeUserId = targetUserId || user?.uid;
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [sessions, setSessions] = useState<PopulatedSession[]>([]);
@@ -222,6 +226,7 @@ export const WorkoutHistory: React.FC = () => {
       setUploadingPhotoSessionId(null);
       setActivePhotoUploadSessionId(null);
       if (fileInputRef.current) fileInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
     }
   };
 
@@ -325,7 +330,7 @@ export const WorkoutHistory: React.FC = () => {
   useEffect(() => {
     async function loadHistory() {
       if (authLoading) return;
-      if (!user) {
+      if (!activeUserId) {
         setLoading(false);
         return;
       }
@@ -334,10 +339,10 @@ export const WorkoutHistory: React.FC = () => {
         setErrorMsg(null);
         
         const [historySessions, workoutsData, userProfileData, historicalBodyLogs] = await Promise.all([
-          fetchWorkoutHistory(user.uid),
-          fetchWorkoutsData(user.uid),
-          initializeUser(user.uid, user.email, user.displayName),
-          fetchBodyMeasurementLogs(user.uid),
+          fetchWorkoutHistory(activeUserId),
+          fetchWorkoutsData(activeUserId),
+          initializeUser(activeUserId),
+          fetchBodyMeasurementLogs(activeUserId),
         ]);
 
         if (userProfileData) {
@@ -512,6 +517,10 @@ export const WorkoutHistory: React.FC = () => {
               uploadingPhotoSessionId={uploadingPhotoSessionId}
               onTriggerAddPhoto={triggerAddPhoto}
               onDeletePhoto={handleDeletePhoto}
+              athleteId={activeUserId}
+              coachId={user?.uid}
+              coachName={user?.displayName}
+              isCoach={Boolean(user && activeUserId && activeUserId !== user.uid)}
             />
           ))}
         </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { DietaryDateNavigator } from './DietaryDateNavigator.tsx';
 import { DietaryDailyMacroTotals } from './DietaryDailyMacroTotals.tsx';
@@ -6,6 +6,8 @@ import { LoggedFoodList } from './LoggedFoodList.tsx';
 import { FoodSearchModal, StoreMetadata } from './FoodSearchModal.tsx';
 import { BarcodeScannerModal } from './BarcodeScannerModal.tsx';
 import { useDietaryTracking } from './useDietaryTracking.ts';
+import { CoachMacroPrescription } from '../../models.ts';
+import { fetchActiveMacroPrescription } from '../../lib/supabaseData.ts';
 
 interface DietaryViewProps {
   userId?: string;
@@ -15,6 +17,15 @@ export const DietaryView: React.FC<DietaryViewProps> = ({ userId: propUserId }) 
   const { user } = useAuth();
   const userId = propUserId || user?.id || 'anonymous';
   const [isBarcodeScannerOpen, setIsBarcodeScannerOpen] = useState(false);
+  const [prescription, setPrescription] = useState<CoachMacroPrescription | null>(null);
+
+  useEffect(() => {
+    if (userId && userId !== 'anonymous') {
+      fetchActiveMacroPrescription(userId).then((res) => {
+        setPrescription(res);
+      });
+    }
+  }, [userId]);
 
   const {
     todayStr,
@@ -158,7 +169,7 @@ export const DietaryView: React.FC<DietaryViewProps> = ({ userId: propUserId }) 
       />
 
       {/* 2. Daily Macronutrient Summary Cards */}
-      <DietaryDailyMacroTotals summary={summary} />
+      <DietaryDailyMacroTotals summary={summary} prescription={prescription} />
 
       {/* 3. Logged Foods List */}
       <LoggedFoodList
