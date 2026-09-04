@@ -85,6 +85,16 @@ const GymAppContent: React.FC = () => {
     return localStorage.getItem('coach_personal_workout_mode') === 'true';
   });
 
+  // Automatically default admins to 'admin' tab if no specific tab was requested
+  useEffect(() => {
+    if (isAdmin && (!window.location.hash || window.location.hash === '#' || window.location.hash === '#tracker')) {
+      const storedTab = localStorage.getItem('workout_tracker_active_tab');
+      if (!storedTab || storedTab === 'tracker') {
+        setActiveTab('admin');
+      }
+    }
+  }, [isAdmin]);
+
   const setActiveTab = (tab: TabType) => {
     setActiveTabState(tab);
     try {
