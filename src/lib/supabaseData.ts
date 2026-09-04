@@ -828,10 +828,24 @@ export async function logDailyBodyWeight(
       console.warn('Could not sync body log to Supabase body_logs table:', error);
     }
 
-    // Sync weight_kg and height_cm directly to users profile table
+    // Sync weight_kg, height_cm, and metrics JSON directly to users profile table
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('metrics')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const mergedMetrics = {
+      ...(currentUser?.metrics || {}),
+      weight: payload.weightKg,
+      ...(payload.heightCm ? { height: payload.heightCm } : {}),
+      updatedAt: new Date().toISOString(),
+    };
+
     await supabase.from('users').update({
       weight_kg: payload.weightKg,
       height_cm: payload.heightCm || undefined,
+      metrics: mergedMetrics,
       updated_at: new Date().toISOString(),
     }).eq('user_id', userId);
   } catch (dbErr) {

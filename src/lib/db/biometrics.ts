@@ -30,9 +30,23 @@ export async function logDailyBodyWeight(
   if (error) throw error;
 
   try {
+    const { data: currentUser } = await supabase
+      .from('users')
+      .select('metrics')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const mergedMetrics = {
+      ...(currentUser?.metrics || {}),
+      weight: payload.weightKg,
+      ...(payload.heightCm ? { height: payload.heightCm } : {}),
+      updatedAt: new Date().toISOString(),
+    };
+
     await supabase.from('users').update({
       weight_kg: payload.weightKg,
       height_cm: payload.heightCm || undefined,
+      metrics: mergedMetrics,
       updated_at: new Date().toISOString(),
     }).eq('user_id', userId);
   } catch {

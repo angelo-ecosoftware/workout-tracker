@@ -23,8 +23,20 @@ export const Header: React.FC = () => {
     const loadProfileData = async () => {
       try {
         const profile = await initializeUser(user.id, user.email, user.displayName);
-        if (profile?.metrics) {
-          setMetrics(profile.metrics);
+        if (profile) {
+          const resolvedWeight = profile.weightKg || profile.metrics?.weight;
+          const resolvedHeight = profile.heightCm || profile.metrics?.height;
+          const resolvedMetrics: UserMetrics = {
+            ...(profile.metrics || {}),
+            weight: resolvedWeight,
+            height: resolvedHeight,
+            dateOfBirth: profile.dateOfBirth || profile.metrics?.dateOfBirth,
+            gender: profile.gender || profile.metrics?.gender,
+            fitnessLevel: profile.fitnessLevel || profile.metrics?.fitnessLevel,
+            trainingLocation: profile.trainingLocation || profile.metrics?.trainingLocation,
+          };
+          setMetrics(resolvedMetrics);
+          localStorage.setItem(`user_metrics_${user.id}`, JSON.stringify(resolvedMetrics));
         } else {
           const cached = localStorage.getItem(`user_metrics_${user.id}`);
           if (cached) setMetrics(JSON.parse(cached));
@@ -38,6 +50,18 @@ export const Header: React.FC = () => {
     };
 
     loadProfileData();
+
+    const handleProfileSync = () => {
+      loadProfileData();
+    };
+
+    window.addEventListener('user_profile_updated', handleProfileSync);
+    window.addEventListener('workout_settings_updated', handleProfileSync);
+
+    return () => {
+      window.removeEventListener('user_profile_updated', handleProfileSync);
+      window.removeEventListener('workout_settings_updated', handleProfileSync);
+    };
   }, [user]);
 
   if (!user) return null;

@@ -48,9 +48,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Re-hydrate state when opened
+      // Re-hydrate state when opened: prefer live initialMetrics from profile
       const storedMetricsRaw = localStorage.getItem(`user_metrics_${user.id}`);
-      const effectiveMetrics = initialMetrics || (storedMetricsRaw ? JSON.parse(storedMetricsRaw) : null);
+      const cached = storedMetricsRaw ? JSON.parse(storedMetricsRaw) : null;
+      const effectiveMetrics = initialMetrics || cached;
       if (effectiveMetrics) {
         setDob(effectiveMetrics.dateOfBirth || '');
         setHeight(effectiveMetrics.height ? effectiveMetrics.height.toString() : '');
