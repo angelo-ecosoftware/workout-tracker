@@ -285,7 +285,9 @@ const GymAppContent: React.FC = () => {
                   isReadOnlyClientMode={Boolean(inspectingClient)}
                 />
               )}
-              {activeTab === 'insights' && <InsightsView />}
+              {activeTab === 'insights' && (
+                <InsightsView userId={inspectingClient?.athleteId} />
+              )}
               {activeTab === 'dietary' && (
                 <DietaryView userId={inspectingClient?.athleteId} />
               )}

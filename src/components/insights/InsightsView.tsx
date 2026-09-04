@@ -32,8 +32,13 @@ import { WeeklyVolumeChart } from './WeeklyVolumeChart.tsx';
 import { RestPacingCard } from './RestPacingCard.tsx';
 import { ProgramScopeSelector } from './ProgramScopeSelector.tsx';
 
-export const InsightsView: React.FC = () => {
+interface InsightsViewProps {
+  userId?: string;
+}
+
+export const InsightsView: React.FC<InsightsViewProps> = ({ userId: propUserId }) => {
   const { user, loading: authLoading } = useAuth();
+  const activeUserId = propUserId || user?.uid;
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [userMetrics, setUserMetrics] = useState<UserMetrics | null>(null);
@@ -58,7 +63,7 @@ export const InsightsView: React.FC = () => {
   useEffect(() => {
     async function loadData() {
       if (authLoading) return;
-      if (!user) {
+      if (!activeUserId) {
         setLoading(false);
         return;
       }
@@ -68,19 +73,19 @@ export const InsightsView: React.FC = () => {
         setErrorMsg(null);
 
         const [historySessions, allSets, workoutsData, userProfile, historicalBodyLogs, progs] = await Promise.all([
-          fetchWorkoutHistory(user.uid),
-          fetchAllSetsForUser(user.uid),
-          fetchWorkoutsData(user.uid),
-          initializeUser(user.uid, user.email, user.displayName),
-          fetchBodyMeasurementLogs(user.uid),
-          fetchSavedRoutinePrograms(user.uid),
+          fetchWorkoutHistory(activeUserId),
+          fetchAllSetsForUser(activeUserId),
+          fetchWorkoutsData(activeUserId),
+          initializeUser(activeUserId, user?.email, user?.displayName),
+          fetchBodyMeasurementLogs(activeUserId),
+          fetchSavedRoutinePrograms(activeUserId),
         ]);
 
         if (userProfile?.metrics) {
           setUserMetrics(userProfile.metrics);
         } else {
           // Check local storage fallback
-          const localMetricsRaw = localStorage.getItem(`user_metrics_${user.uid}`);
+          const localMetricsRaw = localStorage.getItem(`user_metrics_${activeUserId}`);
           if (localMetricsRaw) {
             try {
               setUserMetrics(JSON.parse(localMetricsRaw));
@@ -390,7 +395,7 @@ export const InsightsView: React.FC = () => {
                 className="w-full bg-[#181818] border border-[#333] hover:border-[#C0FF00] text-white text-xs font-mono font-bold px-3 py-2 rounded-xl appearance-none cursor-pointer pr-8 focus:outline-none focus:border-[#C0FF00] transition-colors"
               >
                 {exercisesList.map((ex) => {
-                  const hasSets = allSetsData.some((s) => s.exerciseId === ex.id);
+                  const hasSets = filteredSets.some((s) => s.exerciseId === ex.id);
                   return (
                     <option key={ex.id} value={ex.id}>
                       {ex.name} {hasSets ? '' : '(No sets logged)'}
