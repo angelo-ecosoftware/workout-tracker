@@ -84,11 +84,20 @@ Combining the strengths of these repositories produces a best-in-class exercise 
 
 ## 4. Media Storage & Cloud Optimization
 
-### 4.1 Server-Side / S3 Storage Image Optimization
-- **Concept**: Optimize user workout progress photos and avatar uploads stored in S3/Supabase storage buckets.
-- **Action**:
-  - Enforce server-side or post-upload pipeline resizing / WebP compression.
-  - Generate lightweight thumbnails for grid views and full-res versions for detail view to minimize bandwidth and storage costs.
+### 4.1 Dedicated `workout-media` Bucket & Structured Path Partitioning
+- **Concept**: Replace loose root files and ambiguous `media` bucket with a dedicated, strictly partitioned `workout-media` bucket.
+- **Path Schema**:
+  - `${userId}/workouts/${YYYY-MM}/${timestamp}_${randomHash}.webp`
+  - Example: `2b4bd23c-ceff-460d-a73b-2c531686e3b2/workouts/2026-09/1788371563892_7ub7n52.webp`
+- **Backward Compatibility**: Full dual-bucket URL parsing so existing URLs referencing `media/` continue displaying and deleting without migration breakage.
+
+### 4.2 Client-Side Progressive Muscle-Definition WebP Compression
+- **Engine**: [src/utils/imageCompressor.ts](src/utils/imageCompressor.ts)
+- **Parameters & Budgeting**:
+  - **Resolution Target**: Max 1440px dimension ($1440\text{p}$ QHD/Retina) — 70% fewer raw pixels than 4K while preserving individual muscle striations.
+  - **Quality & Budget**: Multi-tier WebP encoding targeting $\le 350\text{ KB}$ per photo (5 photos $\le 1.5\text{ MB}$ total).
+  - **Anatomical Edge Sharpening**: High-pass vascularity and muscle edge enhancement prevents bicubic softness during downsampling.
+  - **Pre-upload Compression**: Compresses photos upon selection before writing to IndexedDB (`draftPhotoStorage.ts`) to eliminate mobile device memory bloat.
 
 ---
 
@@ -122,3 +131,7 @@ if not found report software developer in api
 eight must update after a logged session of profile
 
 are you sure modal if user add unrealistic values on kg sets etc etc 
+
+add energey and sleep to logs 
+
+log images correctly compress and save them in the correct s3 bucket with the correct naming

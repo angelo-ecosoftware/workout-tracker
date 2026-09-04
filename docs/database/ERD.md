@@ -112,6 +112,99 @@ erDiagram
         timestamptz updated_at
     }
 
+    user_roles {
+        uuid user_id PK
+        text role
+        text specialty
+        boolean is_approved
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    coach_athlete_links {
+        uuid id PK
+        uuid coach_id FK
+        uuid athlete_id FK
+        text specialty
+        text status
+        text invite_code
+        text notes
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    user_privacy_settings {
+        uuid user_id PK
+        boolean is_public_profile
+        boolean share_workouts
+        boolean share_biometrics
+        boolean share_dietary
+        boolean share_photos
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    user_peer_shares {
+        uuid id PK
+        uuid owner_id FK
+        uuid grantee_id FK
+        boolean share_workouts
+        boolean share_biometrics
+        boolean share_dietary
+        timestamptz created_at
+    }
+
+    saved_routine_programs {
+        uuid id PK
+        uuid user_id FK
+        text title
+        text description
+        boolean is_active
+        uuid source_coach_id FK
+        jsonb program_data
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    routine_proposals {
+        uuid id PK
+        uuid coach_id FK
+        uuid athlete_id FK
+        text title
+        text description
+        jsonb program_payload
+        text status
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    coach_macro_prescriptions {
+        uuid id PK
+        uuid coach_id FK
+        uuid athlete_id FK
+        int4 target_kcal
+        numeric target_protein_g
+        numeric target_carbs_g
+        numeric target_fat_g
+        numeric target_fiber_g
+        text notes
+        boolean is_active
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    workout_set_coach_feedback {
+        uuid id PK
+        uuid set_id
+        uuid session_id
+        uuid coach_id FK
+        uuid athlete_id FK
+        text video_url
+        text timestamp_marker
+        text cue_text
+        timestamptz created_at
+    }
+
     system {
         text id PK
         text seed_version
