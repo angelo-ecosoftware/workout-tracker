@@ -124,11 +124,11 @@ export async function lookupBarcodeProduct(barcode: string, currentUserId?: stri
       if (payload.status === 1 && payload.product) {
         const normalized = normalizeOpenFoodFactsProduct(payload, cleanCode);
         if (normalized) {
-          // Auto-persist into hive-mind database so future scans resolve instantly
+          // Auto-persist into global hive-mind database so ALL users have instant access
           try {
             await saveHiveMindFoodItem(normalized, currentUserId);
           } catch (saveErr) {
-            console.warn('Could not auto-save Open Food Facts product to database:', saveErr);
+            console.error('Could not auto-save Open Food Facts product to global index:', saveErr);
           }
 
           return {
@@ -149,10 +149,11 @@ export async function lookupBarcodeProduct(barcode: string, currentUserId?: stri
     if (smRes.ok) {
       const supermarketItem = (await smRes.json()) as FoodItemNutrition;
       if (supermarketItem && supermarketItem.name) {
+        // Auto-persist into global hive-mind database so ALL users have instant access
         try {
           await saveHiveMindFoodItem(supermarketItem, currentUserId);
         } catch (saveErr) {
-          console.warn('Could not auto-save supermarket barcode item to database:', saveErr);
+          console.error('Could not auto-save supermarket barcode item to global index:', saveErr);
         }
 
         return {

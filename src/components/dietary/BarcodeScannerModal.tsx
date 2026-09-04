@@ -268,9 +268,14 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
                   <div className="w-7 h-7 rounded-full bg-[#C0FF00]/20 border border-[#C0FF00] flex items-center justify-center text-[#C0FF00]">
                     <Check className="w-4 h-4 stroke-[3]" />
                   </div>
-                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#C0FF00]">
-                    Product Recognized
-                  </span>
+                  <div>
+                    <span className="text-xs font-mono font-bold uppercase tracking-wider text-[#C0FF00] block">
+                      Product Recognized
+                    </span>
+                    <span className="text-[9px] font-mono text-gray-400 block">
+                      Saved to Global Index
+                    </span>
+                  </div>
                 </div>
                 <span className="text-[10px] font-mono text-gray-400 bg-white/5 border border-white/10 px-2 py-0.5 rounded-md">
                   {detectedItem.barcode}
