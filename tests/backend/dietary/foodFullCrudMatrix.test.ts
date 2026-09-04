@@ -43,6 +43,10 @@ vi.mock('../../../src/lib/supabase.ts', () => {
         builder._filters.push({ field, val });
         return builder;
       }),
+      ilike: vi.fn((field: string, val: string) => {
+        builder._filters.push({ field, val: val.toLowerCase(), isIlike: true });
+        return builder;
+      }),
       or: vi.fn((clause: string) => {
         builder._searchClause = clause;
         return builder;
@@ -61,7 +65,11 @@ vi.mock('../../../src/lib/supabase.ts', () => {
             : [...mockDietaryEntriesTable];
 
         for (const f of builder._filters) {
-          currentData = currentData.filter((r) => r[f.field] === f.val);
+          if (f.isIlike) {
+            currentData = currentData.filter((r) => String(r[f.field] || '').toLowerCase() === f.val);
+          } else {
+            currentData = currentData.filter((r) => r[f.field] === f.val);
+          }
         }
 
         if (builder._searchClause) {
@@ -363,6 +371,30 @@ describe('Full-Matrix CRUD and Error Status Code Coverage for Food & Dietary Ent
       expect(mockFoodItemsTable[0].kcal_per_100g).toBe(58);
       expect(mockFoodItemsTable[0].protein_per_100g).toBe(10.5);
       expect(mockFoodItemsTable[0].fat_per_100g).toBe(0.3);
+    });
+
+    it('200 OK: Overwrites existing product when saving a scanned/link item with the same name but different ID', async () => {
+      // Simulate scanned item with a newly generated or barcode ID but the exact same product name
+      const scannedDuplicate: FoodItemNutrition = {
+        id: 'ean_8710400000001',
+        name: 'AH Biologische Magere Kwark',
+        brand: 'AH Biologisch',
+        kcalPer100g: 57,
+        proteinPer100g: 10.3,
+        carbsPer100g: 3.8,
+        sugarPer100g: 3.8,
+        fatPer100g: 0.2,
+        fiberPer100g: 0,
+        isCustom: false,
+      };
+
+      await saveHiveMindFoodItem(scannedDuplicate);
+
+      // Should overwrite the existing row (keeping total count at 1)
+      expect(mockFoodItemsTable).toHaveLength(1);
+      expect(mockFoodItemsTable[0].name).toBe('AH Biologische Magere Kwark');
+      expect(mockFoodItemsTable[0].kcal_per_100g).toBe(57);
+      expect(mockFoodItemsTable[0].protein_per_100g).toBe(10.3);
     });
 
     it('200 OK: Daily Dietary Log creation, entry addition, and automated macro calculations', async () => {

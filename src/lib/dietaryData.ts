@@ -140,7 +140,30 @@ export async function fetchHiveMindFoodCatalog(searchQuery?: string, currentUser
 }
 
 // Save a single food item to the Supabase food_items database
+// For barcode & link resolution, if an item with the same name already exists in the community index, overwrite it to prevent duplicates
 export async function saveHiveMindFoodItem(item: FoodItemNutrition, userId?: string): Promise<FoodItemNutrition> {
+  const isCustom = Boolean(item.isCustom);
+
+  // If this is a community item (from barcode / supermarket link / scraper), check if an item with the exact same name already exists
+  if (!isCustom && item.name) {
+    try {
+      const { data: existing } = await supabase
+        .from('food_items')
+        .select('id')
+        .eq('is_custom', false)
+        .ilike('name', item.name.trim())
+        .limit(1)
+        .maybeSingle();
+
+      if (existing && existing.id) {
+        // Reuse existing ID to overwrite and update the existing product row
+        item.id = existing.id;
+      }
+    } catch (findErr) {
+      console.warn('Could not check for existing food item by name:', findErr);
+    }
+  }
+
   const row = mapFoodItemToSupabaseRow(item, userId || 'community');
   const { data, error } = await supabase.from('food_items').upsert(row, { onConflict: 'id' }).select();
   if (error) {
