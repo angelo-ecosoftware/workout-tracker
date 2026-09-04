@@ -47,3 +47,13 @@ if (typeof window !== 'undefined' && !window.IntersectionObserver) {
   }
   window.IntersectionObserver = IntersectionObserver as any;
 }
+
+// Polyfill URL.createObjectURL and URL.revokeObjectURL for JSDOM
+if (typeof window !== 'undefined') {
+  if (!window.URL.createObjectURL) {
+    window.URL.createObjectURL = vi.fn().mockImplementation(() => `blob:mock-uuid-${Date.now()}`);
+  }
+  if (!window.URL.revokeObjectURL) {
+    window.URL.revokeObjectURL = vi.fn();
+  }
+}

@@ -9,6 +9,7 @@ import {
   logDailyBodyWeight,
 } from '../../../lib/supabaseData.ts';
 import { uploadWorkoutPhotos } from '../../../lib/storage.ts';
+import { compressWorkoutImage } from '../../../utils/imageCompressor.ts';
 import { SessionEngine, ProgressionEngine } from '../../../engine.ts';
 import { SetTimingRecord } from '../assisted/AssistedTimedTracker.tsx';
 import {
@@ -137,7 +138,8 @@ export function useWorkoutSession(user: AuthUser | null) {
       return;
     }
 
-    const newFiles = files.slice(0, remainingSlots);
+    const newRawFiles = files.slice(0, remainingSlots);
+    const newFiles = await Promise.all(newRawFiles.map((f) => compressWorkoutImage(f)));
     const updatedFiles = [...selectedPhotos, ...newFiles];
     setSelectedPhotos(updatedFiles);
 
