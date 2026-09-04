@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FoodItemNutrition } from '../../models.ts';
 import { calculatePortionNutrients } from '../../lib/dietaryData.ts';
 import { StoreMetadata } from './FoodSearchModal.tsx';
-import { Check, Globe, Search, ExternalLink } from 'lucide-react';
+import { Check, Globe, Search, ExternalLink, Send } from 'lucide-react';
 import { getProductExternalUrl } from '../../lib/storeBranding.ts';
+import { reportMissingProductToDev } from '../../lib/barcodeService.ts';
 
 interface FoodSearchTabProps {
   searchQuery: string;
@@ -40,6 +41,8 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
   cleanProductTitle,
   isHouseBrand,
 }) => {
+  const [isReportingSearch, setIsReportingSearch] = useState(false);
+  const [reportedSearchQuery, setReportedSearchQuery] = useState<string | null>(null);
   if (selectedFoodItem) {
     const preview = calculatePortionNutrients(selectedFoodItem, portionGrams);
     const isLiquid = selectedFoodItem.servingUnit === 'ml';
@@ -232,11 +235,11 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
       {/* Food Item List */}
       <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
         {filteredCatalog.length === 0 ? (
-          <div className="text-center py-8 bg-[#181818] border border-dashed border-[#2b2b2b] rounded-2xl">
+          <div className="text-center py-7 px-3 bg-[#181818] border border-dashed border-[#2b2b2b] rounded-2xl space-y-3">
             <p className="font-sans text-xs text-gray-400">
               No foods found matching "{searchQuery}"
             </p>
-            <div className="flex items-center justify-center gap-3 mt-3">
+            <div className="flex items-center justify-center gap-3 flex-wrap">
               <button
                 onClick={() => onSelectTab('link')}
                 className="text-xs font-sans text-[#00ade6] underline font-bold cursor-pointer"
@@ -254,6 +257,37 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
                 Create as Custom
               </button>
             </div>
+
+            {searchQuery.trim().length > 1 && (
+              <div className="pt-2 border-t border-[#252525] flex justify-center">
+                {reportedSearchQuery === searchQuery.trim() ? (
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[#C0FF00]">
+                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    <span>Reported to developer for catalog addition!</span>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={isReportingSearch}
+                    onClick={async () => {
+                      const query = searchQuery.trim();
+                      if (!query) return;
+                      setIsReportingSearch(true);
+                      await reportMissingProductToDev({
+                        name: query,
+                        notes: `Search query missing from catalog: "${query}"`,
+                      });
+                      setIsReportingSearch(false);
+                      setReportedSearchQuery(query);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#202020] hover:bg-[#282828] border border-[#333] text-gray-300 hover:text-white rounded-lg text-[11px] font-mono cursor-pointer transition-colors"
+                  >
+                    <Send className="w-3 h-3 text-[#C0FF00]" />
+                    <span>{isReportingSearch ? 'Submitting...' : 'Report Missing Product to Developer'}</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           filteredCatalog.map((item) => {

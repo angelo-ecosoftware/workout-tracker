@@ -491,91 +491,36 @@ export function useWorkoutSession(user: AuthUser | null) {
     }
   };
 
-  const handleLogWorkout = async () => {
-    if (!activeWorkout) return;
+  const [unrealisticWarningConfig, setUnrealisticWarningConfig] = useState<{
+    isOpen: boolean;
+    warnings: string[];
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    warnings: [],
+    onConfirm: () => {},
+  });
+
+  const executeSaveWorkout = async (
+    finalSetsPayload: Array<{
+      exerciseId: string;
+      setNumber: number;
+      weight?: number | null;
+      reps?: number | null;
+      durationSeconds?: number | null;
+      difficulty?: number | null;
+      startedAt?: Date | null;
+      completedAt?: Date | null;
+      restSeconds?: number | null;
+    }>
+  ) => {
+    if (!activeWorkout || !user) return;
 
     setLoggingWorkout(true);
     setErrorMsg(null);
     setSuccessMsg(null);
 
     try {
-      const finalSetsPayload: Array<{
-        exerciseId: string;
-        setNumber: number;
-        weight?: number | null;
-        reps?: number | null;
-        durationSeconds?: number | null;
-        difficulty?: number | null;
-        startedAt?: Date | null;
-        completedAt?: Date | null;
-        restSeconds?: number | null;
-      }> = [];
-
-      for (const ex of activeWorkout.exercises) {
-        for (let i = 1; i <= ex.targetSets; i++) {
-          const key = `${ex.id}-${i}`;
-          const isTimed = ex.type === 'timed';
-          const defaultInput = isTimed
-            ? {
-                weight: '',
-                reps: '',
-                durationSeconds: ex.targetRepMin?.toString() || '30',
-                difficulty: '7',
-              }
-            : { weight: '20', reps: '10', durationSeconds: '', difficulty: '' };
-
-          const inputValues = inputs[key] || defaultInput;
-          const setTimingKey = `${ex.id}-${i}`;
-          const recordedSetTiming = assistedSessionTimings?.setTimings?.[setTimingKey];
-
-          if (isTimed) {
-            const secNum = parseInt(inputValues.durationSeconds || '', 10);
-            let diffNum: number | null = parseInt(inputValues.difficulty || '', 10);
-            if (isNaN(diffNum)) {
-              diffNum = null;
-            } else {
-              if (diffNum < 1) diffNum = 1;
-              if (diffNum > 10) diffNum = 10;
-            }
-
-            if (isNaN(secNum)) {
-              throw new Error(`Invalid duration seconds detected on "${ex.name}" Set #${i}. Please correct.`);
-            }
-
-            finalSetsPayload.push({
-              exerciseId: ex.id,
-              setNumber: i,
-              weight: null,
-              reps: null,
-              durationSeconds: secNum,
-              difficulty: diffNum,
-              startedAt: recordedSetTiming?.startedAt,
-              completedAt: recordedSetTiming?.completedAt,
-              restSeconds: recordedSetTiming?.restSeconds,
-            });
-          } else {
-            const weightNum = parseFloat(inputValues.weight || '');
-            const repsNum = parseInt(inputValues.reps || '', 10);
-
-            if (isNaN(weightNum) || isNaN(repsNum)) {
-              throw new Error(`Invalid weight or reps detected on "${ex.name}" Set #${i}. Please correct.`);
-            }
-
-            finalSetsPayload.push({
-              exerciseId: ex.id,
-              setNumber: i,
-              weight: weightNum,
-              reps: repsNum,
-              durationSeconds: recordedSetTiming?.durationSeconds || null,
-              difficulty: null,
-              startedAt: recordedSetTiming?.startedAt,
-              completedAt: recordedSetTiming?.completedAt,
-              restSeconds: recordedSetTiming?.restSeconds,
-            });
-          }
-        }
-      }
-
       let completedAtDate = assistedSessionTimings?.completedAt || undefined;
       let sessionStartedAtDate = assistedSessionTimings?.startedAt || undefined;
 
@@ -606,7 +551,7 @@ export function useWorkoutSession(user: AuthUser | null) {
 
       try {
         await logSessionCompletion(
-          user!.uid,
+          user.uid,
           activeWorkout.id,
           finalSetsPayload,
           activeWorkout.exercises,
@@ -622,7 +567,7 @@ export function useWorkoutSession(user: AuthUser | null) {
         const parsedWeight = parseFloat(bodyWeightKg);
         if (!isNaN(parsedWeight) && parsedWeight > 0) {
           const userHeight = userProfile?.heightCm || userProfile?.metrics?.height;
-          await logDailyBodyWeight(user!.uid, {
+          await logDailyBodyWeight(user.uid, {
             date: sessionDate,
             weightKg: parsedWeight,
             heightCm: userHeight,
@@ -651,6 +596,141 @@ export function useWorkoutSession(user: AuthUser | null) {
       setErrorMsg(err.message || 'Failed to log workout session details.');
     } finally {
       setLoggingWorkout(false);
+    }
+  };
+
+  const handleLogWorkout = async () => {
+    if (!activeWorkout) return;
+
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      const finalSetsPayload: Array<{
+        exerciseId: string;
+        setNumber: number;
+        weight?: number | null;
+        reps?: number | null;
+        durationSeconds?: number | null;
+        difficulty?: number | null;
+        startedAt?: Date | null;
+        completedAt?: Date | null;
+        restSeconds?: number | null;
+      }> = [];
+
+      const warnings: string[] = [];
+
+      for (const ex of activeWorkout.exercises) {
+        const cachedEx = userProfile
+          ? ProgressionEngine.evaluateProgression(ex.id, userProfile.lastSetSummaryPerExercise)
+          : null;
+
+        for (let i = 1; i <= ex.targetSets; i++) {
+          const key = `${ex.id}-${i}`;
+          const isTimed = ex.type === 'timed';
+          const defaultInput = isTimed
+            ? {
+                weight: '',
+                reps: '',
+                durationSeconds: ex.targetRepMin?.toString() || '30',
+                difficulty: '7',
+              }
+            : { weight: '20', reps: '10', durationSeconds: '', difficulty: '' };
+
+          const inputValues = inputs[key] || defaultInput;
+          const setTimingKey = `${ex.id}-${i}`;
+          const recordedSetTiming = assistedSessionTimings?.setTimings?.[setTimingKey];
+
+          if (isTimed) {
+            const secNum = parseInt(inputValues.durationSeconds || '', 10);
+            let diffNum: number | null = parseInt(inputValues.difficulty || '', 10);
+            if (isNaN(diffNum)) {
+              diffNum = null;
+            } else {
+              if (diffNum < 1) diffNum = 1;
+              if (diffNum > 10) diffNum = 10;
+            }
+
+            if (isNaN(secNum)) {
+              throw new Error(`Invalid duration seconds detected on "${ex.name}" Set #${i}. Please correct.`);
+            }
+
+            if (secNum > 3600) {
+              warnings.push(`${ex.name} (Set ${i}): Duration (${secNum}s) exceeds 1 hour.`);
+            }
+
+            finalSetsPayload.push({
+              exerciseId: ex.id,
+              setNumber: i,
+              weight: null,
+              reps: null,
+              durationSeconds: secNum,
+              difficulty: diffNum,
+              startedAt: recordedSetTiming?.startedAt,
+              completedAt: recordedSetTiming?.completedAt,
+              restSeconds: recordedSetTiming?.restSeconds,
+            });
+          } else {
+            const weightNum = parseFloat(inputValues.weight || '');
+            const repsNum = parseInt(inputValues.reps || '', 10);
+
+            if (isNaN(weightNum) || isNaN(repsNum)) {
+              throw new Error(`Invalid weight or reps detected on "${ex.name}" Set #${i}. Please correct.`);
+            }
+
+            if (weightNum > 350) {
+              warnings.push(`${ex.name} (Set ${i}): Weight (${weightNum} kg) is unusually high (>350 kg).`);
+            } else if (weightNum < 0) {
+              warnings.push(`${ex.name} (Set ${i}): Weight (${weightNum} kg) is negative.`);
+            }
+
+            if (repsNum > 100) {
+              warnings.push(`${ex.name} (Set ${i}): Rep count (${repsNum} reps) is unusually high (>100 reps).`);
+            } else if (repsNum <= 0) {
+              warnings.push(`${ex.name} (Set ${i}): Rep count (${repsNum}) must be at least 1.`);
+            }
+
+            if (cachedEx?.lastWeight && cachedEx.lastWeight >= 20 && weightNum >= cachedEx.lastWeight * 3) {
+              warnings.push(`${ex.name} (Set ${i}): Weight (${weightNum} kg) is more than 3x your previous benchmark (${cachedEx.lastWeight} kg).`);
+            }
+
+            finalSetsPayload.push({
+              exerciseId: ex.id,
+              setNumber: i,
+              weight: weightNum,
+              reps: repsNum,
+              durationSeconds: recordedSetTiming?.durationSeconds || null,
+              difficulty: null,
+              startedAt: recordedSetTiming?.startedAt,
+              completedAt: recordedSetTiming?.completedAt,
+              restSeconds: recordedSetTiming?.restSeconds,
+            });
+          }
+        }
+      }
+
+      if (bodyWeightKg) {
+        const bw = parseFloat(bodyWeightKg);
+        if (!isNaN(bw) && (bw < 20 || bw > 350)) {
+          warnings.push(`Session bodyweight (${bw} kg) is outside typical range (20–350 kg).`);
+        }
+      }
+
+      if (warnings.length > 0) {
+        setUnrealisticWarningConfig({
+          isOpen: true,
+          warnings,
+          onConfirm: () => {
+            setUnrealisticWarningConfig((prev) => ({ ...prev, isOpen: false }));
+            executeSaveWorkout(finalSetsPayload);
+          },
+        });
+        return;
+      }
+
+      await executeSaveWorkout(finalSetsPayload);
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Failed to validate workout inputs.');
     }
   };
 
@@ -703,6 +783,8 @@ export function useWorkoutSession(user: AuthUser | null) {
     loadWorkflowState,
     updateInputValue,
     handleTextChange,
+    unrealisticWarningConfig,
+    setUnrealisticWarningConfig,
     getProgressionAdvice,
     handleLogWorkout,
   };

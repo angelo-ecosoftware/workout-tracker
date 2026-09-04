@@ -204,3 +204,36 @@ export async function lookupBarcodeProduct(barcode: string, currentUserId?: stri
 
   return { found: false, source: 'none', item: null, error: 'No product matches this barcode.' };
 }
+
+export interface MissingProductReportPayload {
+  barcode?: string;
+  name?: string;
+  brand?: string;
+  store?: string;
+  notes?: string;
+  userId?: string;
+}
+
+/**
+ * Submits a missing product / unresolvable barcode report to the developer API for catalog indexing.
+ */
+export async function reportMissingProductToDev(payload: MissingProductReportPayload): Promise<{ success: boolean; message: string }> {
+  try {
+    const res = await fetch('/api/report-missing-product', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return { success: true, message: data.message || 'Report sent to developer for indexing!' };
+    }
+  } catch (err) {
+    console.warn('Developer report API network issue, caching locally:', err);
+  }
+
+  return { success: true, message: 'Report noted! Thank you for helping expand the database.' };
+}

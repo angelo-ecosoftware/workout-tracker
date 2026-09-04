@@ -11,6 +11,7 @@ import { RecoveryAndReadinessCard } from "./tracker/RecoveryAndReadinessCard.tsx
 import { ExerciseCard } from "./tracker/ExerciseCard.tsx";
 import { WorkoutSubmitButton } from "./tracker/WorkoutSubmitButton.tsx";
 import { useWorkoutSession } from "./tracker/useWorkoutSession.ts";
+import { ConfirmModal } from "../ui/ConfirmModal.tsx";
 
 export const WorkoutDayTracker: React.FC = () => {
   const { user } = useAuth();
@@ -56,6 +57,8 @@ export const WorkoutDayTracker: React.FC = () => {
     setAssistedFinished,
     setAssistedSessionTimings,
     inputs,
+    unrealisticWarningConfig,
+    setUnrealisticWarningConfig,
     handlePhotoSelect,
     handleRemovePhoto,
     saveDraftCheckpoint,
@@ -333,6 +336,18 @@ export const WorkoutDayTracker: React.FC = () => {
               onSubmit={handleLogWorkout}
             />
           )}
+
+          {/* Outlier / Unrealistic Value Confirmation Guard */}
+          <ConfirmModal
+            isOpen={unrealisticWarningConfig.isOpen}
+            title="Confirm Workout Log"
+            description={`Please review the following outlier entries:\n\n• ${unrealisticWarningConfig.warnings.join("\n• ")}\n\nAre you sure you want to proceed and save this workout?`}
+            confirmText="Yes, Save Anyway"
+            cancelText="Review Inputs"
+            confirmVariant="primary"
+            onConfirm={unrealisticWarningConfig.onConfirm}
+            onCancel={() => setUnrealisticWarningConfig((prev) => ({ ...prev, isOpen: false }))}
+          />
         </div>
       )}
     </div>

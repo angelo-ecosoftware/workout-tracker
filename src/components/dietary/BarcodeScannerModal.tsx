@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Camera, X, RefreshCw, AlertCircle, Sparkles, Check, Flashlight, Plus, ArrowRight, Flame, Scale } from 'lucide-react';
+import { Camera, X, RefreshCw, AlertCircle, Sparkles, Check, Flashlight, Plus, ArrowRight, Flame, Scale, Send } from 'lucide-react';
 import { FoodItemNutrition } from '../../models.ts';
-import { lookupBarcodeProduct } from '../../lib/barcodeService.ts';
+import { lookupBarcodeProduct, reportMissingProductToDev } from '../../lib/barcodeService.ts';
 
 interface BarcodeScannerModalProps {
   isOpen: boolean;
@@ -32,6 +32,8 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   const [manualCodeInput, setManualCodeInput] = useState('');
   const [hasTorch, setHasTorch] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
+  const [isReporting, setIsReporting] = useState(false);
+  const [reportedCode, setReportedCode] = useState<string | null>(null);
 
   // Stop camera tracks and cancel scanning animation loops
   const stopCameraStream = () => {
@@ -354,12 +356,40 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           )}
 
           {status === 'not_found' && (
-            <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center space-y-3">
+            <div className="absolute inset-0 bg-black/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center space-y-3 z-20">
               <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500 flex items-center justify-center text-amber-400">
                 <AlertCircle className="w-5 h-5" />
               </div>
               <p className="text-xs font-bold text-white">Product Not Indexed Yet</p>
               <p className="text-[11px] text-gray-400 max-w-xs font-mono break-all">{errorMessage}</p>
+
+              {reportedCode === scannedCode ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#C0FF00]/15 border border-[#C0FF00]/40 rounded-xl text-[11px] font-mono font-bold text-[#C0FF00]">
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                  <span>Reported to Developer for Indexing!</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isReporting}
+                  onClick={async () => {
+                    if (!scannedCode) return;
+                    setIsReporting(true);
+                    await reportMissingProductToDev({
+                      barcode: scannedCode,
+                      userId: currentUserId,
+                      notes: 'Reported directly from Barcode Scanner Modal',
+                    });
+                    setIsReporting(false);
+                    setReportedCode(scannedCode);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#1e1e1e] hover:bg-[#282828] border border-[#333] text-gray-300 hover:text-white rounded-xl text-[11px] font-mono cursor-pointer transition-colors"
+                >
+                  <Send className="w-3 h-3 text-[#C0FF00]" />
+                  <span>{isReporting ? 'Reporting...' : 'Report Missing to Developer'}</span>
+                </button>
+              )}
+
               <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
                 <button
                   onClick={startCameraScanning}

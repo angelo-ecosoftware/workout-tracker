@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   lookupBarcodeProduct,
   normalizeOpenFoodFactsProduct,
+  reportMissingProductToDev,
 } from '../../../src/lib/barcodeService.ts';
 import { supabase } from '../../../src/lib/supabase.ts';
 import * as dietaryData from '../../../src/lib/dietaryData.ts';
@@ -199,6 +200,49 @@ describe('barcodeService', () => {
       const result = await lookupBarcodeProduct('0000000000000', 'user-123');
       expect(result.found).toBe(false);
       expect(result.item).toBeNull();
+    });
+  });
+
+  describe('reportMissingProductToDev', () => {
+    it('successfully posts report to developer API endpoint', async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          message: 'Missing product report successfully submitted to developer API for indexing.',
+        }),
+      });
+      global.fetch = mockFetch;
+
+      const response = await reportMissingProductToDev({
+        barcode: '8712345678901',
+        name: 'Skyr Vanille',
+        userId: 'user-456',
+      });
+
+      expect(response.success).toBe(true);
+      expect(mockFetch).toHaveBeenCalledWith(
+        '/api/report-missing-product',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({
+            barcode: '8712345678901',
+            name: 'Skyr Vanille',
+            userId: 'user-456',
+          }),
+        })
+      );
+    });
+
+    it('falls back gracefully when API network error occurs', async () => {
+      global.fetch = vi.fn().mockRejectedValue(new Error('Network offline'));
+
+      const response = await reportMissingProductToDev({
+        barcode: '8712345678901',
+      });
+
+      expect(response.success).toBe(true);
+      expect(response.message).toContain('Report noted!');
     });
   });
 });

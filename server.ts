@@ -172,6 +172,42 @@ async function startServer() {
 
   app.all("/api/barcode-lookup", handleBarcodeLookup);
 
+  // API 5: Missing Product / Barcode Developer Report
+  const handleReportMissingProduct = async (req: express.Request, res: express.Response) => {
+    const barcode = (req.query.barcode || req.body?.barcode || "") as string;
+    const name = (req.query.name || req.body?.name || "") as string;
+    const brand = (req.query.brand || req.body?.brand || "") as string;
+    const store = (req.query.store || req.body?.store || "") as string;
+    const notes = (req.query.notes || req.body?.notes || "") as string;
+    const userId = (req.query.userId || req.body?.userId || "anonymous") as string;
+
+    if (!barcode && !name) {
+      return res.status(400).json({ error: "Please provide at least a barcode or product name to report." });
+    }
+
+    const report = {
+      id: `report_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      barcode: barcode.trim() || undefined,
+      name: name.trim() || undefined,
+      brand: brand.trim() || undefined,
+      store: store.trim() || undefined,
+      notes: notes.trim() || undefined,
+      userId,
+      timestamp: new Date().toISOString(),
+      status: "received",
+    };
+
+    console.log("[Missing Product Report Received by Developer API]:", JSON.stringify(report, null, 2));
+
+    return res.status(200).json({
+      success: true,
+      message: "Missing product report successfully submitted to developer API for indexing.",
+      report,
+    });
+  };
+
+  app.all("/api/report-missing-product", handleReportMissingProduct);
+
   // Vite static middleware mount path routing
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

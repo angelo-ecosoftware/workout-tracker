@@ -324,4 +324,34 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
     });
     expect(result.current.inputs['ex_timed_test-1']?.difficulty).toBe('');
   });
+
+  it('triggers unrealistic value warning guard modal when outlier inputs are entered (>350kg or >100 reps)', async () => {
+    const { result } = renderHook(() => useWorkoutSession(mockUser));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    // Enter unrealistic weight (500kg)
+    act(() => {
+      result.current.handleTextChange('ex_bench-1', 'weight', '500');
+      result.current.handleTextChange('ex_bench-1', 'reps', '120');
+    });
+
+    await act(async () => {
+      await result.current.handleLogWorkout();
+    });
+
+    // Confirmation guard should be triggered
+    expect(result.current.unrealisticWarningConfig.isOpen).toBe(true);
+    expect(result.current.unrealisticWarningConfig.warnings.length).toBeGreaterThan(0);
+    expect(result.current.unrealisticWarningConfig.warnings[0]).toContain('unusually high');
+
+    // Confirming should execute save
+    await act(async () => {
+      await result.current.unrealisticWarningConfig.onConfirm();
+    });
+
+    expect(result.current.successMsg).toContain('Workout successfully saved');
+  });
 });
