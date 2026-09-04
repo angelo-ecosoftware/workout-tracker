@@ -9,10 +9,10 @@ import { WorkoutHistory } from './components/workout/WorkoutHistory.tsx';
 import { InsightsView } from './components/insights/InsightsView.tsx';
 import { DietaryView } from './components/dietary/DietaryView.tsx';
 import { PublicSessionView } from './components/workout/PublicSessionView.tsx';
-import { CoachClientRoster } from './components/coach/CoachClientRoster.tsx';
+import { CoachPortalView } from './components/coach/CoachPortalView.tsx';
 import { CoachViewAsBanner } from './components/coach/CoachViewAsBanner.tsx';
 import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
-import { Loader2 } from 'lucide-react';
+import { Loader2, UserCheck, Dumbbell } from 'lucide-react';
 
 // Extract public session ID from query param (?session=xxx or ?share=xxx) or hash (#/share/xxx or #/session/xxx)
 function getPublicSessionIdFromUrl(): string | null {
@@ -30,20 +30,20 @@ function getPublicSessionIdFromUrl(): string | null {
   return null;
 }
 
-type TabType = 'tracker' | 'history' | 'insights' | 'dietary' | 'roster';
+type TabType = 'tracker' | 'history' | 'insights' | 'dietary' | 'coach';
 
 function getInitialTab(): TabType {
   try {
     const hash = (typeof window !== 'undefined' ? window.location.hash : '').toLowerCase();
+    if (hash.includes('coach') || hash.includes('roster')) return 'coach';
     if (hash.includes('history') || hash.includes('logbook')) return 'history';
     if (hash.includes('insights')) return 'insights';
     if (hash.includes('dietary')) return 'dietary';
-    if (hash.includes('roster')) return 'roster';
     if (hash.includes('tracker') || hash.includes('session')) return 'tracker';
 
     if (typeof localStorage !== 'undefined') {
       const stored = localStorage.getItem('workout_tracker_active_tab') as TabType;
-      if (stored && ['tracker', 'history', 'insights', 'dietary', 'roster'].includes(stored)) {
+      if (stored && ['tracker', 'history', 'insights', 'dietary', 'coach'].includes(stored)) {
         return stored;
       }
     }
@@ -58,6 +58,9 @@ const GymAppContent: React.FC = () => {
   const [activeTab, setActiveTabState] = useState<TabType>(() => getInitialTab());
   const [publicSessionId, setPublicSessionId] = useState<string | null>(() => getPublicSessionIdFromUrl());
   const [inspectingClient, setInspectingClient] = useState<{ athleteId: string; athleteName: string } | null>(null);
+  const [coachPersonalWorkoutMode, setCoachPersonalWorkoutMode] = useState<boolean>(() => {
+    return localStorage.getItem('coach_personal_workout_mode') === 'true';
+  });
 
   const setActiveTab = (tab: TabType) => {
     setActiveTabState(tab);
@@ -75,10 +78,10 @@ const GymAppContent: React.FC = () => {
     const handlePopState = () => {
       setPublicSessionId(getPublicSessionIdFromUrl());
       const hash = window.location.hash.toLowerCase();
-      if (hash.includes('history') || hash.includes('logbook')) setActiveTabState('history');
+      if (hash.includes('coach') || hash.includes('roster')) setActiveTabState('coach');
+      else if (hash.includes('history') || hash.includes('logbook')) setActiveTabState('history');
       else if (hash.includes('insights')) setActiveTabState('insights');
       else if (hash.includes('dietary')) setActiveTabState('dietary');
-      else if (hash.includes('roster')) setActiveTabState('roster');
       else if (hash.includes('tracker')) setActiveTabState('tracker');
     };
 
@@ -126,6 +129,9 @@ const GymAppContent: React.FC = () => {
     return <LoginScreen />;
   }
 
+  // Coach Workspace vs Personal Athlete Mode toggle
+  const isDedicatedCoachWorkspace = isCoach && !coachPersonalWorkoutMode && !inspectingClient;
+
   return (
     <div className="min-h-screen bg-[#050505] text-[#f3f4f6] pb-16">
       {inspectingClient && (
@@ -133,88 +139,124 @@ const GymAppContent: React.FC = () => {
           athleteName={inspectingClient.athleteName}
           onExit={() => {
             setInspectingClient(null);
-            setActiveTab('roster');
+            setActiveTab('coach');
           }}
         />
+      )}
+
+      {/* Quick Trainer Mode Header Bar for Coaches */}
+      {isCoach && !inspectingClient && (
+        <div className="bg-[#111] border-b border-[#222] px-4 py-2 text-xs">
+          <div className="max-w-4xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${isDedicatedCoachWorkspace ? 'bg-[#C0FF00]' : 'bg-gray-500'}`} />
+              <span className="font-mono text-gray-300">
+                Mode: <strong className={isDedicatedCoachWorkspace ? 'text-[#C0FF00]' : 'text-white'}>
+                  {isDedicatedCoachWorkspace ? 'Coach Command Center' : 'Personal Athlete Log Book'}
+                </strong>
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                const newMode = !coachPersonalWorkoutMode;
+                setCoachPersonalWorkoutMode(newMode);
+                localStorage.setItem('coach_personal_workout_mode', String(newMode));
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#1a1a1a] hover:bg-[#252525] text-gray-300 hover:text-white border border-[#333] font-mono text-[11px] font-bold transition-all cursor-pointer"
+            >
+              {isDedicatedCoachWorkspace ? (
+                <>
+                  <Dumbbell className="w-3.5 h-3.5 text-[#C0FF00]" />
+                  <span>Switch to Personal Workouts</span>
+                </>
+              ) : (
+                <>
+                  <UserCheck className="w-3.5 h-3.5 text-[#C0FF00]" />
+                  <span>Switch to Coach Portal</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
       )}
 
       <Header />
       
       <main className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex bg-[#111] border border-[#222] rounded-full p-1 w-full max-w-xl mx-auto mb-8 font-sans flex-wrap gap-1">
-          <button 
-             onClick={() => setActiveTab('tracker')}
-             className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-               activeTab === 'tracker' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
-             }`}
-          >
-            Today's Session
-          </button>
-          <button 
-             onClick={() => setActiveTab('history')}
-             className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-               activeTab === 'history' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
-             }`}
-          >
-             Log Book
-          </button>
-          <button 
-             onClick={() => setActiveTab('insights')}
-             className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-               activeTab === 'insights' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
-             }`}
-          >
-             Insights
-          </button>
-          <button 
-             onClick={() => setActiveTab('dietary')}
-             className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-               activeTab === 'dietary' ? 'bg-[#00ade6] text-black shadow-md' : 'text-gray-400 hover:text-white'
-             }`}
-          >
-             Dietary
-          </button>
+        {/* If in Dedicated Coach Portal Mode, show Coach Management Command Center */}
+        {isDedicatedCoachWorkspace ? (
+          <CoachPortalView
+            coachId={user.uid}
+            coachName={user.displayName}
+            specialty={specialty || 'strength'}
+            onInspectClient={(athleteId, athleteName) => {
+              setInspectingClient({ athleteId, athleteName });
+              setActiveTab('history');
+            }}
+            onPrescribeNutrition={(athleteId, athleteName) => {
+              setInspectingClient({ athleteId, athleteName });
+              setActiveTab('dietary');
+            }}
+            onSwitchToPersonalMode={() => {
+              setCoachPersonalWorkoutMode(true);
+              localStorage.setItem('coach_personal_workout_mode', 'true');
+            }}
+          />
+        ) : (
+          /* Athlete & Client-Inspection Navigation Tabs */
+          <>
+            <div className="flex bg-[#111] border border-[#222] rounded-full p-1 w-full max-w-xl mx-auto mb-8 font-sans flex-wrap gap-1">
+              <button 
+                onClick={() => setActiveTab('tracker')}
+                className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                  activeTab === 'tracker' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Today's Session
+              </button>
+              <button 
+                onClick={() => setActiveTab('history')}
+                className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                  activeTab === 'history' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Log Book
+              </button>
+              <button 
+                onClick={() => setActiveTab('insights')}
+                className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                  activeTab === 'insights' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Insights
+              </button>
+              <button 
+                onClick={() => setActiveTab('dietary')}
+                className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                  activeTab === 'dietary' ? 'bg-[#00ade6] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Dietary
+              </button>
+            </div>
 
-          {isCoach && (
-            <button 
-               onClick={() => setActiveTab('roster')}
-               className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-                 activeTab === 'roster' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
-               }`}
-            >
-               Client Roster
-            </button>
-          )}
-        </div>
-
-        <div>
-          {activeTab === 'tracker' && <WorkoutDayTracker />}
-          {activeTab === 'history' && (
-            <WorkoutHistory
-              targetUserId={inspectingClient?.athleteId}
-              isReadOnlyClientMode={Boolean(inspectingClient)}
-            />
-          )}
-          {activeTab === 'insights' && <InsightsView />}
-          {activeTab === 'dietary' && (
-            <DietaryView userId={inspectingClient?.athleteId} />
-          )}
-          {activeTab === 'roster' && isCoach && (
-            <CoachClientRoster
-              coachId={user.uid}
-              coachName={user.displayName}
-              specialty={specialty || 'strength'}
-              onInspectClient={(athleteId, athleteName) => {
-                setInspectingClient({ athleteId, athleteName });
-                setActiveTab('history');
-              }}
-              onPrescribeNutrition={(athleteId, athleteName) => {
-                setInspectingClient({ athleteId, athleteName });
-                setActiveTab('dietary');
-              }}
-            />
-          )}
-        </div>
+            <div>
+              {activeTab === 'tracker' && <WorkoutDayTracker />}
+              {activeTab === 'history' && (
+                <WorkoutHistory
+                  targetUserId={inspectingClient?.athleteId}
+                  isReadOnlyClientMode={Boolean(inspectingClient)}
+                />
+              )}
+              {activeTab === 'insights' && <InsightsView />}
+              {activeTab === 'dietary' && (
+                <DietaryView userId={inspectingClient?.athleteId} />
+              )}
+            </div>
+          </>
+        )}
       </main>
     </div>
   );
