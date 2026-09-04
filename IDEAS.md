@@ -73,43 +73,22 @@ This document captures upcoming product ideas, UX/UI fixes, architectural improv
   - **Coach / Trainer**: View athlete client progress, assign workout templates, monitor adherence.
   - **Admin**: Manage global exercise catalog, oversee food database index, user management.
 
+---
+
+## 6. Supermarket Barcode & App API Research (Reverse Engineering Reference)
+
+### 6.1 Jumbo Barcode & Mobile App API Architecture
+- **Background**: There is no official public developer API for Jumbo. Community open-source projects (`shopscraper-api`, `grocy-dutch-supermarket`, `python-jumbo-api`, `jumbo-wrapper`) utilize internal mobile endpoints and search behaviors.
+- **Resolution Pipeline**:
+  1. **Primary**: Open Food Facts database (matches the majority of Dutch supermarket A-brand and private-label EAN barcodes).
+  2. **Secondary (Retailer Fallback)**:
+     - **Albert Heijn**: Direct mobile services GTIN search + FIR nutrient detail (`https://api.ah.nl/mobile-services/product/search/v1/gtin/{ean}`).
+     - **Jumbo**: Jumbo mobile search endpoint / web product resolver by keyword or EAN barcode (`searchType=keyword&searchTerms={ean}`), extracting macro tables and normalizing SKU IDs (`jumbo_<sku>`).
+  3. **Auto-Caching Hive Mind**: Every scanned or resolved barcode is automatically saved into the global Supabase `food_items` database with `barcode = {ean}`, eliminating repeated external network calls for all future users.
+
+### 6.2 External Datasets & References
+- [Exercises Dataset](https://github.com/hasaneyldrm/exercises-dataset)
 
 
 
-https://github.com/hasaneyldrm/exercises-dataset Exercises Dataset
 
-
-
-
-Ja, zeker. Ontwikkelaars hebben de interne API van de Jumbo-app (de "achterkant" waar de mobiele app mee communiceert) via reverse engineering uitgepluisd en openbare code op GitHub geplaatst.  
-GitHub
-+ 1
-
-Er is namelijk geen officiële, openbare Jumbo-API voor het publiek. Toch hebben programmeurs op GitHub zogenaamde scrapers of API wrappers gemaakt om de app-data en barcodes uit te lezen.  
-Pepesto
-
-Hoe ontwikkelaars die codes uitlezen via GitHub  
-GitHub
-Ontwikkelaars gebruiken verschillende open-source projecten op GitHub om de EAN-codes te achterhalen:
-
-Jumbo App Endpoint Scraping: Ontwikkelaars vangen het netwerkverkeer van hun eigen mobiele telefoon op. Hierdoor zien ze exact naar welke webadressen (endpoints) de Jumbo-app verzoeken stuurt.
-
-Product Zoeken op EAN: Via de verborgen Jumbo API-endpoints kun je een EAN-code meesturen om het product-ID te krijgen, óf een zoekopdracht uitvoeren waar de EAN-code in de JSON-respons van het product wordt meegegeven.  
-GitHub
-
-Bestaande GitHub-Repositories:
-
-shopscraper-api / grocy-dutch-supermarket: Scripts op GitHub die data ophalen van Jumbo en Albert Heijn. Ze matchen producten automatisch op basis van de EAN/barcode om voorraadbeheersystemen (zoals Grocy) thuis te voeden.  
-GitHub
-
-python-jumbo-api / jumbo-wrapper: Python- en Node.js-pakketten die de app-interfaces van Jumbo nabootsen.  
-GitHub
-
-Waarom doen ontwikkelaars dit?  
-Pepesto
-Slimme koelkasten & voorraadbeheer: Liefhebbers van home automation (zoals Home Assistant) maken een barcodescanner bij hun voorraadkast. Als ze een pak scannen, kijkt het Python-script op GitHub in de Jumbo- of AH-database welk product het is op basis van de EAN-code.
-
-Prijsvergelijkers: Met deze scripts bouwen ontwikkelaars eigen tools om prijzen tussen Jumbo en Albert Heijn te vergelijken op basis van dezelfde EAN-codes van A-merken.
-
-Kanttekening: Blijvend kat-en-muisspel
-Omdat het geen officiële ontwikkelaars-API van Jumbo is, past Jumbo af en toe de beveiliging of de adressen van hun app-servers aan. Als Jumbo de app update, moeten de ontwikkelaars op GitHub hun code weer aanpassen om de barcodes te kunnen blijven uitlezen.
