@@ -31,6 +31,7 @@ export interface PlusScrapedFood {
   source_url: string;
   is_custom: boolean;
   created_by: string;
+  updated_at?: string;
 }
 
 /**
@@ -176,7 +177,6 @@ export async function scrapePlusProductPage(page: Page, url: string): Promise<Pl
       source_url: url,
       is_custom: false,
       created_by: 'community',
-      updated_at: new Date().toISOString(),
     };
   } catch (err: any) {
     // Timeout or navigation error on specific product

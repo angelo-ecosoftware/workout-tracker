@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { calculateInsights, calculateExerciseProgression } from '../src/lib/insightsEngine.ts';
-import { Session, WorkoutSet, Exercise } from '../src/models.ts';
+import { calculateInsights, calculateExerciseProgression } from '../../src/lib/insightsEngine.ts';
+import { Session, WorkoutSet, Exercise } from '../../src/models.ts';
 
 const supabaseUrl = 'https://khvnlmzhymocnvdnptci.supabase.co';
 const supabaseAnonKey = 'sb_publishable_VjnCda-dV7N-hxqEwhsyuA_A4CqNMV-';
