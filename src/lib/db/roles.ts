@@ -252,23 +252,25 @@ export async function saveUserPeerShare(
   granteeName: string,
   permissions: { shareWorkouts: boolean; shareBiometrics: boolean; shareDietary: boolean }
 ): Promise<UserPeerShare> {
-  const payload = {
-    id: `peer_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+  const payload: any = {
     owner_id: ownerId,
     grantee_id: granteeId,
+    grantee_name: granteeName,
     share_workouts: permissions.shareWorkouts,
     share_biometrics: permissions.shareBiometrics,
     share_dietary: permissions.shareDietary,
   };
 
+  let savedId = '';
   try {
-    await supabase.from('user_peer_shares').upsert(payload);
+    const { data } = await supabase.from('user_peer_shares').upsert(payload).select().single();
+    if (data?.id) savedId = data.id;
   } catch {
     // ignore
   }
 
   return {
-    id: payload.id,
+    id: savedId || `peer_${Date.now()}`,
     ownerId,
     granteeId,
     granteeName,
@@ -552,15 +554,39 @@ export async function saveRoutineProgramToLibrary(
   title: string,
   programData: any,
   description?: string,
-  sourceCoachId?: string
+  sourceCoachId?: string,
+  sourceCoachName?: string
 ): Promise<SavedRoutineProgram> {
+  let dbId = '';
+
+  try {
+    const { data } = await supabase
+      .from('saved_routine_programs')
+      .insert({
+        user_id: userId,
+        title,
+        description: description || null,
+        is_active: false,
+        source_coach_id: sourceCoachId || null,
+        source_coach_name: sourceCoachName || null,
+        program_data: programData,
+      })
+      .select()
+      .single();
+
+    if (data?.id) dbId = data.id;
+  } catch {
+    // ignore
+  }
+
   const newProgram: SavedRoutineProgram = {
-    id: `prog_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    id: dbId || `prog_${Date.now()}`,
     userId,
     title,
     description: description || null,
     isActive: false,
     sourceCoachId: sourceCoachId || null,
+    sourceCoachName: sourceCoachName || null,
     programData,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -569,20 +595,6 @@ export async function saveRoutineProgramToLibrary(
   const existing = await fetchSavedRoutinePrograms(userId);
   const updated = [newProgram, ...existing.filter((p) => p.id !== newProgram.id)];
   setLocalStorageItem(`saved_programs_${userId}`, JSON.stringify(updated));
-
-  try {
-    await supabase.from('saved_routine_programs').insert({
-      id: newProgram.id,
-      user_id: userId,
-      title,
-      description: description || null,
-      is_active: false,
-      source_coach_id: sourceCoachId || null,
-      program_data: programData,
-    });
-  } catch {
-    // ignore
-  }
 
   return newProgram;
 }
@@ -660,8 +672,30 @@ export async function createRoutineProposal(
   description?: string,
   coachName?: string
 ): Promise<RoutineProposal> {
-  const newProposal: RoutineProposal = {
-    id: `prop_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+  let dbId = '';
+
+  try {
+    const { data } = await supabase
+      .from('routine_proposals')
+      .insert({
+        coach_id: coachId,
+        athlete_id: athleteId,
+        title,
+        description: description || null,
+        program_payload: programPayload,
+        status: 'proposed',
+        coach_name: coachName || 'Coach',
+      })
+      .select()
+      .single();
+
+    if (data?.id) dbId = data.id;
+  } catch {
+    // ignore
+  }
+
+  return {
+    id: dbId || `prop_${Date.now()}`,
     coachId,
     athleteId,
     title,
@@ -672,22 +706,6 @@ export async function createRoutineProposal(
     createdAt: new Date(),
     updatedAt: new Date(),
   };
-
-  try {
-    await supabase.from('routine_proposals').insert({
-      id: newProposal.id,
-      coach_id: coachId,
-      athlete_id: athleteId,
-      title,
-      description: description || null,
-      program_payload: programPayload,
-      status: 'proposed',
-    });
-  } catch {
-    // ignore
-  }
-
-  return newProposal;
 }
 
 export async function updateRoutineProposalStatus(
@@ -766,8 +784,38 @@ export async function saveMacroPrescription(
   notes?: string,
   coachName?: string
 ): Promise<CoachMacroPrescription> {
+  let dbId = '';
+
+  try {
+    await supabase
+      .from('coach_macro_prescriptions')
+      .update({ is_active: false })
+      .eq('athlete_id', athleteId);
+
+    const { data } = await supabase
+      .from('coach_macro_prescriptions')
+      .insert({
+        coach_id: coachId,
+        athlete_id: athleteId,
+        target_kcal: targetKcal,
+        target_protein_g: targetProteinG,
+        target_carbs_g: targetCarbsG,
+        target_fat_g: targetFatG,
+        target_fiber_g: targetFiberG || null,
+        notes: notes || null,
+        is_active: true,
+        coach_name: coachName || 'Nutrition Coach',
+      })
+      .select()
+      .single();
+
+    if (data?.id) dbId = data.id;
+  } catch {
+    // ignore
+  }
+
   const newPrescription: CoachMacroPrescription = {
-    id: `macro_presc_${Date.now()}`,
+    id: dbId || `macro_presc_${Date.now()}`,
     coachId,
     athleteId,
     targetKcal,
@@ -783,29 +831,6 @@ export async function saveMacroPrescription(
   };
 
   setLocalStorageItem(`macro_prescription_${athleteId}`, JSON.stringify(newPrescription));
-
-  try {
-    await supabase
-      .from('coach_macro_prescriptions')
-      .update({ is_active: false })
-      .eq('athlete_id', athleteId);
-
-    await supabase.from('coach_macro_prescriptions').insert({
-      id: newPrescription.id,
-      coach_id: coachId,
-      athlete_id: athleteId,
-      target_kcal: targetKcal,
-      target_protein_g: targetProteinG,
-      target_carbs_g: targetCarbsG,
-      target_fat_g: targetFatG,
-      target_fiber_g: targetFiberG || null,
-      notes: notes || null,
-      is_active: true,
-    });
-  } catch {
-    // ignore
-  }
-
   return newPrescription;
 }
 
@@ -849,8 +874,31 @@ export async function addWorkoutSetFeedback(
   videoUrl?: string,
   coachName?: string
 ): Promise<WorkoutSetCoachFeedback> {
-  const newFeedback: WorkoutSetCoachFeedback = {
-    id: `fb_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+  let dbId = '';
+
+  try {
+    const { data } = await supabase
+      .from('workout_set_coach_feedback')
+      .insert({
+        set_id: setId,
+        session_id: sessionId,
+        coach_id: coachId,
+        athlete_id: athleteId,
+        video_url: videoUrl || null,
+        timestamp_marker: timestampMarker || null,
+        cue_text: cueText,
+        coach_name: coachName || 'Coach',
+      })
+      .select()
+      .single();
+
+    if (data?.id) dbId = data.id;
+  } catch {
+    // ignore
+  }
+
+  return {
+    id: dbId || `fb_${Date.now()}`,
     setId,
     sessionId,
     coachId,
@@ -861,21 +909,4 @@ export async function addWorkoutSetFeedback(
     coachName: coachName || 'Coach',
     createdAt: new Date(),
   };
-
-  try {
-    await supabase.from('workout_set_coach_feedback').insert({
-      id: newFeedback.id,
-      set_id: setId,
-      session_id: sessionId,
-      coach_id: coachId,
-      athlete_id: athleteId,
-      video_url: videoUrl || null,
-      timestamp_marker: timestampMarker || null,
-      cue_text: cueText,
-    });
-  } catch {
-    // ignore
-  }
-
-  return newFeedback;
 }
