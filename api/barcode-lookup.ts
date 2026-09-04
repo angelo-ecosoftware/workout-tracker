@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { FoodItemNutrition } from '../src/models.ts';
-import { extractSchemaAndHeadings, parseDutchNutritionTable, extractPackageSizing } from './scraperRegistry.js';
+import { extractSchemaAndHeadings, parseDutchNutritionTable, extractPackageSizing, fetchAlbertHeijnMobileProduct, searchAlbertHeijnProduct } from './scraperRegistry.js';
+import { matchBakeryPlu } from '../src/lib/bakeryPluDictionary.js';
 
 const AH_HEADERS = {
   'Host': 'api.ah.nl',
@@ -15,6 +16,27 @@ const AH_HEADERS = {
 export async function resolveAlbertHeijnWebBarcode(barcode: string): Promise<FoodItemNutrition | null> {
   const cleanBarcode = barcode.trim();
   if (!cleanBarcode) return null;
+
+  // 1. Check pre-seeded bakery PLU mapping first
+  const pluMatchEntry = matchBakeryPlu(cleanBarcode);
+  if (pluMatchEntry) {
+    if (pluMatchEntry.webshopId) {
+      const mobItem = await fetchAlbertHeijnMobileProduct(pluMatchEntry.webshopId);
+      if (mobItem) {
+        return {
+          ...mobItem,
+          barcode: cleanBarcode,
+        };
+      }
+    }
+    const searched = await searchAlbertHeijnProduct(pluMatchEntry.searchQuery);
+    if (searched) {
+      return {
+        ...searched,
+        barcode: cleanBarcode,
+      };
+    }
+  }
 
   // Check if it's an in-store scale barcode (GS1 prefix 20-29). If so, extract the internal PLU identifier (middle digits)
   const isScaleCode = /^(?:20|21|22|23|24|25|26|27|28|29)(\d{5,6})\d{5,6}$/.test(cleanBarcode);
@@ -91,6 +113,18 @@ export async function resolveAlbertHeijnWebBarcode(barcode: string): Promise<Foo
 export async function resolveAlbertHeijnBarcode(barcode: string): Promise<FoodItemNutrition | null> {
   const cleanBarcode = barcode.trim();
   if (!cleanBarcode) return null;
+
+  // 0. Pre-seeded bakery PLU check
+  const pluMatchEntry = matchBakeryPlu(cleanBarcode);
+  if (pluMatchEntry && pluMatchEntry.webshopId) {
+    const mobileProd = await fetchAlbertHeijnMobileProduct(pluMatchEntry.webshopId);
+    if (mobileProd) {
+      return {
+        ...mobileProd,
+        barcode: cleanBarcode,
+      };
+    }
+  }
 
   try {
     // 1. Get anonymous guest token from AH Mobile Auth

@@ -1,10 +1,11 @@
 import { FoodItemNutrition } from '../models.ts';
 import { supabase } from './supabase.ts';
 import { mapSupabaseRowToFoodItem, saveHiveMindFoodItem } from './dietaryData.ts';
+import { matchBakeryPlu } from './bakeryPluDictionary.ts';
 
 export interface BarcodeLookupResult {
   found: boolean;
-  source: 'database' | 'openfoodfacts' | 'supermarket' | 'none';
+  source: 'database' | 'openfoodfacts' | 'supermarket' | 'bakery_plu' | 'none';
   item: FoodItemNutrition | null;
   error?: string;
 }
@@ -108,6 +109,40 @@ export async function lookupBarcodeProduct(barcode: string, currentUserId?: stri
     }
   } catch (dbErr) {
     console.warn('Database barcode lookup fallback to OpenFoodFacts:', dbErr);
+  }
+
+  // 1.5. Check if it matches an in-store Bakery PLU alias in our database (e.g. 285623 -> AH Vloer waldkorn half)
+  const bakeryPluEntry = matchBakeryPlu(cleanCode);
+  if (bakeryPluEntry) {
+    try {
+      // Check if the master GTIN, webshop ID, or exact query already exists in Supabase
+      const searchTerms = [
+        bakeryPluEntry.masterGtin ? `barcode.eq.${bakeryPluEntry.masterGtin}` : null,
+        bakeryPluEntry.webshopId ? `id.eq.ah_wi${bakeryPluEntry.webshopId}` : null,
+        `name.ilike.%${bakeryPluEntry.name}%`,
+      ].filter(Boolean).join(',');
+
+      const { data: pluDbData } = await supabase
+        .from('food_items')
+        .select('*')
+        .or(searchTerms)
+        .limit(1)
+        .maybeSingle();
+
+      if (pluDbData) {
+        const item = mapSupabaseRowToFoodItem(pluDbData);
+        return {
+          found: true,
+          source: 'bakery_plu',
+          item: {
+            ...item,
+            barcode: cleanCode, // preserve scanned scale barcode
+          },
+        };
+      }
+    } catch (pluDbErr) {
+      console.warn('Database bakery PLU check skipped:', pluDbErr);
+    }
   }
 
   // 2. Query Open Food Facts API v2
