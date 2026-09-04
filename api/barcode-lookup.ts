@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { FoodItemNutrition } from '../src/models.ts';
+import { extractSchemaAndHeadings, parseDutchNutritionTable, extractPackageSizing } from './scraperRegistry.js';
 
 const AH_HEADERS = {
   'Host': 'api.ah.nl',
@@ -9,7 +10,78 @@ const AH_HEADERS = {
 };
 
 /**
- * Resolves product details & macros directly from Albert Heijn Mobile Services API by EAN / GTIN barcode.
+ * Resolves product details from Albert Heijn web search by EAN barcode (unauthenticated fallback).
+ */
+export async function resolveAlbertHeijnWebBarcode(barcode: string): Promise<FoodItemNutrition | null> {
+  const cleanBarcode = barcode.trim();
+  if (!cleanBarcode) return null;
+
+  try {
+    const searchUrl = `https://www.ah.nl/zoeken?query=${encodeURIComponent(cleanBarcode)}`;
+    const searchRes = await fetch(searchUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!searchRes.ok) return null;
+
+    const html = await searchRes.text();
+    const linkMatch = html.match(/href=["'](\/producten\/product\/wi(\d+)\/[^"']+)["']/i);
+    if (!linkMatch) return null;
+
+    const productPath = linkMatch[1];
+    const webshopId = linkMatch[2];
+    const fullUrl = `https://www.ah.nl${productPath}`;
+
+    const prodRes = await fetch(fullUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!prodRes.ok) return null;
+
+    const prodHtml = await prodRes.text();
+    const { title, brand, packageWeightGrams: schemaWeight } = extractSchemaAndHeadings(prodHtml, 'Albert Heijn');
+    const nutrition = parseDutchNutritionTable(prodHtml);
+    const sizing = extractPackageSizing(title, prodHtml);
+
+    const isDrink =
+      prodHtml.toLowerCase().includes('per 100 milliliter') ||
+      prodHtml.toLowerCase().includes('per 100 ml') ||
+      title.toLowerCase().includes('melk') ||
+      title.toLowerCase().includes('drank');
+
+    const cleanTitle = title.replace(/^AH\s+/i, '').trim();
+
+    return {
+      id: `ah_wi${webshopId}`,
+      name: cleanTitle || title,
+      brand,
+      servingUnit: isDrink ? 'ml' : 'gram',
+      ...nutrition,
+      packageWeightGrams: schemaWeight || sizing.packageWeightGrams,
+      pieceCount: sizing.pieceCount,
+      barcode: cleanBarcode,
+      sourceUrl: fullUrl,
+      isCustom: false,
+    };
+  } catch (err) {
+    console.warn('AH unauthenticated web search barcode lookup failed:', err);
+    return null;
+  }
+}
+
+/**
+ * Resolves product details & macros directly from Albert Heijn Mobile Services API by EAN / GTIN barcode,
+ * with an automatic fallback to unauthenticated AH web search if token or mobile endpoints fail.
  */
 export async function resolveAlbertHeijnBarcode(barcode: string): Promise<FoodItemNutrition | null> {
   const cleanBarcode = barcode.trim();
@@ -24,12 +96,14 @@ export async function resolveAlbertHeijnBarcode(barcode: string): Promise<FoodIt
     });
 
     if (!authRes.ok) {
-      console.warn('AH Mobile Auth failed for barcode lookup:', authRes.status);
-      return null;
+      console.warn('AH Mobile Auth failed for barcode lookup (HTTP', authRes.status, '), falling back to web search.');
+      return await resolveAlbertHeijnWebBarcode(cleanBarcode);
     }
 
     const { access_token } = (await authRes.json()) as { access_token?: string };
-    if (!access_token) return null;
+    if (!access_token) {
+      return await resolveAlbertHeijnWebBarcode(cleanBarcode);
+    }
 
     // 2. Query AH GTIN search endpoint
     const gtinUrl = `https://api.ah.nl/mobile-services/product/search/v1/gtin/${encodeURIComponent(cleanBarcode)}`;
@@ -41,12 +115,14 @@ export async function resolveAlbertHeijnBarcode(barcode: string): Promise<FoodIt
     });
 
     if (!gtinRes.ok) {
-      return null;
+      return await resolveAlbertHeijnWebBarcode(cleanBarcode);
     }
 
     const card = await gtinRes.json();
     const webshopId = card.webshopId || card.id;
-    if (!webshopId) return null;
+    if (!webshopId) {
+      return await resolveAlbertHeijnWebBarcode(cleanBarcode);
+    }
 
     const title = card.title || 'AH Product';
     const brand = card.brand || 'AH';
@@ -132,8 +208,8 @@ export async function resolveAlbertHeijnBarcode(barcode: string): Promise<FoodIt
       isCustom: false,
     };
   } catch (err) {
-    console.error('Error resolving barcode from Albert Heijn mobile services:', err);
-    return null;
+    console.error('Error resolving barcode from Albert Heijn mobile services, trying web fallback:', err);
+    return await resolveAlbertHeijnWebBarcode(cleanBarcode);
   }
 }
 
