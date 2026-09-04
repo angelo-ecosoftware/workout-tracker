@@ -27,6 +27,7 @@ docs/
 └── roadmap/                        # 🗺️ Product Backlog, Tasks & Planning
     ├── TODO.md                    # Active task list & milestones
     ├── IDEAS.md                   # Feature brainstorming & future enhancements
+    ├── COACH.md                   # Coaching platform architecture & enhancements
     └── prompt.md                  # Project initialization prompts & context
 ```
 
