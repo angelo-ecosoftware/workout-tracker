@@ -154,7 +154,23 @@ When reviewing client sets:
 
 ---
 
-## 7. Athlete Manual: Saved Routines Library & Program Switching
+## 7. Coach Settings vs Athlete Settings
+
+When an account has the **Coach** role, the **Settings (Gear Icon)** automatically adapts:
+
+* **Top Mode Switcher**:
+  - `[ 🧑‍🏫 Trainer Settings ]`:
+    - **Coaching Specialty**: Switch between Strength, Nutrition, or Head Coach in 1-click.
+    - **Invite Client Shortcut**: Instant QR / Link / Email modal.
+    - **Routine Programming Presets**: Configure your default proposal rest timer (e.g. 90s, 120s).
+    - **Client Compliance Alerts**: Toggle notifications for inactive clients (3+ days) or new 1RM personal records.
+    - **Theme, PWA & Backups**: Application styling and complete data backup.
+  - `[ 🏋️ Personal Account ]`:
+    - Configure your own personal routines, personal saved library, and personal privacy settings.
+
+---
+
+## 8. Athlete Manual: Saved Routines Library & Program Switching
 
 Athletes have a multi-program library allowing them to keep multiple seasonal programs (e.g. *PPL Hypertrophy*, *Strength Block 1*, *Coach Proposed Split*).
 

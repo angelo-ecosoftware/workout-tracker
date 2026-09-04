@@ -13,6 +13,7 @@ import { SettingsAssistedWorkoutSection } from './SettingsAssistedWorkoutSection
 import { SettingsBackupSection } from './SettingsBackupSection.tsx';
 import { SettingsPWASection } from './SettingsPWASection.tsx';
 import { CoachConnectionsSection } from '../settings/CoachConnectionsSection.tsx';
+import { CoachSettingsSection } from './CoachSettingsSection.tsx';
 
 interface Props {
   isOpen: boolean;
@@ -22,6 +23,7 @@ interface Props {
 export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { user, logout, switchAccount, isCoach, specialty } = useAuth();
   const { installPrompt, setInstallPrompt, isStandalone, isIOS, isMobile } = usePWA();
+  const [settingsMode, setSettingsMode] = useState<'trainer' | 'personal'>(() => isCoach ? 'trainer' : 'personal');
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
@@ -199,144 +201,200 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
           {/* Modal Scrollable Body */}
           <div className="p-3 sm:p-4 flex flex-col gap-2 sm:gap-2.5 overflow-y-auto overscroll-contain flex-1">
-            {/* Theme Selector */}
-            <SettingsThemeSection />
-
-            {/* Assisted Timed Workout Toggle & Timer Setting */}
-            <SettingsAssistedWorkoutSection
-              assistedTimedWorkout={assistedTimedWorkout}
-              setAssistedTimedWorkout={setAssistedTimedWorkout}
-              restDurationSeconds={restDurationSeconds}
-              setRestDurationSeconds={setRestDurationSeconds}
-            />
-
-            {/* Edit Routines & Exercises Button */}
-            <button
-              onClick={handleOpenRoutineEditor}
-              disabled={loadingWorkouts}
-              className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
-            >
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
-                  {loadingWorkouts ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  ) : (
-                    <Layers className="w-3.5 h-3.5" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-bold text-xs sm:text-sm text-white truncate">
-                    Edit Routines & Exercises
-                  </div>
-                  <div className="text-[11px] text-gray-500 truncate">
-                    Customize days, exercises & targets
-                  </div>
-                </div>
-              </div>
-              <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
-                Configure
-              </div>
-            </button>
-
-            {/* Saved Routines Library Button */}
-            <button
-              onClick={async () => {
-                try {
-                  const data = await fetchWorkoutsData(user.uid);
-                  setUserWorkouts(data.combinedWorkouts);
-                } catch {
-                  // ignore
-                }
-                setIsLibraryOpen(true);
-              }}
-              className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
-            >
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
-                  <Bookmark className="w-3.5 h-3.5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-bold text-xs sm:text-sm text-white truncate">
-                    Saved Routines Library
-                  </div>
-                  <div className="text-[11px] text-gray-500 truncate">
-                    Switch programs & saved splits
-                  </div>
-                </div>
-              </div>
-              <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
-                Library
-              </div>
-            </button>
-
-            {/* Privacy & Visibility Settings Button */}
-            <button
-              onClick={() => setIsPrivacyOpen(true)}
-              className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
-            >
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
-                  <Shield className="w-3.5 h-3.5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-bold text-xs sm:text-sm text-white truncate">
-                    Privacy & Visibility
-                  </div>
-                  <div className="text-[11px] text-gray-500 truncate">
-                    Public modules, peer sharing & coach access
-                  </div>
-                </div>
-              </div>
-              <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
-                Privacy
-              </div>
-            </button>
-
-            {/* Coach Mode / Trainer Permissions Button */}
-            <button
-              onClick={() => setIsCoachAccountOpen(true)}
-              className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
-            >
-              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
+            {/* Mode Switcher inside Settings (Only for Coaches) */}
+            {isCoach && (
+              <div className="flex bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 font-mono text-xs mb-1">
+                <button
+                  type="button"
+                  onClick={() => setSettingsMode('trainer')}
+                  className={`flex-1 py-1.5 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    settingsMode === 'trainer'
+                      ? 'bg-[#C0FF00] text-black shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
                   <UserCheck className="w-3.5 h-3.5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="font-bold text-xs sm:text-sm text-white truncate">
-                    Coach Mode & Trainer Tools
-                  </div>
-                  <div className="text-[11px] text-gray-500 truncate">
-                    {isCoach ? `Active as ${specialty || 'strength'} coach` : 'Unlock client roster & proposal tools'}
-                  </div>
-                </div>
+                  <span>Trainer Settings</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSettingsMode('personal')}
+                  className={`flex-1 py-1.5 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    settingsMode === 'personal'
+                      ? 'bg-[#C0FF00] text-black shadow-sm'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Personal Account</span>
+                </button>
               </div>
-              <div className={`text-[10px] font-mono font-bold uppercase tracking-wider shrink-0 px-2 py-0.5 rounded transition-colors ${
-                isCoach ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-[#C0FF00]/10 text-[#C0FF00] border border-[#C0FF00]/20 group-hover:bg-[#C0FF00] group-hover:text-black'
-              }`}>
-                {isCoach ? 'Coach Active' : 'Activate'}
-              </div>
-            </button>
+            )}
 
-            {/* Coach Connections & Proposals */}
-            <CoachConnectionsSection userId={user.uid} />
+            {/* COACH / TRAINER SETTINGS VIEW */}
+            {isCoach && settingsMode === 'trainer' ? (
+              <>
+                <CoachSettingsSection />
+                <SettingsThemeSection />
+                <SettingsPWASection
+                  isMobile={isMobile}
+                  isStandalone={isStandalone}
+                  showIOSGuide={showIOSGuide}
+                  setShowIOSGuide={setShowIOSGuide}
+                  onInstallApp={handleInstallApp}
+                />
+                <SettingsBackupSection
+                  isExporting={isExporting}
+                  isImporting={isImporting}
+                  onExport={handleExport}
+                  fileInputRef={fileInputRef}
+                  onFileChange={handleFileChange}
+                />
+              </>
+            ) : (
+              /* ATHLETE / PERSONAL WORKOUT SETTINGS VIEW */
+              <>
+                {/* Theme Selector */}
+                <SettingsThemeSection />
 
-            {/* PWA Section */}
-            <SettingsPWASection
-              isMobile={isMobile}
-              isStandalone={isStandalone}
-              showIOSGuide={showIOSGuide}
-              setShowIOSGuide={setShowIOSGuide}
-              onInstallApp={handleInstallApp}
-            />
+                {/* Assisted Timed Workout Toggle & Timer Setting */}
+                <SettingsAssistedWorkoutSection
+                  assistedTimedWorkout={assistedTimedWorkout}
+                  setAssistedTimedWorkout={setAssistedTimedWorkout}
+                  restDurationSeconds={restDurationSeconds}
+                  setRestDurationSeconds={setRestDurationSeconds}
+                />
 
-            {/* Backup and Restore Section */}
-            <SettingsBackupSection
-              isExporting={isExporting}
-              isImporting={isImporting}
-              onExport={handleExport}
-              fileInputRef={fileInputRef}
-              onFileChange={handleFileChange}
-            />
+                {/* Edit Routines & Exercises Button */}
+                <button
+                  onClick={handleOpenRoutineEditor}
+                  disabled={loadingWorkouts}
+                  className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
+                      {loadingWorkouts ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Layers className="w-3.5 h-3.5" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-xs sm:text-sm text-white truncate">
+                        Edit Routines & Exercises
+                      </div>
+                      <div className="text-[11px] text-gray-500 truncate">
+                        Customize days, exercises & targets
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
+                    Configure
+                  </div>
+                </button>
+
+                {/* Saved Routines Library Button */}
+                <button
+                  onClick={async () => {
+                    try {
+                      const data = await fetchWorkoutsData(user.uid);
+                      setUserWorkouts(data.combinedWorkouts);
+                    } catch {
+                      // ignore
+                    }
+                    setIsLibraryOpen(true);
+                  }}
+                  className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
+                      <Bookmark className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-xs sm:text-sm text-white truncate">
+                        Saved Routines Library
+                      </div>
+                      <div className="text-[11px] text-gray-500 truncate">
+                        Switch programs & saved splits
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
+                    Library
+                  </div>
+                </button>
+
+                {/* Privacy & Visibility Settings Button */}
+                <button
+                  onClick={() => setIsPrivacyOpen(true)}
+                  className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
+                      <Shield className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-xs sm:text-sm text-white truncate">
+                        Privacy & Visibility
+                      </div>
+                      <div className="text-[11px] text-gray-500 truncate">
+                        Public modules, peer sharing & coach access
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
+                    Privacy
+                  </div>
+                </button>
+
+                {/* Coach Mode / Trainer Permissions Button (Only for Non-Coaches to upgrade) */}
+                {!isCoach && (
+                  <button
+                    onClick={() => setIsCoachAccountOpen(true)}
+                    className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
+                        <UserCheck className="w-3.5 h-3.5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="font-bold text-xs sm:text-sm text-white truncate">
+                          Coach Mode & Trainer Tools
+                        </div>
+                        <div className="text-[11px] text-gray-500 truncate">
+                          Unlock client roster & proposal tools
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-[10px] font-mono font-bold uppercase tracking-wider shrink-0 px-2 py-0.5 rounded transition-colors bg-[#C0FF00]/10 text-[#C0FF00] border border-[#C0FF00]/20 group-hover:bg-[#C0FF00] group-hover:text-black">
+                      Activate
+                    </div>
+                  </button>
+                )}
+
+                {/* Coach Connections & Proposals */}
+                <CoachConnectionsSection userId={user.uid} />
+
+                {/* PWA Section */}
+                <SettingsPWASection
+                  isMobile={isMobile}
+                  isStandalone={isStandalone}
+                  showIOSGuide={showIOSGuide}
+                  setShowIOSGuide={setShowIOSGuide}
+                  onInstallApp={handleInstallApp}
+                />
+
+                {/* Backup and Restore Section */}
+                <SettingsBackupSection
+                  isExporting={isExporting}
+                  isImporting={isImporting}
+                  onExport={handleExport}
+                  fileInputRef={fileInputRef}
+                  onFileChange={handleFileChange}
+                />
+              </>
+            )}
 
             <div className="h-px bg-[#222] my-0.5" />
 
