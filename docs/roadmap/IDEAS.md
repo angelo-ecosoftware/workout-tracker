@@ -69,21 +69,16 @@ Combining the strengths of these repositories produces a best-in-class exercise 
      - Clear live status badges (e.g., *"Fetching live macros from Jumbo..."*, *"Verified & Added"*).
      - Instant macro confirmation card with 1-tap portion logger.
 
-### 2.2 [BUG FIX] Dietary Portion Input Leading Zero (`0`) Deletion
-- **Issue**: When entering portion sizes (grams eaten), deleting input or typing over the initial value retains a leading `0` (e.g. `0150` instead of `150`), requiring manual backspace.
-- **Fix**: Sanitize numeric text input on focus/change so entering a number clears default `0` state cleanly.
-
 ---
 
-## 3. Workout Tracking & Session Logging Fixes
+## 3. Workout Tracking & Session Logging Enhancements
 
-### 3.1 [BUG FIX] Last Known Weight Auto-Population on New Sets
-- **Issue**: Verify and ensure the last logged weight automatically pre-fills into the next set's weight input for seamless progression tracking.
-- **Action**: Check `lastSetSummaryPerExercise` fallback in workout tracker component state so users do not have to re-type weights when performing straight sets.
+### 3.1 Weight & Profile Sync After Session Log
+- **Concept**: Ensure body weight and biometric state sync and update across profile and history whenever a workout session with bodyweight is completed.
 
-### 3.2 [BUG FIX] Sleep Hours & Energy Level Logging in Session History
-- **Issue**: Pre-workout readiness metrics (hours slept, subjective energy level from 1–5, notes) must be reliably saved and displayed in workout session history logs.
-- **Action**: Ensure the session completion payload saves these recovery attributes to database logs and displays them inside workout detail summaries.
+### 3.2 Unrealistic Weight / Reps Confirmation Guard ("Are you sure?" Modal)
+- **Concept**: Protect against accidental input errors (e.g., entering 500kg or 100 reps instead of 50kg/10 reps).
+- **Behavior**: Trigger a friendly confirmation modal if logged set weight or rep count exceeds realistic human thresholds or sudden 3x jumps compared to historical benchmarks.
 
 ---
 
