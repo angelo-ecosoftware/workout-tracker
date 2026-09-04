@@ -1,5 +1,5 @@
 import { supabase } from './supabase.ts';
-import { UserProfile, Workout, Session, WorkoutSet, Exercise, LastSetSummary } from '../models.ts';
+import { UserProfile, Workout, Session, WorkoutSet, Exercise, LastSetSummary, BodyMeasurementLog } from '../models.ts';
 import { SessionEngine, SetLogger } from '../engine.ts';
 import { deleteWorkoutPhotos } from './storage.ts';
 
@@ -67,16 +67,28 @@ export async function initializeUser(userId: string, email?: string, name?: stri
 
   const localMetricsRaw = localStorage.getItem(`user_metrics_${userId}`);
   const localMetrics = localMetricsRaw ? JSON.parse(localMetricsRaw) : undefined;
+  const rawBodyLogs = localStorage.getItem(`body_logs_${userId}`);
+  const cachedLogs: BodyMeasurementLog[] = rawBodyLogs ? JSON.parse(rawBodyLogs) : [];
+  const latestCachedWeight = cachedLogs.length > 0 ? cachedLogs[cachedLogs.length - 1].weightKg : undefined;
+
+  const resolvedWeight = data.weight_kg != null ? Number(data.weight_kg) : (data.metrics?.weight != null ? Number(data.metrics.weight) : (localMetrics?.weight || latestCachedWeight));
+  const resolvedHeight = data.height_cm != null ? Number(data.height_cm) : (data.metrics?.height != null ? Number(data.metrics.height) : localMetrics?.height);
 
   return {
     userId: data.user_id || userId,
     email: data.email || resolvedEmail,
     name: data.name || resolvedName,
+    dateOfBirth: data.date_of_birth || data.metrics?.dateOfBirth,
+    gender: data.gender || data.metrics?.gender,
+    heightCm: resolvedHeight,
+    weightKg: resolvedWeight,
+    fitnessLevel: data.fitness_level || data.metrics?.fitnessLevel,
+    trainingLocation: data.training_location || data.metrics?.trainingLocation,
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
     maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
-    metrics: data.metrics || localMetrics,
+    metrics: data.metrics || localMetrics || (resolvedWeight ? { weight: resolvedWeight, height: resolvedHeight } : undefined),
   } as UserProfile;
 }
 
@@ -219,17 +231,29 @@ export async function getUserProgressState(userId: string) {
 
   const localMetricsRaw = localStorage.getItem(`user_metrics_${userId}`);
   const localMetrics = localMetricsRaw ? JSON.parse(localMetricsRaw) : undefined;
+  const rawBodyLogs = localStorage.getItem(`body_logs_${userId}`);
+  const cachedLogs: BodyMeasurementLog[] = rawBodyLogs ? JSON.parse(rawBodyLogs) : [];
+  const latestCachedWeight = cachedLogs.length > 0 ? cachedLogs[cachedLogs.length - 1].weightKg : undefined;
+
+  const resolvedWeight = data.weight_kg != null ? Number(data.weight_kg) : (data.metrics?.weight != null ? Number(data.metrics.weight) : (localMetrics?.weight || latestCachedWeight));
+  const resolvedHeight = data.height_cm != null ? Number(data.height_cm) : (data.metrics?.height != null ? Number(data.metrics.height) : localMetrics?.height);
 
   return {
     profile: {
       userId: data.user_id || userId,
       email: data.email || userEmail,
       name: data.name || userName || (userEmail ? userEmail.split('@')[0] : '') || 'Athlete',
+      dateOfBirth: data.date_of_birth || data.metrics?.dateOfBirth,
+      gender: data.gender || data.metrics?.gender,
+      heightCm: resolvedHeight,
+      weightKg: resolvedWeight,
+      fitnessLevel: data.fitness_level || data.metrics?.fitnessLevel,
+      trainingLocation: data.training_location || data.metrics?.trainingLocation,
       lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
       maxWorkoutOrder: data.max_workout_order ?? 3,
       lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
       createdAt: data.created_at ? new Date(data.created_at) : new Date(),
-      metrics: data.metrics || localMetrics,
+      metrics: data.metrics || localMetrics || (resolvedWeight ? { weight: resolvedWeight, height: resolvedHeight } : undefined),
     } as UserProfile,
     isNewUser: false,
   };
@@ -772,11 +796,19 @@ export async function logDailyBodyWeight(
     // Keep sorted by date ascending
     logs.sort((a, b) => a.logDate.localeCompare(b.logDate));
     localStorage.setItem(localKey, JSON.stringify(logs));
+
+    // Update active user metrics cache with latest weight
+    const localMetricsKey = `user_metrics_${userId}`;
+    const rawMetrics = localStorage.getItem(localMetricsKey);
+    const metrics = rawMetrics ? JSON.parse(rawMetrics) : {};
+    metrics.weight = payload.weightKg;
+    if (payload.heightCm) metrics.height = payload.heightCm;
+    localStorage.setItem(localMetricsKey, JSON.stringify(metrics));
   } catch (lErr) {
     console.warn('Could not save body log locally:', lErr);
   }
 
-  // 2. Supabase DB persistence
+  // 2. Supabase DB persistence for body_logs and users profile
   try {
     const dbPayload = {
       id: logEntry.id,
@@ -795,6 +827,13 @@ export async function logDailyBodyWeight(
     if (error) {
       console.warn('Could not sync body log to Supabase body_logs table:', error);
     }
+
+    // Sync weight_kg and height_cm directly to users profile table
+    await supabase.from('users').update({
+      weight_kg: payload.weightKg,
+      height_cm: payload.heightCm || undefined,
+      updated_at: new Date().toISOString(),
+    }).eq('user_id', userId);
   } catch (dbErr) {
     console.warn('Supabase body_logs upsert error:', dbErr);
   }

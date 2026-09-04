@@ -169,6 +169,12 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
         return [...prev, updatedLog].sort((a, b) => a.logDate.localeCompare(b.logDate));
       });
 
+      setUserProfile(prev => prev ? {
+        ...prev,
+        weightKg: parsedWeight,
+        metrics: { ...prev.metrics, weight: parsedWeight },
+      } : prev);
+
       setEditingWeightSessionId(null);
     } catch (err: any) {
       console.error("Failed to save body weight:", err);

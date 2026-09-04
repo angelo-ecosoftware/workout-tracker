@@ -29,6 +29,16 @@ export async function logDailyBodyWeight(
 
   if (error) throw error;
 
+  try {
+    await supabase.from('users').update({
+      weight_kg: payload.weightKg,
+      height_cm: payload.heightCm || undefined,
+      updated_at: new Date().toISOString(),
+    }).eq('user_id', userId);
+  } catch {
+    // ignore
+  }
+
   return {
     id: data.id,
     userId: data.user_id,

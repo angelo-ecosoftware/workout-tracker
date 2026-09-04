@@ -106,16 +106,28 @@ export async function initializeUser(userId: string, email?: string, name?: stri
 
   const localMetricsRaw = getLocalStorageItem(`user_metrics_${userId}`);
   const localMetrics = localMetricsRaw ? JSON.parse(localMetricsRaw) : undefined;
+  const rawBodyLogs = getLocalStorageItem(`body_logs_${userId}`);
+  const cachedLogs: any[] = rawBodyLogs ? JSON.parse(rawBodyLogs) : [];
+  const latestCachedWeight = cachedLogs.length > 0 ? cachedLogs[cachedLogs.length - 1].weightKg : undefined;
+
+  const resolvedWeight = data.weight_kg != null ? Number(data.weight_kg) : (data.metrics?.weight != null ? Number(data.metrics.weight) : (localMetrics?.weight || latestCachedWeight));
+  const resolvedHeight = data.height_cm != null ? Number(data.height_cm) : (data.metrics?.height != null ? Number(data.metrics.height) : localMetrics?.height);
 
   return {
     userId: data.user_id || userId,
     email: data.email || resolvedEmail,
     name: data.name || resolvedName,
+    dateOfBirth: data.date_of_birth || data.metrics?.dateOfBirth,
+    gender: data.gender || data.metrics?.gender,
+    heightCm: resolvedHeight,
+    weightKg: resolvedWeight,
+    fitnessLevel: data.fitness_level || data.metrics?.fitnessLevel,
+    trainingLocation: data.training_location || data.metrics?.trainingLocation,
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
     maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
-    metrics: data.metrics || localMetrics,
+    metrics: data.metrics || localMetrics || (resolvedWeight ? { weight: resolvedWeight, height: resolvedHeight } : undefined),
   } as UserProfile;
 }
 

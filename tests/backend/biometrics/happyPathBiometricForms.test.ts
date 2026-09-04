@@ -66,5 +66,22 @@ describe('Happy Path Biometric Forms: Measurement Logging & BMI Pipelines', () =
       expect(metrics.fitnessLevel).toBe('intermediate');
       expect(metrics.goals).toContain('hypertrophy');
     });
+
+    it('updates users table weight_kg and local storage cache when logging daily bodyweight', async () => {
+      const { logDailyBodyWeight } = await import('../../../src/lib/supabaseData.ts');
+      const mockLog = await logDailyBodyWeight('usr_happy_01', {
+        date: '2026-09-04',
+        weightKg: 82.5,
+        heightCm: 180,
+        source: 'workout_session',
+      });
+
+      expect(mockLog.weightKg).toBe(82.5);
+      expect(mockLog.calculatedBmi).toBe(25.5);
+
+      const cachedMetrics = JSON.parse(localStorage.getItem('user_metrics_usr_happy_01') || '{}');
+      expect(cachedMetrics.weight).toBe(82.5);
+      expect(cachedMetrics.height).toBe(180);
+    });
   });
 });
