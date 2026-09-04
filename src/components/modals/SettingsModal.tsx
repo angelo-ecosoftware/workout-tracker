@@ -6,6 +6,7 @@ import { exportAllLogs, importAllLogs, fetchWorkoutsData, saveWorkoutsAndExercis
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { SavedRoutinesLibraryModal } from './SavedRoutinesLibraryModal.tsx';
 import { PrivacySettingsModal } from '../settings/PrivacySettingsModal.tsx';
+import { CoachAccountModal } from './CoachAccountModal.tsx';
 import { Workout, Exercise } from '../../models.ts';
 import { SettingsThemeSection } from './SettingsThemeSection.tsx';
 import { SettingsAssistedWorkoutSection } from './SettingsAssistedWorkoutSection.tsx';
@@ -19,7 +20,7 @@ interface Props {
 }
 
 export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
-  const { user, logout, switchAccount } = useAuth();
+  const { user, logout, switchAccount, isCoach, specialty } = useAuth();
   const { installPrompt, setInstallPrompt, isStandalone, isIOS, isMobile } = usePWA();
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
@@ -27,6 +28,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [isRoutineEditorOpen, setIsRoutineEditorOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const [isCoachAccountOpen, setIsCoachAccountOpen] = useState(false);
   const [userWorkouts, setUserWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
 
@@ -290,6 +292,31 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
               </div>
             </button>
 
+            {/* Coach Mode / Trainer Permissions Button */}
+            <button
+              onClick={() => setIsCoachAccountOpen(true)}
+              className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
+            >
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
+                  <UserCheck className="w-3.5 h-3.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-xs sm:text-sm text-white truncate">
+                    Coach Mode & Trainer Tools
+                  </div>
+                  <div className="text-[11px] text-gray-500 truncate">
+                    {isCoach ? `Active as ${specialty || 'strength'} coach` : 'Unlock client roster & proposal tools'}
+                  </div>
+                </div>
+              </div>
+              <div className={`text-[10px] font-mono font-bold uppercase tracking-wider shrink-0 px-2 py-0.5 rounded transition-colors ${
+                isCoach ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-[#C0FF00]/10 text-[#C0FF00] border border-[#C0FF00]/20 group-hover:bg-[#C0FF00] group-hover:text-black'
+              }`}>
+                {isCoach ? 'Coach Active' : 'Activate'}
+              </div>
+            </button>
+
             {/* Coach Connections & Proposals */}
             <CoachConnectionsSection userId={user.uid} />
 
@@ -383,6 +410,14 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           isOpen={isPrivacyOpen}
           onClose={() => setIsPrivacyOpen(false)}
           userId={user.uid}
+        />
+      )}
+
+      {/* Coach Account Modal */}
+      {isCoachAccountOpen && (
+        <CoachAccountModal
+          isOpen={isCoachAccountOpen}
+          onClose={() => setIsCoachAccountOpen(false)}
         />
       )}
     </>

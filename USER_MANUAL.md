@@ -19,7 +19,7 @@ Welcome to the **Workout Tracker** user manual. This guide explains how **Athlet
 
 ---
 
-## 1. User Roles Overview
+## 1. User Roles Overview & How to Become a Coach
 
 The system supports 3 primary roles:
 
@@ -29,10 +29,15 @@ The system supports 3 primary roles:
 | **Coach** | `Today's Session`, `Log Book`, `Insights`, `Dietary`, **`Client Roster`** | All athlete features + invite athletes, view client adherence, inspect client logs, propose training splits, prescribe daily macros, and add technique cues. |
 | **Admin** | All Tabs + Catalog Moderation | Approve coach requests, manage the global exercise & food catalog. |
 
-> **Note**: To switch an account to the **Coach** role during development/testing, click your profile avatar in the header and submit a coach role request, or run the SQL command:
-> ```sql
-> UPDATE user_roles SET role = 'coach', is_approved = true WHERE user_id = '<your-user-id>';
-> ```
+### How Any User Becomes a Coach (In-App Flow):
+1. Open the application **Settings (Gear Icon)** in the header.
+2. Click on **"Coach Mode & Trainer Tools"**.
+3. Choose your Coaching Specialty:
+   - **Strength** (Strength & Conditioning programming)
+   - **Nutrition** (Daily calories & macronutrient prescriptions)
+   - **Head Coach** (Full training programming + diet)
+4. Click **"Activate Coach Mode"**.
+5. The **`Client Roster`** tab immediately unlocks in the main navigation bar, giving you access to all trainer tools!
 
 ---
 
