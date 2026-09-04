@@ -32,16 +32,6 @@ export interface PlusScrapedFood {
   is_custom: boolean;
   created_by: string;
 }
-  sugar_per_100g: number;
-  fat_per_100g: number;
-  fiber_per_100g: number;
-  package_weight_grams?: number;
-  barcode?: string;
-  source_url: string;
-  is_custom: boolean;
-  created_by: string;
-  updated_at: string;
-}
 
 /**
  * Fetch all product URLs directly from the official PLUS sitemap engine.
@@ -125,9 +115,16 @@ export async function scrapePlusProductPage(page: Page, url: string): Promise<Pl
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
 
     // Wait for the main title rendered by OutSystems
-    await page.waitForSelector('.js-screen-title, h1 span', { timeout: 8000 });
+    await page.waitForSelector('.product-title, h1, .js-screen-title', { timeout: 8000 });
 
-    const rawTitle = await page.$eval('.js-screen-title, h1 span', (el) => el.textContent?.trim() || '');
+    const rawTitle = await page.evaluate(() => {
+      // Find the h1 or prominent product title
+      const h1 = document.querySelector('h1');
+      if (h1 && h1.innerText.trim()) return h1.innerText.trim();
+      const st = document.querySelector('.js-screen-title');
+      if (st && st.textContent?.trim()) return st.textContent.trim();
+      return document.title.split('|')[0].trim();
+    });
     if (!rawTitle) return null;
 
     // Check if the page contains a nutritional table (filter non-food products)
