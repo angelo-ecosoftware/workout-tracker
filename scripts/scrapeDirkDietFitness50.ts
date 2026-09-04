@@ -98,6 +98,19 @@ async function runDirkDietFitness50Scraper() {
         const item = await scrapeDirkProductPage(page, url);
         completed++;
         if (item) {
+          // Check if item name or ID already exists in scrapedItems before adding
+          const normalizedName = item.name.toLowerCase().trim();
+          const alreadyExists = scrapedItems.some(
+            (existing) =>
+              existing.id === item.id ||
+              existing.name.toLowerCase().trim() === normalizedName
+          );
+
+          if (alreadyExists) {
+            console.log(`[Worker ${workerId}] ⚠️ Duplicate skipped: ${item.name} (${item.id})`);
+            continue;
+          }
+
           scrapedItems.push(item);
           console.log(
             `[Worker ${workerId}] [🎯 Total Verified: ${scrapedItems.length}/50] ✅ Scraped: ${item.name} (${item.kcal_per_100g} kcal, ${item.protein_per_100g}g P, ${item.carbs_per_100g}g C, ${item.fat_per_100g}g F)`
