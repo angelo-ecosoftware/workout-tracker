@@ -387,10 +387,10 @@ export async function upsertJumboProduct(product: JumboProduct): Promise<boolean
       return false; // Updated existing (not a new insert)
     }
 
-    // Generate clean concise unique ID using SKU (e.g. jumbo_753633kgr)
-    const skuMatch = product.source_url.match(/-(\d+[A-Za-z]+)(?:[/?#]|$)/);
+    // Generate clean concise unique ID using numeric SKU only (e.g. jumbo_753633 instead of jumbo_753633kgr)
+    const skuMatch = product.source_url.match(/-(\d+)[A-Za-z]*(?:[/?#]|$)/);
     const productId = skuMatch
-      ? `jumbo_${skuMatch[1].toLowerCase()}`
+      ? `jumbo_${skuMatch[1]}`
       : `jumbo_${Math.random().toString(36).substring(2, 9)}`;
 
     // Insert new item

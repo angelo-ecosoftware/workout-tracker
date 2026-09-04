@@ -163,7 +163,8 @@ export async function resolveJumboBarcode(barcode: string): Promise<FoodItemNutr
     if (!linkMatch) return null;
 
     const productPath = linkMatch[1];
-    const sku = linkMatch[2];
+    const rawSku = linkMatch[2];
+    const cleanSku = rawSku.replace(/[a-zA-Z]+$/, '');
     const fullProductUrl = `https://www.jumbo.com${productPath}`;
 
     const prodRes = await fetch(fullProductUrl, {
@@ -233,7 +234,7 @@ export async function resolveJumboBarcode(barcode: string): Promise<FoodItemNutr
     }
 
     return {
-      id: `jumbo_${sku}`,
+      id: `jumbo_${cleanSku || rawSku}`,
       name: title,
       brand,
       servingUnit: prodHtml.toLowerCase().includes('ml') ? 'ml' : 'gram',

@@ -319,8 +319,9 @@ export const jumboAdapter: StoreScraperAdapter = {
     const nutrition = parseDutchNutritionTable(html);
     const sizing = extractPackageSizing(title, html);
 
-    const jumboIdMatch = url.match(/-([0-9A-Z]+)$/i) || url.match(/producten\/([^/?#]+)/i);
-    const productId = jumboIdMatch ? `jumbo_${jumboIdMatch[1].toLowerCase()}` : `jumbo_${Date.now()}`;
+    const jumboIdMatch = url.match(/-(\d+)[a-z]*(?:[/?#]|$)/i) || url.match(/-([0-9A-Z]+)$/i) || url.match(/producten\/([^/?#]+)/i);
+    const rawId = jumboIdMatch ? jumboIdMatch[1].replace(/[a-z]+$/i, '') : `${Date.now()}`;
+    const productId = `jumbo_${rawId}`;
 
     const isDrink =
       html.toLowerCase().includes('per 100 milliliter') ||
