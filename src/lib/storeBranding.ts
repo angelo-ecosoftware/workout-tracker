@@ -124,6 +124,62 @@ export function isHouseBrand(brand?: string, storeMeta?: StoreMetadata | null): 
 }
 
 /**
+ * Resolve product confirmation link with app deep linking support
+ * For Albert Heijn: provides direct product URL (e.g. ah.nl/producten/product/wi...) or web search fallback.
+ * Universal web links (https://www.ah.nl/...) automatically prompt to open in the native Albert Heijn App on iOS/Android if installed,
+ * or open seamlessly in the browser.
+ */
+export function getProductExternalUrl(item: { id?: string; sourceUrl?: string; name?: string; brand?: string; barcode?: string }): { url: string; label: string; isAppCapable: boolean } | null {
+  if (!item) return null;
+
+  // 1. If explicit sourceUrl is present
+  if (item.sourceUrl && item.sourceUrl.startsWith('http')) {
+    const isAh = item.sourceUrl.includes('ah.nl');
+    const isJumbo = item.sourceUrl.includes('jumbo.com');
+    const label = isAh ? 'Open in AH App / Web' : isJumbo ? 'Bekijk op Jumbo.com' : 'Bekijk product';
+    return {
+      url: item.sourceUrl,
+      label,
+      isAppCapable: isAh,
+    };
+  }
+
+  // 2. If Albert Heijn Webshop ID is present in item.id (e.g. ah_wi561020 or wi561020)
+  const ahWiMatch = item.id?.match(/(?:ah_)?wi(\d+)/i);
+  if (ahWiMatch) {
+    const webshopId = ahWiMatch[1];
+    return {
+      url: `https://www.ah.nl/producten/product/wi${webshopId}`,
+      label: 'Open in AH App / Web',
+      isAppCapable: true,
+    };
+  }
+
+  // 3. If item is Albert Heijn brand or has store metadata
+  const storeMeta = getStoreMetadata(item.sourceUrl, item.id);
+  const isAh = storeMeta?.id === 'ah' || item.brand?.toLowerCase().includes('albert heijn') || item.brand?.toLowerCase() === 'ah';
+  if (isAh && item.name) {
+    const query = encodeURIComponent(cleanProductTitle(item.name));
+    return {
+      url: `https://www.ah.nl/zoeken?query=${query}`,
+      label: 'Zoek in AH App / Web',
+      isAppCapable: true,
+    };
+  }
+
+  // 4. Barcode fallback to OpenFoodFacts
+  if (item.barcode && /^\d{8,14}$/.test(item.barcode)) {
+    return {
+      url: `https://nl.openfoodfacts.org/product/${item.barcode}`,
+      label: 'Bekijk op OpenFoodFacts',
+      isAppCapable: false,
+    };
+  }
+
+  return null;
+}
+
+/**
  * Levenshtein distance for fuzzy typo-tolerant matching
  */
 export function levenshteinDistance(a: string, b: string): number {

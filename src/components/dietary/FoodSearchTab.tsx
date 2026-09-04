@@ -2,7 +2,8 @@ import React from 'react';
 import { FoodItemNutrition } from '../../models.ts';
 import { calculatePortionNutrients } from '../../lib/dietaryData.ts';
 import { StoreMetadata } from './FoodSearchModal.tsx';
-import { Check, Globe, Search } from 'lucide-react';
+import { Check, Globe, Search, ExternalLink } from 'lucide-react';
+import { getProductExternalUrl } from '../../lib/storeBranding.ts';
 
 interface FoodSearchTabProps {
   searchQuery: string;
@@ -44,14 +45,32 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
     const isLiquid = selectedFoodItem.servingUnit === 'ml';
     const unitLabel = isLiquid ? 'ml' : 'g';
     const baseUnitText = isLiquid ? '100ml' : '100g';
+    const externalLink = getProductExternalUrl(selectedFoodItem);
 
     return (
       <div className="p-4 bg-[#1b1b1b] border border-[#C0FF00]/40 rounded-2xl space-y-3">
         <div className="flex items-start justify-between">
-          <div>
-            <span className="text-[10px] font-mono font-bold uppercase text-[#C0FF00] bg-[#C0FF00]/10 px-1.5 py-0.2 rounded">
-              {selectedFoodItem.brand || 'Selected'}
-            </span>
+          <div className="min-w-0 flex-1 pr-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-mono font-bold uppercase text-[#C0FF00] bg-[#C0FF00]/10 px-1.5 py-0.2 rounded">
+                {selectedFoodItem.brand || 'Selected'}
+              </span>
+
+              {/* Minimal product confirmation / deep link */}
+              {externalLink && (
+                <a
+                  href={externalLink.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  title="Bekijk of herbevestig in AH app / web"
+                  className="inline-flex items-center gap-1 text-[10px] font-mono text-[#00ade6] hover:text-[#38bdf8] hover:underline bg-[#00ade6]/10 px-1.5 py-0.5 rounded border border-[#00ade6]/30 transition-colors"
+                >
+                  <ExternalLink className="w-2.5 h-2.5" />
+                  <span>{externalLink.label}</span>
+                </a>
+              )}
+            </div>
             <h4 className="font-sans text-sm font-bold text-white mt-1">
               {selectedFoodItem.name}
             </h4>
@@ -61,7 +80,7 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
           </div>
           <button
             onClick={() => setSelectedFoodItem(null)}
-            className="text-xs text-gray-400 hover:text-white underline cursor-pointer"
+            className="text-xs text-gray-400 hover:text-white underline cursor-pointer shrink-0"
           >
             Change
           </button>
@@ -240,6 +259,7 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
             const storeMeta = getStoreMetadata(item.sourceUrl, item.id);
             const displayName = cleanProductTitle(item.name);
             const showBrandBadge = item.brand && !isHouseBrand(item.brand, storeMeta);
+            const externalLink = getProductExternalUrl(item);
 
             return (
               <div
@@ -275,6 +295,20 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
                       <span className="text-[9px] font-mono font-bold uppercase text-amber-400 bg-amber-400/10 px-1.5 py-0.2 rounded border border-amber-400/30">
                         Mijn Product
                       </span>
+                    )}
+
+                    {/* Minimal external product confirmation link */}
+                    {externalLink && (
+                      <a
+                        href={externalLink.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        title="Herbevestig in app of browser"
+                        className="text-gray-500 hover:text-[#00ade6] p-0.5 rounded transition-colors inline-flex items-center"
+                      >
+                        <ExternalLink className="w-2.5 h-2.5" />
+                      </a>
                     )}
                   </div>
                   <div className="flex items-center gap-2 text-[10px] font-mono text-gray-400 mt-1 flex-wrap">
