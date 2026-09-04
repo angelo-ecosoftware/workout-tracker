@@ -211,12 +211,27 @@ export const useDietaryTracking = (userId: string) => {
       }
       const data = await res.json();
       if (!data.success || !data.product) {
-        throw new Error(data.error || 'Could not extract nutritional information.');
+        throw new Error(data.error || 'We could not extract the nutritional information for this product right now.');
+      }
+
+      const rawTitle = (data.product.name || '').trim();
+      const lowerTitle = rawTitle.toLowerCase();
+      const isBlockedOrInvalid =
+        !rawTitle ||
+        lowerTitle.includes('access denied') ||
+        lowerTitle.includes('attention required') ||
+        lowerTitle.includes('just a moment') ||
+        lowerTitle.includes('403 forbidden') ||
+        lowerTitle.includes('cloudflare') ||
+        rawTitle === 'Product';
+
+      if (isBlockedOrInvalid) {
+        throw new Error('Could not resolve product from this link at the moment. Please verify the URL or search by name.');
       }
 
       const scrapedProduct: FoodItemNutrition = {
         id: data.product.id || `scraped_${Date.now()}`,
-        name: data.product.name,
+        name: rawTitle,
         brand: data.product.brand || '',
         servingUnit: data.product.servingUnit || 'gram',
         kcalPer100g: data.product.kcalPer100g || 0,

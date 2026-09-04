@@ -59,7 +59,12 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
         setStatus('found');
       } else {
         setStatus('not_found');
-        setErrorMessage(result.error || `Barcode ${clean} was not found in database or Open Food Facts.`);
+        const isInStoreScaleCode = /^(?:20|21|22|23|24|25|26|27|28|29)\d{11}$/.test(clean);
+        if (isInStoreScaleCode) {
+          setErrorMessage(`Barcode ${clean} is a fresh in-store bakery/scale sticker. Search the product name directly or paste the supermarket link.`);
+        } else {
+          setErrorMessage(result.error || `We couldn't find or resolve barcode ${clean} right now. Please try again or add it as a custom food.`);
+        }
       }
     } catch (err: any) {
       setStatus('error');

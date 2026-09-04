@@ -112,6 +112,29 @@ export function parseDutchNutritionTable(html: string): {
 }
 
 // -------------------------------------------------------------
+// Helper: Detect anti-bot challenge pages and error titles
+// -------------------------------------------------------------
+const BLOCKED_PAGE_INDICATORS = [
+  'access denied',
+  'attention required',
+  'just a moment',
+  'security check',
+  '403 forbidden',
+  'cloudflare',
+  'robot or human',
+  'shieldsquare',
+  'datadome',
+  'blocked',
+  'enable javascript and cookies',
+];
+
+export function isBlockedOrErrorTitle(title: string): boolean {
+  if (!title) return true;
+  const clean = title.toLowerCase().trim();
+  return BLOCKED_PAGE_INDICATORS.some((ind) => clean.includes(ind));
+}
+
+// -------------------------------------------------------------
 // Helper: Extract JSON-LD, H1, and Markdown title/brand fallbacks
 // -------------------------------------------------------------
 export function extractSchemaAndHeadings(
@@ -138,10 +161,13 @@ export function extractSchemaAndHeadings(
 
       for (const node of nodes) {
         if (node.name && typeof node.name === 'string' && (node['@type'] === 'Product' || !title || title === 'Product')) {
-          title = node.name
+          const candidateTitle = node.name
             .replace(/\s*bestellen\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
             .replace(/\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
             .trim();
+          if (!isBlockedOrErrorTitle(candidateTitle)) {
+            title = candidateTitle;
+          }
         }
         if (node.brand) {
           if (typeof node.brand === 'string') brand = node.brand;
@@ -171,7 +197,7 @@ export function extractSchemaAndHeadings(
       .replace(/<!--[\s\S]*?-->/g, '')
       .replace(/<[^>]+>/g, '')
       .trim();
-    if (rawH1 && rawH1.length > 2 && !rawH1.toLowerCase().includes('helaas')) {
+    if (rawH1 && rawH1.length > 2 && !rawH1.toLowerCase().includes('helaas') && !isBlockedOrErrorTitle(rawH1)) {
       title = rawH1
         .replace(/\s*bestellen\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
         .replace(/\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
@@ -187,7 +213,7 @@ export function extractSchemaAndHeadings(
         .replace(/\s*bestellen\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
         .replace(/\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
         .trim();
-      if (rawTitle && rawTitle.length > 2 && !rawTitle.toLowerCase().includes('helaas')) {
+      if (rawTitle && rawTitle.length > 2 && !rawTitle.toLowerCase().includes('helaas') && !isBlockedOrErrorTitle(rawTitle)) {
         title = rawTitle;
       }
     }
@@ -309,6 +335,99 @@ export function parseDirkNuxtNutrition(html: string): {
 // -------------------------------------------------------------
 // ADAPTER 1: Jumbo
 // -------------------------------------------------------------
+const JUMBO_API_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36',
+  'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'nl-NL,nl;q=0.9',
+};
+
+/**
+ * Direct search & mobile API endpoint fallback for Jumbo products.
+ * Uses Jumbo search/mobile backend queries to retrieve clean JSON product payloads.
+ */
+export async function fetchJumboMobileProduct(skuOrQuery: string, sourceUrl: string): Promise<ProductScraperResult | null> {
+  const cleanTerm = skuOrQuery.replace(/^jumbo_/i, '').trim();
+  if (!cleanTerm) return null;
+
+  try {
+    const apiUrl = `https://mobileapi.jumbo.com/v17/search?q=${encodeURIComponent(cleanTerm)}&offset=0&limit=5`;
+    const res = await fetch(apiUrl, {
+      headers: JUMBO_API_HEADERS,
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    const products = data.products?.data || [];
+    if (!products.length) return null;
+
+    const p = products[0];
+    const title = p.title || 'Jumbo Product';
+    const brand = p.brand?.name || 'Jumbo';
+    const cleanTitle = title.replace(/^Jumbo(?:'s)?\s+/i, '').trim();
+
+    // Sizing
+    let packageWeightGrams: number | undefined;
+    const quantityStr = p.quantity || p.subtitle || '';
+    if (quantityStr) {
+      const gMatch = quantityStr.match(/(\d+(?:[.,]\d+)?)\s*(?:g|gram|ml)\b/i);
+      if (gMatch) {
+        packageWeightGrams = Math.round(parseFloat(gMatch[1].replace(',', '.')));
+      } else {
+        const kgMatch = quantityStr.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i);
+        if (kgMatch) {
+          packageWeightGrams = Math.round(parseFloat(kgMatch[1].replace(',', '.')) * 1000);
+        }
+      }
+    }
+
+    // Nutrition values
+    let kcalPer100g = 0;
+    let proteinPer100g = 0;
+    let carbsPer100g = 0;
+    let sugarPer100g = 0;
+    let fatPer100g = 0;
+    let fiberPer100g = 0;
+
+    const nutriments = p.nutritionalInformation || [];
+    for (const n of nutriments) {
+      const name = (n.name || n.type || '').toLowerCase();
+      const val = parseFloat(String(n.value || n.amount || '').replace(',', '.')) || 0;
+      if (name.includes('energie') || name.includes('kcal')) kcalPer100g = Math.round(val);
+      else if (name.startsWith('eiwit')) proteinPer100g = val;
+      else if (name.startsWith('koolhydrat')) carbsPer100g = val;
+      else if (name.includes('suiker')) sugarPer100g = val;
+      else if (name.startsWith('vet')) fatPer100g = val;
+      else if (name.includes('vezel')) fiberPer100g = val;
+    }
+
+    const isDrink =
+      quantityStr.toLowerCase().includes('ml') ||
+      quantityStr.toLowerCase().includes('liter') ||
+      cleanTitle.toLowerCase().includes('melk') ||
+      cleanTitle.toLowerCase().includes('drank') ||
+      cleanTitle.toLowerCase().includes('sap');
+
+    return {
+      id: `jumbo_${p.id || cleanTerm}`,
+      name: cleanTitle || title,
+      brand,
+      barcode: p.ean || p.gtin,
+      servingUnit: isDrink ? 'ml' : 'gram',
+      kcalPer100g,
+      proteinPer100g,
+      carbsPer100g,
+      sugarPer100g,
+      fatPer100g,
+      fiberPer100g,
+      packageWeightGrams,
+      sourceUrl: sourceUrl || `https://www.jumbo.com/producten/${p.id}`,
+    };
+  } catch (err) {
+    console.warn('Jumbo Mobile API fetch attempt failed:', err);
+    return null;
+  }
+}
+
 export const jumboAdapter: StoreScraperAdapter = {
   name: 'Jumbo',
   canHandle(url: string) {
@@ -344,6 +463,166 @@ export const jumboAdapter: StoreScraperAdapter = {
 // -------------------------------------------------------------
 // ADAPTER 2: Albert Heijn
 // -------------------------------------------------------------
+const AH_API_HEADERS = {
+  'Host': 'api.ah.nl',
+  'x-application': 'AHWEBSHOP',
+  'user-agent': 'Appie/8.8.2 Model/phone Android/7.0-API24',
+  'content-type': 'application/json; charset=UTF-8',
+};
+
+/**
+ * Direct fetch from Albert Heijn Mobile Services API using Webshop / Item ID (wi...)
+ * Completely avoids Cloudflare / Bot protection on web pages.
+ */
+export async function fetchAlbertHeijnMobileProduct(webshopId: string, sourceUrl: string): Promise<ProductScraperResult | null> {
+  const cleanId = webshopId.replace(/^wi/i, '').trim();
+  if (!cleanId) return null;
+
+  try {
+    const authRes = await fetch('https://api.ah.nl/mobile-auth/v1/auth/token/anonymous', {
+      method: 'POST',
+      headers: AH_API_HEADERS,
+      body: JSON.stringify({ clientId: 'appie' }),
+    });
+
+    if (!authRes.ok) return null;
+    const authData = (await authRes.json()) as { access_token?: string };
+    const access_token = authData?.access_token;
+    if (!access_token) return null;
+
+    // Fetch product details
+    const firRes = await fetch(`https://api.ah.nl/mobile-services/product/detail/v4/fir/${cleanId}`, {
+      headers: {
+        ...AH_API_HEADERS,
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
+
+    if (!firRes.ok) return null;
+    const firData = await firRes.json();
+    if (!firData || typeof firData !== 'object') return null;
+
+    const title = firData.productCard?.title || firData.tradeItem?.description || 'AH Product';
+    const brand = firData.productCard?.brand || 'AH';
+    const cleanTitle = title.replace(/^AH\s+/i, '').trim();
+
+    const salesUnitSize = firData.productCard?.salesUnitSize || '';
+    let packageWeightGrams: number | undefined;
+    if (salesUnitSize) {
+      const gMatch = salesUnitSize.match(/(\d+(?:[.,]\d+)?)\s*(?:g|gram|ml)\b/i);
+      if (gMatch) {
+        packageWeightGrams = Math.round(parseFloat(gMatch[1].replace(',', '.')));
+      } else {
+        const kgMatch = salesUnitSize.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i);
+        if (kgMatch) {
+          packageWeightGrams = Math.round(parseFloat(kgMatch[1].replace(',', '.')) * 1000);
+        }
+      }
+    }
+
+    let kcalPer100g = 0;
+    let proteinPer100g = 0;
+    let carbsPer100g = 0;
+    let sugarPer100g = 0;
+    let fatPer100g = 0;
+    let fiberPer100g = 0;
+
+    const nutrientHeaders = firData.tradeItem?.nutritionalInformation?.nutrientHeaders || [];
+    const detailList = nutrientHeaders[0]?.nutrientDetail || [];
+
+    for (const d of detailList) {
+      const type = d.nutrientTypeCode?.value;
+      const label = (d.nutrientTypeCode?.label || '').toLowerCase();
+      const val = Number(d.quantityContained?.[0]?.value ?? 0);
+      const unit = d.quantityContained?.[0]?.measurementUnitCode?.value;
+
+      if ((type === 'ENER-' || label.includes('energie')) && unit === 'kcal') {
+        kcalPer100g = Math.round(val);
+      } else if (type === 'FAT' || label === 'vet') {
+        fatPer100g = parseFloat(val.toFixed(1));
+      } else if (type === 'SUGAR-' || label.includes('suikers')) {
+        sugarPer100g = parseFloat(val.toFixed(1));
+      } else if (type === 'CHOAVL' || (label.includes('koolhydraten') && !label.includes('waarvan'))) {
+        carbsPer100g = parseFloat(val.toFixed(1));
+      } else if (type === 'FIBTG' || label.includes('vezel')) {
+        fiberPer100g = parseFloat(val.toFixed(1));
+      } else if (type === 'PRO-' || label.includes('eiwit')) {
+        proteinPer100g = parseFloat(val.toFixed(1));
+      }
+    }
+
+    const isDrink =
+      salesUnitSize.toLowerCase().includes('ml') ||
+      salesUnitSize.toLowerCase().includes('liter') ||
+      cleanTitle.toLowerCase().includes('melk') ||
+      cleanTitle.toLowerCase().includes('drank');
+
+    return {
+      id: `ah_wi${cleanId}`,
+      name: cleanTitle || title,
+      brand,
+      barcode: firData.tradeItem?.gtin,
+      servingUnit: isDrink ? 'ml' : 'gram',
+      kcalPer100g,
+      proteinPer100g,
+      carbsPer100g,
+      sugarPer100g,
+      fatPer100g,
+      fiberPer100g,
+      packageWeightGrams,
+      sourceUrl,
+    };
+  } catch (err) {
+    console.warn('AH Mobile API fetch error for product link:', err);
+    return null;
+  }
+}
+
+/**
+ * Direct search endpoint fallback for Albert Heijn products.
+ * Queries AH mobile/web search endpoint by keyword/query to resolve the product if the direct page is blocked.
+ */
+export async function searchAlbertHeijnProduct(query: string, sourceUrl: string): Promise<ProductScraperResult | null> {
+  const cleanQuery = query.trim();
+  if (!cleanQuery) return null;
+
+  try {
+    const authRes = await fetch('https://api.ah.nl/mobile-auth/v1/auth/token/anonymous', {
+      method: 'POST',
+      headers: AH_API_HEADERS,
+      body: JSON.stringify({ clientId: 'appie' }),
+    });
+
+    if (!authRes.ok) return null;
+    const authData = (await authRes.json()) as { access_token?: string };
+    const access_token = authData?.access_token;
+    if (!access_token) return null;
+
+    const searchUrl = `https://api.ah.nl/mobile-services/product/search/v2?query=${encodeURIComponent(cleanQuery)}&size=3`;
+    const searchRes = await fetch(searchUrl, {
+      headers: {
+        ...AH_API_HEADERS,
+        Authorization: `Bearer ${access_token}`,
+      },
+    });
+
+    if (!searchRes.ok) return null;
+    const searchData = await searchRes.json();
+    const products = searchData.products || [];
+    if (!products.length) return null;
+
+    const first = products[0];
+    const webshopId = first.webshopId || first.id;
+    if (webshopId) {
+      return await fetchAlbertHeijnMobileProduct(String(webshopId), sourceUrl || `https://www.ah.nl/producten/product/wi${webshopId}`);
+    }
+    return null;
+  } catch (err) {
+    console.warn('AH Store Search Endpoint lookup failed:', err);
+    return null;
+  }
+}
+
 export const albertHeijnAdapter: StoreScraperAdapter = {
   name: 'Albert Heijn',
   canHandle(url: string) {
@@ -559,14 +838,75 @@ export async function scrapeProductFromUrl(rawUrl: string): Promise<ProductScrap
 
     lastStatus = pageRes.status;
     if (pageRes.ok) {
-      html = await pageRes.text();
+      const pageText = await pageRes.text();
+      // Only accept if not a bot block page
+      if (!isBlockedOrErrorTitle(pageText.slice(0, 500))) {
+        html = pageText;
+      }
     }
   } catch (err) {
     console.warn(`Direct fetch failed for ${targetUrl}:`, err);
   }
 
-  // 2. Fallback to Jina Reader proxy if blocked (403, 429, 503) or failed
-  if (!html && (lastStatus === 403 || lastStatus === 429 || lastStatus === 503 || lastStatus === 0)) {
+  // 2. Fallback: If AH web fetch was blocked (e.g. 403 / challenge), attempt AH Mobile Services API via wi... ID or Search Endpoint
+  if (!html && adapter.name === 'Albert Heijn') {
+    const wiMatch = targetUrl.match(/wi(\d+)/i);
+    if (wiMatch) {
+      try {
+        const mobileResult = await fetchAlbertHeijnMobileProduct(wiMatch[1], targetUrl);
+        if (
+          mobileResult &&
+          !isBlockedOrErrorTitle(mobileResult.name) &&
+          (mobileResult.kcalPer100g > 0 || mobileResult.proteinPer100g > 0)
+        ) {
+          return mobileResult;
+        }
+      } catch (ahApiErr) {
+        console.warn('AH Mobile API fallback attempt failed:', ahApiErr);
+      }
+    }
+
+    // Secondary AH fallback: Search Endpoint with slug keywords
+    try {
+      const slugMatch = targetUrl.match(/producten\/product\/wi\d+\/([a-z0-9-]+)/i) || targetUrl.match(/producten\/([^/?#]+)/i);
+      const query = slugMatch ? slugMatch[1].replace(/-/g, ' ') : '';
+      if (query) {
+        const searchResult = await searchAlbertHeijnProduct(query, targetUrl);
+        if (
+          searchResult &&
+          !isBlockedOrErrorTitle(searchResult.name) &&
+          (searchResult.kcalPer100g > 0 || searchResult.proteinPer100g > 0)
+        ) {
+          return searchResult;
+        }
+      }
+    } catch (ahSearchErr) {
+      console.warn('AH Search fallback attempt failed:', ahSearchErr);
+    }
+  }
+
+  // 3. Fallback: If Jumbo web fetch was blocked (e.g. 403 / challenge), attempt Jumbo Mobile/Search API
+  if (!html && adapter.name === 'Jumbo') {
+    const jumboIdMatch = targetUrl.match(/-(\d+)[a-z]*(?:[/?#]|$)/i) || targetUrl.match(/-([0-9A-Z]+)$/i) || targetUrl.match(/producten\/([^/?#]+)/i);
+    const sku = jumboIdMatch ? jumboIdMatch[1] : '';
+    if (sku) {
+      try {
+        const jumboMobileResult = await fetchJumboMobileProduct(sku, targetUrl);
+        if (
+          jumboMobileResult &&
+          !isBlockedOrErrorTitle(jumboMobileResult.name) &&
+          (jumboMobileResult.kcalPer100g > 0 || jumboMobileResult.proteinPer100g > 0)
+        ) {
+          return jumboMobileResult;
+        }
+      } catch (jumboApiErr) {
+        console.warn('Jumbo Mobile API fallback attempt failed:', jumboApiErr);
+      }
+    }
+  }
+
+  // 4. Fallback to Jina Reader proxy if blocked (403, 429, 503) or failed
+  if (!html && (lastStatus === 403 || lastStatus === 429 || lastStatus === 503 || lastStatus === 0 || !html)) {
     try {
       const jinaRes = await fetch(`https://r.jina.ai/${targetUrl}`, {
         headers: {
@@ -583,8 +923,15 @@ export async function scrapeProductFromUrl(rawUrl: string): Promise<ProductScrap
   }
 
   if (!html) {
-    throw new Error(`Could not load ${adapter.name} product page (status ${lastStatus})`);
+    throw new Error(`Could not load ${adapter.name} product page. The store blocked automated access or the page is unavailable.`);
   }
 
-  return adapter.parse(html, targetUrl);
+  const parsed = adapter.parse(html, targetUrl);
+
+  // 4. Strict Validation Gate: Check for bot block titles or invalid parses
+  if (isBlockedOrErrorTitle(parsed.name)) {
+    throw new Error(`Could not resolve ${adapter.name} product. The store returned an access challenge or restricted page.`);
+  }
+
+  return parsed;
 }
