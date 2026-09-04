@@ -245,6 +245,10 @@ export const DietaryView: React.FC<DietaryViewProps> = ({ userId: propUserId }) 
           setIsAddModalOpen(true);
           setActiveModalTab('custom');
         }}
+        onSearchRequested={() => {
+          setIsAddModalOpen(true);
+          setActiveModalTab('search');
+        }}
       />
     </div>
   );

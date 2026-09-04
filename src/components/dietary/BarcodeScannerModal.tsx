@@ -8,6 +8,7 @@ interface BarcodeScannerModalProps {
   onClose: () => void;
   onProductDetected: (product: FoodItemNutrition) => void;
   onManualEntryRequested?: (barcode: string) => void;
+  onSearchRequested?: (initialQuery?: string) => void;
   currentUserId?: string;
 }
 
@@ -16,6 +17,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
   onClose,
   onProductDetected,
   onManualEntryRequested,
+  onSearchRequested,
   currentUserId,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -358,13 +360,24 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
               </div>
               <p className="text-xs font-bold text-white">Product Not Indexed Yet</p>
               <p className="text-[11px] text-gray-400 max-w-xs font-mono break-all">{errorMessage}</p>
-              <div className="flex gap-2 mt-2">
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
                 <button
                   onClick={startCameraScanning}
                   className="px-3 py-1.5 rounded-xl bg-[#222] border border-[#333] text-white text-xs font-mono hover:bg-[#333]"
                 >
                   Scan Again
                 </button>
+                {onSearchRequested && (
+                  <button
+                    onClick={() => {
+                      onSearchRequested('');
+                      onClose();
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-[#00ade6] hover:bg-[#0096c7] text-white text-xs font-bold font-mono"
+                  >
+                    Search In Catalog
+                  </button>
+                )}
                 {onManualEntryRequested && scannedCode && (
                   <button
                     onClick={() => {

@@ -10,14 +10,19 @@ const AH_HEADERS = {
 };
 
 /**
- * Resolves product details from Albert Heijn web search by EAN barcode (unauthenticated fallback).
+ * Resolves product details from Albert Heijn web search by EAN barcode or internal PLU query (unauthenticated fallback).
  */
 export async function resolveAlbertHeijnWebBarcode(barcode: string): Promise<FoodItemNutrition | null> {
   const cleanBarcode = barcode.trim();
   if (!cleanBarcode) return null;
 
+  // Check if it's an in-store scale barcode (GS1 prefix 20-29). If so, extract the internal PLU identifier (middle digits)
+  const isScaleCode = /^(?:20|21|22|23|24|25|26|27|28|29)(\d{5,6})\d{5,6}$/.test(cleanBarcode);
+  const pluMatch = cleanBarcode.match(/^(?:20|21|22|23|24|25|26|27|28|29)(\d{5,6})/);
+  const searchQuery = isScaleCode && pluMatch ? pluMatch[1] : cleanBarcode;
+
   try {
-    const searchUrl = `https://www.ah.nl/zoeken?query=${encodeURIComponent(cleanBarcode)}`;
+    const searchUrl = `https://www.ah.nl/zoeken?query=${encodeURIComponent(searchQuery)}`;
     const searchRes = await fetch(searchUrl, {
       headers: {
         'User-Agent':
