@@ -149,6 +149,18 @@ export const PublicSessionView: React.FC<PublicSessionViewProps> = ({ sessionId,
                 {session.completedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </span>
             )}
+            {session.sleepHours != null && (
+              <span className="flex items-center gap-1.5 bg-[#181818] px-2.5 py-1 rounded-lg border border-[#222]">
+                <span className="text-[#C0FF00] font-bold">💤 {session.sleepHours}h</span>
+                <span className="text-[10px] text-gray-500">sleep</span>
+              </span>
+            )}
+            {session.energyScore != null && (
+              <span className="flex items-center gap-1.5 bg-[#181818] px-2.5 py-1 rounded-lg border border-[#222]">
+                <span className="text-amber-400 font-bold">⚡ {session.energyScore}/10</span>
+                <span className="text-[10px] text-gray-500">energy</span>
+              </span>
+            )}
           </div>
         </div>
 

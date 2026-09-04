@@ -301,6 +301,8 @@ export async function fetchWorkoutHistory(userId: string) {
     status: d.status || (d.is_completed ? 'completed' : 'in_progress'),
     startedAt: d.started_at ? new Date(d.started_at) : new Date(),
     completedAt: d.completed_at ? new Date(d.completed_at) : null,
+    sleepHours: d.sleep_hours != null ? Number(d.sleep_hours) : null,
+    energyScore: d.energy_score != null ? Number(d.energy_score) : null,
     notes: d.notes || null,
     photos: Array.isArray(d.photos) ? d.photos : (d.photos ? [d.photos] : null),
   }));
@@ -365,6 +367,8 @@ export async function fetchPublicWorkoutSession(sessionId: string): Promise<{
       status: sessionData.status || (sessionData.is_completed ? 'completed' : 'in_progress'),
       startedAt: sessionData.started_at ? new Date(sessionData.started_at) : new Date(),
       completedAt: sessionData.completed_at ? new Date(sessionData.completed_at) : null,
+      sleepHours: sessionData.sleep_hours != null ? Number(sessionData.sleep_hours) : null,
+      energyScore: sessionData.energy_score != null ? Number(sessionData.energy_score) : null,
       notes: sessionData.notes || null,
       photos: Array.isArray(sessionData.photos) ? sessionData.photos : (sessionData.photos ? [sessionData.photos] : null),
     };

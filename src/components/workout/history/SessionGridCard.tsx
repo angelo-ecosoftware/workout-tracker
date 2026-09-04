@@ -29,9 +29,21 @@ export const SessionGridCard: React.FC<SessionGridCardProps> = ({
         <h3 className={`font-display font-black text-xs sm:text-sm ${isDeleteMode && isSelected ? 'text-white' : 'text-[#C0FF00]'} uppercase tracking-tight leading-snug line-clamp-2 text-left w-full pr-3 group-hover:text-white transition-colors`}>
           {session.workoutName}
         </h3>
-        <span className="inline-block mt-2 text-[10px] font-mono text-gray-400 bg-[#1c1c1c] px-2 py-0.5 rounded">
-          {session.sets.length} sets
-        </span>
+        <div className="flex items-center gap-1.5 flex-wrap mt-2">
+          <span className="text-[10px] font-mono text-gray-400 bg-[#1c1c1c] px-2 py-0.5 rounded">
+            {session.sets.length} sets
+          </span>
+          {session.sleepHours != null && (
+            <span className="text-[9px] font-mono text-[#C0FF00] bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-1.5 py-0.2 rounded font-bold" title={`${session.sleepHours}h sleep`}>
+              💤 {session.sleepHours}h
+            </span>
+          )}
+          {session.energyScore != null && (
+            <span className="text-[9px] font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.2 rounded font-bold" title={`Energy ${session.energyScore}/10`}>
+              ⚡ {session.energyScore}/10
+            </span>
+          )}
+        </div>
       </div>
       <div className="flex items-center justify-between pt-2 border-t border-[#1f1f1f] mt-2">
         <span className="text-[10px] font-mono text-gray-500 uppercase">
