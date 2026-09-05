@@ -2,8 +2,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 // import { processOfflineQueue, getQueuedOfflineSessions } from '../utils/offlineQueue.ts';
 
 interface PWAContextType {
-  installPrompt: any;
-  setInstallPrompt: (prompt: any) => void;
+  installPrompt: BeforeInstallPromptEvent | null;
+  setInstallPrompt: (prompt: BeforeInstallPromptEvent | null) => void;
   isStandalone: boolean;
   isIOS: boolean;
   isMobile: boolean;
@@ -26,7 +26,9 @@ const PWAContext = createContext<PWAContextType>({
 export const usePWA = () => useContext(PWAContext);
 
 export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [installPrompt, setInstallPrompt] = useState<any>(() => (typeof window !== 'undefined' ? (window as any).deferredInstallPrompt : null));
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(() => {
+    return typeof window !== 'undefined' ? (window.deferredInstallPrompt ?? null) : null;
+  });
   const [isStandalone, setIsStandalone] = useState<boolean>(false);
   const [isIOS, setIsIOS] = useState<boolean>(false);
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -97,7 +99,7 @@ export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const standaloneMode = 
       window.matchMedia('(display-mode: standalone)').matches || 
       window.matchMedia('(display-mode: fullscreen)').matches ||
-      (window.navigator as any).standalone === true;
+      window.navigator.standalone === true;
     setIsStandalone(standaloneMode);
 
     // Detect mobile / iOS devices
@@ -109,19 +111,19 @@ export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setIsMobile(mobileDevice);
 
     // If early script captured the event before React mounted
-    if ((window as any).deferredInstallPrompt) {
-      setInstallPrompt((window as any).deferredInstallPrompt);
+    if (window.deferredInstallPrompt) {
+      setInstallPrompt(window.deferredInstallPrompt);
     }
 
-    const handleBeforeInstallPrompt = (e: any) => {
+    const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
       e.preventDefault();
-      (window as any).deferredInstallPrompt = e;
+      window.deferredInstallPrompt = e;
       setInstallPrompt(e);
     };
 
     const handlePromptReady = () => {
-      if ((window as any).deferredInstallPrompt) {
-        setInstallPrompt((window as any).deferredInstallPrompt);
+      if (window.deferredInstallPrompt) {
+        setInstallPrompt(window.deferredInstallPrompt);
       }
     };
 
@@ -130,7 +132,7 @@ export const PWAProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const handleAppInstalled = () => {
       setInstallPrompt(null);
-      (window as any).deferredInstallPrompt = null;
+      window.deferredInstallPrompt = null;
       setIsStandalone(true);
     };
 

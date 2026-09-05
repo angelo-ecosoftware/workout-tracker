@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase.ts';
-import { Exercise } from '../models.ts';
+import { Exercise, SessionSetInputPayload } from '../models.ts';
 import { logSessionCompletion } from '../lib/supabaseData.ts';
 import { uploadWorkoutPhotos } from '../lib/storage.ts';
 
@@ -11,7 +11,7 @@ export interface QueuedSession {
   id: string; // generated UUID or timestamp key
   userId: string;
   workoutId: string;
-  setsData: any[];
+  setsData: SessionSetInputPayload[];
   exercisesList: Exercise[];
   sessionCompletedAt?: string; // ISO string
   notes?: string;
@@ -51,7 +51,7 @@ function openQueueDB(): Promise<IDBDatabase> {
 export async function enqueueOfflineSession(
   userId: string,
   workoutId: string,
-  setsData: any[],
+  setsData: SessionSetInputPayload[],
   exercisesList: Exercise[],
   sessionCompletedAt?: Date,
   notes?: string,

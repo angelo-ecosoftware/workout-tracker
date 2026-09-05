@@ -112,6 +112,18 @@ export interface WorkoutSet {
   loggedAt: Date;
 }
 
+export interface SessionSetInputPayload {
+  exerciseId: string;
+  setNumber: number;
+  weight?: number | null;
+  reps?: number | null;
+  durationSeconds?: number | null;
+  difficulty?: number | null;
+  startedAt?: Date | null;
+  completedAt?: Date | null;
+  restSeconds?: number | null;
+}
+
 // ==========================================
 // Dietary & Nutrition Models
 // ==========================================

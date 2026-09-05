@@ -79,12 +79,12 @@ export function useWorkoutSession(user: AuthUser | null) {
   useEffect(() => {
     if (!activeWorkout) return;
 
-    let wakeLockSentinel: any = null;
+    let wakeLockSentinel: WakeLockSentinel | null = null;
 
     const requestWakeLock = async () => {
-      if ('wakeLock' in navigator && document.visibilityState === 'visible') {
+      if ('wakeLock' in navigator && navigator.wakeLock && document.visibilityState === 'visible') {
         try {
-          wakeLockSentinel = await (navigator as any).wakeLock.request('screen');
+          wakeLockSentinel = await navigator.wakeLock.request('screen');
         } catch (err) {
           console.warn('Screen wake lock request failed:', err);
         }

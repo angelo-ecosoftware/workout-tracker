@@ -19,13 +19,6 @@ registerSW({
   },
 });
 
-declare global {
-  interface Window {
-    deferredPrompt?: any;
-    deferredInstallPrompt?: any;
-  }
-}
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

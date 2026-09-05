@@ -112,7 +112,7 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
       // Check if flashlight / torch is supported
       const track = stream.getVideoTracks()[0];
-      const capabilities: any = track?.getCapabilities?.() || {};
+      const capabilities = (track?.getCapabilities?.() as ExtendedMediaTrackCapabilities) || {};
       if (capabilities.torch) {
         setHasTorch(true);
       }
@@ -120,9 +120,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
       setStatus('scanning');
 
       // Check if native BarcodeDetector is available in window
-      if ('BarcodeDetector' in window) {
+      if (typeof window !== 'undefined' && 'BarcodeDetector' in window && window.BarcodeDetector) {
         const formats = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'qr_code', 'code_128'];
-        const detector = new (window as any).BarcodeDetector({ formats });
+        const detector = new window.BarcodeDetector({ formats });
 
         const scanFrame = async () => {
           if (!videoRef.current || videoRef.current.readyState < 2) {
@@ -163,9 +163,10 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
     if (track) {
       try {
         const nextState = !torchOn;
-        await (track as any).applyConstraints({
-          advanced: [{ torch: nextState }],
-        });
+        const constraints: MediaTrackConstraints = {
+          advanced: [{ torch: nextState } as ExtendedMediaTrackConstraintSet],
+        };
+        await track.applyConstraints(constraints);
         setTorchOn(nextState);
       } catch (e) {
         console.warn('Could not toggle torch:', e);
