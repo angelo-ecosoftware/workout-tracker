@@ -7,6 +7,8 @@ interface SessionGridCardProps {
   isDeleteMode: boolean;
   isSelected: boolean;
   onClick: () => void;
+  allowReviewReceipts?: boolean;
+  isCoach?: boolean;
 }
 
 export const SessionGridCard: React.FC<SessionGridCardProps> = ({
@@ -14,6 +16,8 @@ export const SessionGridCard: React.FC<SessionGridCardProps> = ({
   isDeleteMode,
   isSelected,
   onClick,
+  allowReviewReceipts = true,
+  isCoach = false,
 }) => {
   return (
     <div 
@@ -30,8 +34,11 @@ export const SessionGridCard: React.FC<SessionGridCardProps> = ({
           <h3 className={`font-display font-black text-xs sm:text-sm ${isDeleteMode && isSelected ? 'text-white' : 'text-[#C0FF00]'} uppercase tracking-tight leading-snug line-clamp-2 text-left w-full pr-1 group-hover:text-white transition-colors`}>
             {session.workoutName}
           </h3>
-          {session.reviewedAt && !isDeleteMode && (
-            <span title={`Seen by ${session.reviewedByCoachName || 'Coach'}`} className="shrink-0 p-0.5 text-sky-400 bg-sky-950/60 rounded border border-sky-800/40">
+          {session.reviewedAt && allowReviewReceipts && !isDeleteMode && (
+            <span
+              title={isCoach ? 'You reviewed this log' : `Checked by Coach ${session.reviewedByCoachName || 'Coach'}`}
+              className="shrink-0 p-0.5 text-sky-400 bg-sky-950/60 rounded border border-sky-800/40"
+            >
               <CheckCheck className="w-3 h-3 stroke-[2.5]" />
             </span>
           )}

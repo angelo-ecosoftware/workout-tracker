@@ -11,6 +11,7 @@ import {
   markSessionAsReviewed,
   fetchWorkoutsData,
   fetchBodyMeasurementLogs,
+  fetchUserPrivacySettings,
   logDailyBodyWeight,
   initializeUser,
 } from '../../lib/supabaseData.ts';
@@ -52,6 +53,7 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
   // Daily Bodyweight (kg) state
   const [bodyLogs, setBodyLogs] = useState<BodyMeasurementLog[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [allowReviewReceipts, setAllowReviewReceipts] = useState<boolean>(true);
   const [editingWeightSessionId, setEditingWeightSessionId] = useState<string | null>(null);
   const [editingWeightValue, setEditingWeightValue] = useState<string>("");
   const [isSavingWeight, setIsSavingWeight] = useState(false);
@@ -68,7 +70,7 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
   const handleOpenSession = async (session: PopulatedSession) => {
     setExpandedSessionId(session.id);
     const isCoachInspectingAthlete = Boolean(user && activeUserId && activeUserId !== user.uid);
-    if (isCoachInspectingAthlete && !session.reviewedAt && user) {
+    if (isCoachInspectingAthlete && !session.reviewedAt && user && allowReviewReceipts) {
       try {
         const { reviewedAt, coachName } = await markSessionAsReviewed(session.id, user.uid, user.displayName);
         setSessions((prev) =>
@@ -398,11 +400,13 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
         setLoading(true);
         setErrorMsg(null);
         
-        const [historySessions, workoutsData, userProfileData, historicalBodyLogs] = await Promise.all([
+        const [historySessions, workoutsData, userProfileData, historicalBodyLogs, viewerPrivacy, athletePrivacy] = await Promise.all([
           fetchWorkoutHistory(activeUserId),
           fetchWorkoutsData(activeUserId),
           initializeUser(activeUserId),
           fetchBodyMeasurementLogs(activeUserId),
+          user?.uid ? fetchUserPrivacySettings(user.uid) : Promise.resolve(null),
+          activeUserId && activeUserId !== user?.uid ? fetchUserPrivacySettings(activeUserId) : Promise.resolve(null),
         ]);
 
         if (userProfileData) {
@@ -411,6 +415,10 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
         if (historicalBodyLogs) {
           setBodyLogs(historicalBodyLogs);
         }
+
+        const viewerReceiptsOn = viewerPrivacy ? viewerPrivacy.shareReviewReceipts !== false : true;
+        const athleteReceiptsOn = athletePrivacy ? athletePrivacy.shareReviewReceipts !== false : true;
+        setAllowReviewReceipts(viewerReceiptsOn && athleteReceiptsOn);
 
         const { workoutsList, exercisesList } = workoutsData;
         const workoutMap = new Map(workoutsList.map(w => [w.id, w]));
@@ -592,6 +600,7 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
               coachId={user?.uid}
               coachName={user?.displayName}
               isCoach={Boolean(user && activeUserId && activeUserId !== user.uid)}
+              allowReviewReceipts={allowReviewReceipts}
             />
           ))}
         </div>
@@ -604,6 +613,8 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
               session={session}
               isDeleteMode={isDeleteMode}
               isSelected={selectedIds.has(session.id)}
+              allowReviewReceipts={allowReviewReceipts}
+              isCoach={Boolean(user && activeUserId && activeUserId !== user.uid)}
               onClick={() => {
                 if (isDeleteMode) {
                   toggleSelection(session.id);

@@ -8,6 +8,7 @@ import {
   Lock,
   X,
   Check,
+  CheckCheck,
   Loader2,
   Users,
   Plus,
@@ -41,6 +42,7 @@ export const PrivacySettingsModal: React.FC<PrivacySettingsModalProps> = ({
     shareBiometrics: false,
     shareDietary: false,
     sharePhotos: false,
+    shareReviewReceipts: true,
   });
 
   const [peerShares, setPeerShares] = useState<UserPeerShare[]>([]);
@@ -296,6 +298,43 @@ export const PrivacySettingsModal: React.FC<PrivacySettingsModalProps> = ({
               <p className="text-[11px] text-gray-300 leading-relaxed font-sans">
                 Coaches with an accepted connection automatically have full visibility into your workouts, recovery, biometrics, and nutrition to guide your program, regardless of public visibility settings.
               </p>
+            </div>
+          </div>
+
+          {/* Section 2.5: Workout Review Receipts / Seen Status Toggle */}
+          <div className="p-4 rounded-2xl bg-[#161616] border border-[#282828] space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="p-2 rounded-xl bg-sky-950/60 border border-sky-800/40 text-sky-400">
+                  <CheckCheck className="w-4 h-4 stroke-[2.5]" />
+                </div>
+                <div>
+                  <h4 className="text-white text-xs sm:text-sm font-bold uppercase tracking-wide">
+                    Workout Review Receipts (Seen Status)
+                  </h4>
+                  <p className="text-[11px] text-gray-400 font-sans mt-0.5">
+                    {settings.shareReviewReceipts !== false
+                      ? 'Enabled: You and your coach see when workouts are checked ("You reviewed this log" / "Checked by Coach").'
+                      : 'Disabled: Review status is completely private. Neither party will see read receipts.'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleToggleSetting('shareReviewReceipts')}
+                disabled={isSaving}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                  settings.shareReviewReceipts !== false ? 'bg-[#C0FF00]' : 'bg-[#2a2a2a]'
+                }`}
+                aria-label="Toggle workout review receipts"
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-black shadow ring-0 transition duration-200 ease-in-out ${
+                    settings.shareReviewReceipts !== false ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
           </div>
 

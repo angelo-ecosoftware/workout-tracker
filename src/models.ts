@@ -213,6 +213,7 @@ export interface UserPrivacySettings {
   shareBiometrics: boolean;
   shareDietary: boolean;
   sharePhotos: boolean;
+  shareReviewReceipts?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

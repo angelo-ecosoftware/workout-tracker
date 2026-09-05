@@ -64,6 +64,7 @@ interface SessionDetailCardProps {
   coachId?: string;
   coachName?: string;
   isCoach?: boolean;
+  allowReviewReceipts?: boolean;
 }
 
 export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
@@ -110,6 +111,7 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
   coachId,
   coachName,
   isCoach,
+  allowReviewReceipts = true,
 }) => {
   return (
     <div className="bg-[#111] border border-[#222] rounded-[24px] p-6 shadow-xl">
@@ -198,10 +200,10 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
                   <span className="text-[10px] text-gray-500">energy</span>
                 </span>
               )}
-              {session.reviewedAt && (
+              {session.reviewedAt && allowReviewReceipts && (
                 <span className="flex items-center gap-1.5 bg-sky-950/40 border border-sky-800/50 px-2.5 py-1 rounded-lg text-[10px] font-mono text-sky-300">
                   <CheckCheck className="w-3.5 h-3.5 text-sky-400 stroke-[2.5]" />
-                  <span>Seen by {session.reviewedByCoachName || 'Coach'}</span>
+                  <span>{isCoach ? 'You reviewed this log' : `Checked by Coach ${session.reviewedByCoachName || coachName || 'Coach'}`}</span>
                 </span>
               )}
               <button 

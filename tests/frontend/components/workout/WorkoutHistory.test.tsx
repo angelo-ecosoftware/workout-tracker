@@ -18,6 +18,7 @@ vi.mock('../../../../src/lib/supabaseData.ts', () => ({
   markSessionAsReviewed: vi.fn().mockResolvedValue({ reviewedAt: new Date(), coachName: 'Coach' }),
   fetchWorkoutsData: vi.fn(),
   fetchBodyMeasurementLogs: vi.fn(),
+  fetchUserPrivacySettings: vi.fn().mockResolvedValue({ shareReviewReceipts: true }),
   logDailyBodyWeight: vi.fn(),
   initializeUser: vi.fn(),
 }));

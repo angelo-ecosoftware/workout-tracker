@@ -158,6 +158,7 @@ export async function fetchUserPrivacySettings(userId: string): Promise<UserPriv
     shareBiometrics: false,
     shareDietary: false,
     sharePhotos: false,
+    shareReviewReceipts: true,
   };
 
   const localRaw = getLocalStorageItem(`user_privacy_${userId}`);
@@ -185,6 +186,7 @@ export async function fetchUserPrivacySettings(userId: string): Promise<UserPriv
       shareBiometrics: Boolean(data.share_biometrics),
       shareDietary: Boolean(data.share_dietary),
       sharePhotos: Boolean(data.share_photos),
+      shareReviewReceipts: data.share_review_receipts !== false,
       createdAt: data.created_at ? new Date(data.created_at) : undefined,
       updatedAt: data.updated_at ? new Date(data.updated_at) : undefined,
     };
@@ -213,6 +215,7 @@ export async function updateUserPrivacySettings(
       share_biometrics: updated.shareBiometrics,
       share_dietary: updated.shareDietary,
       share_photos: updated.sharePhotos,
+      share_review_receipts: updated.shareReviewReceipts !== false,
       updated_at: new Date().toISOString(),
     });
   } catch {

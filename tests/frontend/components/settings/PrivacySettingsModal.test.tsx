@@ -22,6 +22,7 @@ describe('PrivacySettingsModal Component', () => {
     shareBiometrics: false,
     shareDietary: false,
     sharePhotos: false,
+    shareReviewReceipts: true,
   };
 
   const mockPeers: UserPeerShare[] = [
@@ -132,6 +133,29 @@ describe('PrivacySettingsModal Component', () => {
         }
       );
       expect(screen.getByText('Dr. Elena')).toBeInTheDocument();
+    });
+  });
+
+  it('allows toggling workout review receipts (seen status)', async () => {
+    const user = userEvent.setup();
+    render(
+      <PrivacySettingsModal
+        isOpen={true}
+        onClose={vi.fn()}
+        userId="user-123"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /toggle workout review receipts/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /toggle workout review receipts/i }));
+
+    await waitFor(() => {
+      expect(SupabaseData.updateUserPrivacySettings).toHaveBeenCalledWith('user-123', {
+        shareReviewReceipts: false,
+      });
     });
   });
 });
