@@ -13,6 +13,7 @@ vi.mock('../../../../src/lib/supabaseData.ts', () => ({
   deleteSessions: vi.fn(),
   updateSessionDate: vi.fn(),
   updateSessionNotes: vi.fn(),
+  updateSessionCoachNotes: vi.fn(),
   updateSessionPhotos: vi.fn(),
   fetchWorkoutsData: vi.fn(),
   fetchBodyMeasurementLogs: vi.fn(),

@@ -30,7 +30,7 @@ export const SessionNotesSection: React.FC<SessionNotesSectionProps> = ({
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-[#C0FF00] shrink-0" />
           <span className="font-mono text-[10px] uppercase font-bold text-[#C0FF00]">
-            Workout Notes
+            Athlete Workout Notes
           </span>
         </div>
         {!isEditing ? (

@@ -286,6 +286,16 @@ export async function updateSessionNotes(sessionId: string, notes: string | null
     .eq('id', sessionId);
 }
 
+export async function updateSessionCoachNotes(sessionId: string, coachNotes: string | null, coachName?: string | null) {
+  const payload: Record<string, any> = { coach_notes: coachNotes };
+  if (coachName) payload.coach_name = coachName;
+
+  await supabase
+    .from('sessions')
+    .update(payload)
+    .eq('id', sessionId);
+}
+
 export async function updateSessionPhotos(sessionId: string, photos: string[]) {
   await supabase
     .from('sessions')
@@ -341,6 +351,8 @@ export async function fetchWorkoutHistory(userId: string) {
     sleepHours: d.sleep_hours != null ? Number(d.sleep_hours) : null,
     energyScore: d.energy_score != null ? Number(d.energy_score) : null,
     notes: d.notes || null,
+    coachNotes: d.coach_notes || null,
+    coachName: d.coach_name || null,
     photos: Array.isArray(d.photos) ? d.photos : (d.photos ? [d.photos] : null),
   }));
 

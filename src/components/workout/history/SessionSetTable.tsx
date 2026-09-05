@@ -1,6 +1,5 @@
 import React from 'react';
 import { WorkoutSet } from '../../../models.ts';
-import { WorkoutSetCoachFeedback } from '../../coach/WorkoutSetCoachFeedback.tsx';
 
 export interface PopulatedSet extends WorkoutSet {
   exerciseName: string;
@@ -18,11 +17,6 @@ interface SessionSetTableProps {
 
 export const SessionSetTable: React.FC<SessionSetTableProps> = ({
   sets,
-  sessionId,
-  athleteId,
-  coachId,
-  coachName,
-  isCoach = false,
 }) => {
   return (
     <>
@@ -42,39 +36,24 @@ export const SessionSetTable: React.FC<SessionSetTableProps> = ({
               const isNewExerciseGroup = prevSet && prevSet.exerciseId !== set.exerciseId;
 
               return (
-                <React.Fragment key={set.id || i}>
-                  <tr 
-                    className={`hover:bg-[#1a1a1a] transition-colors ${isNewExerciseGroup ? 'border-t-2 border-[#333]' : ''}`}
-                  >
-                    <td className="py-3 pr-4 text-white font-medium">
-                      {isNewExerciseGroup || i === 0 ? (
-                        <span className="text-white font-bold">{set.exerciseName}</span>
-                      ) : (
-                        <span className="text-gray-500 text-xs pl-2">↳ {set.exerciseName}</span>
-                      )}
-                    </td>
-                    <td className="py-3 text-center text-gray-400 font-mono">{set.setNumber}</td>
-                    <td className="py-3 text-center text-white font-mono font-bold">
-                      {set.type === 'strength' 
-                        ? `${set.weight} kg × ${set.reps}`
-                        : `${set.durationSeconds}s`}
-                    </td>
-                  </tr>
-                  {isCoach && sessionId && athleteId && (
-                    <tr className="bg-[#141414]/50">
-                      <td colSpan={3} className="px-4 py-2">
-                        <WorkoutSetCoachFeedback
-                          setId={set.id}
-                          sessionId={sessionId}
-                          athleteId={athleteId}
-                          coachId={coachId}
-                          coachName={coachName}
-                          isCoach={isCoach}
-                        />
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
+                <tr 
+                  key={set.id || i}
+                  className={`hover:bg-[#1a1a1a] transition-colors ${isNewExerciseGroup ? 'border-t-2 border-[#333]' : ''}`}
+                >
+                  <td className="py-3 pr-4 text-white font-medium">
+                    {isNewExerciseGroup || i === 0 ? (
+                      <span className="text-white font-bold">{set.exerciseName}</span>
+                    ) : (
+                      <span className="text-gray-500 text-xs pl-2">↳ {set.exerciseName}</span>
+                    )}
+                  </td>
+                  <td className="py-3 text-center text-gray-400 font-mono">{set.setNumber}</td>
+                  <td className="py-3 text-center text-white font-mono font-bold">
+                    {set.type === 'strength' 
+                      ? `${set.weight} kg × ${set.reps}`
+                      : `${set.durationSeconds}s`}
+                  </td>
+                </tr>
               );
             })}
           </tbody>
@@ -103,16 +82,6 @@ export const SessionSetTable: React.FC<SessionSetTableProps> = ({
                       {set.type === 'strength' ? `${set.weight}kg × ${set.reps}` : `${set.durationSeconds}s`}
                     </span>
                   </div>
-                  {isCoach && sessionId && athleteId && (
-                    <WorkoutSetCoachFeedback
-                      setId={set.id}
-                      sessionId={sessionId}
-                      athleteId={athleteId}
-                      coachId={coachId}
-                      coachName={coachName}
-                      isCoach={isCoach}
-                    />
-                  )}
                 </div>
               ))}
             </div>

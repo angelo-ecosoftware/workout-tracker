@@ -6,6 +6,7 @@ import {
   deleteSessions,
   updateSessionDate,
   updateSessionNotes,
+  updateSessionCoachNotes,
   updateSessionPhotos,
   fetchWorkoutsData,
   fetchBodyMeasurementLogs,
@@ -41,6 +42,11 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
   const [editingNotesSessionId, setEditingNotesSessionId] = useState<string | null>(null);
   const [editingNotesValue, setEditingNotesValue] = useState<string>("");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+
+  // Coach Notes editing state
+  const [editingCoachNotesSessionId, setEditingCoachNotesSessionId] = useState<string | null>(null);
+  const [editingCoachNotesValue, setEditingCoachNotesValue] = useState<string>("");
+  const [isSavingCoachNotes, setIsSavingCoachNotes] = useState(false);
 
   // Daily Bodyweight (kg) state
   const [bodyLogs, setBodyLogs] = useState<BodyMeasurementLog[]>([]);
@@ -110,6 +116,34 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
   const cancelNotesEdit = () => {
     setEditingNotesSessionId(null);
     setEditingNotesValue("");
+  };
+
+  const startEditingCoachNotes = (session: PopulatedSession) => {
+    setEditingCoachNotesSessionId(session.id);
+    setEditingCoachNotesValue(session.coachNotes || "");
+  };
+
+  const saveCoachNotesEdit = async (sessionId: string) => {
+    try {
+      setIsSavingCoachNotes(true);
+      const cleanCoachNotes = editingCoachNotesValue.trim() || null;
+      await updateSessionCoachNotes(sessionId, cleanCoachNotes, user?.displayName || 'Coach');
+
+      setSessions(prev =>
+        prev.map(s => (s.id === sessionId ? { ...s, coachNotes: cleanCoachNotes, coachName: user?.displayName || s.coachName } : s))
+      );
+      setEditingCoachNotesSessionId(null);
+    } catch (err) {
+      console.error("Failed to update coach notes:", err);
+      alert("Failed to update coach notes.");
+    } finally {
+      setIsSavingCoachNotes(false);
+    }
+  };
+
+  const cancelCoachNotesEdit = () => {
+    setEditingCoachNotesSessionId(null);
+    setEditingCoachNotesValue("");
   };
 
   // Helper to extract session's local date string YYYY-MM-DD
@@ -519,6 +553,13 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
               onSaveNotesEdit={saveNotesEdit}
               onCancelNotesEdit={cancelNotesEdit}
               onChangeNotesValue={setEditingNotesValue}
+              isEditingCoachNotes={editingCoachNotesSessionId === session.id}
+              editingCoachNotesValue={editingCoachNotesValue}
+              isSavingCoachNotes={isSavingCoachNotes}
+              onStartCoachNotesEdit={startEditingCoachNotes}
+              onSaveCoachNotesEdit={saveCoachNotesEdit}
+              onCancelCoachNotesEdit={cancelCoachNotesEdit}
+              onChangeCoachNotesValue={setEditingCoachNotesValue}
               sessionDateStr={getSessionDateString(session)}
               sessionBodyLog={getSessionBodyLog(session)}
               isEditingWeight={editingWeightSessionId === session.id}

@@ -89,6 +89,8 @@ export interface Session {
   sleepHours?: number | null;
   energyScore?: number | null;
   notes?: string | null;
+  coachNotes?: string | null;
+  coachName?: string | null;
   photos?: string[] | null;
 }
 

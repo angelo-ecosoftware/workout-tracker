@@ -33,6 +33,17 @@ export async function updateSessionNotes(sessionId: string, notes: string | null
   if (error) throw error;
 }
 
+export async function updateSessionCoachNotes(sessionId: string, coachNotes: string | null, coachName?: string | null) {
+  const payload: Record<string, any> = { coach_notes: coachNotes || null };
+  if (coachName) payload.coach_name = coachName;
+
+  const { error } = await supabase
+    .from('sessions')
+    .update(payload)
+    .eq('id', sessionId);
+  if (error) throw error;
+}
+
 export async function updateSessionPhotos(sessionId: string, photos: string[]) {
   const { error } = await supabase
     .from('sessions')

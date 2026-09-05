@@ -3,6 +3,7 @@ import { Calendar, Clock, Edit2, Save, X, Share2, Check } from 'lucide-react';
 import { Session, BodyMeasurementLog } from '../../../models.ts';
 import { PopulatedSet, SessionSetTable } from './SessionSetTable.tsx';
 import { SessionNotesSection } from './SessionNotesSection.tsx';
+import { SessionCoachNotesSection } from './SessionCoachNotesSection.tsx';
 import { SessionBodyweightSection } from './SessionBodyweightSection.tsx';
 import { SessionPhotosSection } from './SessionPhotosSection.tsx';
 
@@ -28,7 +29,7 @@ interface SessionDetailCardProps {
   // Share
   copiedSessionId: string | null;
   onShareSession: (session: PopulatedSession) => void;
-  // Notes
+  // Athlete Notes
   isEditingNotes: boolean;
   editingNotesValue: string;
   isSavingNotes: boolean;
@@ -36,6 +37,14 @@ interface SessionDetailCardProps {
   onSaveNotesEdit: (sessionId: string) => void;
   onCancelNotesEdit: () => void;
   onChangeNotesValue: (val: string) => void;
+  // Coach Notes
+  isEditingCoachNotes?: boolean;
+  editingCoachNotesValue?: string;
+  isSavingCoachNotes?: boolean;
+  onStartCoachNotesEdit?: (session: PopulatedSession) => void;
+  onSaveCoachNotesEdit?: (sessionId: string) => void;
+  onCancelCoachNotesEdit?: () => void;
+  onChangeCoachNotesValue?: (val: string) => void;
   // Bodyweight
   sessionDateStr: string;
   sessionBodyLog: BodyMeasurementLog | undefined;
@@ -78,6 +87,13 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
   onSaveNotesEdit,
   onCancelNotesEdit,
   onChangeNotesValue,
+  isEditingCoachNotes = false,
+  editingCoachNotesValue = '',
+  isSavingCoachNotes = false,
+  onStartCoachNotesEdit,
+  onSaveCoachNotesEdit,
+  onCancelCoachNotesEdit,
+  onChangeCoachNotesValue,
   sessionDateStr,
   sessionBodyLog,
   isEditingWeight,
@@ -219,7 +235,7 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
         </div>
       </div>
 
-      {/* Session Notes */}
+      {/* Session Notes (Athlete) */}
       <SessionNotesSection
         sessionId={session.id}
         notes={session.notes ?? null}
@@ -230,6 +246,21 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
         onCancelEdit={onCancelNotesEdit}
         onChangeValue={onChangeNotesValue}
         onSaveEdit={onSaveNotesEdit}
+      />
+
+      {/* Dedicated Session Coach Notes & Feedback Section */}
+      <SessionCoachNotesSection
+        sessionId={session.id}
+        coachNotes={session.coachNotes ?? null}
+        coachName={session.coachName ?? coachName}
+        isCoach={Boolean(isCoach)}
+        isEditing={isEditingCoachNotes}
+        editingValue={editingCoachNotesValue}
+        isSaving={isSavingCoachNotes}
+        onStartEdit={() => onStartCoachNotesEdit?.(session)}
+        onCancelEdit={() => onCancelCoachNotesEdit?.()}
+        onChangeValue={(val) => onChangeCoachNotesValue?.(val)}
+        onSaveEdit={(id) => onSaveCoachNotesEdit?.(id)}
       />
 
       {/* Editable Daily Bodyweight (kg) */}
