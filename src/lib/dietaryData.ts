@@ -1,5 +1,6 @@
 import { FoodItemNutrition, LoggedDietaryEntry, DailyDietaryLog } from '../models.ts';
 import { supabase } from './supabase.ts';
+import { DbFoodItemRow } from '../types/supabase.ts';
 
 // Default empty starter food catalog (dynamically populated by Hive-Mind database indexes & user additions)
 export const DEFAULT_FOOD_CATALOG: FoodItemNutrition[] = [];
@@ -35,24 +36,25 @@ export function computeDailyTotals(entries: LoggedDietaryEntry[]) {
 }
 
 // Supabase Hive-Mind Food Item Database Mappers & API
-export function mapSupabaseRowToFoodItem(row: any): FoodItemNutrition {
+export function mapSupabaseRowToFoodItem(row: DbFoodItemRow | Record<string, unknown>): FoodItemNutrition {
+  const r = row as Partial<DbFoodItemRow>;
   return {
-    id: row.id,
-    name: row.name,
-    brand: row.brand || '',
-    servingUnit: (row.serving_unit === 'ml' ? 'ml' : 'gram') as 'gram' | 'ml',
-    kcalPer100g: Number(row.kcal_per_100g) || 0,
-    proteinPer100g: Number(row.protein_per_100g) || 0,
-    carbsPer100g: Number(row.carbs_per_100g) || 0,
-    sugarPer100g: Number(row.sugar_per_100g) || 0,
-    fatPer100g: Number(row.fat_per_100g) || 0,
-    fiberPer100g: Number(row.fiber_per_100g) || 0,
-    sourceUrl: row.source_url,
-    barcode: row.barcode || undefined,
-    packageWeightGrams: row.package_weight_grams ? Number(row.package_weight_grams) : undefined,
-    pieceCount: row.piece_count ? Number(row.piece_count) : undefined,
-    isCustom: Boolean(row.is_custom),
-    userId: row.user_id || undefined,
+    id: String(r.id || ''),
+    name: String(r.name || ''),
+    brand: r.brand || '',
+    servingUnit: (r.serving_unit === 'ml' ? 'ml' : 'gram') as 'gram' | 'ml',
+    kcalPer100g: Number(r.kcal_per_100g) || 0,
+    proteinPer100g: Number(r.protein_per_100g) || 0,
+    carbsPer100g: Number(r.carbs_per_100g) || 0,
+    sugarPer100g: Number(r.sugar_per_100g) || 0,
+    fatPer100g: Number(r.fat_per_100g) || 0,
+    fiberPer100g: Number(r.fiber_per_100g) || 0,
+    sourceUrl: r.source_url || undefined,
+    barcode: r.barcode || undefined,
+    packageWeightGrams: r.package_weight_grams ? Number(r.package_weight_grams) : undefined,
+    pieceCount: r.piece_count ? Number(r.piece_count) : undefined,
+    isCustom: Boolean(r.is_custom),
+    userId: r.user_id || undefined,
   };
 }
 

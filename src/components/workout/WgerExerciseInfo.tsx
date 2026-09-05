@@ -26,7 +26,9 @@ export const WgerExerciseInfo: React.FC<{ exerciseName: string }> = ({ exerciseN
             if (searchRes.ok) {
               const searchData = await searchRes.json();
               if (searchData.results && searchData.results.length > 0) {
-                const exactMatch = searchData.results.find((r: any) => r.name?.toLowerCase() === exerciseName?.toLowerCase());
+                const exactMatch = (searchData.results as { id: number; name?: string }[]).find(
+                  (r) => r.name?.toLowerCase() === exerciseName?.toLowerCase()
+                );
                 if (exactMatch) {
                   exerciseId = exactMatch.id;
                 }
@@ -47,8 +49,8 @@ export const WgerExerciseInfo: React.FC<{ exerciseName: string }> = ({ exerciseN
             }
             const infoData = await infoRes.json();
             
-            const translations = infoData.translations || [];
-            const englishTranslation = translations.find((t: any) => t.language === 2);
+            const translations: { language?: number; description?: string }[] = infoData.translations || [];
+            const englishTranslation = translations.find((t) => t.language === 2);
             const anyTranslation = translations[0];
             
             if (englishTranslation && englishTranslation.description) {

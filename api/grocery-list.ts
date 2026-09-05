@@ -5,7 +5,7 @@ export const config = {
   runtime: 'nodejs',
 };
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS headers for any consumer
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -16,7 +16,7 @@ export default async function handler(req: any, res: any) {
   }
 
   try {
-    const listId = req.query.listId || (req.body && req.body.listId);
+    const listId = (req.query.listId as string) || (req.body && req.body.listId);
 
     if (!listId || typeof listId !== 'string') {
       return res.status(400).json({ error: 'Missing required parameter: listId' });
@@ -99,7 +99,7 @@ export default async function handler(req: any, res: any) {
     }
 
     const items = gqlData?.data?.groceryList?.groceryList?.groceryItems || [];
-    const basicProducts = items.map((item: any) => ({
+    const basicProducts = items.map((item: { product?: { id?: string | number; title?: string; brand?: string; webPath?: string; salesUnitSize?: string }; quantity?: number }) => ({
       id: item.product?.id,
       title: item.product?.title || 'Unknown Product',
       brand: item.product?.brand || '',
@@ -110,7 +110,7 @@ export default async function handler(req: any, res: any) {
 
     // Scrape accurate nutrition in parallel with fallback to basic info
     const products = await Promise.all(
-      basicProducts.map(async (p: any) => {
+      basicProducts.map(async (p: { id?: string | number; title: string; brand: string; webPath: string; salesUnitSize: string; quantity: number }) => {
         if (!p.webPath) return p;
         try {
           const scraped = await scrapeProductFromUrl(`https://www.ah.nl${p.webPath}`);

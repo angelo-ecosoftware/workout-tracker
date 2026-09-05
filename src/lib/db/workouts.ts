@@ -1,5 +1,6 @@
 import { supabase } from '../supabase.ts';
-import { Workout, Exercise, UserProfile } from '../../models.ts';
+import { Workout, Exercise } from '../../models.ts';
+import { DbWorkoutRow, DbExerciseRow } from '../../types/supabase.ts';
 
 export async function seedTemplatesIfMissing(_userId?: string) {
   return;
@@ -23,7 +24,7 @@ export async function fetchWorkoutsData(userId?: string) {
     const { data: workoutsRaw, error: wError } = await query;
     if (wError) console.warn('Error fetching workouts:', wError);
 
-    const allWorkouts: Workout[] = (workoutsRaw || []).map((w: any) => ({
+    const allWorkouts: Workout[] = ((workoutsRaw as DbWorkoutRow[]) || []).map((w) => ({
       id: String(w.id),
       name: w.name,
       order: w.order ?? w.day_number ?? 0,
@@ -45,14 +46,13 @@ export async function fetchWorkoutsData(userId?: string) {
 
     if (eError) console.warn('Error fetching exercises:', eError);
 
-    exercisesList = (exercisesRaw || []).map((e: any) => ({
+    exercisesList = ((exercisesRaw as DbExerciseRow[]) || []).map((e) => ({
       id: String(e.id),
       name: e.name,
-      type: e.type,
-      targetSets: e.target_sets,
-      targetRepMin: e.target_rep_min,
-      targetRepMax: e.target_rep_max,
-      description: e.description,
+      type: (e.type === 'timed' ? 'timed' : 'strength') as 'strength' | 'timed',
+      targetSets: e.target_sets ?? 3,
+      targetRepMin: e.target_rep_min ?? 8,
+      targetRepMax: e.target_rep_max ?? 12,
     }));
   } catch (e) {
     console.warn('Error fetching exercises from supabase:', e);

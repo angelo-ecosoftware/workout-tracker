@@ -296,9 +296,9 @@ export function parseDirkNuxtNutrition(html: string): {
       const data = JSON.parse(jsonStr);
 
       if (Array.isArray(data)) {
-        data.forEach((item: any) => {
+        data.forEach((item: Record<string, unknown>) => {
           if (item && typeof item === 'object' && item.nutritionalValues !== undefined) {
-            const rowIndices = data[item.nutritionalValues];
+            const rowIndices = data[item.nutritionalValues as number];
             if (Array.isArray(rowIndices)) {
               rowIndices.forEach((rIdx: number) => {
                 const r = data[rIdx];

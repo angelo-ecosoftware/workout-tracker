@@ -760,3 +760,243 @@ export const Constants = {
     },
   },
 } as const
+
+// ============================================================================
+// Explicit Database Table Row Types for Zero-Any Service Layer
+// ============================================================================
+
+export interface DbSessionRow {
+  id: string | number;
+  user_id: string;
+  workout_id: string;
+  status?: string | null;
+  is_completed?: boolean | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  sleep_hours?: number | null;
+  energy_score?: number | null;
+  notes?: string | null;
+  coach_notes?: string | null;
+  coach_name?: string | null;
+  reviewed_at?: string | null;
+  reviewed_by_coach_id?: string | null;
+  reviewed_by_coach_name?: string | null;
+  photos?: string[] | string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DbSetRow {
+  id: string;
+  session_id: string;
+  user_id: string;
+  exercise_id: string;
+  set_number: number;
+  weight?: number | null;
+  reps?: number | null;
+  duration_seconds?: number | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  rest_seconds?: number | null;
+  logged_at?: string | null;
+  pain_score?: number | null;
+  rir?: number | null;
+  created_at?: string | null;
+}
+
+export interface DbWorkoutRow {
+  id: string;
+  user_id?: string;
+  name: string;
+  order?: number | null;
+  day_number?: number | null;
+  exercise_ids?: string[] | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DbExerciseRow {
+  id: string;
+  user_id?: string;
+  name: string;
+  type?: string | null;
+  target_sets?: number | null;
+  target_rep_min?: number | null;
+  target_rep_max?: number | null;
+  is_custom?: boolean | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DbWorkoutExerciseRow {
+  id?: string;
+  workout_id: string;
+  exercise_id: string;
+  position?: number | null;
+  sort_order?: number | null;
+  user_id?: string;
+}
+
+export interface DbUserRow {
+  id?: string;
+  user_id: string;
+  email?: string | null;
+  name?: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  height_cm?: number | null;
+  weight_kg?: number | null;
+  fitness_level?: string | null;
+  training_location?: string | null;
+  last_completed_workout_order?: number | null;
+  max_workout_order?: number | null;
+  last_set_summary_per_exercise?: Json | null;
+  metrics?: {
+    weight?: number;
+    height?: number;
+    goals?: string[];
+    dateOfBirth?: string;
+    gender?: string;
+    fitnessLevel?: string;
+    trainingLocation?: string;
+    updatedAt?: string;
+  } | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DbBodyLogRow {
+  id: string;
+  user_id: string;
+  log_date: string;
+  weight_kg: number;
+  height_cm?: number | null;
+  calculated_bmi?: number | null;
+  waist_cm?: number | null;
+  body_fat_percentage?: number | null;
+  source?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DbFoodItemRow {
+  id: string;
+  user_id?: string | null;
+  name: string;
+  brand?: string | null;
+  barcode?: string | null;
+  serving_unit?: string | null;
+  kcal_per_100g?: number | null;
+  protein_per_100g?: number | null;
+  carbs_per_100g?: number | null;
+  sugar_per_100g?: number | null;
+  fat_per_100g?: number | null;
+  fiber_per_100g?: number | null;
+  package_weight_grams?: number | null;
+  piece_count?: number | null;
+  source_url?: string | null;
+  is_custom?: boolean | null;
+  created_by?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DbUserRoleRow {
+  user_id: string;
+  role: string;
+  specialty?: string | null;
+  is_approved?: boolean | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DbCoachAthleteLinkRow {
+  id: string;
+  coach_id: string;
+  athlete_id: string;
+  specialty: string;
+  status: string;
+  invite_code?: string | null;
+  notes?: string | null;
+  coach_name?: string | null;
+  coach_email?: string | null;
+  athlete_name?: string | null;
+  athlete_email?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DbUserPeerShareRow {
+  id: string;
+  owner_id: string;
+  grantee_id: string;
+  grantee_name?: string | null;
+  grantee_email?: string | null;
+  share_workouts?: boolean | null;
+  share_biometrics?: boolean | null;
+  share_dietary?: boolean | null;
+  created_at?: string | null;
+}
+
+export interface DbSavedRoutineProgramRow {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string | null;
+  is_active?: boolean | null;
+  source_coach_id?: string | null;
+  source_coach_name?: string | null;
+  program_data: {
+    workouts: unknown[];
+  };
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DbRoutineProposalRow {
+  id: string;
+  coach_id: string;
+  athlete_id: string;
+  coach_name?: string | null;
+  coach_specialty?: string | null;
+  title: string;
+  description?: string | null;
+  status: string;
+  program_payload: {
+    workouts: unknown[];
+  };
+  applied_at?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DbCoachMacroPrescriptionRow {
+  id: string;
+  coach_id: string;
+  athlete_id: string;
+  coach_name?: string | null;
+  target_daily_kcal: number;
+  target_protein_grams: number;
+  target_carbs_grams: number;
+  target_fat_grams: number;
+  notes?: string | null;
+  is_active?: boolean | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DbWorkoutSetCoachFeedbackRow {
+  id: string;
+  set_id: string;
+  session_id: string;
+  coach_id: string;
+  athlete_id: string;
+  coach_name?: string | null;
+  cue_text: string;
+  timestamp_marker?: string | null;
+  video_cue_url?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+

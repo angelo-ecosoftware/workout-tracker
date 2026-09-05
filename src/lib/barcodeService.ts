@@ -10,10 +10,27 @@ export interface BarcodeLookupResult {
   error?: string;
 }
 
+export interface OpenFoodFactsProductPayload {
+  status?: number;
+  product?: {
+    product_name?: string;
+    product_name_nl?: string;
+    product_name_en?: string;
+    generic_name?: string;
+    brands?: string;
+    brand_owner?: string;
+    product_quantity?: number | string;
+    quantity?: string;
+    serving_size?: string;
+    url?: string;
+    nutriments?: Record<string, number | string | undefined>;
+  };
+}
+
 /**
  * Normalizes Open Food Facts product response into the application's standard FoodItemNutrition shape.
  */
-export function normalizeOpenFoodFactsProduct(data: any, barcode: string): FoodItemNutrition | null {
+export function normalizeOpenFoodFactsProduct(data: OpenFoodFactsProductPayload | null | undefined, barcode: string): FoodItemNutrition | null {
   if (!data || !data.product) return null;
 
   const p = data.product;

@@ -1,8 +1,9 @@
 import { supabase } from '../supabase.ts';
-import { Workout, WorkoutSet, Exercise, LastSetSummary } from '../../models.ts';
+import { Workout, WorkoutSet, Exercise, LastSetSummary, SessionSetInputPayload } from '../../models.ts';
 import { SessionEngine, SetLogger } from '../../engine.ts';
 import { initializeUser } from './users.ts';
 import { deleteWorkoutPhotos } from '../storage.ts';
+import { DbSessionRow, DbSetRow } from '../../types/supabase.ts';
 
 export async function updateSessionDate(
   sessionId: string,
@@ -84,7 +85,7 @@ export async function deleteSessions(sessionIds: string[], userId?: string) {
     .in('id', sessionIds);
 
   const allPhotosToDelete: string[] = [];
-  (sessionRows || []).forEach((row: any) => {
+  ((sessionRows as { photos: string[] | string | null }[]) || []).forEach((row) => {
     if (row.photos && Array.isArray(row.photos)) {
       allPhotosToDelete.push(...row.photos);
     }
@@ -121,11 +122,11 @@ export async function fetchWorkoutHistory(userId: string) {
 
   if (error) throw error;
 
-  return (data || []).map((s: any) => ({
-    id: s.id,
+  return ((data as DbSessionRow[]) || []).map((s) => ({
+    id: String(s.id),
     userId: s.user_id,
     workoutId: s.workout_id,
-    status: s.status,
+    status: s.status || 'in_progress',
     completedAt: s.completed_at ? new Date(s.completed_at) : null,
     sleepHours: s.sleep_hours != null ? Number(s.sleep_hours) : undefined,
     energyScore: s.energy_score != null ? Number(s.energy_score) : undefined,
@@ -144,18 +145,18 @@ export async function fetchSetsForSession(sessionId: string) {
 
   if (error) throw error;
 
-  return (data || []).map((set: any) => ({
-    id: set.id,
+  return ((data as DbSetRow[]) || []).map((set) => ({
+    id: String(set.id),
     sessionId: set.session_id,
     userId: set.user_id,
     exerciseId: set.exercise_id,
     setNumber: set.set_number,
-    weight: set.weight != null ? parseFloat(set.weight) : null,
-    reps: set.reps != null ? parseInt(set.reps, 10) : null,
-    durationSeconds: set.duration_seconds != null ? parseInt(set.duration_seconds, 10) : null,
+    weight: set.weight != null ? parseFloat(String(set.weight)) : null,
+    reps: set.reps != null ? parseInt(String(set.reps), 10) : null,
+    durationSeconds: set.duration_seconds != null ? parseInt(String(set.duration_seconds), 10) : null,
     completedAt: set.completed_at ? new Date(set.completed_at) : null,
     startedAt: set.started_at ? new Date(set.started_at) : null,
-    restSeconds: set.rest_seconds != null ? parseInt(set.rest_seconds, 10) : null,
+    restSeconds: set.rest_seconds != null ? parseInt(String(set.rest_seconds), 10) : null,
     loggedAt: set.logged_at ? new Date(set.logged_at) : new Date(),
   })) as WorkoutSet[];
 }
@@ -168,23 +169,26 @@ export async function fetchPublicWorkoutSession(sessionId: string) {
     .maybeSingle();
 
   if (sErr || !sessionData) return null;
+  const typedSession = sessionData as DbSessionRow;
 
   const [setsData, workoutData, userData] = await Promise.all([
     fetchSetsForSession(sessionId),
-    supabase.from('workouts').select('name').eq('id', sessionData.workout_id).maybeSingle(),
-    supabase.from('users').select('name').eq('user_id', sessionData.user_id).maybeSingle(),
+    supabase.from('workouts').select('name').eq('id', typedSession.workout_id).maybeSingle(),
+    supabase.from('users').select('name').eq('user_id', typedSession.user_id).maybeSingle(),
   ]);
 
   return {
     session: {
-      id: sessionData.id,
-      userId: sessionData.user_id,
-      workoutId: sessionData.workout_id,
-      status: sessionData.status,
-      completedAt: sessionData.completed_at ? new Date(sessionData.completed_at) : null,      sleepHours: sessionData.sleep_hours != null ? Number(sessionData.sleep_hours) : undefined,
-      energyScore: sessionData.energy_score != null ? Number(sessionData.energy_score) : undefined,      notes: sessionData.notes || undefined,
-      photos: Array.isArray(sessionData.photos) ? sessionData.photos : undefined,
-      startedAt: sessionData.started_at ? new Date(sessionData.started_at) : undefined,
+      id: String(typedSession.id),
+      userId: typedSession.user_id,
+      workoutId: typedSession.workout_id,
+      status: typedSession.status || 'in_progress',
+      completedAt: typedSession.completed_at ? new Date(typedSession.completed_at) : null,
+      sleepHours: typedSession.sleep_hours != null ? Number(typedSession.sleep_hours) : undefined,
+      energyScore: typedSession.energy_score != null ? Number(typedSession.energy_score) : undefined,
+      notes: typedSession.notes || undefined,
+      photos: Array.isArray(typedSession.photos) ? typedSession.photos : undefined,
+      startedAt: typedSession.started_at ? new Date(typedSession.started_at) : undefined,
     },
     sets: setsData,
     workoutName: workoutData.data?.name || 'Workout Routine',
@@ -203,18 +207,18 @@ export async function fetchAllSetsForUser(userId: string) {
     return [];
   }
 
-  return (data || []).map((set: any) => ({
-    id: set.id,
+  return ((data as DbSetRow[]) || []).map((set) => ({
+    id: String(set.id),
     sessionId: set.session_id,
     userId: set.user_id,
     exerciseId: set.exercise_id,
     setNumber: set.set_number,
-    weight: set.weight != null ? parseFloat(set.weight) : null,
-    reps: set.reps != null ? parseInt(set.reps, 10) : null,
-    durationSeconds: set.duration_seconds != null ? parseInt(set.duration_seconds, 10) : null,
+    weight: set.weight != null ? parseFloat(String(set.weight)) : null,
+    reps: set.reps != null ? parseInt(String(set.reps), 10) : null,
+    durationSeconds: set.duration_seconds != null ? parseInt(String(set.duration_seconds), 10) : null,
     completedAt: set.completed_at ? new Date(set.completed_at) : null,
     startedAt: set.started_at ? new Date(set.started_at) : null,
-    restSeconds: set.rest_seconds != null ? parseInt(set.rest_seconds, 10) : null,
+    restSeconds: set.rest_seconds != null ? parseInt(String(set.rest_seconds), 10) : null,
     loggedAt: set.logged_at ? new Date(set.logged_at) : new Date(),
   })) as WorkoutSet[];
 }
@@ -222,7 +226,7 @@ export async function fetchAllSetsForUser(userId: string) {
 export async function logSessionCompletion(
   userId: string,
   workoutId: string,
-  setsData: any[],
+  setsData: SessionSetInputPayload[],
   exercisesList: Exercise[],
   sessionCompletedAt?: Date,
   notes?: string,
@@ -334,7 +338,7 @@ export async function logSessionCompletion(
 
   const sessionId = String(insertedSession.id);
   const newCacheUpdates: Record<string, LastSetSummary> = {};
-  const setsToInsert: any[] = [];
+  const setsToInsert: Partial<DbSetRow>[] = [];
 
   for (const s of setsData) {
     const ex = exercisesList.find((e) => e.id === s.exerciseId);
@@ -353,7 +357,7 @@ export async function logSessionCompletion(
       ex.type
     );
 
-    const setRow: Record<string, any> = {
+    const setRow: Partial<DbSetRow> = {
       session_id: sessionId,
       user_id: userId,
       exercise_id: s.exerciseId,

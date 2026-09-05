@@ -1,5 +1,5 @@
 import { supabase } from '../supabase.ts';
-import { UserProfile, UserMetrics } from '../../models.ts';
+import { UserProfile, UserMetrics, BodyMeasurementLog } from '../../models.ts';
 
 function getLocalStorageItem(key: string): string | null {
   try {
@@ -107,7 +107,7 @@ export async function initializeUser(userId: string, email?: string, name?: stri
   const localMetricsRaw = getLocalStorageItem(`user_metrics_${userId}`);
   const localMetrics = localMetricsRaw ? JSON.parse(localMetricsRaw) : undefined;
   const rawBodyLogs = getLocalStorageItem(`body_logs_${userId}`);
-  const cachedLogs: any[] = rawBodyLogs ? JSON.parse(rawBodyLogs) : [];
+  const cachedLogs: BodyMeasurementLog[] = rawBodyLogs ? JSON.parse(rawBodyLogs) : [];
   const latestCachedWeight = cachedLogs.length > 0 ? cachedLogs[cachedLogs.length - 1].weightKg : undefined;
 
   const resolvedWeight = data.weight_kg != null ? Number(data.weight_kg) : (data.metrics?.weight != null ? Number(data.metrics.weight) : (localMetrics?.weight || latestCachedWeight));

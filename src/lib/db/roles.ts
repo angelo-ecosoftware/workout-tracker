@@ -12,7 +12,16 @@ import {
   RoutineProposal,
   CoachMacroPrescription,
   WorkoutSetCoachFeedback,
+  Workout,
+  Exercise,
 } from '../../models.ts';
+import {
+  DbUserPeerShareRow,
+  DbCoachAthleteLinkRow,
+  DbSavedRoutineProgramRow,
+  DbRoutineProposalRow,
+  DbWorkoutSetCoachFeedbackRow,
+} from '../../types/supabase.ts';
 
 function getLocalStorageItem(key: string): string | null {
   try {
@@ -233,12 +242,12 @@ export async function fetchUserPeerShares(userId: string): Promise<UserPeerShare
       .eq('owner_id', userId);
 
     if (error || !data) return [];
-    return data.map((d: any) => ({
+    return ((data as DbUserPeerShareRow[]) || []).map((d) => ({
       id: d.id,
       ownerId: d.owner_id,
       granteeId: d.grantee_id,
-      granteeName: d.grantee_name,
-      granteeEmail: d.grantee_email,
+      granteeName: d.grantee_name || undefined,
+      granteeEmail: d.grantee_email || undefined,
       shareWorkouts: Boolean(d.share_workouts),
       shareBiometrics: Boolean(d.share_biometrics),
       shareDietary: Boolean(d.share_dietary),
@@ -255,7 +264,7 @@ export async function saveUserPeerShare(
   granteeName: string,
   permissions: { shareWorkouts: boolean; shareBiometrics: boolean; shareDietary: boolean }
 ): Promise<UserPeerShare> {
-  const payload: any = {
+  const payload: Partial<DbUserPeerShareRow> = {
     owner_id: ownerId,
     grantee_id: granteeId,
     grantee_name: granteeName,
@@ -307,18 +316,18 @@ export async function fetchCoachAthleteLinks(
 
     if (error || !data) return { coaches: [], clients: [] };
 
-    const formatted: CoachAthleteLink[] = data.map((d: any) => ({
+    const formatted: CoachAthleteLink[] = ((data as DbCoachAthleteLinkRow[]) || []).map((d) => ({
       id: d.id,
       coachId: d.coach_id,
       athleteId: d.athlete_id,
-      specialty: d.specialty || 'strength',
+      specialty: (d.specialty || 'strength') as CoachSpecialty,
       status: d.status as LinkStatus,
       inviteCode: d.invite_code,
       notes: d.notes,
       coachName: d.coach_name || 'Coach',
-      coachEmail: d.coach_email,
+      coachEmail: d.coach_email || undefined,
       athleteName: d.athlete_name || 'Athlete',
-      athleteEmail: d.athlete_email,
+      athleteEmail: d.athlete_email || undefined,
       createdAt: new Date(d.created_at || Date.now()),
       updatedAt: new Date(d.updated_at || Date.now()),
     }));
@@ -339,7 +348,7 @@ export async function createCoachInvite(
   coachName?: string
 ): Promise<CoachAthleteLink> {
   const inviteCode = `invite_${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-  const payload: any = {
+  const payload: Partial<DbCoachAthleteLinkRow> = {
     id: `link_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     coach_id: coachId,
     specialty,
@@ -533,14 +542,14 @@ export async function fetchSavedRoutinePrograms(userId: string): Promise<SavedRo
       return defaultPrograms;
     }
 
-    const resolved = data.map((d: any) => ({
+    const resolved = ((data as DbSavedRoutineProgramRow[]) || []).map((d) => ({
       id: d.id,
       userId: d.user_id,
       title: d.title,
       description: d.description,
       isActive: Boolean(d.is_active),
       sourceCoachId: d.source_coach_id,
-      programData: d.program_data || { workouts: [] },
+      programData: (d.program_data as { workouts: (Workout & { exercises: Exercise[] })[] }) || { workouts: [] },
       createdAt: new Date(d.created_at || Date.now()),
       updatedAt: new Date(d.updated_at || Date.now()),
     }));
@@ -555,7 +564,7 @@ export async function fetchSavedRoutinePrograms(userId: string): Promise<SavedRo
 export async function saveRoutineProgramToLibrary(
   userId: string,
   title: string,
-  programData: any,
+  programData: { workouts: (Workout & { exercises: Exercise[] })[] },
   description?: string,
   sourceCoachId?: string,
   sourceCoachName?: string
@@ -650,13 +659,13 @@ export async function fetchRoutineProposals(userId: string): Promise<RoutineProp
       .order('created_at', { ascending: false });
 
     if (error || !data) return [];
-    return data.map((d: any) => ({
+    return ((data as DbRoutineProposalRow[]) || []).map((d) => ({
       id: d.id,
       coachId: d.coach_id,
       athleteId: d.athlete_id,
       title: d.title,
       description: d.description,
-      programPayload: d.program_payload,
+      programPayload: (d.program_payload as { workouts: (Workout & { exercises: Exercise[] })[] }) || { workouts: [] },
       status: d.status as ProposalStatus,
       coachName: d.coach_name || 'Coach',
       createdAt: new Date(d.created_at || Date.now()),
@@ -671,7 +680,7 @@ export async function createRoutineProposal(
   coachId: string,
   athleteId: string,
   title: string,
-  programPayload: any,
+  programPayload: { workouts: (Workout & { exercises: Exercise[] })[] },
   description?: string,
   coachName?: string
 ): Promise<RoutineProposal> {
@@ -850,14 +859,14 @@ export async function fetchWorkoutSetFeedback(sessionId: string): Promise<Workou
       .order('created_at', { ascending: true });
 
     if (error || !data) return [];
-    return data.map((d: any) => ({
+    return ((data as DbWorkoutSetCoachFeedbackRow[]) || []).map((d) => ({
       id: d.id,
       setId: d.set_id,
       sessionId: d.session_id,
       coachId: d.coach_id,
       athleteId: d.athlete_id,
-      videoUrl: d.video_url,
-      timestampMarker: d.timestamp_marker,
+      videoUrl: d.video_cue_url || undefined,
+      timestampMarker: d.timestamp_marker || undefined,
       cueText: d.cue_text,
       coachName: d.coach_name || 'Coach',
       createdAt: new Date(d.created_at || Date.now()),

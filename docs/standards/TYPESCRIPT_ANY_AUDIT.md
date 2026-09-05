@@ -72,5 +72,5 @@ Total `any` instances: 82
 | :--- | :--- | :--- | :--- |
 | **Phase 1** | React Component State & Props | `InsightsBmiCard.tsx`, `InsightsView.tsx`, `useAssistedTracker.ts`, `App.tsx` | **Completed** |
 | **Phase 2** | Ambient Web API Declarations | `src/vite-env.d.ts`, `PWAContext.tsx`, `sound.ts`, `BarcodeScannerModal.tsx`, `useWorkoutSession.ts`, `offlineQueue.ts` | **Completed** |
-| **Phase 3** | Supabase Database Row Mappers | `src/types/supabase.ts`, `src/lib/supabaseData.ts`, `src/lib/db/*.ts` | Planned |
+| **Phase 3** | Supabase Database Row Mappers & DB Layer | `src/types/supabase.ts`, `src/lib/supabaseData.ts`, `src/lib/dietaryData.ts`, `src/lib/barcodeService.ts`, `src/lib/db/*.ts`, `api/*.ts` | **Completed** |
 | **Phase 4** | Catch-Block Error Normalization | Whole workspace `catch (err: unknown)` | Planned |

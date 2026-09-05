@@ -1,7 +1,8 @@
 import { supabase } from './supabase.ts';
-import { UserProfile, Workout, Session, WorkoutSet, Exercise, LastSetSummary, BodyMeasurementLog } from '../models.ts';
+import { UserProfile, Workout, Session, WorkoutSet, Exercise, LastSetSummary, BodyMeasurementLog, SessionSetInputPayload } from '../models.ts';
 import { SessionEngine, SetLogger } from '../engine.ts';
 import { deleteWorkoutPhotos } from './storage.ts';
+import { DbSessionRow, DbSetRow, DbWorkoutRow, DbExerciseRow, DbWorkoutExerciseRow, DbBodyLogRow } from '../types/supabase.ts';
 
 // Get or create user profile
 export async function initializeUser(userId: string, email?: string, name?: string) {
@@ -116,7 +117,7 @@ export async function fetchWorkoutsData(userId?: string) {
     const { data: workoutsRaw, error: wError } = await query;
     if (wError) console.warn('Error fetching workouts:', wError);
 
-    const allWorkouts: Workout[] = (workoutsRaw || []).map((w: any) => ({
+    const allWorkouts: Workout[] = ((workoutsRaw as DbWorkoutRow[]) || []).map((w) => ({
       id: String(w.id),
       name: w.name,
       order: w.order ?? w.day_number ?? 0,
@@ -135,13 +136,13 @@ export async function fetchWorkoutsData(userId?: string) {
     let { data: exercisesRaw, error: exError } = await exQuery;
     if (exError) console.warn('Error fetching exercises:', exError);
 
-    exercisesList = (exercisesRaw || []).map((e: any) => ({
+    exercisesList = ((exercisesRaw as DbExerciseRow[]) || []).map((e) => ({
       id: String(e.id),
       name: e.name,
-      type: e.type || 'strength',
-      targetSets: e.target_sets ?? e.targetSets ?? 3,
-      targetRepMin: e.target_rep_min ?? e.targetRepMin ?? 8,
-      targetRepMax: e.target_rep_max ?? e.targetRepMax ?? 12,
+      type: (e.type === 'timed' ? 'timed' : 'strength') as 'strength' | 'timed',
+      targetSets: e.target_sets ?? 3,
+      targetRepMin: e.target_rep_min ?? 8,
+      targetRepMax: e.target_rep_max ?? 12,
     }));
   } catch (e) {
     console.warn('Error fetching exercises from supabase:', e);
@@ -157,7 +158,7 @@ export async function fetchWorkoutsData(userId?: string) {
       .order('position', { ascending: true });
 
     if (junctionRows && junctionRows.length > 0) {
-      junctionRows.forEach((row: any) => {
+      (junctionRows as DbWorkoutExerciseRow[]).forEach((row) => {
         if (!junctionMap[row.workout_id]) {
           junctionMap[row.workout_id] = [];
         }
@@ -336,7 +337,7 @@ export async function deleteSessions(sessionIds: string[]) {
       .in('id', sessionIds);
 
     const photosToDelete: string[] = [];
-    (sessionRows || []).forEach((row: any) => {
+    ((sessionRows as { photos: string[] | string | null }[]) || []).forEach((row) => {
       if (Array.isArray(row.photos)) {
         photosToDelete.push(...row.photos);
       } else if (typeof row.photos === 'string' && row.photos) {
@@ -363,11 +364,11 @@ export async function fetchWorkoutHistory(userId: string) {
     .order('completed_at', { ascending: false })
     .limit(50);
 
-  const sessions: Session[] = (data || []).map((d: any) => ({
+  const sessions: Session[] = ((data as DbSessionRow[]) || []).map((d) => ({
     id: String(d.id),
     userId: String(d.user_id),
     workoutId: String(d.workout_id),
-    status: d.status || (d.is_completed ? 'completed' : 'in_progress'),
+    status: (d.status === 'completed' ? 'completed' : 'in_progress') as 'completed' | 'in_progress',
     startedAt: d.started_at ? new Date(d.started_at) : new Date(),
     completedAt: d.completed_at ? new Date(d.completed_at) : null,
     sleepHours: d.sleep_hours != null ? Number(d.sleep_hours) : null,
@@ -391,7 +392,7 @@ export async function fetchSetsForSession(sessionId: string) {
     .eq('session_id', sessionId)
     .order('set_number', { ascending: true });
 
-  const sets: WorkoutSet[] = (data || []).map((d: any) => ({
+  const sets: WorkoutSet[] = ((data as DbSetRow[]) || []).map((d) => ({
     id: String(d.id),
     sessionId: String(d.session_id),
     userId: String(d.user_id),
@@ -434,29 +435,31 @@ export async function fetchPublicWorkoutSession(sessionId: string): Promise<{
       return null;
     }
 
+    const typedSessionData = sessionData as DbSessionRow;
+
     const session: Session = {
-      id: String(sessionData.id),
-      userId: String(sessionData.user_id),
-      workoutId: String(sessionData.workout_id),
-      status: sessionData.status || (sessionData.is_completed ? 'completed' : 'in_progress'),
-      startedAt: sessionData.started_at ? new Date(sessionData.started_at) : new Date(),
-      completedAt: sessionData.completed_at ? new Date(sessionData.completed_at) : null,
-      sleepHours: sessionData.sleep_hours != null ? Number(sessionData.sleep_hours) : null,
-      energyScore: sessionData.energy_score != null ? Number(sessionData.energy_score) : null,
-      notes: sessionData.notes || null,
-      photos: Array.isArray(sessionData.photos) ? sessionData.photos : (sessionData.photos ? [sessionData.photos] : null),
+      id: String(typedSessionData.id),
+      userId: String(typedSessionData.user_id),
+      workoutId: String(typedSessionData.workout_id),
+      status: (typedSessionData.status === 'completed' ? 'completed' : 'in_progress') as 'completed' | 'in_progress',
+      startedAt: typedSessionData.started_at ? new Date(typedSessionData.started_at) : new Date(),
+      completedAt: typedSessionData.completed_at ? new Date(typedSessionData.completed_at) : null,
+      sleepHours: typedSessionData.sleep_hours != null ? Number(typedSessionData.sleep_hours) : null,
+      energyScore: typedSessionData.energy_score != null ? Number(typedSessionData.energy_score) : null,
+      notes: typedSessionData.notes || null,
+      photos: Array.isArray(typedSessionData.photos) ? typedSessionData.photos : (typedSessionData.photos ? [typedSessionData.photos] : null),
     };
 
     // 2. Fetch workout title, exercises, sets, and athlete profile concurrently
     const [workoutRes, exercisesRes, setsRes, userRes] = await Promise.all([
-      supabase.from('workouts').select('*').eq('id', sessionData.workout_id).single(),
+      supabase.from('workouts').select('*').eq('id', typedSessionData.workout_id).single(),
       supabase.from('exercises').select('*'),
       supabase.from('sets').select('*').eq('session_id', sessionId).order('set_number', { ascending: true }),
-      supabase.from('users').select('*').eq('user_id', sessionData.user_id).single(),
+      supabase.from('users').select('*').eq('user_id', typedSessionData.user_id).single(),
     ]);
 
     const workoutName = workoutRes.data?.name || 'Workout Session';
-    const exercisesMap = new Map((exercisesRes.data || []).map((e: any) => [String(e.id), e]));
+    const exercisesMap = new Map(((exercisesRes.data as DbExerciseRow[]) || []).map((e) => [String(e.id), e]));
     
     // Optional athlete name
     const athleteName = userRes.data?.name || userRes.data?.email?.split('@')[0] || 'Athlete';
@@ -470,7 +473,7 @@ export async function fetchPublicWorkoutSession(sessionId: string): Promise<{
       const { data: bodyLogData } = await supabase
         .from('body_logs')
         .select('*')
-        .eq('user_id', sessionData.user_id)
+        .eq('user_id', typedSessionData.user_id)
         .eq('log_date', logDate)
         .single();
 
@@ -480,7 +483,7 @@ export async function fetchPublicWorkoutSession(sessionId: string): Promise<{
       }
     }
 
-    const populatedSets = (setsRes.data || []).map((s: any) => {
+    const populatedSets = ((setsRes.data as DbSetRow[]) || []).map((s) => {
       const ex = exercisesMap.get(String(s.exercise_id));
       return {
         id: String(s.id),
@@ -526,7 +529,7 @@ export async function fetchAllSetsForUser(userId: string) {
     return [];
   }
 
-  const sets: WorkoutSet[] = (data || []).map((d: any) => ({
+  const sets: WorkoutSet[] = ((data as DbSetRow[]) || []).map((d) => ({
     id: String(d.id),
     sessionId: String(d.session_id),
     userId: String(d.user_id),
@@ -547,7 +550,7 @@ export async function fetchAllSetsForUser(userId: string) {
 export async function logSessionCompletion(
   userId: string,
   workoutId: string,
-  setsData: any[],
+  setsData: SessionSetInputPayload[],
   exercisesList: Exercise[],
   sessionCompletedAt?: Date,
   notes?: string,
@@ -663,7 +666,7 @@ export async function logSessionCompletion(
 
   const sessionId = String(insertedSession.id);
   const newCacheUpdates: Record<string, LastSetSummary> = {};
-  const setsToInsert: any[] = [];
+  const setsToInsert: Partial<DbSetRow>[] = [];
 
   for (const s of setsData) {
     const ex = exercisesList.find((e) => e.id === s.exerciseId);
@@ -682,7 +685,7 @@ export async function logSessionCompletion(
       ex.type
     );
 
-    const setRow: Record<string, any> = {
+    const setRow: Partial<DbSetRow> = {
       session_id: sessionId,
       user_id: userId,
       exercise_id: s.exerciseId,
@@ -706,9 +709,9 @@ export async function logSessionCompletion(
     setsToInsert.push(setRow);
 
     newCacheUpdates[s.exerciseId] = {
-      lastWeight: s.weight || null,
-      lastReps: s.reps || null,
-      lastDurationSeconds: s.durationSeconds || null,
+      lastWeight: s.weight ?? 0,
+      lastReps: s.reps ?? 0,
+      lastDurationSeconds: s.durationSeconds ?? undefined,
       lastSessionId: sessionId,
     };
   }
@@ -918,7 +921,7 @@ export async function fetchBodyMeasurementLogs(userId: string): Promise<import('
       .order('log_date', { ascending: true });
 
     if (!error && data && data.length > 0) {
-      return data.map((d: any) => ({
+      return ((data as DbBodyLogRow[]) || []).map((d) => ({
         id: String(d.id),
         userId: d.user_id,
         logDate: d.log_date,
@@ -927,7 +930,7 @@ export async function fetchBodyMeasurementLogs(userId: string): Promise<import('
         calculatedBmi: d.calculated_bmi ? Number(d.calculated_bmi) : undefined,
         waistCm: d.waist_cm ? Number(d.waist_cm) : undefined,
         notes: d.notes || undefined,
-        source: d.source || 'manual',
+        source: (d.source || 'manual') as 'profile' | 'workout_session' | 'manual',
         createdAt: d.created_at ? new Date(d.created_at) : new Date(),
         updatedAt: d.updated_at ? new Date(d.updated_at) : new Date(),
       }));
@@ -1000,13 +1003,13 @@ export async function deleteAllLogs(userId: string) {
   await supabase.from('dietary_logs').delete().eq('user_id', userId);
 }
 
-export async function importAllLogs(userId: string, data: any) {
+export async function importAllLogs(userId: string, data: Record<string, unknown>) {
   if (!data || typeof data !== 'object') {
     throw new Error('Invalid JSON structure');
   }
 
   // 1. Restore User Profile & Settings if present
-  if (data.user_profile) {
+  if (data.user_profile && typeof data.user_profile === 'object') {
     try {
       await supabase.from('users').upsert({
         ...data.user_profile,
@@ -1020,7 +1023,7 @@ export async function importAllLogs(userId: string, data: any) {
 
   // 2. Restore Exercises first (needed for foreign keys)
   if (Array.isArray(data.exercises) && data.exercises.length > 0) {
-    const cleanExercises = data.exercises.map((ex: any) => ({
+    const cleanExercises = data.exercises.map((ex: Record<string, unknown>) => ({
       ...ex,
       user_id: userId,
     }));
@@ -1029,7 +1032,7 @@ export async function importAllLogs(userId: string, data: any) {
 
   // 3. Restore Workouts (Routines)
   if (Array.isArray(data.workouts) && data.workouts.length > 0) {
-    const cleanWorkouts = data.workouts.map((w: any) => ({
+    const cleanWorkouts = data.workouts.map((w: Record<string, unknown>) => ({
       ...w,
       user_id: userId,
     }));
@@ -1038,7 +1041,7 @@ export async function importAllLogs(userId: string, data: any) {
 
   // 4. Restore Workout-Exercises Junction
   if (Array.isArray(data.workout_exercises) && data.workout_exercises.length > 0) {
-    const cleanJunction = data.workout_exercises.map((we: any) => ({
+    const cleanJunction = data.workout_exercises.map((we: Record<string, unknown>) => ({
       ...we,
       user_id: userId,
     }));
@@ -1047,7 +1050,7 @@ export async function importAllLogs(userId: string, data: any) {
 
   // 5. Restore Sessions (Workout Logs)
   if (Array.isArray(data.sessions) && data.sessions.length > 0) {
-    const cleanSessions = data.sessions.map((s: any) => ({
+    const cleanSessions = data.sessions.map((s: Record<string, unknown>) => ({
       ...s,
       user_id: userId,
     }));
@@ -1056,7 +1059,7 @@ export async function importAllLogs(userId: string, data: any) {
 
   // 6. Restore Sets
   if (Array.isArray(data.sets) && data.sets.length > 0) {
-    const cleanSets = data.sets.map((st: any) => ({
+    const cleanSets = data.sets.map((st: Record<string, unknown>) => ({
       ...st,
       user_id: userId,
     }));
@@ -1065,7 +1068,7 @@ export async function importAllLogs(userId: string, data: any) {
 
   // 7. Restore Body Logs (Weigh-ins & BMI)
   if (Array.isArray(data.body_logs) && data.body_logs.length > 0) {
-    const cleanBodyLogs = data.body_logs.map((bl: any) => ({
+    const cleanBodyLogs = data.body_logs.map((bl: Record<string, unknown>) => ({
       ...bl,
       user_id: userId,
     }));
@@ -1074,7 +1077,7 @@ export async function importAllLogs(userId: string, data: any) {
 
   // 8. Restore Custom Food Items
   if (Array.isArray(data.custom_food_items) && data.custom_food_items.length > 0) {
-    const cleanCustomFoods = data.custom_food_items.map((cf: any) => ({
+    const cleanCustomFoods = data.custom_food_items.map((cf: Record<string, unknown>) => ({
       ...cf,
       user_id: userId,
     }));
@@ -1083,7 +1086,7 @@ export async function importAllLogs(userId: string, data: any) {
 
   // 9. Restore Daily Dietary Summaries
   if (Array.isArray(data.dietary_logs) && data.dietary_logs.length > 0) {
-    const cleanDietaryLogs = data.dietary_logs.map((dl: any) => ({
+    const cleanDietaryLogs = data.dietary_logs.map((dl: Record<string, unknown>) => ({
       ...dl,
       user_id: userId,
     }));
@@ -1092,7 +1095,7 @@ export async function importAllLogs(userId: string, data: any) {
 
   // 10. Restore Granular Dietary Log Entries
   if (Array.isArray(data.dietary_log_entries) && data.dietary_log_entries.length > 0) {
-    const cleanDietaryEntries = data.dietary_log_entries.map((de: any) => ({
+    const cleanDietaryEntries = data.dietary_log_entries.map((de: Record<string, unknown>) => ({
       ...de,
       user_id: userId,
     }));
@@ -1104,9 +1107,9 @@ export async function saveWorkoutsAndExercises(
   userId: string,
   updatedWorkouts: (Workout & { exercises: Exercise[] })[]
 ) {
-  const allExercises: any[] = [];
-  const workoutRows: any[] = [];
-  const junctionRows: any[] = [];
+  const allExercises: Partial<DbExerciseRow>[] = [];
+  const workoutRows: Partial<DbWorkoutRow>[] = [];
+  const junctionRows: Partial<DbWorkoutExerciseRow>[] = [];
 
   updatedWorkouts.forEach((w, wIdx) => {
     const workoutId = (w.id && !w.id.startsWith('custom_w_')) ? w.id : `w_${Date.now()}_${wIdx}`;

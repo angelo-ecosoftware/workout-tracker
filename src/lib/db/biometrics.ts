@@ -1,5 +1,6 @@
 import { supabase } from '../supabase.ts';
 import { BodyMeasurementLog } from '../../models.ts';
+import { DbBodyLogRow } from '../../types/supabase.ts';
 
 export async function logDailyBodyWeight(
   userId: string,
@@ -78,15 +79,15 @@ export async function fetchBodyMeasurementLogs(userId: string): Promise<BodyMeas
     return [];
   }
 
-  return (data || []).map((row: any) => ({
+  return ((data as DbBodyLogRow[]) || []).map((row) => ({
     id: row.id,
     userId: row.user_id,
     logDate: row.log_date,
     weightKg: Number(row.weight_kg),
     heightCm: row.height_cm ? Number(row.height_cm) : undefined,
-    source: row.source,
+    source: (row.source || 'manual') as 'profile' | 'workout_session' | 'manual',
     notes: row.notes || undefined,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    createdAt: row.created_at ? new Date(row.created_at) : new Date(),
+    updatedAt: row.updated_at ? new Date(row.updated_at) : new Date(),
   }));
 }

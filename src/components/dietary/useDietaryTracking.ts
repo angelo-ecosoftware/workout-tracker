@@ -280,7 +280,7 @@ export const useDietaryTracking = (userId: string) => {
         throw new Error(data.error || 'Invalid list response');
       }
 
-      const mapped = data.products.map((p: any) => ({
+      const mapped = (data.products as { id: string | number; title: string; brand?: string; salesUnitSize?: string }[]).map((p) => ({
         id: String(p.id),
         title: p.title,
         brand: p.brand || 'Albert Heijn',
