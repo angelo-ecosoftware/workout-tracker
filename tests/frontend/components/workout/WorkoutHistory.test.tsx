@@ -15,6 +15,7 @@ vi.mock('../../../../src/lib/supabaseData.ts', () => ({
   updateSessionNotes: vi.fn(),
   updateSessionCoachNotes: vi.fn(),
   updateSessionPhotos: vi.fn(),
+  markSessionAsReviewed: vi.fn().mockResolvedValue({ reviewedAt: new Date(), coachName: 'Coach' }),
   fetchWorkoutsData: vi.fn(),
   fetchBodyMeasurementLogs: vi.fn(),
   logDailyBodyWeight: vi.fn(),

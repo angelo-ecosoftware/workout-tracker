@@ -8,6 +8,7 @@ import {
   updateSessionNotes,
   updateSessionCoachNotes,
   updateSessionPhotos,
+  markSessionAsReviewed,
   fetchWorkoutsData,
   fetchBodyMeasurementLogs,
   logDailyBodyWeight,
@@ -63,6 +64,21 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [activePhotoUploadSessionId, setActivePhotoUploadSessionId] = useState<string | null>(null);
+
+  const handleOpenSession = async (session: PopulatedSession) => {
+    setExpandedSessionId(session.id);
+    const isCoachInspectingAthlete = Boolean(user && activeUserId && activeUserId !== user.uid);
+    if (isCoachInspectingAthlete && !session.reviewedAt && user) {
+      try {
+        const { reviewedAt, coachName } = await markSessionAsReviewed(session.id, user.uid, user.displayName);
+        setSessions((prev) =>
+          prev.map((s) => (s.id === session.id ? { ...s, reviewedAt, reviewedByCoachName: coachName || user.displayName } : s))
+        );
+      } catch (err) {
+        console.warn('Auto-mark reviewed warning:', err);
+      }
+    }
+  };
 
   const handleShareSession = async (session: PopulatedSession) => {
     const shareUrl = `${window.location.origin}${window.location.pathname}?session=${session.id}`;
@@ -592,7 +608,7 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
                 if (isDeleteMode) {
                   toggleSelection(session.id);
                 } else {
-                  setExpandedSessionId(session.id);
+                  handleOpenSession(session);
                 }
               }}
             />

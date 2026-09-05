@@ -296,6 +296,28 @@ export async function updateSessionCoachNotes(sessionId: string, coachNotes: str
     .eq('id', sessionId);
 }
 
+export async function markSessionAsReviewed(
+  sessionId: string,
+  coachId: string,
+  coachName?: string | null
+): Promise<{ reviewedAt: Date; coachName?: string | null }> {
+  const now = new Date();
+  const payload: Record<string, any> = {
+    reviewed_at: now.toISOString(),
+    reviewed_by_coach_id: coachId,
+  };
+  if (coachName) {
+    payload.reviewed_by_coach_name = coachName;
+  }
+
+  await supabase
+    .from('sessions')
+    .update(payload)
+    .eq('id', sessionId);
+
+  return { reviewedAt: now, coachName };
+}
+
 export async function updateSessionPhotos(sessionId: string, photos: string[]) {
   await supabase
     .from('sessions')
@@ -353,6 +375,9 @@ export async function fetchWorkoutHistory(userId: string) {
     notes: d.notes || null,
     coachNotes: d.coach_notes || null,
     coachName: d.coach_name || null,
+    reviewedAt: d.reviewed_at ? new Date(d.reviewed_at) : null,
+    reviewedByCoachId: d.reviewed_by_coach_id || null,
+    reviewedByCoachName: d.reviewed_by_coach_name || null,
     photos: Array.isArray(d.photos) ? d.photos : (d.photos ? [d.photos] : null),
   }));
 

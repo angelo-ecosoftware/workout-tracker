@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle2, Circle } from 'lucide-react';
+import { CheckCircle2, Circle, CheckCheck } from 'lucide-react';
 import { PopulatedSession } from './SessionDetailCard.tsx';
 
 interface SessionGridCardProps {
@@ -26,9 +26,16 @@ export const SessionGridCard: React.FC<SessionGridCardProps> = ({
         </div>
       )}
       <div>
-        <h3 className={`font-display font-black text-xs sm:text-sm ${isDeleteMode && isSelected ? 'text-white' : 'text-[#C0FF00]'} uppercase tracking-tight leading-snug line-clamp-2 text-left w-full pr-3 group-hover:text-white transition-colors`}>
-          {session.workoutName}
-        </h3>
+        <div className="flex items-start justify-between gap-1">
+          <h3 className={`font-display font-black text-xs sm:text-sm ${isDeleteMode && isSelected ? 'text-white' : 'text-[#C0FF00]'} uppercase tracking-tight leading-snug line-clamp-2 text-left w-full pr-1 group-hover:text-white transition-colors`}>
+            {session.workoutName}
+          </h3>
+          {session.reviewedAt && !isDeleteMode && (
+            <span title={`Seen by ${session.reviewedByCoachName || 'Coach'}`} className="shrink-0 p-0.5 text-sky-400 bg-sky-950/60 rounded border border-sky-800/40">
+              <CheckCheck className="w-3 h-3 stroke-[2.5]" />
+            </span>
+          )}
+        </div>
         <span className="inline-block mt-2 text-[10px] font-mono text-gray-400 bg-[#1c1c1c] px-2 py-0.5 rounded">
           {session.sets.length} sets
         </span>

@@ -44,6 +44,29 @@ export async function updateSessionCoachNotes(sessionId: string, coachNotes: str
   if (error) throw error;
 }
 
+export async function markSessionAsReviewed(
+  sessionId: string,
+  coachId: string,
+  coachName?: string | null
+): Promise<{ reviewedAt: Date; coachName?: string | null }> {
+  const now = new Date();
+  const payload: Record<string, any> = {
+    reviewed_at: now.toISOString(),
+    reviewed_by_coach_id: coachId,
+  };
+  if (coachName) {
+    payload.reviewed_by_coach_name = coachName;
+  }
+
+  const { error } = await supabase
+    .from('sessions')
+    .update(payload)
+    .eq('id', sessionId);
+  if (error) throw error;
+
+  return { reviewedAt: now, coachName };
+}
+
 export async function updateSessionPhotos(sessionId: string, photos: string[]) {
   const { error } = await supabase
     .from('sessions')

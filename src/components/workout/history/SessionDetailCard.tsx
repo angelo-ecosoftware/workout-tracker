@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, Edit2, Save, X, Share2, Check } from 'lucide-react';
+import { Calendar, Clock, Edit2, Save, X, Share2, Check, CheckCheck } from 'lucide-react';
 import { Session, BodyMeasurementLog } from '../../../models.ts';
 import { PopulatedSet, SessionSetTable } from './SessionSetTable.tsx';
 import { SessionNotesSection } from './SessionNotesSection.tsx';
@@ -196,6 +196,12 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
                 <span className="flex items-center gap-1.5 bg-[#1a1a1a] px-2.5 py-1 rounded-lg text-gray-300 border border-[#262626]">
                   <span className="text-amber-400 font-bold">⚡ {session.energyScore}/10</span>
                   <span className="text-[10px] text-gray-500">energy</span>
+                </span>
+              )}
+              {session.reviewedAt && (
+                <span className="flex items-center gap-1.5 bg-sky-950/40 border border-sky-800/50 px-2.5 py-1 rounded-lg text-[10px] font-mono text-sky-300">
+                  <CheckCheck className="w-3.5 h-3.5 text-sky-400 stroke-[2.5]" />
+                  <span>Seen by {session.reviewedByCoachName || 'Coach'}</span>
                 </span>
               )}
               <button 

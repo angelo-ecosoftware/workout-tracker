@@ -91,6 +91,9 @@ export interface Session {
   notes?: string | null;
   coachNotes?: string | null;
   coachName?: string | null;
+  reviewedAt?: Date | null;
+  reviewedByCoachId?: string | null;
+  reviewedByCoachName?: string | null;
   photos?: string[] | null;
 }
 
