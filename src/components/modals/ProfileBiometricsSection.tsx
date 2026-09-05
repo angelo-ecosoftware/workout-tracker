@@ -65,7 +65,7 @@ export const ProfileBiometricsSection: React.FC<ProfileBiometricsSectionProps> =
           </label>
           <select
             value={gender}
-            onChange={(e) => setGender(e.target.value as any)}
+            onChange={(e) => setGender(e.target.value as 'male' | 'female' | 'other' | 'prefer_not_to_say')}
             className="w-full bg-[#111] border border-[#333] rounded-lg px-2.5 py-1.5 text-xs text-white font-sans focus:outline-none focus:border-[#C0FF00]"
           >
             <option value="male">Male</option>

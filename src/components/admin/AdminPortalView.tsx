@@ -255,7 +255,7 @@ export const AdminPortalView: React.FC = () => {
               <Filter className="w-3.5 h-3.5 text-gray-500" />
               <select
                 value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value as any)}
+                onChange={(e) => setRoleFilter(e.target.value as 'all' | AppRole)}
                 className="bg-[#181818] border border-[#333] text-gray-300 font-mono text-xs rounded-xl px-3 py-2 outline-none cursor-pointer"
               >
                 <option value="all">All Roles</option>

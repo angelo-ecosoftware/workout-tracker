@@ -11,14 +11,22 @@ export interface BmiCategoryInfo {
   advice: string;
 }
 
+export interface HoveredBmiDay {
+  date: string;
+  isToday: boolean;
+  log?: BodyMeasurementLog;
+  dayBmi: number | null;
+  cat: BmiCategoryInfo | null;
+}
+
 interface InsightsBmiCardProps {
   userMetrics: UserMetrics | null;
   bmiValue: number | null;
   bmiCategory: BmiCategoryInfo | null;
   bodyLogs: BodyMeasurementLog[];
   heatmapDays: HeatmapDay[];
-  hoveredBmiDay: any | null;
-  onHoverBmiDay: (day: any | null) => void;
+  hoveredBmiDay: HoveredBmiDay | null;
+  onHoverBmiDay: (day: HoveredBmiDay | null) => void;
   getBmiCategory: (bmi: number) => BmiCategoryInfo;
 }
 

@@ -129,7 +129,7 @@ export function useAssistedTracker({
   const restStartTimeRef = useRef<number | null>(initialSavedState?.restStartTime ?? null);
   const restTargetEndTimeRef = useRef<number | null>(initialSavedState?.restTargetEndTime ?? null);
   const setTimingsRef = useRef<Record<string, SetTimingRecord>>(initialSavedState?.setTimings ?? {});
-  const timerRef = useRef<any>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const persistState = (overrides?: Partial<{
     exerciseIndex: number;

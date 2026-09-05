@@ -120,20 +120,21 @@ const GymAppContent: React.FC = () => {
       else if (hash.includes('tracker')) setActiveTabState('tracker');
     };
 
-    const handleCustomTabSwitch = (e: CustomEvent<TabType>) => {
-      if (e.detail) {
-        setActiveTab(e.detail);
+    const handleCustomTabSwitch: EventListener = (e: Event) => {
+      const customEvent = e as CustomEvent<TabType>;
+      if (customEvent.detail) {
+        setActiveTab(customEvent.detail);
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('hashchange', handlePopState);
-    window.addEventListener('switch_app_tab' as any, handleCustomTabSwitch as any);
+    window.addEventListener('switch_app_tab', handleCustomTabSwitch);
 
     return () => {
       window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('hashchange', handlePopState);
-      window.removeEventListener('switch_app_tab' as any, handleCustomTabSwitch as any);
+      window.removeEventListener('switch_app_tab', handleCustomTabSwitch);
     };
   }, []);
 

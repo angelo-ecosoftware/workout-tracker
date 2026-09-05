@@ -27,10 +27,19 @@ import {
 } from 'lucide-react';
 import { InsightsHeroMetrics } from './InsightsHeroMetrics.tsx';
 import { InsightsHeatmapCard } from './InsightsHeatmapCard.tsx';
-import { InsightsBmiCard, BmiCategoryInfo } from './InsightsBmiCard.tsx';
+import { InsightsBmiCard, BmiCategoryInfo, HoveredBmiDay } from './InsightsBmiCard.tsx';
 import { WeeklyVolumeChart } from './WeeklyVolumeChart.tsx';
 import { RestPacingCard } from './RestPacingCard.tsx';
 import { ProgramScopeSelector } from './ProgramScopeSelector.tsx';
+import { HeatmapDay } from '../../lib/insightsEngine.ts';
+import { Workout } from '../../models.ts';
+
+interface WorkoutsDataPayload {
+  combinedWorkouts: (Workout & { exercises: Exercise[] })[];
+  workoutsList: Workout[];
+  exercisesList: Exercise[];
+  workoutExercisesList?: { workout_id: string; exercise_id: string; position: number }[];
+}
 
 interface InsightsViewProps {
   userId?: string;
@@ -45,15 +54,15 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ userId: propUserId }
   const [bodyLogs, setBodyLogs] = useState<BodyMeasurementLog[]>([]);
   const [savedPrograms, setSavedPrograms] = useState<SavedRoutineProgram[]>([]);
   const [selectedProgramId, setSelectedProgramId] = useState<string>('all');
-  const [hoveredDay, setHoveredDay] = useState<any | null>(null);
-  const [hoveredBmiDay, setHoveredBmiDay] = useState<any | null>(null);
+  const [hoveredDay, setHoveredDay] = useState<HeatmapDay | null>(null);
+  const [hoveredBmiDay, setHoveredBmiDay] = useState<HoveredBmiDay | null>(null);
   const [activeInfoKey, setActiveInfoKey] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'heatmap' | 'bmi'>('heatmap');
 
   // Raw data from DB
   const [rawSessions, setRawSessions] = useState<Session[]>([]);
   const [rawSets, setRawSets] = useState<WorkoutSet[]>([]);
-  const [rawWorkoutsData, setRawWorkoutsData] = useState<any>(null);
+  const [rawWorkoutsData, setRawWorkoutsData] = useState<WorkoutsDataPayload | null>(null);
 
   // Per-exercise progression state
   const [exercisesList, setExercisesList] = useState<Exercise[]>([]);
@@ -131,10 +140,10 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ userId: propUserId }
   // Scoped calculation based on selectedProgramId
   const { filteredSessions, filteredSets, workoutMap } = useMemo(() => {
     if (!rawWorkoutsData) {
-      return { filteredSessions: rawSessions, filteredSets: rawSets, workoutMap: new Map() };
+      return { filteredSessions: rawSessions, filteredSets: rawSets, workoutMap: new Map<string, string>() };
     }
 
-    const map = new Map(rawWorkoutsData.combinedWorkouts.map((w: any) => [w.id, w.name]));
+    const map = new Map<string, string>(rawWorkoutsData.combinedWorkouts.map((w) => [w.id, w.name]));
 
     if (selectedProgramId === 'all') {
       return { filteredSessions: rawSessions, filteredSets: rawSets, workoutMap: map };
