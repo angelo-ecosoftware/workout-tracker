@@ -24,6 +24,7 @@ describe('CoachAccountModal Component', () => {
       refreshUserRole: vi.fn(),
       requestCoachRole: mockRequestCoachRole,
       loginWithGoogle: vi.fn(),
+      loginWithEmailPassword: vi.fn(),
       switchAccount: vi.fn(),
       logout: vi.fn(),
     });

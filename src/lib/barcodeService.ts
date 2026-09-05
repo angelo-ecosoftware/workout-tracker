@@ -191,7 +191,7 @@ export async function lookupBarcodeProduct(barcode: string, currentUserId?: stri
         }
       }
     }
-  } catch (apiErr: any) {
+  } catch (apiErr: unknown) {
     console.warn('Open Food Facts API lookup skipped/failed:', apiErr);
   }
 

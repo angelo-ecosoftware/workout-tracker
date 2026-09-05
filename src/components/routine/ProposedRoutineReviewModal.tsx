@@ -67,7 +67,7 @@ export const ProposedRoutineReviewModal: React.FC<ProposedRoutineReviewModalProp
         onClose();
         window.location.reload();
       }, 800);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to apply routine proposal:', err);
       setStatusMsg({ type: 'error', text: 'Failed to apply proposed routine.' });
     } finally {
@@ -81,7 +81,7 @@ export const ProposedRoutineReviewModal: React.FC<ProposedRoutineReviewModalProp
       await updateRoutineProposalStatus(proposal.id, 'rejected');
       if (onProposalApplied) onProposalApplied();
       onClose();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to decline proposal:', err);
     } finally {
       setLoading(false);

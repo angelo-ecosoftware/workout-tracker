@@ -70,9 +70,9 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
           setErrorMessage(result.error || `We couldn't find or resolve barcode ${clean} right now. Please try again or add it as a custom food.`);
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus('error');
-      setErrorMessage(err.message || 'Error occurred while looking up barcode.');
+      setErrorMessage(err instanceof Error ? err.message : 'Error occurred while looking up barcode.');
     }
   };
 
@@ -146,13 +146,15 @@ export const BarcodeScannerModal: React.FC<BarcodeScannerModalProps> = ({
 
         animFrameIdRef.current = requestAnimationFrame(scanFrame);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn('Camera stream acquisition failed:', err);
       setStatus('error');
-      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      const errName = err instanceof Error ? err.name : '';
+      const errMsg = err instanceof Error ? err.message : '';
+      if (errName === 'NotAllowedError' || errName === 'PermissionDeniedError') {
         setErrorMessage('Camera permission was denied. Please allow camera permissions to scan barcodes.');
       } else {
-        setErrorMessage(err.message || 'Unable to start camera.');
+        setErrorMessage(errMsg || 'Unable to start camera.');
       }
     }
   };

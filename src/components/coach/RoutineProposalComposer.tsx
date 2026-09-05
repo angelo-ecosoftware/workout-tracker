@@ -130,7 +130,7 @@ export const RoutineProposalComposer: React.FC<RoutineProposalComposerProps> = (
         if (onProposalSent) onProposalSent();
         onClose();
       }, 800);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to send routine proposal:', err);
       setStatusMsg({ type: 'error', text: 'Failed to send proposal.' });
     } finally {

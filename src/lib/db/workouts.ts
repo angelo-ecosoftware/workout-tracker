@@ -123,7 +123,7 @@ export async function saveWorkoutsAndExercises(
       .upsert(workoutRows, { onConflict: 'id' });
 
     if (wError) throw wError;
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Failed to save routines and exercises to Supabase:', err);
     throw err;
   }

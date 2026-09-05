@@ -21,8 +21,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success: true,
       product,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Product Link Scraper Error:', err);
-    return res.status(500).json({ error: err.message || 'Failed to parse product link' });
+    return res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to parse product link' });
   }
 }

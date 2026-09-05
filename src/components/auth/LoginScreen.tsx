@@ -71,12 +71,12 @@ export const LoginScreen: React.FC = () => {
     setErrorMsg(null);
     try {
       await loginWithGoogle();
-    } catch (err: any) {
-      if (err?.code === 'auth/popup-closed-by-user') {
+    } catch (err: unknown) {
+      if (typeof err === 'object' && err !== null && 'code' in err && (err as { code: unknown }).code === 'auth/popup-closed-by-user') {
         // Just ignore if the user closes the popup
         setErrorMsg(null);
       } else {
-        setErrorMsg(err.message || 'Authentication error. Please check configuration.');
+        setErrorMsg(err instanceof Error ? err.message : 'Authentication error. Please check configuration.');
       }
     } finally {
       setLoggingIn(false);
@@ -93,8 +93,8 @@ export const LoginScreen: React.FC = () => {
     setErrorMsg(null);
     try {
       await loginWithEmailPassword(emailInput.trim(), passwordInput);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Invalid email or password.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Invalid email or password.');
     } finally {
       setLoggingIn(false);
     }

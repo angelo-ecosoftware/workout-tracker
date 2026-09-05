@@ -75,7 +75,7 @@ export const PrivacySettingsModal: React.FC<PrivacySettingsModalProps> = ({
       ]);
       setSettings(privData);
       setPeerShares(peers);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load privacy settings:', err);
     } finally {
       setLoading(false);
@@ -95,7 +95,7 @@ export const PrivacySettingsModal: React.FC<PrivacySettingsModalProps> = ({
       await updateUserPrivacySettings(userId, { [key]: newVal });
       setStatusMsg({ type: 'success', text: 'Privacy settings updated.' });
       setTimeout(() => setStatusMsg(null), 2500);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to update privacy setting:', err);
       setStatusMsg({ type: 'error', text: 'Could not save setting.' });
     } finally {
@@ -124,8 +124,8 @@ export const PrivacySettingsModal: React.FC<PrivacySettingsModalProps> = ({
       setNewPeerName('');
       setNewPeerId('');
       setStatusMsg({ type: 'success', text: `Access granted to ${savedPeer.granteeName}!` });
-    } catch (err: any) {
-      setStatusMsg({ type: 'error', text: err.message || 'Failed to grant peer access.' });
+    } catch (err: unknown) {
+      setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : 'Failed to grant peer access.' });
     } finally {
       setIsSaving(false);
     }
@@ -136,7 +136,7 @@ export const PrivacySettingsModal: React.FC<PrivacySettingsModalProps> = ({
       await deleteUserPeerShare(shareId);
       setPeerShares((prev) => prev.filter((p) => p.id !== shareId));
       setStatusMsg({ type: 'success', text: `Revoked access for ${name || 'training partner'}.` });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to delete peer share:', err);
     }
   };

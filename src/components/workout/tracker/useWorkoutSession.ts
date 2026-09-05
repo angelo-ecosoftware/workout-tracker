@@ -252,9 +252,9 @@ export function useWorkoutSession(user: AuthUser | null) {
       const targetW =
         wData.combinedWorkouts.find((w) => w.order === computedNextDay) || wData.combinedWorkouts[0];
       setActiveWorkout(targetW || null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('loadWorkflowState ERROR:', err);
-      setErrorMsg(`Failed to synchronize active workout progression. ERROR: ${err.message}`);
+      setErrorMsg(`Failed to synchronize active workout progression. ERROR: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setLoading(false);
     }
@@ -542,7 +542,7 @@ export function useWorkoutSession(user: AuthUser | null) {
         setIsUploadingPhotos(true);
         try {
           uploadedPhotoUrls = await uploadWorkoutPhotos(user.uid, selectedPhotos);
-        } catch (uploadErr: any) {
+        } catch (uploadErr: unknown) {
           console.warn('Photos upload error, continuing session save:', uploadErr);
         } finally {
           setIsUploadingPhotos(false);
@@ -575,7 +575,7 @@ export function useWorkoutSession(user: AuthUser | null) {
             notes: sessionNotes || undefined,
           });
         }
-      } catch (networkErr: any) {
+      } catch (networkErr: unknown) {
         console.error('Failed saving workout session:', networkErr);
         throw networkErr;
       }
@@ -592,8 +592,8 @@ export function useWorkoutSession(user: AuthUser | null) {
       await loadWorkflowState();
 
       setTimeout(() => setSuccessMsg(null), 4000);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to log workout session details.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to log workout session details.');
     } finally {
       setLoggingWorkout(false);
     }
@@ -732,8 +732,8 @@ export function useWorkoutSession(user: AuthUser | null) {
       }
 
       await executeSaveWorkout(finalSetsPayload);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to validate workout inputs.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to validate workout inputs.');
     }
   };
 

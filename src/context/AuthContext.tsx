@@ -124,7 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       });
       if (error) throw error;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Google login failed:", err);
       throw err;
     } finally {
@@ -146,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (mapped?.uid) {
         await loadRoleForUser(mapped.uid);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Email login failed:", err);
       throw err;
     } finally {
@@ -171,7 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         },
       });
       if (error) throw error;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Account switch failed:", err);
       throw err;
     } finally {

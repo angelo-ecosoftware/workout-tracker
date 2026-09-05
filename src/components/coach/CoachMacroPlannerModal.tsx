@@ -87,7 +87,7 @@ export const CoachMacroPlannerModal: React.FC<CoachMacroPlannerModalProps> = ({
         if (onPrescriptionSaved) onPrescriptionSaved();
         onClose();
       }, 800);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to save macro prescription:', err);
       setStatusMsg({ type: 'error', text: 'Failed to save macro plan.' });
     } finally {

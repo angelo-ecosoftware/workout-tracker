@@ -48,7 +48,7 @@ export const SavedRoutinesLibraryModal: React.FC<SavedRoutinesLibraryModalProps>
       setLoading(true);
       const data = await fetchSavedRoutinePrograms(userId);
       setPrograms(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load saved programs:', err);
     } finally {
       setLoading(false);
@@ -88,8 +88,8 @@ export const SavedRoutinesLibraryModal: React.FC<SavedRoutinesLibraryModalProps>
       setNewProgramTitle('');
       setNewProgramDescription('');
       setStatusMsg({ type: 'success', text: `Saved "${saved.title}" to library!` });
-    } catch (err: any) {
-      setStatusMsg({ type: 'error', text: err.message || 'Failed to save program.' });
+    } catch (err: unknown) {
+      setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : 'Failed to save program.' });
     } finally {
       setLoading(false);
     }
@@ -116,7 +116,7 @@ export const SavedRoutinesLibraryModal: React.FC<SavedRoutinesLibraryModalProps>
       );
 
       setStatusMsg({ type: 'success', text: `Activated "${program.title}" as current split!` });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to activate program:', err);
       setStatusMsg({ type: 'error', text: 'Failed to activate program.' });
     } finally {
@@ -133,7 +133,7 @@ export const SavedRoutinesLibraryModal: React.FC<SavedRoutinesLibraryModalProps>
       await deleteSavedRoutineProgram(userId, programId);
       setPrograms((prev) => prev.filter((p) => p.id !== programId));
       setStatusMsg({ type: 'success', text: `Removed "${title}" from library.` });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to delete program:', err);
       setStatusMsg({ type: 'error', text: 'Failed to delete program.' });
     }

@@ -56,7 +56,7 @@ export const CoachInviteModal: React.FC<CoachInviteModalProps> = ({
       setStatusMsg({ type: 'success', text: 'Invitation created successfully!' });
       if (onInviteCreated) onInviteCreated();
       return code;
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to create coach invite:', err);
       setStatusMsg({ type: 'error', text: 'Failed to generate invitation.' });
       return null;

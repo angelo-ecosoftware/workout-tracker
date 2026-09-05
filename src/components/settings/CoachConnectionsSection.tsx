@@ -39,7 +39,7 @@ export const CoachConnectionsSection: React.FC<CoachConnectionsSectionProps> = (
       ]);
       setCoaches(linksData.coaches);
       setProposals(proposalsData.filter((p) => p.status === 'proposed'));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load coach connections:', err);
     } finally {
       setLoading(false);
@@ -57,7 +57,7 @@ export const CoachConnectionsSection: React.FC<CoachConnectionsSectionProps> = (
       await acceptCoachLink(linkId, userId);
       setStatusMsg({ type: 'success', text: `Connected with ${coachName || 'Coach'}!` });
       await loadCoachingData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to accept coach link:', err);
     }
   };
@@ -71,7 +71,7 @@ export const CoachConnectionsSection: React.FC<CoachConnectionsSectionProps> = (
       await revokeCoachLink(linkId);
       setCoaches((prev) => prev.filter((c) => c.id !== linkId));
       setStatusMsg({ type: 'success', text: `Disconnected from ${coachName || 'coach'}.` });
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to disconnect coach:', err);
     }
   };

@@ -126,9 +126,9 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ userId: propUserId }
           );
           setExerciseReport(rep);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Failed to load insights metrics:', err);
-        setErrorMsg(err.message || 'Failed to aggregate insights.');
+        setErrorMsg(err instanceof Error ? err.message : 'Failed to aggregate insights.');
       } finally {
         setLoading(false);
       }

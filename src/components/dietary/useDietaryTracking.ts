@@ -253,8 +253,8 @@ export const useDietaryTracking = (userId: string) => {
       setPortionGrams(scrapedProduct.packageWeightGrams || 100);
       setActiveModalTab('search');
       setSingleLinkInput('');
-    } catch (err: any) {
-      setSingleLinkError(err?.message || 'Error extracting product data.');
+    } catch (err: unknown) {
+      setSingleLinkError(err instanceof Error ? err.message : 'Error extracting product data.');
     } finally {
       setSingleLinkLoading(false);
     }
@@ -287,8 +287,8 @@ export const useDietaryTracking = (userId: string) => {
         salesUnitSize: p.salesUnitSize,
       }));
       setListExtractedProducts(mapped);
-    } catch (err: any) {
-      setListLinkError(err?.message || 'Failed to extract shared list.');
+    } catch (err: unknown) {
+      setListLinkError(err instanceof Error ? err.message : 'Failed to extract shared list.');
     } finally {
       setListLinkLoading(false);
     }

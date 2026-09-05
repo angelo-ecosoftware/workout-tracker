@@ -49,7 +49,7 @@ export const WorkoutSetCoachFeedback: React.FC<WorkoutSetCoachFeedbackProps> = (
       setCueText('');
       setIsAddingCue(false);
       if (onFeedbackAdded) onFeedbackAdded(saved);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to add coaching cue:', err);
     } finally {
       setLoading(false);

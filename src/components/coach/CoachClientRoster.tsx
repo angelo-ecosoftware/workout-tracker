@@ -43,7 +43,7 @@ export const CoachClientRoster: React.FC<CoachClientRosterProps> = ({
       setLoading(true);
       const data = await fetchCoachAthleteLinks(coachId);
       setClients(data.clients);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to load coach client roster:', err);
     } finally {
       setLoading(false);
@@ -64,7 +64,7 @@ export const CoachClientRoster: React.FC<CoachClientRosterProps> = ({
     try {
       await revokeCoachLink(linkId);
       setClients((prev) => prev.filter((c) => c.id !== linkId));
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to revoke coach client link:', err);
     }
   };

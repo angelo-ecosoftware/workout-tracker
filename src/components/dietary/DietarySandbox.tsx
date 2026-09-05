@@ -49,9 +49,9 @@ export const DietarySandbox: React.FC = () => {
       }
 
       setProducts(data.products);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Failed to extract AH list:', err);
-      setError(err.message || 'Could not fetch list. Please check the URL.');
+      setError(err instanceof Error ? err.message : 'Could not fetch list. Please check the URL.');
     } finally {
       setLoading(false);
     }

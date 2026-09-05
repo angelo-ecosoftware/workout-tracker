@@ -22,7 +22,7 @@ export async function exportAllLogs(userId: string) {
     };
 
     return exportData;
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Failed to export logs:', err);
     throw err;
   }

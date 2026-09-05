@@ -46,8 +46,8 @@ export const CoachInviteAcceptModal: React.FC<CoachInviteAcceptModalProps> = ({
         // Force refresh connections state
         window.location.reload();
       }, 800);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Failed to accept coach invitation.');
+    } catch (err: unknown) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to accept coach invitation.');
     } finally {
       setLoading(false);
     }

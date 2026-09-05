@@ -115,8 +115,8 @@ export async function updateUserRoleByAdmin(
     }
 
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Failed to update user role' };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to update user role' };
   }
 }
 
@@ -169,7 +169,7 @@ export async function updateMissingProductReportStatus(
       return { success: false, error: error.message };
     }
     return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed to update report status' };
   }
 }

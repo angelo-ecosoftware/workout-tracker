@@ -230,9 +230,9 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
       } : prev);
 
       setEditingWeightSessionId(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Failed to save body weight:", err);
-      alert(err.message || "Failed to save body weight.");
+      alert(err instanceof Error ? err.message : "Failed to save body weight.");
     } finally {
       setIsSavingWeight(false);
     }
@@ -279,9 +279,9 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
       setSessions(prev =>
         prev.map(s => (s.id === activePhotoUploadSessionId ? { ...s, photos: updatedPhotos } : s))
       );
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Photo upload error:", err);
-      alert(err.message || "Failed to upload photo.");
+      alert(err instanceof Error ? err.message : "Failed to upload photo.");
     } finally {
       setUploadingPhotoSessionId(null);
       setActivePhotoUploadSessionId(null);
@@ -381,9 +381,9 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
       await deleteSessions(Array.from(selectedIds));
       setSessions(s => s.filter(x => !selectedIds.has(x.id)));
       setSelectedIds(new Set());
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setErrorMsg(err.message || 'Failed to delete sessions.');
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to delete sessions.');
     } finally {
       setLoading(false);
     }
@@ -468,9 +468,9 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
         const populated = results.filter((res): res is PopulatedSession => res !== null);
         
         setSessions(populated);
-      } catch (err: any) {
-        console.error('Error loading history:', err.code, err.message, err);
-        setErrorMsg(err.message || 'Failed to load history.');
+      } catch (err: unknown) {
+        console.error('Error loading history:', err);
+        setErrorMsg(err instanceof Error ? err.message : 'Failed to load history.');
       } finally {
         setLoading(false);
       }

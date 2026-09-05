@@ -167,9 +167,9 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
       setTimeout(() => {
         onClose();
       }, 1000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error saving routine config:', err);
-      setStatusMsg({ type: 'error', text: err.message || 'Failed to save changes' });
+      setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : 'Failed to save changes' });
     } finally {
       setIsSaving(false);
     }

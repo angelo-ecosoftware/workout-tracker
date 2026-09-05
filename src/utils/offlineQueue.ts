@@ -220,16 +220,19 @@ export async function processOfflineQueue(userId?: string): Promise<{ syncedCoun
         // Session synced successfully -> remove from IndexedDB
         await removeQueuedOfflineSession(item.id);
         syncedCount++;
-      } catch (sessionErr: any) {
+      } catch (sessionErr: unknown) {
         console.error(`Failed syncing queued session ${item.id}:`, sessionErr);
+
+        const errMsg = sessionErr instanceof Error ? sessionErr.message : String(sessionErr);
+        const errName = sessionErr instanceof Error ? sessionErr.name : '';
 
         // If it was a network drop / timeout, leave in queue to retry when online
         const isNetworkFailure =
           !navigator.onLine ||
-          sessionErr?.message?.includes('Failed to fetch') ||
-          sessionErr?.message?.includes('NetworkError') ||
-          sessionErr?.message?.includes('timeout') ||
-          sessionErr?.name === 'TypeError';
+          errMsg.includes('Failed to fetch') ||
+          errMsg.includes('NetworkError') ||
+          errMsg.includes('timeout') ||
+          errName === 'TypeError';
 
         if (isNetworkFailure) {
           break; // Don't burn through remaining items while offline
@@ -246,7 +249,7 @@ export async function processOfflineQueue(userId?: string): Promise<{ syncedCoun
               const tx = db.transaction(QUEUE_STORE, 'readwrite');
               const store = tx.objectStore(QUEUE_STORE);
               item.retryCount = (item.retryCount || 0) + 1;
-              item.lastError = sessionErr?.message || String(sessionErr);
+              item.lastError = errMsg;
               store.put(item);
             } catch (updateErr) {
               console.warn('Failed updating item retry count:', updateErr);

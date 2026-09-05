@@ -132,10 +132,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       totalItems: products.length,
       products,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Server error fetching shared grocery list:', err);
     return res.status(500).json({
-      error: err.message || 'Internal server error fetching grocery list',
+      error: err instanceof Error ? err.message : 'Internal server error fetching grocery list',
     });
   }
 }

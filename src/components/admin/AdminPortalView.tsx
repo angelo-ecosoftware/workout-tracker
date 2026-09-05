@@ -49,8 +49,8 @@ export const AdminPortalView: React.FC = () => {
       ]);
       setUsers(uList);
       setReports(rList);
-    } catch (err: any) {
-      setActionErrorMsg(err.message || 'Failed to fetch admin data.');
+    } catch (err: unknown) {
+      setActionErrorMsg(err instanceof Error ? err.message : 'Failed to fetch admin data.');
     } finally {
       setLoading(false);
     }

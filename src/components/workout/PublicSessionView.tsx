@@ -33,9 +33,9 @@ export const PublicSessionView: React.FC<PublicSessionViewProps> = ({ sessionId,
         } else {
           setData(result);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Failed to load public session:", err);
-        setErrorMsg(err.message || "Could not load shared workout session.");
+        setErrorMsg(err instanceof Error ? err.message : "Could not load shared workout session.");
       } finally {
         setLoading(false);
       }
