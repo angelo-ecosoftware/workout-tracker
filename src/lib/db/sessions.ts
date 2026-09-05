@@ -4,10 +4,23 @@ import { SessionEngine, SetLogger } from '../../engine.ts';
 import { initializeUser } from './users.ts';
 import { deleteWorkoutPhotos } from '../storage.ts';
 
-export async function updateSessionDate(sessionId: string, newDate: Date) {
+export async function updateSessionDate(
+  sessionId: string,
+  newDate: Date,
+  sleepHours?: number | null,
+  energyScore?: number | null
+) {
+  const updatePayload: Record<string, any> = { completed_at: newDate.toISOString() };
+  if (sleepHours !== undefined) {
+    updatePayload.sleep_hours = sleepHours;
+  }
+  if (energyScore !== undefined) {
+    updatePayload.energy_score = energyScore;
+  }
+
   const { error } = await supabase
     .from('sessions')
-    .update({ completed_at: newDate.toISOString() })
+    .update(updatePayload)
     .eq('id', sessionId);
   if (error) throw error;
 }

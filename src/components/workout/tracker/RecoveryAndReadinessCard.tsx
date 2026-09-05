@@ -61,32 +61,66 @@ export const RecoveryAndReadinessCard: React.FC<RecoveryAndReadinessCardProps> =
         </div>
       </div>
 
-      {/* Recovery Sliders */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-[11px] font-bold text-gray-400">
-            <span className="uppercase tracking-wider font-mono">Sleep (Hrs)</span>
-            <span className="font-mono text-[#C0FF00] bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#222]">
-              {sleepHours} hrs
-            </span>
+      {/* Recovery Sliders and Mini Form Fields */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Sleep Mini Form Field & Slider */}
+        <div className="bg-[#161616] border border-[#262626] rounded-2xl p-3.5 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+              <span>💤</span>
+              <span>Sleep</span>
+            </label>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="number"
+                min="0"
+                max="24"
+                step="0.5"
+                value={sleepHours}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  onSleepHoursChange(isNaN(val) ? 0 : val);
+                }}
+                className="w-16 bg-[#1f1f1f] border border-[#333] focus:border-[#C0FF00] text-[#C0FF00] font-mono text-xs font-bold text-center py-1 px-2 rounded-lg outline-none transition-colors"
+                title="Sleep in hours"
+              />
+              <span className="text-[11px] font-mono text-gray-500">hrs</span>
+            </div>
           </div>
           <input
             type="range"
             min="4"
-            max="12"
+            max="14"
             step="0.5"
-            value={sleepHours}
+            value={Math.min(Math.max(sleepHours, 4), 14)}
             onChange={(e) => onSleepHoursChange(parseFloat(e.target.value))}
             className="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#C0FF00]"
           />
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-[11px] font-bold text-gray-400">
-            <span className="uppercase tracking-wider font-mono">Energy (1-10)</span>
-            <span className="font-mono text-[#C0FF00] bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#222]">
-              {energyScore} / 10
-            </span>
+        {/* Energy Mini Form Field & Slider */}
+        <div className="bg-[#161616] border border-[#262626] rounded-2xl p-3.5 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] font-mono font-bold uppercase tracking-wider text-gray-400 flex items-center gap-1.5">
+              <span>⚡</span>
+              <span>Energy</span>
+            </label>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="number"
+                min="1"
+                max="10"
+                step="1"
+                value={energyScore}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  onEnergyScoreChange(isNaN(val) ? 1 : Math.max(1, Math.min(10, val)));
+                }}
+                className="w-16 bg-[#1f1f1f] border border-[#333] focus:border-amber-400 text-amber-400 font-mono text-xs font-bold text-center py-1 px-2 rounded-lg outline-none transition-colors"
+                title="Energy rating (1-10)"
+              />
+              <span className="text-[11px] font-mono text-gray-500">/ 10</span>
+            </div>
           </div>
           <input
             type="range"
@@ -95,7 +129,7 @@ export const RecoveryAndReadinessCard: React.FC<RecoveryAndReadinessCardProps> =
             step="1"
             value={energyScore}
             onChange={(e) => onEnergyScoreChange(parseInt(e.target.value, 10))}
-            className="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-[#C0FF00]"
+            className="w-full h-1 bg-[#222] rounded-lg appearance-none cursor-pointer accent-amber-400"
           />
         </div>
       </div>

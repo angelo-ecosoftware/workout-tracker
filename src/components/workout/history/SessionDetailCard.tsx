@@ -14,10 +14,14 @@ export interface PopulatedSession extends Session {
 
 interface SessionDetailCardProps {
   session: PopulatedSession;
-  // Date editing
+  // Date and recovery metrics editing
   isEditingDate: boolean;
   editingDateValue: string;
   onChangeDateValue: (val: string) => void;
+  editingSleepValue?: number;
+  onChangeSleepValue?: (val: number) => void;
+  editingEnergyValue?: number;
+  onChangeEnergyValue?: (val: number) => void;
   onStartDateEdit: (session: PopulatedSession) => void;
   onSaveDateEdit: (session: PopulatedSession) => void;
   onCancelDateEdit: () => void;
@@ -58,6 +62,10 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
   isEditingDate,
   editingDateValue,
   onChangeDateValue,
+  editingSleepValue = 8,
+  onChangeSleepValue,
+  editingEnergyValue = 7,
+  onChangeEnergyValue,
   onStartDateEdit,
   onSaveDateEdit,
   onCancelDateEdit,
@@ -95,23 +103,58 @@ export const SessionDetailCard: React.FC<SessionDetailCardProps> = ({
             {session.workoutName}
           </h3>
           {isEditingDate ? (
-            <div className="mt-2 flex flex-wrap items-center gap-2 bg-[#1a1a1a] p-1.5 rounded-lg border border-[#333]">
+            <div className="mt-2 flex flex-wrap items-center gap-2 bg-[#1a1a1a] p-2 rounded-xl border border-[#333]">
               <input
                 type="datetime-local"
                 value={editingDateValue}
                 onChange={(e) => onChangeDateValue(e.target.value)}
-                className="bg-transparent text-white focus:outline-none focus:ring-1 focus:ring-[#C0FF00] rounded px-2 py-1 text-xs"
+                className="bg-[#111] text-white focus:outline-none focus:ring-1 focus:ring-[#C0FF00] rounded-lg px-2.5 py-1 text-xs font-mono border border-[#2e2e2e]"
               />
-              <div className="flex items-center gap-2">
+
+              {/* Minimal Sleep Form Field */}
+              <div className="flex items-center gap-1 bg-[#111] border border-[#2e2e2e] rounded-lg px-2 py-1">
+                <span className="text-xs">💤</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="24"
+                  step="0.5"
+                  value={editingSleepValue}
+                  onChange={(e) => onChangeSleepValue?.(parseFloat(e.target.value) || 0)}
+                  className="w-12 bg-transparent text-[#C0FF00] font-mono text-xs font-bold text-center outline-none"
+                  title="Sleep Hours"
+                />
+                <span className="text-[10px] font-mono text-gray-500">h</span>
+              </div>
+
+              {/* Minimal Energy Form Field */}
+              <div className="flex items-center gap-1 bg-[#111] border border-[#2e2e2e] rounded-lg px-2 py-1">
+                <span className="text-xs">⚡</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  step="1"
+                  value={editingEnergyValue}
+                  onChange={(e) => onChangeEnergyValue?.(parseInt(e.target.value, 10) || 1)}
+                  className="w-10 bg-transparent text-amber-400 font-mono text-xs font-bold text-center outline-none"
+                  title="Energy (1-10)"
+                />
+                <span className="text-[10px] font-mono text-gray-500">/10</span>
+              </div>
+
+              <div className="flex items-center gap-1.5 ml-auto">
                 <button
                   onClick={(e) => { e.stopPropagation(); onSaveDateEdit(session); }}
-                  className="p-1.5 text-green-500 hover:bg-green-500/20 rounded bg-[#222]"
+                  className="p-1.5 text-[#C0FF00] hover:bg-[#C0FF00]/20 rounded-lg bg-[#222] transition-colors cursor-pointer"
+                  title="Save Changes"
                 >
                   <Save className="w-4 h-4" />
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); onCancelDateEdit(); }}
-                  className="p-1.5 text-red-500 hover:bg-red-500/20 rounded bg-[#222]"
+                  className="p-1.5 text-red-400 hover:bg-red-500/20 rounded-lg bg-[#222] transition-colors cursor-pointer"
+                  title="Cancel"
                 >
                   <X className="w-4 h-4" />
                 </button>

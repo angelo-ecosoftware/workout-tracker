@@ -259,10 +259,23 @@ export async function getUserProgressState(userId: string) {
   };
 }
 
-export async function updateSessionDate(sessionId: string, newDate: Date) {
+export async function updateSessionDate(
+  sessionId: string,
+  newDate: Date,
+  sleepHours?: number | null,
+  energyScore?: number | null
+) {
+  const updatePayload: Record<string, any> = { completed_at: newDate.toISOString() };
+  if (sleepHours !== undefined) {
+    updatePayload.sleep_hours = sleepHours;
+  }
+  if (energyScore !== undefined) {
+    updatePayload.energy_score = energyScore;
+  }
+
   await supabase
     .from('sessions')
-    .update({ completed_at: newDate.toISOString() })
+    .update(updatePayload)
     .eq('id', sessionId);
 }
 

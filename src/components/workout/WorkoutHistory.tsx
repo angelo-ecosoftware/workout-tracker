@@ -34,6 +34,8 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [editingDateSessionId, setEditingDateSessionId] = useState<string | null>(null);
   const [editingDateValue, setEditingDateValue] = useState<string>("");
+  const [editingSleepValue, setEditingSleepValue] = useState<number>(8);
+  const [editingEnergyValue, setEditingEnergyValue] = useState<number>(7);
 
   // Notes editing state
   const [editingNotesSessionId, setEditingNotesSessionId] = useState<string | null>(null);
@@ -263,6 +265,8 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
 
   const startEditingDate = (session: PopulatedSession) => {
     setEditingDateSessionId(session.id);
+    setEditingSleepValue(session.sleepHours != null ? session.sleepHours : 8);
+    setEditingEnergyValue(session.energyScore != null ? session.energyScore : 7);
     if (session.completedAt) {
       const d = session.completedAt;
       const pad = (n: number) => n.toString().padStart(2, '0');
@@ -281,20 +285,20 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
     
     try {
       const newDate = new Date(editingDateValue);
-      await updateSessionDate(session.id, newDate);
+      await updateSessionDate(session.id, newDate, editingSleepValue, editingEnergyValue);
       
       setSessions(prev => 
         prev.map(s => 
           s.id === session.id 
-            ? { ...s, completedAt: newDate } 
+            ? { ...s, completedAt: newDate, sleepHours: editingSleepValue, energyScore: editingEnergyValue } 
             : s
         ).sort((a, b) => (a.completedAt?.getTime() || 0) - (b.completedAt?.getTime() || 0))
       );
       
       setEditingDateSessionId(null);
     } catch (err) {
-      console.error("Failed to update date:", err);
-      alert("Failed to update date.");
+      console.error("Failed to update date and metrics:", err);
+      alert("Failed to update date and metrics.");
     }
   };
 
@@ -499,6 +503,10 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
               isEditingDate={editingDateSessionId === session.id}
               editingDateValue={editingDateValue}
               onChangeDateValue={setEditingDateValue}
+              editingSleepValue={editingSleepValue}
+              onChangeSleepValue={setEditingSleepValue}
+              editingEnergyValue={editingEnergyValue}
+              onChangeEnergyValue={setEditingEnergyValue}
               onStartDateEdit={startEditingDate}
               onSaveDateEdit={saveDateEdit}
               onCancelDateEdit={cancelDateEdit}
