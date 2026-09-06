@@ -42,7 +42,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
 
   return (
     <div
-      className={`grid grid-cols-12 gap-1.5 sm:gap-2 items-center px-2 py-1.5 sm:py-2 rounded-xl border transition-all ${
+      className={`grid grid-cols-12 gap-1.5 sm:gap-2 items-center px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl border transition-all ${
         isCompleted
           ? 'bg-[#121212] border-emerald-500/20 opacity-70'
           : isCurrent
@@ -69,7 +69,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
 
         <div className="flex items-center gap-1 shrink-0">
           <span
-            className={`font-mono text-xs font-bold uppercase whitespace-nowrap ${
+            className={`font-mono text-[11px] sm:text-xs font-bold uppercase whitespace-nowrap ${
               isCompleted ? 'text-gray-500 line-through' : isCurrent ? 'text-[#C0FF00]' : 'text-gray-300'
             }`}
           >
@@ -95,26 +95,24 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'durationSeconds', -5)}
-              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
             >
               <Minus className="w-3 h-3" />
             </button>
 
-            <div className="flex items-center min-w-0 flex-1 max-w-[70px]">
-              <input
-                type="text"
-                value={values.durationSeconds || ''}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => onTextInput(inputKey, 'durationSeconds', e.target.value)}
-                className="w-full bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-1 text-center font-mono font-bold text-white text-xs sm:text-sm focus:outline-none"
-                placeholder="0"
-              />
-            </div>
+            <input
+              type="text"
+              value={values.durationSeconds || ''}
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => onTextInput(inputKey, 'durationSeconds', e.target.value)}
+              className="w-full min-w-0 bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-0.5 text-center font-mono font-bold text-white text-xs sm:text-sm focus:outline-none"
+              placeholder="0"
+            />
 
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'durationSeconds', 5)}
-              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
             >
               <Plus className="w-3 h-3" />
             </button>
@@ -125,26 +123,24 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'difficulty', -1)}
-              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
             >
               <Minus className="w-3 h-3" />
             </button>
 
-            <div className="flex items-center min-w-0 flex-1 max-w-[50px]">
-              <input
-                type="text"
-                value={values.difficulty || ''}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => onTextInput(inputKey, 'difficulty', e.target.value)}
-                className="w-full bg-[#0d0d0d] border border-[#282828] focus:border-amber-400 rounded-lg py-1 px-1 text-center font-mono font-bold text-amber-400 text-xs sm:text-sm focus:outline-none"
-                placeholder="7"
-              />
-            </div>
+            <input
+              type="text"
+              value={values.difficulty || ''}
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => onTextInput(inputKey, 'difficulty', e.target.value)}
+              className="w-full min-w-0 bg-[#0d0d0d] border border-[#282828] focus:border-amber-400 rounded-lg py-1 px-0.5 text-center font-mono font-bold text-amber-400 text-xs sm:text-sm focus:outline-none"
+              placeholder="7"
+            />
 
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'difficulty', 1)}
-              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
             >
               <Plus className="w-3 h-3" />
             </button>
@@ -157,27 +153,25 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'weight', -2.5)}
-              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-white flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-white flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
               title="-2.5 kg"
             >
               <Minus className="w-3 h-3" />
             </button>
 
-            <div className="flex items-center min-w-0 flex-1 max-w-[70px]">
-              <input
-                type="text"
-                value={values.weight || ''}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => onTextInput(inputKey, 'weight', e.target.value)}
-                className="w-full bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-1 text-center font-mono font-black text-white text-xs sm:text-sm focus:outline-none"
-                placeholder="0"
-              />
-            </div>
+            <input
+              type="text"
+              value={values.weight || ''}
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => onTextInput(inputKey, 'weight', e.target.value)}
+              className="w-full min-w-0 bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-0.5 text-center font-mono font-black text-white text-xs sm:text-sm focus:outline-none"
+              placeholder="0"
+            />
 
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'weight', 2.5)}
-              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-[#C0FF00] flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-[#C0FF00] flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
               title="+2.5 kg"
             >
               <Plus className="w-3 h-3" />
@@ -189,27 +183,25 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'reps', -1)}
-              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-white flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-white flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
               title="-1 rep"
             >
               <Minus className="w-3 h-3" />
             </button>
 
-            <div className="flex items-center min-w-0 flex-1 max-w-[55px]">
-              <input
-                type="text"
-                value={values.reps || ''}
-                onFocus={(e) => e.target.select()}
-                onChange={(e) => onTextInput(inputKey, 'reps', e.target.value)}
-                className="w-full bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-1 text-center font-mono font-black text-[#C0FF00] text-xs sm:text-sm focus:outline-none"
-                placeholder="0"
-              />
-            </div>
+            <input
+              type="text"
+              value={values.reps || ''}
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => onTextInput(inputKey, 'reps', e.target.value)}
+              className="w-full min-w-0 bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-0.5 text-center font-mono font-black text-[#C0FF00] text-xs sm:text-sm focus:outline-none"
+              placeholder="0"
+            />
 
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'reps', 1)}
-              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-[#C0FF00] flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-[#C0FF00] flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
               title="+1 rep"
             >
               <Plus className="w-3 h-3" />

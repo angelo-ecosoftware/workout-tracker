@@ -166,8 +166,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           {/* Active Entry fields grid */}
           <div className="space-y-1.5">
             {/* Minimal Clean Header */}
-            <div className="grid grid-cols-12 gap-2 text-[10px] font-mono font-bold text-gray-500 uppercase tracking-wider px-2 pb-1 border-b border-[#222]">
-              <div className="col-span-3 sm:col-span-3 flex items-center gap-1.5">
+            <div className="grid grid-cols-12 gap-1.5 sm:gap-2 text-[10px] font-mono font-bold text-gray-500 uppercase tracking-wider px-2 sm:px-2.5 pb-1 border-b border-[#222]">
+              <div className="col-span-3 sm:col-span-3 flex items-center">
                 <span>SET</span>
               </div>
               <div className="col-span-5 sm:col-span-5 text-center">
