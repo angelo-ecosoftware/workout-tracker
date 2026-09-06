@@ -119,6 +119,8 @@ export function useWorkoutSession(user: AuthUser | null) {
         reps: string;
         durationSeconds?: string;
         difficulty?: string;
+        completed?: boolean;
+        completedAt?: string;
       }
     >
   >({});
@@ -743,6 +745,28 @@ export function useWorkoutSession(user: AuthUser | null) {
     }
   };
 
+  const toggleSetCompleted = (key: string) => {
+    setInputs((prev) => {
+      const current = prev[key] || { weight: '20', reps: '10', durationSeconds: '30', difficulty: '7' };
+      const isNowCompleted = !current.completed;
+      const nowTime = isNowCompleted
+        ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : undefined;
+
+      const updated = {
+        ...prev,
+        [key]: {
+          ...current,
+          completed: isNowCompleted,
+          completedAt: nowTime,
+        },
+      };
+
+      saveDraftCheckpoint(updated);
+      return updated;
+    });
+  };
+
   return {
     workouts,
     setWorkouts,
@@ -792,6 +816,7 @@ export function useWorkoutSession(user: AuthUser | null) {
     loadWorkflowState,
     updateInputValue,
     handleTextChange,
+    toggleSetCompleted,
     unrealisticWarningConfig,
     setUnrealisticWarningConfig,
     getProgressionAdvice,

@@ -7,7 +7,17 @@ import { ExerciseSetRow } from './ExerciseSetRow.tsx';
 interface ExerciseCardProps {
   exercise: Exercise;
   userProfile: UserProfile | null;
-  inputs: Record<string, { weight?: string; reps?: string; durationSeconds?: string; difficulty?: string }>;
+  inputs: Record<
+    string,
+    {
+      weight?: string;
+      reps?: string;
+      durationSeconds?: string;
+      difficulty?: string;
+      completed?: boolean;
+      completedAt?: string;
+    }
+  >;
   isExpanded: boolean;
   advice: { action: 'increase' | 'keep' | 'deload'; details: string };
   onToggleExpand: () => void;
@@ -21,6 +31,7 @@ interface ExerciseCardProps {
     field: 'weight' | 'reps' | 'durationSeconds' | 'difficulty',
     value: string
   ) => void;
+  onToggleCompleted?: (key: string) => void;
 }
 
 export const ExerciseCard: React.FC<ExerciseCardProps> = ({
@@ -32,6 +43,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onToggleExpand,
   onUpdateInput,
   onTextInput,
+  onToggleCompleted,
 }) => {
   const cachedEx = userProfile?.lastSetSummaryPerExercise?.[exercise.id];
 
@@ -183,29 +195,44 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               </div>
             </div>
 
-            {/* Entry sets lines */}
-            {Array.from({ length: exercise.targetSets }).map((_, index) => {
-              const setNum = index + 1;
-              const inputKey = `${exercise.id}-${setNum}`;
-              const values = inputs[inputKey] || {
-                weight: '20',
-                reps: '10',
-                durationSeconds: '30',
-                difficulty: '7',
-              };
+            {/* Entry sets lines with active/next set detection */}
+            {(() => {
+              // Find the first uncompleted set to mark as 'isCurrent'
+              let firstUncompletedIndex = -1;
+              for (let i = 1; i <= exercise.targetSets; i++) {
+                const k = `${exercise.id}-${i}`;
+                if (!inputs[k]?.completed) {
+                  firstUncompletedIndex = i;
+                  break;
+                }
+              }
 
-              return (
-                <ExerciseSetRow
-                  key={setNum}
-                  exercise={exercise}
-                  setNum={setNum}
-                  inputKey={inputKey}
-                  values={values}
-                  onUpdateInput={onUpdateInput}
-                  onTextInput={onTextInput}
-                />
-              );
-            })}
+              return Array.from({ length: exercise.targetSets }).map((_, index) => {
+                const setNum = index + 1;
+                const inputKey = `${exercise.id}-${setNum}`;
+                const values = inputs[inputKey] || {
+                  weight: '20',
+                  reps: '10',
+                  durationSeconds: '30',
+                  difficulty: '7',
+                };
+                const isCurrent = setNum === firstUncompletedIndex;
+
+                return (
+                  <ExerciseSetRow
+                    key={setNum}
+                    exercise={exercise}
+                    setNum={setNum}
+                    inputKey={inputKey}
+                    values={values}
+                    isCurrent={isCurrent}
+                    onUpdateInput={onUpdateInput}
+                    onTextInput={onTextInput}
+                    onToggleCompleted={onToggleCompleted}
+                  />
+                );
+              });
+            })()}
           </div>
         </>
       )}

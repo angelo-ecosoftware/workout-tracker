@@ -57,6 +57,7 @@ export const WorkoutDayTracker: React.FC = () => {
     setAssistedFinished,
     setAssistedSessionTimings,
     inputs,
+    toggleSetCompleted,
     unrealisticWarningConfig,
     setUnrealisticWarningConfig,
     handlePhotoSelect,
@@ -332,6 +333,7 @@ export const WorkoutDayTracker: React.FC = () => {
                     }}
                     onUpdateInput={updateInputValue}
                     onTextInput={handleTextChange}
+                    onToggleCompleted={toggleSetCompleted}
                   />
                 );
               })}
