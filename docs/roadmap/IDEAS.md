@@ -219,6 +219,37 @@ Research and architectural patterns from open-source tools and community-maintai
 - **Concept**: 1-click export of the active workout routine split (e.g. PPL, Upper/Lower, Full Body) into a printable, single-page gym pocket guide.
 
 ---
+
+## 10. Cognitive Ergonomics, UX/UI Heuristics & Habit Loops
+
+### 10.1 Workout Completion "PR Celebration" Modal
+- **Target Psychological Principle**: **Peak-End Rule**
+- **Concept**: Provide emotional closure and immediate dopamine reinforcement at the exact end of a workout session.
+- **Specification**:
+  - Full-screen celebratory modal with confetti particle feedback (`canvas-confetti`).
+  - Key stats: Total Volume Lifted (kg), Sets Completed, Time Elapsed, and highlighted **"🏆 NEW 1RM PR"** badges.
+  - 1-tap action: `"Share Workout Summary (Image/Text)"`.
+
+### 10.2 Weekly Consistency Streak Tracker & Activity Heatmap
+- **Target Psychological Principle**: **Goal-Gradient Effect & Zeigarnik Effect**
+- **Concept**: Visual habit loop reinforcement at the top of the Logbook view.
+- **Specification**:
+  - 7-day pill indicator (`[M] [T] [W] [T] [F] [S] [S]`) rendering completed days with a neon green glow (`#C0FF00`) and planned days with subtle dashed borders.
+  - Displays `"🔥 4-Week Consistency Streak"`.
+
+### 10.3 Rest Timer Auto-Start & Vibration Signal
+- **Target Psychological Principle**: **Feedback Loop & Mental Offloading**
+- **Concept**: Hands-free rest interval tracking during active strength sessions.
+- **Specification**:
+  - Checking a set row via 1-tap `[ ✓ ]` automatically triggers the countdown timer in the background.
+  - Invokes `navigator.vibrate([200, 100, 200])` and updates `document.title` (`(0:45) Rest | Workout Tracker`) upon expiration.
+
+### 10.4 UX Heuristic Remediation & Quick Wins
+- **Single-Line Set Steppers (`Hick's Law` & `Fitts's Law`)**: Replaced 4-button clusters with streamlined `[-] [ 20 kg ] [+]` steppers and 1-tap `[ ✓ ]` completion checkmarks.
+- **Omni-Bar Live Format Detection (`Jakob's Law`)**: Dynamic chips (`[ 🍲 Recipe Link ]`, `[ 🛒 Shared List ]`) with instant clipboard auto-paste.
+- **Collapsed-by-Default Accordion Architecture (`Miller's Law`)**: Initializing `Recovery & Readiness` and exercise cards collapsed with `localStorage` state persistence.
+
+---
 ---
 
 # PART II: Developer Bug Fixes & Defect Log (DEV QUEUE)
