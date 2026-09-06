@@ -447,3 +447,18 @@ This section tracks active defects, developer reproduction steps, affected sourc
 * **Resolution**:
   - Implemented dynamic ID remapping engine so all imported workouts, exercises, sessions, and sets receive fresh unique IDs and remap foreign keys on import.
   - Added granular export scopes ("Shareable Routines & Exercises", "Full Backup", "Custom Selection") in Settings.
+
+---
+
+### [BUG-007] Mobile Swipe-Back OAuth 404 & Account Selection Loop
+* **Status**: 🟢 Resolved & Verified
+* **Severity**: High (Authentication / Mobile UX)
+* **Affected Files**:
+  - `src/App.tsx`
+  - `src/context/AuthContext.tsx`
+* **Symptoms**:
+  - After logging in via Google OAuth on mobile (Android/iOS), performing a back-swipe gesture 1–3 times navigates through stale browser history entries.
+  - User lands on the expired OAuth callback URL (`*.europe-west2.run.app`), displaying a `404 Page not found (The requested URL was not found on this server)`, or loops back into the Google Account Picker (`accounts.google.com/signin/oauth`).
+* **Resolution**:
+  1. On successful `onAuthStateChange`, sanitized `window.history` via `replaceState` to overwrite OAuth token callback URLs with the clean `#tracker` route.
+  2. Implemented an active barrier state (`window.history.pushState({ appState: 'barrier' }, ...)` in `src/App.tsx`) on tab navigation and popstate events to intercept back-swipes and keep the athlete safely inside their active view without hitting expired OAuth callback URLs.
