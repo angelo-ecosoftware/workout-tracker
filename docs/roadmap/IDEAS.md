@@ -123,15 +123,79 @@ Combining the strengths of these repositories produces a best-in-class exercise 
      - **Jumbo**: Jumbo mobile search endpoint / web product resolver by keyword or EAN barcode (`searchType=keyword&searchTerms={ean}`), extracting macro tables and normalizing SKU IDs (`jumbo_<sku>`).
   3. **Auto-Caching Hive Mind**: Every scanned or resolved barcode is automatically saved into the global Supabase `food_items` database with `barcode = {ean}`, eliminating repeated external network calls for all future users.
 
+---
 
+## 7. Active Bug Reports, UX Refinements & Quality Audit
 
+### 7.1 Exercise Accordion Initial State: All Collapsed by Default Upon Login
+- **Issue / Feedback**: Exercise cards should start in a consistent, clean collapsed state upon logging in or switching days (`expandedExerciseId = null`), rather than auto-expanding the first card, allowing the athlete to scan their entire routine split at a glance.
+- **Opened State = Closed State Integrity**: Ensure tapping an opened exercise collapses it cleanly to the exact same visual height and padding as other closed cards without sticky accordion glitches.
 
-if not found report software developer in api
+### 7.2 Integer & Step Input Sanitization on Sets Form
+- **Issue / Feedback**: Inputting small integers (like `1` for reps, weight, or difficulty) exhibits jumpy or unexpected behavior (e.g. clearing text, leading zeros, or strict step snapping).
+- **Target Fix**: Smooth integer text editing with robust null-coalescing on blur and clean number stepping.
 
-eight must update after a logged session of profile
+### 7.3 Albert Heijn (AH) Shared Grocery List Importer (`/api/grocery-list`)
+- **Issue / Feedback**: AH shared list links (`ah.nl/gedeelde-lijst/...`) fail to resolve or extract products.
+- **Debug & Fix Target**:
+  - Audit the anonymous token exchange (`https://api.ah.nl/mobile-auth/v1/auth/token/anonymous`).
+  - Verify GraphQL query headers (`x-application: AH-ShoppingList-Next`, bearer token lifecycle).
+  - Add robust fallback scrapers if the mobile GraphQL schema has updated.
 
-are you sure modal if user add unrealistic values on kg sets etc etc 
+### 7.4 Sourced Product Data & Nutrient Verification Pipeline
+- **Issue / Feedback**: Some resolved supermarket items return inaccurate macros (e.g. per-portion vs. per-100g mismatch, incorrect sugar/fiber offsets, or wrong product SKU matches).
+- **Target Fix**: Implement strict data validation rules, sanity-check $4\text{ kcal/g}$ protein/carb and $9\text{ kcal/g}$ fat formulas, and flag discrepancies for manual admin review.
 
-add energey and sleep to logs 
+---
 
-log images correctly compress and save them in the correct s3 bucket with the correct naming
+## 8. Actionable Performance Insights & Analytics Overhaul
+
+### 8.1 Actionable Athletic Coaching vs. Vanity Numbers
+- **Goal**: Transform the Insights view from displaying passive metrics into a powerful, actionable coaching advisor.
+- **Features to Introduce**:
+  - **Progressive Overload Velocity**: Week-over-week estimated $1\text{RM}$ growth rate on compound benchmarks (Squat, Bench, Deadlift, Overhead Press).
+  - **Volume & Recovery Balancing**: Highlight muscle groups receiving optimal stimulus ($10\text{--}20$ weekly sets) vs. under-trained or over-fatigued groups ($>25$ sets).
+  - **Fatigue & Deload Recommender**: Cross-reference logged sleep ($\le 6\text{h}$) and energy ($\le 4/10$) with volume tonnage drop-offs to recommend active recovery / deload weeks.
+  - **Prune Low-Value Clutter**: Remove non-actionable vanity metrics.
+
+---
+
+## 9. European Union Cybersecurity, ENISA & GDPR Compliance Standards
+
+### 9.1 GDPR Compliance & User Data Rights Management API
+- **Right to Data Portability (Article 20)**: Complete, uncorrupted machine-readable JSON/CSV export of all user entities (biometrics, workouts, sets, meal logs, progress photos).
+- **Right to Erasure / "Right to be Forgotten" (Article 17)**: 1-tap complete account and database purge removing all records from Supabase tables and `workout-media` S3 storage buckets.
+- **Privacy by Design & Default (Article 25)**: Granular opt-in controls for public sharing, peer sharing, and review receipts.
+
+### 9.2 European Cybersecurity Frameworks Alignment (ENISA, NIS2, CRA, DORA)
+- **NIS2 Directive (EU 2022/2555)**:
+  - Robust Role-Based Access Control (RBAC) and least-privilege security boundaries.
+  - Multi-factor authentication readiness and automated rate-limiting across API gateways.
+  - Standardized incident reporting and audit logging for sensitive user data access.
+- **Cyber Resilience Act (CRA)**:
+  - Mandatory cybersecurity baselines throughout software lifecycle and product deployment.
+  - Zero-vulnerability dependency management (automated CVE scanning and patching).
+  - Software Bill of Materials (SBOM) tracking for third-party libraries and scrapers.
+  - End-to-end cryptographic transport (TLS 1.3) and client-side encryption for biometrics.
+- **Digital Operational Resilience Act (DORA)**:
+  - Continuous ICT operational resilience testing and chaos-recovery verification.
+  - Strict backup restoration testing and database replication verification.
+  - Third-party cloud service risk management (Supabase PostgreSQL & S3 storage failover).
+- **EU Cybersecurity Act & ENISA ECCF**:
+  - European Cybersecurity Certification Framework compliance for cloud-native web and PWA applications.
+  - Alignment with ENISA security guidelines for user biometric and personal health data processing.
+
+---
+
+## 10. Document & PDF Architecture (PDF Export, Visual Summary & Reporting Engine)
+
+### 10.1 Automated Workout & Biometric PDF Export Engine
+- **Concept**: Generate client-side / serverless downloadable PDF reports summarizing training blocks, volume progressions, and nutrition adherence.
+- **Features & Use Cases**:
+  - **Athlete Milestone Report**: Downloadable monthly PDF summary of total tonnage lifted, personal records (PRs), consistency heatmaps, and bodyweight trends.
+  - **Coach Client Review PDF**: 1-click comprehensive athlete report for coaches to export or share with athletes during monthly check-ins.
+  - **Dietary & Macro Breakdown PDF**: Weekly summary of caloric intake, macro ratios, and nutrient adherence.
+  - **Export Architecture**:
+    - High-performance, lightweight PDF generation (e.g. `@react-pdf/renderer` or `jspdf` + `html2canvas`) preserving dark-mode aesthetics and clean print-friendly white layout.
+    - Zero server bloat: generated on-demand directly in browser memory or via lightweight edge API.
+  - **Regulatory Alignment**: Pairs with GDPR Article 20 (Data Portability) by providing human-readable formatted PDF alongside raw JSON/CSV data.
