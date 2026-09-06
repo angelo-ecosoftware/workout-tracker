@@ -14,6 +14,7 @@ import {
   computeDailyTotals,
 } from '../../lib/dietaryData.ts';
 import { lookupBarcodeProduct } from '../../lib/barcodeService.ts';
+import { formatDateTitle as formatDateTitleUtil } from '../../utils/date.ts';
 
 export const useDietaryTracking = (userId: string) => {
   // Date State: YYYY-MM-DD
@@ -55,7 +56,7 @@ export const useDietaryTracking = (userId: string) => {
   const [listLinkLoading, setListLinkLoading] = useState(false);
   const [listLinkError, setListLinkError] = useState<string | null>(null);
   const [listExtractedProducts, setListExtractedProducts] = useState<
-    Array<{ id: string; title: string; brand?: string; salesUnitSize?: string }>
+    Array<{ id: string; title: string; brand?: string; salesUnitSize?: string; nutrition?: FoodItemNutrition }>
   >([]);
   const [isBulkImporting, setIsBulkImporting] = useState(false);
 
@@ -114,19 +115,7 @@ export const useDietaryTracking = (userId: string) => {
 
   const isToday = selectedDate === todayStr;
 
-  const formatDateTitle = (dateStr: string) => {
-    if (dateStr === todayStr) return 'Today';
-    const parts = dateStr.split('-');
-    if (parts.length === 3) {
-      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-      return d.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-      });
-    }
-    return dateStr;
-  };
+  const formatDateTitle = (dateStr: string) => formatDateTitleUtil(dateStr, todayStr);
 
   // Entry Modification Handlers
   const handleUpdateEntryGrams = (entryId: string, grams: number) => {

@@ -1,20 +1,40 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Personal Workout Tracker & Coaching Platform
 
-# Run and deploy your AI Studio app
+A minimal, lightning-fast personal workout split tracker, dietary logger, and coach management application built with React 19, TypeScript, Tailwind CSS v4, and Supabase.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/fddbd90c-ea13-4f79-b7d0-bff96da7058a
+## 🚀 Quick Start
 
-## Run Locally
-
-**Prerequisites:**  Node.js
-
+**Prerequisites:** Node.js v20+
 
 1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+   ```bash
+   pnpm install
+   ```
+2. Configure environment variables in `.env`:
+   ```bash
+   cp .env.example .env
+   ```
+3. Run the development environment:
+   ```bash
+   pnpm dev
+   ```
+4. Run tests:
+   ```bash
+   pnpm test
+   ```
+
+---
+
+## 📚 Documentation
+
+All comprehensive architectural guides, database entity diagrams, and user guides are organized under [docs/](docs/README.md):
+
+- **[System Architecture](docs/architecture/ARCHITECTURE.md)** — Frontend and backend component architecture.
+- **[User Manual](docs/USER_MANUAL.md)** — Complete athlete and coaching operational guide.
+- **[Coach Platform Architecture](docs/roadmap/COACH.md)** — RBAC and athlete roster management.
+- **[Database ERD](docs/database/ERD.md)** — Supabase relational schemas and table relationships.
+- **[Barcode Resolution Engine](docs/architecture/BARCODE_RESOLUTION_ARCHITECTURE.md)** — Supermarket food catalog & EAN resolution pipeline.
+- **[Testing Architecture](docs/testing/TESTING_STRUCTURE.md)** — Vitest test suites, integration matrix, and unit testing guidelines.
+
