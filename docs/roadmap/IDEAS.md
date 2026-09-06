@@ -1,8 +1,12 @@
 # Product Roadmap, Ideas & Fixes (IDEAS.md)
 
-This document captures upcoming product ideas, UX/UI fixes, architectural improvements, and feature expansions categorized by domain.
+This document is organized into two distinct sections:
+1. **PART I: Product Architecture, Features & Compliance Roadmap** (Strategic expansions and domain improvements).
+2. **PART II: Developer Bug Fixes & Defect Log (DEV QUEUE)** (Active engineering defects, reproduction steps, root cause analysis, and fix specifications).
 
 ---
+
+# PART I: Product Architecture & Features Roadmap
 
 ## 1. Exercise Catalog, Anatomy, Form Guidance & Dataset Architecture
 
@@ -125,32 +129,9 @@ Combining the strengths of these repositories produces a best-in-class exercise 
 
 ---
 
-## 7. Active Bug Reports, UX Refinements & Quality Audit
+## 7. Actionable Performance Insights & Analytics Overhaul
 
-### 7.1 Exercise Accordion Initial State: All Collapsed by Default Upon Login
-- **Issue / Feedback**: Exercise cards should start in a consistent, clean collapsed state upon logging in or switching days (`expandedExerciseId = null`), rather than auto-expanding the first card, allowing the athlete to scan their entire routine split at a glance.
-- **Opened State = Closed State Integrity**: Ensure tapping an opened exercise collapses it cleanly to the exact same visual height and padding as other closed cards without sticky accordion glitches.
-
-### 7.2 Integer & Step Input Sanitization on Sets Form
-- **Issue / Feedback**: Inputting small integers (like `1` for reps, weight, or difficulty) exhibits jumpy or unexpected behavior (e.g. clearing text, leading zeros, or strict step snapping).
-- **Target Fix**: Smooth integer text editing with robust null-coalescing on blur and clean number stepping.
-
-### 7.3 Albert Heijn (AH) Shared Grocery List Importer (`/api/grocery-list`)
-- **Issue / Feedback**: AH shared list links (`ah.nl/gedeelde-lijst/...`) fail to resolve or extract products.
-- **Debug & Fix Target**:
-  - Audit the anonymous token exchange (`https://api.ah.nl/mobile-auth/v1/auth/token/anonymous`).
-  - Verify GraphQL query headers (`x-application: AH-ShoppingList-Next`, bearer token lifecycle).
-  - Add robust fallback scrapers if the mobile GraphQL schema has updated.
-
-### 7.4 Sourced Product Data & Nutrient Verification Pipeline
-- **Issue / Feedback**: Some resolved supermarket items return inaccurate macros (e.g. per-portion vs. per-100g mismatch, incorrect sugar/fiber offsets, or wrong product SKU matches).
-- **Target Fix**: Implement strict data validation rules, sanity-check $4\text{ kcal/g}$ protein/carb and $9\text{ kcal/g}$ fat formulas, and flag discrepancies for manual admin review.
-
----
-
-## 8. Actionable Performance Insights & Analytics Overhaul
-
-### 8.1 Actionable Athletic Coaching vs. Vanity Numbers
+### 7.1 Actionable Athletic Coaching vs. Vanity Numbers
 - **Goal**: Transform the Insights view from displaying passive metrics into a powerful, actionable coaching advisor.
 - **Features to Introduce**:
   - **Progressive Overload Velocity**: Week-over-week estimated $1\text{RM}$ growth rate on compound benchmarks (Squat, Bench, Deadlift, Overhead Press).
@@ -160,14 +141,14 @@ Combining the strengths of these repositories produces a best-in-class exercise 
 
 ---
 
-## 9. European Union Cybersecurity, ENISA & GDPR Compliance Standards
+## 8. European Union Cybersecurity, ENISA & GDPR Compliance Standards
 
-### 9.1 GDPR Compliance & User Data Rights Management API
+### 8.1 GDPR Compliance & User Data Rights Management API
 - **Right to Data Portability (Article 20)**: Complete, uncorrupted machine-readable JSON/CSV export of all user entities (biometrics, workouts, sets, meal logs, progress photos).
 - **Right to Erasure / "Right to be Forgotten" (Article 17)**: 1-tap complete account and database purge removing all records from Supabase tables and `workout-media` S3 storage buckets.
 - **Privacy by Design & Default (Article 25)**: Granular opt-in controls for public sharing, peer sharing, and review receipts.
 
-### 9.2 European Cybersecurity Frameworks Alignment (ENISA, NIS2, CRA, DORA)
+### 8.2 European Cybersecurity Frameworks Alignment (ENISA, NIS2, CRA, DORA)
 - **NIS2 Directive (EU 2022/2555)**:
   - Robust Role-Based Access Control (RBAC) and least-privilege security boundaries.
   - Multi-factor authentication readiness and automated rate-limiting across API gateways.
@@ -187,9 +168,9 @@ Combining the strengths of these repositories produces a best-in-class exercise 
 
 ---
 
-## 10. Document & PDF Architecture (PDF Export, Visual Summary & Reporting Engine)
+## 9. Document & PDF Architecture (PDF Export, Visual Summary & Reporting Engine)
 
-### 10.1 Automated Workout & Biometric PDF Export Engine (Cardio-Only Scope)
+### 9.1 Automated Workout & Biometric PDF Export Engine (Cardio-Only Scope)
 - **Scope Restriction**: **Exclusively for Cardio / Endurance Training & Biometric Metrics** (e.g. running, cycling, rowing, HIIT, duration, distance, pace, heart rate zones, and cardiovascular recovery). Strength splits remain in-app only.
 - **Concept**: Generate client-side / serverless downloadable PDF reports summarizing cardio blocks, cardiovascular volume progressions, and biometric response.
 - **Features & Use Cases**:
@@ -201,7 +182,7 @@ Combining the strengths of these repositories produces a best-in-class exercise 
     - Zero server bloat: generated on-demand directly in browser memory or via lightweight edge API.
   - **Regulatory Alignment**: Pairs with GDPR Article 20 (Data Portability) by providing human-readable formatted PDF alongside raw JSON/CSV data.
 
-### 10.2 EU Cybersecurity & Compliance Audit PDF Dossier
+### 9.2 EU Cybersecurity & Compliance Audit PDF Dossier
 - **Concept**: Generate an automated compliance & security audit PDF document detailing the application's alignment with European Union regulatory frameworks.
 - **Audience**: Enterprise buyers, data protection officers (DPOs), fitness organizations, and regulatory audits.
 - **Sections in the Compliance PDF**:
@@ -212,8 +193,79 @@ Combining the strengths of these repositories produces a best-in-class exercise 
   5. **DORA Resilience Report**: Backup replication SLAs, RTO/RPO metrics, and disaster recovery procedures.
   6. **GDPR Data Protection Matrix**: Articles 15, 17, 20, 25, and 32 mapping table with active enforcement mechanisms in the app.
 
-### 10.3 In-App Routine Split & Program Cheat-Sheet PDF Exporter
+### 9.3 In-App Routine Split & Program Cheat-Sheet PDF Exporter
 - **Concept**: 1-click export of the active workout routine split (e.g. PPL, Upper/Lower, Full Body) into a printable, single-page gym pocket guide.
+
+---
+---
+
+# PART II: Developer Bug Fixes & Defect Log (DEV QUEUE)
+
+This section tracks active defects, developer reproduction steps, affected source files, and resolution criteria.
+
+---
+
+### [BUG-001] Exercise Accordion Initial State & Closed/Opened Symmetry
+* **Status**: 🟡 Open / Ready for Dev
+* **Severity**: Medium (UI / UX Polish)
+* **Affected Files**:
+  - `src/components/workout/tracker/useWorkoutSession.ts`
+  - `src/components/workout/tracker/ExerciseCard.tsx`
+  - `src/components/workout/WorkoutDayTracker.tsx`
+* **Symptoms**:
+  - Upon logging in or switching active workout splits, the first exercise card (`activeWorkout.exercises[0].id`) is automatically expanded by default.
+  - Tapping an opened exercise to collapse it sometimes leaves unequal margins or sticky padding compared to natively closed cards.
+* **Target Fix**:
+  1. Default `expandedExerciseId` to `null` on workout load and session switch so all exercise cards start cleanly collapsed.
+  2. Ensure opened and closed card container transitions are symmetrical (`h-auto` with uniform padding).
+
+---
+
+### [BUG-002] Sets Input Form Integer & Step Handling (Integer 1 Jumpiness)
+* **Status**: 🟡 Open / Ready for Dev
+* **Severity**: Medium (Input UX)
+* **Affected Files**:
+  - `src/components/workout/tracker/ExerciseCard.tsx`
+  - `src/components/workout/tracker/useWorkoutSession.ts`
+* **Symptoms**:
+  - Typing small numbers (e.g. `1` or `10`) in reps, weight, or duration input fields causes jumpy cursor positioning, unwanted step snapping, or string conversion clearing.
+* **Target Fix**:
+  1. Preserve raw user string input in state during active typing without premature numeric coercion.
+  2. Sanitize and clamp only on `onBlur` or submit.
+
+---
+
+### [BUG-003] Albert Heijn (AH) Shared Grocery List Importer Failure
+* **Status**: 🟡 Open / Ready for Dev
+* **Severity**: High (External Integration)
+* **Affected Files**:
+  - `api/grocery-list.ts`
+  - `server.ts`
+  - `src/components/dietary/useDietaryTracking.ts`
+* **Symptoms**:
+  - Pasting an Albert Heijn shared list link (`https://www.ah.nl/gedeelde-lijst/...` or list ID) returns a 400 or 500 error from `/api/grocery-list`.
+* **Root Cause Analysis**:
+  - The anonymous token auth request to `https://api.ah.nl/mobile-auth/v1/auth/token/anonymous` may require updated client headers (`User-Agent: Appie/8.8.2`, `x-application: AH-ShoppingList-Next`).
+  - The GraphQL query schema for `groceryList(id: $groceryListId)` may have updated field names.
+* **Target Fix**:
+  1. Update anonymous auth headers and error handling in `api/grocery-list.ts`.
+  2. Implement a fallback scraper that parses public HTML from `https://www.ah.nl/gedeelde-lijst/{id}` if GraphQL token issuance fails.
+
+---
+
+### [BUG-004] Supermarket Sourced Product Macro & Portion Discrepancies
+* **Status**: 🟡 Open / Ready for Dev
+* **Severity**: Medium (Data Quality)
+* **Affected Files**:
+  - `api/scraperRegistry.ts`
+  - `api/product-link.ts`
+  - `src/lib/dietaryData.ts`
+* **Symptoms**:
+  - Occasional product link resolutions return inaccurate caloric values or confuse per-portion values with per-100g standard metrics.
+* **Target Fix**:
+  1. Add calorie sanity validation formula: $\text{Calculated Kcal} \approx (4 \times \text{Protein}) + (4 \times \text{Carbs}) + (9 \times \text{Fat})$.
+  2. Normalize serving size detection to standard 100g/100ml.
+
 - **Features**:
   - Clean, high-contrast black-and-white print styling to save ink.
   - Includes target sets, target rep ranges, exercise order, and coach technique cues.
