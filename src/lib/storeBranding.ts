@@ -45,6 +45,22 @@ export const KNOWN_STORES: Record<string, StoreMetadata> = {
     bgColor: 'bg-[#22c55e]/10',
     borderColor: 'border-[#22c55e]/30',
   },
+  lidl: {
+    id: 'lidl',
+    name: 'Lidl',
+    badgeLabel: 'LIDL',
+    textColor: 'text-[#0050aa]',
+    bgColor: 'bg-[#0050aa]/10',
+    borderColor: 'border-[#0050aa]/30',
+  },
+  aldi: {
+    id: 'aldi',
+    name: 'Aldi',
+    badgeLabel: 'ALDI',
+    textColor: 'text-[#00205b]',
+    bgColor: 'bg-[#00205b]/10',
+    borderColor: 'border-[#00205b]/30',
+  },
   generic: {
     id: 'generic',
     name: 'Store',
@@ -72,6 +88,12 @@ export function getStoreMetadata(sourceUrl?: string, productId?: string): StoreM
   }
   if (target.includes('plus.nl') || target.startsWith('plus_')) {
     return KNOWN_STORES.plus;
+  }
+  if (target.includes('lidl.nl') || target.startsWith('lidl_')) {
+    return KNOWN_STORES.lidl;
+  }
+  if (target.includes('aldi.nl') || target.startsWith('aldi_')) {
+    return KNOWN_STORES.aldi;
   }
   if (sourceUrl) {
     return KNOWN_STORES.generic;
@@ -116,6 +138,21 @@ export function isHouseBrand(brand?: string, storeMeta?: StoreMetadata | null): 
     'plus boerentrots',
     'plus biologisch',
     'gwoon',
+    'lidl',
+    'milbona',
+    'cien',
+    'vemondo',
+    'crownfield',
+    'alesto',
+    'dulano',
+    'freeway',
+    'aldi',
+    'milsani',
+    'cucina nobile',
+    'bon-ri',
+    'river',
+    'golden seafood',
+    'gut bio',
   ];
 
   if (storeMeta && b === storeMeta.id.toLowerCase()) return true;
@@ -196,6 +233,28 @@ export function getProductExternalUrl(item: { id?: string; sourceUrl?: string; n
     return {
       url: `https://www.plus.nl/zoeken?q=${query}`,
       label: 'Zoek op PLUS.nl',
+      isAppCapable: false,
+    };
+  }
+
+  // 3.8. If item is Lidl brand or has Lidl ID
+  const isLidl = storeMeta?.id === 'lidl' || item.id?.startsWith('lidl_') || item.brand?.toLowerCase().includes('lidl') || item.brand?.toLowerCase().includes('milbona');
+  if (isLidl && item.name) {
+    const query = encodeURIComponent(cleanProductTitle(item.name));
+    return {
+      url: `https://www.lidl.nl/q/search?q=${query}`,
+      label: 'Zoek op Lidl.nl',
+      isAppCapable: false,
+    };
+  }
+
+  // 3.9. If item is Aldi brand or has Aldi ID
+  const isAldi = storeMeta?.id === 'aldi' || item.id?.startsWith('aldi_') || item.brand?.toLowerCase().includes('aldi') || item.brand?.toLowerCase().includes('milsani');
+  if (isAldi && item.name) {
+    const query = encodeURIComponent(cleanProductTitle(item.name));
+    return {
+      url: `https://www.aldi.nl/zoekresultaten.html?query=${query}`,
+      label: 'Zoek op Aldi.nl',
       isAppCapable: false,
     };
   }

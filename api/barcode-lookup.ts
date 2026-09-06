@@ -1,7 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { FoodItemNutrition } from '../src/models.ts';
-import { extractSchemaAndHeadings, parseDutchNutritionTable, extractPackageSizing, fetchAlbertHeijnMobileProduct, searchAlbertHeijnProduct } from './scraperRegistry.js';
+import { extractSchemaAndHeadings, parseDutchNutritionTable, extractPackageSizing, fetchAlbertHeijnMobileProduct, searchAlbertHeijnProduct, scrapeProductFromUrl } from './scraperRegistry.js';
 import { matchBakeryPlu } from '../src/lib/bakeryPluDictionary.js';
+import { sanitizeBarcode, generateBarcodeVariants } from '../src/lib/barcodeNormalizer.js';
 
 const AH_HEADERS = {
   'Host': 'api.ah.nl',
@@ -163,7 +164,10 @@ export async function resolveAlbertHeijnBarcode(barcode: string): Promise<FoodIt
       return await resolveAlbertHeijnWebBarcode(cleanBarcode);
     }
 
-    const title = card.title || 'AH Product';
+    const title = card.title?.trim() || '';
+    if (!title) {
+      return await resolveAlbertHeijnWebBarcode(cleanBarcode);
+    }
     const brand = card.brand || 'AH';
     const salesUnitSize = card.salesUnitSize || '';
 
@@ -311,8 +315,9 @@ export async function resolveJumboBarcode(barcode: string): Promise<FoodItemNutr
 
     // Extract title from h1 or meta tag
     const titleMatch = prodHtml.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i) || prodHtml.match(/<meta property=[\"']og:title[\"'] content=[\"']([^\"']+)[\"']/i);
-    let title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : 'Jumbo Product';
+    let title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : '';
     title = title.replace(/^Jumbo(?:'s)?\s+/i, '').trim();
+    if (!title || title.toLowerCase() === 'product') return null;
 
     // Extract brand
     const brandMatch = prodHtml.match(/<meta property=[\"']product:brand[\"'] content=[\"']([^\"']+)[\"']/i);
@@ -461,33 +466,125 @@ export async function resolvePlusBarcode(barcode: string): Promise<FoodItemNutri
   return null;
 }
 
+/**
+ * Resolves product details from Lidl Nederland by EAN barcode search.
+ */
+export async function resolveLidlBarcode(barcode: string): Promise<FoodItemNutrition | null> {
+  const cleanBarcode = barcode.trim();
+  if (!cleanBarcode) return null;
+
+  try {
+    const searchUrl = `https://www.lidl.nl/q/search?q=${encodeURIComponent(cleanBarcode)}`;
+    const res = await fetch(searchUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+    const linkMatch = html.match(/href=["'](\/p\/[^"']+)["']/i);
+    if (!linkMatch) return null;
+
+    const fullUrl = `https://www.lidl.nl${linkMatch[1]}`;
+    const product = await scrapeProductFromUrl(fullUrl);
+    if (product && product.name) {
+      return {
+        ...product,
+        barcode: cleanBarcode,
+        isCustom: false,
+      };
+    }
+  } catch (err) {
+    console.warn('Lidl barcode lookup attempt failed:', err);
+  }
+  return null;
+}
+
+/**
+ * Resolves product details from Aldi Nederland by EAN barcode search.
+ */
+export async function resolveAldiBarcode(barcode: string): Promise<FoodItemNutrition | null> {
+  const cleanBarcode = barcode.trim();
+  if (!cleanBarcode) return null;
+
+  try {
+    const searchUrl = `https://www.aldi.nl/zoekresultaten.html?query=${encodeURIComponent(cleanBarcode)}`;
+    const res = await fetch(searchUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+    const linkMatch = html.match(/href=["'](\/producten\/[^"']+|\/p\/[^"']+)["']/i);
+    if (!linkMatch) return null;
+
+    const productPath = linkMatch[1].startsWith('http') ? linkMatch[1] : `https://www.aldi.nl${linkMatch[1]}`;
+    const product = await scrapeProductFromUrl(productPath);
+    if (product && product.name) {
+      return {
+        ...product,
+        barcode: cleanBarcode,
+        isCustom: false,
+      };
+    }
+  } catch (err) {
+    console.warn('Aldi barcode lookup attempt failed:', err);
+  }
+  return null;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const barcode = (req.query.barcode || req.body?.barcode) as string;
-  if (!barcode || typeof barcode !== 'string') {
+  const rawBarcode = (req.query.barcode || req.body?.barcode) as string;
+  if (!rawBarcode || typeof rawBarcode !== 'string') {
     return res.status(400).json({ error: 'Missing barcode parameter' });
   }
 
-  // 1. Try Albert Heijn resolver (Mobile GTIN + FIR + Bakery PLU + Web search)
-  let product = await resolveAlbertHeijnBarcode(barcode);
+  const cleanBarcode = sanitizeBarcode(rawBarcode);
+  const variants = generateBarcodeVariants(cleanBarcode);
 
-  // 2. Fallback to Jumbo resolver (Mobile API + Web search)
-  if (!product) {
-    product = await resolveJumboBarcode(barcode);
+  let product: FoodItemNutrition | null = null;
+
+  for (const variant of variants) {
+    // 1. Try Albert Heijn resolver (Mobile GTIN + FIR + Bakery PLU + Web search)
+    product = await resolveAlbertHeijnBarcode(variant);
+    if (product) break;
+
+    // 2. Fallback to Jumbo resolver (Mobile API + Web search)
+    product = await resolveJumboBarcode(variant);
+    if (product) break;
+
+    // 3. Fallback to Dirk resolver
+    product = await resolveDirkBarcode(variant);
+    if (product) break;
+
+    // 4. Fallback to PLUS resolver
+    product = await resolvePlusBarcode(variant);
+    if (product) break;
+
+    // 5. Fallback to Lidl resolver
+    product = await resolveLidlBarcode(variant);
+    if (product) break;
+
+    // 6. Fallback to Aldi resolver
+    product = await resolveAldiBarcode(variant);
+    if (product) break;
   }
 
-  // 3. Fallback to Dirk resolver
   if (!product) {
-    product = await resolveDirkBarcode(barcode);
+    return res.status(404).json({ error: `Barcode ${cleanBarcode} not found on AH, Jumbo, Dirk, PLUS, Lidl, or Aldi` });
   }
 
-  // 4. Fallback to PLUS resolver
-  if (!product) {
-    product = await resolvePlusBarcode(barcode);
-  }
-
-  if (!product) {
-    return res.status(404).json({ error: `Barcode ${barcode} not found on AH, Jumbo, Dirk, or PLUS` });
-  }
-
-  return res.status(200).json(product);
+  return res.status(200).json({
+    ...product,
+    barcode: cleanBarcode,
+  });
 }

@@ -338,8 +338,8 @@ describe('ISO/IEC 25010 & 29119 Multi-Tier Barcode & Scraping Resolution Test Su
       `;
 
       const { title } = extractSchemaAndHeadings(blockedHtml, 'Albert Heijn');
-      // Verify validation gate suppresses bot/challenge titles and defaults to safe fallback
-      expect(title).toBe('Product');
+      // Verify validation gate suppresses bot/challenge titles and returns empty string
+      expect(title).toBe('');
     });
 
     it('ISO 25010: adapter handles all 4 major Dutch supermarket adapters', () => {

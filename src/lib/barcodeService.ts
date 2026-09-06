@@ -2,6 +2,9 @@ import { FoodItemNutrition } from '../models.ts';
 import { supabase } from './supabase.ts';
 import { mapSupabaseRowToFoodItem, saveHiveMindFoodItem } from './dietaryData.ts';
 import { matchBakeryPlu } from './bakeryPluDictionary.ts';
+import { sanitizeBarcode, generateBarcodeVariants, isValidGtinChecksum } from './barcodeNormalizer.ts';
+
+export { sanitizeBarcode, generateBarcodeVariants, isValidGtinChecksum };
 
 export interface BarcodeLookupResult {
   found: boolean;
@@ -98,24 +101,30 @@ export function normalizeOpenFoodFactsProduct(data: OpenFoodFactsProductPayload 
 
 /**
  * Multi-tier lookup service:
- * 1. Checks Supabase `food_items` by `barcode` or `id = ean_{barcode}`
+ * 1. Checks Supabase `food_items` across GTIN/UPC variants (EAN-8, UPC-12, EAN-13, GTIN-14)
  * 1.5. Checks in-store Bakery PLU scale barcode mapping
- * 2. Supermarket Direct Barcode Resolver (Albert Heijn GTIN + FIR nutrition table)
- * 3. Open Food Facts API v2 (Crowdsourced global catalog fallback before UI)
+ * 2. Supermarket Direct Barcode Resolver (Albert Heijn GTIN + FIR, Jumbo, Dirk, PLUS)
+ * 3. Open Food Facts API v2 (Crowdsourced global catalog with UPC/EAN variants fallback)
  * 4. User UI fallback (Report missing / Manual entry)
  */
 export async function lookupBarcodeProduct(barcode: string, currentUserId?: string): Promise<BarcodeLookupResult> {
-  const cleanCode = barcode.trim();
+  const cleanCode = sanitizeBarcode(barcode);
   if (!cleanCode) {
     return { found: false, source: 'none', item: null, error: 'Empty barcode provided' };
   }
 
-  // 1. Check local / remote Supabase database first
+  const barcodeVariants = generateBarcodeVariants(cleanCode);
+
+  // 1. Check local / remote Supabase database first across all GTIN/UPC variants
   try {
+    const orFilters = barcodeVariants
+      .flatMap((v) => [`barcode.eq.${v}`, `id.eq.ean_${v}`, `id.eq.${v}`])
+      .join(',');
+
     const { data, error } = await supabase
       .from('food_items')
       .select('*')
-      .or(`barcode.eq.${cleanCode},id.eq.ean_${cleanCode},id.eq.${cleanCode}`)
+      .or(orFilters)
       .limit(1)
       .maybeSingle();
 
@@ -188,37 +197,39 @@ export async function lookupBarcodeProduct(barcode: string, currentUserId?: stri
     console.warn('Supermarket barcode fallback lookup error, falling back to Open Food Facts:', smErr);
   }
 
-  // 3. Fallback before UI: Open Food Facts API v2 (Crowdsourced global catalog)
-  try {
-    const offUrl = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(cleanCode)}.json`;
-    const response = await fetch(offUrl, {
-      headers: {
-        'User-Agent': 'WorkoutTrackerPWA/1.0 (Personal Fitness & Nutrition App)',
-      },
-    });
+  // 3. Fallback before UI: Open Food Facts API v2 (Crowdsourced global catalog across variants)
+  for (const variantCode of barcodeVariants) {
+    try {
+      const offUrl = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(variantCode)}.json`;
+      const response = await fetch(offUrl, {
+        headers: {
+          'User-Agent': 'WorkoutTrackerPWA/1.0 (Personal Fitness & Nutrition App)',
+        },
+      });
 
-    if (response.ok) {
-      const payload = (await response.json()) as OpenFoodFactsProductPayload;
-      if (payload.status === 1 && payload.product) {
-        const normalized = normalizeOpenFoodFactsProduct(payload, cleanCode);
-        if (normalized) {
-          // Auto-persist into global hive-mind database so ALL users have instant access
-          try {
-            await saveHiveMindFoodItem(normalized, currentUserId);
-          } catch (saveErr) {
-            console.error('Could not auto-save Open Food Facts product to global index:', saveErr);
+      if (response.ok) {
+        const payload: OpenFoodFactsProductPayload = await response.json();
+        if (payload.status === 1 && payload.product) {
+          const item = normalizeOpenFoodFactsProduct(payload, cleanCode);
+          if (item) {
+            // Auto-persist into global database so future queries hit local Tier 1
+            try {
+              await saveHiveMindFoodItem(item, currentUserId);
+            } catch (saveErr) {
+              console.error('Could not auto-save OpenFoodFacts item to global index:', saveErr);
+            }
+
+            return {
+              found: true,
+              source: 'openfoodfacts',
+              item,
+            };
           }
-
-          return {
-            found: true,
-            source: 'openfoodfacts',
-            item: normalized,
-          };
         }
       }
+    } catch (offErr) {
+      console.warn(`OpenFoodFacts fallback lookup failed for variant ${variantCode}:`, offErr);
     }
-  } catch (apiErr: unknown) {
-    console.warn('Open Food Facts API lookup skipped/failed:', apiErr);
   }
 
   return { found: false, source: 'none', item: null, error: 'No product matches this barcode.' };

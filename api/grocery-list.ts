@@ -265,10 +265,16 @@ async function scrapeJumboListHtml(urlOrId: string): Promise<ExtractedGroceryIte
         const fullPath = m[1];
         const rawSku = m[2];
         const cleanSku = rawSku.replace(/[a-zA-Z]+$/, '');
+        const slugTitle = fullPath
+          .replace('/producten/', '')
+          .replace(/-[0-9]+[a-z0-9]*$/i, '')
+          .replace(/^jumbo-?/i, '')
+          .replace(/-/g, ' ')
+          .trim();
         if (!itemsMap.has(cleanSku)) {
           itemsMap.set(cleanSku, {
             id: `jumbo_${cleanSku}`,
-            title: 'Jumbo Product',
+            title: slugTitle || 'Jumbo Product',
             brand: 'Jumbo',
             webPath: fullPath,
             quantity: 1,
@@ -309,10 +315,16 @@ async function scrapeDirkListHtml(urlOrId: string): Promise<ExtractedGroceryItem
       for (const m of productMatches) {
         const fullPath = m[1];
         const rawId = m[2];
+        const slugTitle = fullPath
+          .split('/')
+          .filter(Boolean)
+          .slice(-2, -1)[0]
+          ?.replace(/-/g, ' ')
+          .trim();
         if (!itemsMap.has(rawId)) {
           itemsMap.set(rawId, {
             id: `dirk_${rawId}`,
-            title: 'Dirk Product',
+            title: slugTitle || 'Dirk Product',
             brand: 'Dirk',
             webPath: fullPath,
             quantity: 1,
@@ -353,10 +365,16 @@ async function scrapePlusListHtml(urlOrId: string): Promise<ExtractedGroceryItem
       for (const m of productMatches) {
         const fullPath = m[1];
         const rawId = m[2];
+        const slugTitle = fullPath
+          .replace('/product/', '')
+          .replace(/-[0-9]+$/i, '')
+          .replace(/^plus-?/i, '')
+          .replace(/-/g, ' ')
+          .trim();
         if (!itemsMap.has(rawId)) {
           itemsMap.set(rawId, {
             id: `plus_${rawId}`,
-            title: 'PLUS Product',
+            title: slugTitle || 'PLUS Product',
             brand: 'PLUS',
             webPath: fullPath,
             quantity: 1,
@@ -369,6 +387,97 @@ async function scrapePlusListHtml(urlOrId: string): Promise<ExtractedGroceryItem
     }
   } catch (err: unknown) {
     console.warn('PLUS list scraper error:', err);
+  }
+  return null;
+}
+
+/**
+ * Strategy 7: Scrapes recipes or product lists from Lidl Nederland
+ */
+async function scrapeLidlListHtml(urlOrId: string): Promise<ExtractedGroceryItem[] | null> {
+  const targetUrl = urlOrId.startsWith('http') ? urlOrId : `https://www.lidl.nl/recepten/${urlOrId}`;
+  try {
+    const res = await fetch(targetUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    const productMatches = [...html.matchAll(/href=["'](\/p\/[a-z0-9-]+(?:\/p[0-9]+)?)["']/gi)];
+    if (productMatches.length > 0) {
+      const itemsMap = new Map<string, ExtractedGroceryItem>();
+      for (const m of productMatches) {
+        const fullPath = m[1];
+        const slug = fullPath.split('/')[2] || 'lidl-product';
+        const cleanTitle = slug.replace(/-/g, ' ').trim();
+        if (!itemsMap.has(fullPath)) {
+          itemsMap.set(fullPath, {
+            id: `lidl_${slug}`,
+            title: cleanTitle || 'Lidl Product',
+            brand: 'Lidl',
+            webPath: fullPath,
+            quantity: 1,
+          });
+        }
+      }
+      if (itemsMap.size > 0) {
+        return Array.from(itemsMap.values());
+      }
+    }
+  } catch (err: unknown) {
+    console.warn('Lidl list scraper error:', err);
+  }
+  return null;
+}
+
+/**
+ * Strategy 8: Scrapes recipes or product lists from Aldi Nederland
+ */
+async function scrapeAldiListHtml(urlOrId: string): Promise<ExtractedGroceryItem[] | null> {
+  const targetUrl = urlOrId.startsWith('http') ? urlOrId : `https://www.aldi.nl/recepten/${urlOrId}`;
+  try {
+    const res = await fetch(targetUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    const productMatches = [...html.matchAll(/href=["'](\/producten\/[a-z0-9-]+\/[a-z0-9-]+|\/p\/[a-z0-9-]+)["']/gi)];
+    if (productMatches.length > 0) {
+      const itemsMap = new Map<string, ExtractedGroceryItem>();
+      for (const m of productMatches) {
+        const fullPath = m[1];
+        const segments = fullPath.split('/').filter(Boolean);
+        const slug = segments[segments.length - 1] || 'aldi-product';
+        const cleanTitle = slug.replace(/-/g, ' ').trim();
+        if (!itemsMap.has(fullPath)) {
+          itemsMap.set(fullPath, {
+            id: `aldi_${slug}`,
+            title: cleanTitle || 'Aldi Product',
+            brand: 'Aldi',
+            webPath: fullPath,
+            quantity: 1,
+          });
+        }
+      }
+      if (itemsMap.size > 0) {
+        return Array.from(itemsMap.values());
+      }
+    }
+  } catch (err: unknown) {
+    console.warn('Aldi list scraper error:', err);
   }
   return null;
 }
@@ -390,7 +499,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // 1. Check if user accidentally pasted a single product link (e.g. ah.nl/producten/product/wi12345/...)
-  const isProductLink = /ah\.nl\/producten\/product|jumbo\.com\/producten\/[a-z0-9-]+|dirk\.nl\/boodschappen\/[a-z0-9-]+\/\d+|plus\.nl\/product\/[a-z0-9-]+/i.test(rawInput);
+  const isProductLink = /ah\.nl\/producten\/product|jumbo\.com\/producten\/[a-z0-9-]+|dirk\.nl\/boodschappen\/[a-z0-9-]+\/\d+|plus\.nl\/product\/[a-z0-9-]+|lidl\.nl\/p\/[a-z0-9-]+|aldi\.nl\/(?:producten|p)\/[a-z0-9-]+/i.test(rawInput);
   if (isProductLink) {
     try {
       const singleProduct = await scrapeProductFromUrl(rawInput.trim());
@@ -497,6 +606,64 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         listId: 'plus_list',
         totalItems: enrichedPlus.length,
         products: enrichedPlus,
+      });
+    }
+  }
+
+  if (rawInput.toLowerCase().includes('lidl.nl')) {
+    const lidlItems = await scrapeLidlListHtml(rawInput.trim());
+    if (lidlItems && lidlItems.length > 0) {
+      const enrichedLidl = await Promise.all(
+        lidlItems.map(async (item) => {
+          if (!item.webPath) return item;
+          try {
+            const productUrl = `https://www.lidl.nl${item.webPath}`;
+            const nutrition = await scrapeProductFromUrl(productUrl);
+            return {
+              ...item,
+              title: nutrition.name || item.title,
+              brand: nutrition.brand || item.brand,
+              nutrition,
+            };
+          } catch {
+            return item;
+          }
+        })
+      );
+      return res.status(200).json({
+        success: true,
+        listId: 'lidl_list',
+        totalItems: enrichedLidl.length,
+        products: enrichedLidl,
+      });
+    }
+  }
+
+  if (rawInput.toLowerCase().includes('aldi.nl')) {
+    const aldiItems = await scrapeAldiListHtml(rawInput.trim());
+    if (aldiItems && aldiItems.length > 0) {
+      const enrichedAldi = await Promise.all(
+        aldiItems.map(async (item) => {
+          if (!item.webPath) return item;
+          try {
+            const productUrl = item.webPath.startsWith('http') ? item.webPath : `https://www.aldi.nl${item.webPath}`;
+            const nutrition = await scrapeProductFromUrl(productUrl);
+            return {
+              ...item,
+              title: nutrition.name || item.title,
+              brand: nutrition.brand || item.brand,
+              nutrition,
+            };
+          } catch {
+            return item;
+          }
+        })
+      );
+      return res.status(200).json({
+        success: true,
+        listId: 'aldi_list',
+        totalItems: enrichedAldi.length,
+        products: enrichedAldi,
       });
     }
   }

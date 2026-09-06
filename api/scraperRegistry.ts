@@ -134,11 +134,16 @@ const BLOCKED_PAGE_INDICATORS = [
   'helaas, deze pagina',
   'geen resultaten gevonden',
   '404 niet gevonden',
+  'onbekend product',
+  'unknown product',
 ];
 
 export function isBlockedOrErrorTitle(title: string): boolean {
   if (!title) return true;
   const clean = title.toLowerCase().trim();
+  if (clean === 'product' || clean === 'unknown' || clean === 'null' || clean === 'undefined' || clean === 'ah product' || clean === 'jumbo product' || clean === 'dirk product' || clean === 'plus product') {
+    return true;
+  }
   return BLOCKED_PAGE_INDICATORS.some((ind) => clean.includes(ind));
 }
 
@@ -149,7 +154,7 @@ export function extractSchemaAndHeadings(
   html: string,
   defaultBrand: string
 ): { title: string; brand: string; barcode?: string; packageWeightGrams?: number } {
-  let title = 'Product';
+  let title = '';
   let brand = defaultBrand;
   let barcode: string | undefined;
   let packageWeightGrams: number | undefined;
@@ -168,7 +173,7 @@ export function extractSchemaAndHeadings(
         : [parsed];
 
       for (const node of nodes) {
-        if (node.name && typeof node.name === 'string' && (node['@type'] === 'Product' || !title || title === 'Product')) {
+        if (node.name && typeof node.name === 'string' && (node['@type'] === 'Product' || !title)) {
           const candidateTitle = node.name
             .replace(/\s*bestellen\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
             .replace(/\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
@@ -213,8 +218,23 @@ export function extractSchemaAndHeadings(
     }
   }
 
+  // HTML <title> tag fallback
+  if (!title) {
+    const docTitleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    if (docTitleMatch) {
+      const rawDocTitle = docTitleMatch[1]
+        .replace(/\s*bestellen\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
+        .replace(/\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
+        .replace(/\s*-\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
+        .trim();
+      if (rawDocTitle && rawDocTitle.length > 2 && !isBlockedOrErrorTitle(rawDocTitle)) {
+        title = rawDocTitle;
+      }
+    }
+  }
+
   // Markdown Title fallback from Jina proxy output (e.g. "Title: De Zaanse Hoeve Goudse belegen...")
-  if (!title || title === 'Product') {
+  if (!title) {
     const mdTitleMatch = html.match(/^Title:\s*([^\r\n]+)/m);
     if (mdTitleMatch) {
       const rawTitle = mdTitleMatch[1]
@@ -369,7 +389,8 @@ export async function fetchJumboMobileProduct(skuOrQuery: string, sourceUrl: str
     if (!products.length) return null;
 
     const p = products[0];
-    const title = p.title || 'Jumbo Product';
+    const title = p.title?.trim() || '';
+    if (!title || isBlockedOrErrorTitle(title)) return null;
     const brand = p.brand?.name || 'Jumbo';
     const cleanTitle = title.replace(/^Jumbo(?:'s)?\s+/i, '').trim();
 
@@ -560,7 +581,8 @@ export async function fetchAlbertHeijnMobileProduct(webshopId: string, sourceUrl
     const firData = await firRes.json();
     if (!firData || typeof firData !== 'object') return null;
 
-    const title = firData.productCard?.title || firData.tradeItem?.description || 'AH Product';
+    const title = firData.productCard?.title || firData.tradeItem?.description || '';
+    if (!title || isBlockedOrErrorTitle(title)) return null;
     const brand = firData.productCard?.brand || 'AH';
     const cleanTitle = title.replace(/^AH\s+/i, '').trim();
 
@@ -806,7 +828,81 @@ export const plusAdapter: StoreScraperAdapter = {
 };
 
 // -------------------------------------------------------------
-// ADAPTER 5: Generic Fallback (Aldi, Lidl, etc.)
+// ADAPTER 5: Lidl Nederland (lidl.nl)
+// -------------------------------------------------------------
+export const lidlAdapter: StoreScraperAdapter = {
+  name: 'Lidl',
+  canHandle(url: string) {
+    return url.toLowerCase().includes('lidl.nl');
+  },
+  parse(html: string, url: string): ProductScraperResult {
+    const { title, brand, barcode, packageWeightGrams } = extractSchemaAndHeadings(html, 'Lidl');
+    const nutrition = parseDutchNutritionTable(html);
+    const sizing = extractPackageSizing(title, html);
+
+    const lidlIdMatch = url.match(/\/p\/([a-z0-9-]+)(?:[/?#]|$)/i) || url.match(/p(\d+)/i);
+    const productId = lidlIdMatch ? `lidl_${lidlIdMatch[1]}` : `lidl_${Date.now()}`;
+
+    const isDrink =
+      html.toLowerCase().includes('per 100 milliliter') ||
+      html.toLowerCase().includes('per 100 ml') ||
+      title.toLowerCase().includes('melk') ||
+      title.toLowerCase().includes('drank') ||
+      title.toLowerCase().includes('sap');
+
+    return {
+      id: productId,
+      name: title,
+      brand: brand || 'Lidl',
+      barcode,
+      servingUnit: isDrink ? 'ml' : 'gram',
+      ...nutrition,
+      packageWeightGrams: packageWeightGrams || sizing.packageWeightGrams,
+      pieceCount: sizing.pieceCount,
+      sourceUrl: url,
+    };
+  },
+};
+
+// -------------------------------------------------------------
+// ADAPTER 6: Aldi Nederland (aldi.nl)
+// -------------------------------------------------------------
+export const aldiAdapter: StoreScraperAdapter = {
+  name: 'Aldi',
+  canHandle(url: string) {
+    return url.toLowerCase().includes('aldi.nl');
+  },
+  parse(html: string, url: string): ProductScraperResult {
+    const { title, brand, barcode, packageWeightGrams } = extractSchemaAndHeadings(html, 'Aldi');
+    const nutrition = parseDutchNutritionTable(html);
+    const sizing = extractPackageSizing(title, html);
+
+    const aldiIdMatch = url.match(/producten\/([^/?#]+)/i) || url.match(/\/p\/([^/?#]+)/i);
+    const productId = aldiIdMatch ? `aldi_${aldiIdMatch[1]}` : `aldi_${Date.now()}`;
+
+    const isDrink =
+      html.toLowerCase().includes('per 100 milliliter') ||
+      html.toLowerCase().includes('per 100 ml') ||
+      title.toLowerCase().includes('melk') ||
+      title.toLowerCase().includes('drank') ||
+      title.toLowerCase().includes('sap');
+
+    return {
+      id: productId,
+      name: title,
+      brand: brand || 'Aldi',
+      barcode,
+      servingUnit: isDrink ? 'ml' : 'gram',
+      ...nutrition,
+      packageWeightGrams: packageWeightGrams || sizing.packageWeightGrams,
+      pieceCount: sizing.pieceCount,
+      sourceUrl: url,
+    };
+  },
+};
+
+// -------------------------------------------------------------
+// ADAPTER 7: Generic Fallback (Custom Stores)
 // -------------------------------------------------------------
 export const genericAdapter: StoreScraperAdapter = {
   name: 'Generic Store',
@@ -844,13 +940,15 @@ export const genericAdapter: StoreScraperAdapter = {
 
 // -------------------------------------------------------------
 // Registry of all Store Adapters
-// (Easily register future stores here: Jumbo, AH, Dirk, Plus, etc.)
+// (Easily register future stores here: Jumbo, AH, Dirk, Plus, Lidl, Aldi, etc.)
 // -------------------------------------------------------------
 export const STORE_SCRAPERS: StoreScraperAdapter[] = [
   jumboAdapter,
   albertHeijnAdapter,
   dirkAdapter,
   plusAdapter,
+  lidlAdapter,
+  aldiAdapter,
   genericAdapter,
 ];
 
