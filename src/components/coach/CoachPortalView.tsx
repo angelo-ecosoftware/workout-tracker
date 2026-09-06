@@ -151,6 +151,7 @@ export const CoachPortalView: React.FC<CoachPortalViewProps> = ({
             specialty={specialty}
             onInspectClient={onInspectClient}
             onPrescribeNutrition={onPrescribeNutrition}
+            onOpenInvite={() => setIsInviteOpen(true)}
           />
         )}
 

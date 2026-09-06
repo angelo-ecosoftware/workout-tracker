@@ -24,6 +24,7 @@ interface CoachClientRosterProps {
   specialty?: CoachSpecialty;
   onInspectClient: (athleteId: string, athleteName: string) => void;
   onPrescribeNutrition?: (athleteId: string, athleteName: string) => void;
+  onOpenInvite?: () => void;
 }
 
 export const CoachClientRoster: React.FC<CoachClientRosterProps> = ({
@@ -32,11 +33,20 @@ export const CoachClientRoster: React.FC<CoachClientRosterProps> = ({
   specialty = 'strength',
   onInspectClient,
   onPrescribeNutrition,
+  onOpenInvite,
 }) => {
   const [clients, setClients] = useState<CoachAthleteLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [proposalTargetClient, setProposalTargetClient] = useState<CoachAthleteLink | null>(null);
+
+  const handleOpenInvite = () => {
+    if (onOpenInvite) {
+      onOpenInvite();
+    } else {
+      setIsInviteModalOpen(true);
+    }
+  };
 
   const loadRoster = async () => {
     try {
@@ -71,40 +81,11 @@ export const CoachClientRoster: React.FC<CoachClientRosterProps> = ({
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto animate-in fade-in duration-300">
-      {/* Header Banner */}
-      <div className="bg-[#111] border border-[#222] rounded-3xl p-5 sm:p-6 relative overflow-hidden">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="w-2 h-2 rounded-full bg-[#C0FF00] animate-pulse" />
-              <span className="text-[10px] font-mono uppercase tracking-widest text-[#C0FF00] font-bold">
-                Coach Management Hub
-              </span>
-            </div>
-            <h1 className="font-display text-2xl sm:text-3xl font-black uppercase italic tracking-tight text-white flex items-center gap-3">
-              <Users className="w-7 h-7 text-[#C0FF00]" />
-              Client Roster & Adherence
-            </h1>
-            <p className="font-sans text-xs text-gray-400 mt-1 max-w-lg leading-relaxed">
-              Supervise athlete compliance, propose progressive overload training splits, and monitor recovery.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setIsInviteModalOpen(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#C0FF00] hover:bg-[#a6dc00] text-black font-display font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-[0_0_20px_rgba(192,255,0,0.2)] self-start sm:self-auto shrink-0"
-          >
-            <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>Invite Client</span>
-          </button>
-        </div>
-      </div>
-
       {/* Client List Section */}
-      <div className="bg-[#111] border border-[#222] rounded-3xl p-5 sm:p-6 space-y-4">
+      <div className="bg-[#111] border border-[#222] rounded-3xl p-5 sm:p-6 space-y-4 shadow-xl">
         <div className="flex items-center justify-between border-b border-[#222] pb-3">
           <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-[#C0FF00]" />
             <span className="font-display text-sm sm:text-base font-black uppercase tracking-wider text-white">
               Active Athletes ({clients.filter((c) => c.status === 'accepted').length})
             </span>
@@ -124,14 +105,14 @@ export const CoachClientRoster: React.FC<CoachClientRosterProps> = ({
             <Sparkles className="w-8 h-8 text-[#C0FF00] mx-auto opacity-60" />
             <h3 className="text-white font-bold text-sm">No Connected Athletes Yet</h3>
             <p className="text-gray-400 text-xs max-w-sm mx-auto font-sans">
-              Send your first coaching invite via QR code, link, or email to start guiding client training.
+              Send your coaching invite via QR code, link, or email to start guiding client training.
             </p>
             <button
               type="button"
-              onClick={() => setIsInviteModalOpen(true)}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#C0FF00] text-black font-display font-black text-xs uppercase tracking-wider"
+              onClick={handleOpenInvite}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#C0FF00] text-black font-display font-black text-xs uppercase tracking-wider cursor-pointer shadow-[0_0_15px_rgba(192,255,0,0.2)]"
             >
-              <Plus className="w-3.5 h-3.5" /> Invite First Client
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" /> Invite First Client
             </button>
           </div>
         ) : (
