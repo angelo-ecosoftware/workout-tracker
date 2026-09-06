@@ -38,13 +38,31 @@ export const RecoveryAndReadinessCard: React.FC<RecoveryAndReadinessCardProps> =
   cameraInputRef,
   fileInputRef,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+  // Collapsed by default; persist user toggle state in localStorage
+  const [isExpanded, setIsExpandedState] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('workout_recovery_expanded');
+      return stored === 'true'; // false if null or 'false'
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleExpanded = () => {
+    setIsExpandedState((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('workout_recovery_expanded', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   return (
     <div className="bg-[#111] border border-[#222] rounded-[24px] p-5 shadow-xl space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#222] pb-4">
         <div
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={toggleExpanded}
           className="flex items-center justify-between sm:justify-start gap-3 cursor-pointer group flex-1 select-none"
         >
           <div>

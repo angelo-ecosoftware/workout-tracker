@@ -108,10 +108,27 @@ const GymAppContent: React.FC = () => {
   };
 
   useEffect(() => {
-    const handlePopState = () => {
+    // Prevent back-swipe from ever exiting to the login screen when authenticated
+    if (user) {
+      try {
+        const currentHash = window.location.hash || '#tracker';
+        window.history.replaceState({ appState: 'authenticated', tab: activeTab }, '', `${window.location.pathname}${currentHash}`);
+      } catch {}
+    }
+
+    const handlePopState = (_e?: Event) => {
       setPublicSessionId(getPublicSessionIdFromUrl());
       setPendingInviteCode(getCoachInviteCodeFromUrl());
       const hash = window.location.hash.toLowerCase();
+
+      // If user is authenticated and navigating back with empty hash or root, stay on active tab without exposing login
+      if (user && (!hash || hash === '#' || hash === '#/')) {
+        const fallbackTab = (localStorage.getItem('workout_tracker_active_tab') as TabType) || 'tracker';
+        setActiveTabState(fallbackTab);
+        window.history.replaceState({ appState: 'authenticated', tab: fallbackTab }, '', `${window.location.pathname}#${fallbackTab}`);
+        return;
+      }
+
       if (hash.includes('admin')) setActiveTabState('admin');
       else if (hash.includes('coach') || hash.includes('roster')) setActiveTabState('coach');
       else if (hash.includes('history') || hash.includes('logbook')) setActiveTabState('history');

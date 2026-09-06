@@ -317,7 +317,19 @@ export const WorkoutDayTracker: React.FC = () => {
                     inputs={inputs}
                     isExpanded={isExpanded}
                     advice={advice}
-                    onToggleExpand={() => setExpandedExerciseId(isExpanded ? null : ex.id)}
+                    onToggleExpand={() => {
+                      const nextId = isExpanded ? null : ex.id;
+                      setExpandedExerciseId(nextId);
+                      if (user && activeWorkout) {
+                        try {
+                          if (nextId) {
+                            localStorage.setItem(`workout_expanded_ex_${user.uid}_${activeWorkout.id}`, nextId);
+                          } else {
+                            localStorage.removeItem(`workout_expanded_ex_${user.uid}_${activeWorkout.id}`);
+                          }
+                        } catch {}
+                      }
+                    }}
                     onUpdateInput={updateInputValue}
                     onTextInput={handleTextChange}
                   />

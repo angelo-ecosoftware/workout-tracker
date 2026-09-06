@@ -88,6 +88,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(session?.access_token ?? null);
       if (mapped?.uid) {
         loadRoleForUser(mapped.uid);
+
+        // Sanitize window.history so OAuth tokens and login redirects are replaced, preventing back-swipe to login
+        try {
+          if (typeof window !== 'undefined' && window.history) {
+            const cleanHash = window.location.hash || '#tracker';
+            window.history.replaceState({ appState: 'authenticated' }, '', `${window.location.pathname}${cleanHash}`);
+          }
+        } catch {}
       } else {
         setRoleInfo(null);
       }

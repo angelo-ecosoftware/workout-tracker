@@ -131,9 +131,13 @@ describe('WorkoutDayTracker Component', () => {
       expect(screen.getAllByText(/day 1: push hypertrophy/i)[0]).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/incline dumbbell press/i)).toBeInTheDocument();
+    const exerciseHeader = screen.getByText(/incline dumbbell press/i);
+    expect(exerciseHeader).toBeInTheDocument();
 
-    // Locate weight and reps inputs for SET 1 (first exercise is auto-expanded)
+    // Click to expand exercise card (collapsed by default)
+    await user.click(exerciseHeader);
+
+    // Locate weight and reps inputs for SET 1
     const setLabel = await screen.findByText(/set 1/i);
     expect(setLabel).toBeInTheDocument();
 
@@ -155,6 +159,10 @@ describe('WorkoutDayTracker Component', () => {
 
     const submitBtn = screen.getByRole('button', { name: /submit workout/i });
     expect(submitBtn).toBeInTheDocument();
+
+    // Expand Recovery & Readiness card to type session notes (collapsed by default)
+    const recoveryHeader = screen.getByText(/recovery & readiness/i);
+    await user.click(recoveryHeader);
 
     // Type workout session notes
     const notesInput = screen.getByPlaceholderText(/e\.g\., felt strong on pushups/i);

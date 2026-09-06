@@ -79,7 +79,8 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
       expect(result.current.activeWorkout).not.toBeNull();
-      expect(result.current.expandedExerciseId).toBe('ex_bench');
+      // Exercises start collapsed by default for a clean overview
+      expect(result.current.expandedExerciseId).toBeNull();
     });
 
     expect(result.current.workouts).toHaveLength(1);
@@ -133,6 +134,13 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
       expect(result.current.loading).toBe(false);
     });
 
+    // Starts collapsed by default
+    expect(result.current.expandedExerciseId).toBeNull();
+
+    // Expand
+    act(() => {
+      result.current.setExpandedExerciseId('ex_bench');
+    });
     expect(result.current.expandedExerciseId).toBe('ex_bench');
 
     // Collapse
@@ -140,12 +148,6 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
       result.current.setExpandedExerciseId(null);
     });
     expect(result.current.expandedExerciseId).toBeNull();
-
-    // Re-expand
-    act(() => {
-      result.current.setExpandedExerciseId('ex_bench');
-    });
-    expect(result.current.expandedExerciseId).toBe('ex_bench');
   });
 
   it('switches active workout to another routine dynamically', async () => {

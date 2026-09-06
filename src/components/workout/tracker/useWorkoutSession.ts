@@ -269,9 +269,15 @@ export function useWorkoutSession(user: AuthUser | null) {
   useEffect(() => {
     if (!activeWorkout || !userProfile || !user) return;
 
-    if (activeWorkout.exercises && activeWorkout.exercises.length > 0) {
-      setExpandedExerciseId(activeWorkout.exercises[0].id);
-    } else {
+    // Collapsed by default; restore previous exercise expand state if explicitly saved by user
+    try {
+      const storedExpanded = localStorage.getItem(`workout_expanded_ex_${user.uid}_${activeWorkout.id}`);
+      if (storedExpanded && activeWorkout.exercises.some((e) => e.id === storedExpanded)) {
+        setExpandedExerciseId(storedExpanded);
+      } else {
+        setExpandedExerciseId(null);
+      }
+    } catch {
       setExpandedExerciseId(null);
     }
 
