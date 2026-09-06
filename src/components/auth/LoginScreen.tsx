@@ -144,7 +144,7 @@ export const LoginScreen: React.FC = () => {
                   <input
                     type="email"
                     required
-                    placeholder="tuO45744@gmail.com"
+                    placeholder="admin@example.com"
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
                     className="w-full bg-[#181818] border border-[#333] focus:border-purple-500 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white font-mono placeholder:text-gray-600 outline-none transition-colors"
