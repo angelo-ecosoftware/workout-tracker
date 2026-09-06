@@ -61,6 +61,14 @@ CREATE POLICY "Athletes and coaches can delete their links"
 -- ============================================================================
 -- 3. ENSURE COACH USER (078b01df-a405-4ab0-99c1-7a315c76f935) IS APPROVED COACH IN DB
 -- ============================================================================
+INSERT INTO users (user_id, email, name)
+VALUES ('078b01df-a405-4ab0-99c1-7a315c76f935', 'extremealpha16@gmail.com', 'Alpha Extreme')
+ON CONFLICT (user_id) DO NOTHING;
+
+INSERT INTO users (user_id, email, name)
+VALUES ('2b4bd23c-ceff-460d-a73b-2c531686e3b2', 'angeloleeuw@gmail.com', 'Angelo Ghafoerkhan')
+ON CONFLICT (user_id) DO NOTHING;
+
 INSERT INTO user_roles (user_id, role, specialty, is_approved)
 VALUES ('078b01df-a405-4ab0-99c1-7a315c76f935', 'coach', 'strength', true)
 ON CONFLICT (user_id) DO UPDATE SET
