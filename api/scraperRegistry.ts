@@ -507,7 +507,7 @@ export async function searchJumboProduct(query: string, sourceUrl: string): Prom
         if (parsed && !isBlockedOrErrorTitle(parsed.name)) {
           return {
             ...parsed,
-            sourceUrl: sourceUrl || bestMatchUrl,
+            sourceUrl: bestMatchUrl,
           };
         }
       }

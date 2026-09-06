@@ -167,6 +167,39 @@ export function getProductExternalUrl(item: { id?: string; sourceUrl?: string; n
     };
   }
 
+  // 3.5. If item is Jumbo brand or has Jumbo ID
+  const isJumbo = storeMeta?.id === 'jumbo' || item.id?.startsWith('jumbo_') || item.brand?.toLowerCase().includes('jumbo');
+  if (isJumbo && item.name) {
+    const query = encodeURIComponent(cleanProductTitle(item.name));
+    return {
+      url: `https://www.jumbo.com/producten/?searchType=keyword&searchTerms=${query}`,
+      label: 'Zoek op Jumbo.com',
+      isAppCapable: false,
+    };
+  }
+
+  // 3.6. If item is Dirk brand or has Dirk ID
+  const isDirk = storeMeta?.id === 'dirk' || item.id?.startsWith('dirk_') || item.brand?.toLowerCase().includes('dirk');
+  if (isDirk && item.name) {
+    const query = encodeURIComponent(cleanProductTitle(item.name));
+    return {
+      url: `https://www.dirk.nl/zoeken?q=${query}`,
+      label: 'Zoek op Dirk.nl',
+      isAppCapable: false,
+    };
+  }
+
+  // 3.7. If item is PLUS brand or has PLUS ID
+  const isPlus = storeMeta?.id === 'plus' || item.id?.startsWith('plus_') || item.brand?.toLowerCase().includes('plus');
+  if (isPlus && item.name) {
+    const query = encodeURIComponent(cleanProductTitle(item.name));
+    return {
+      url: `https://www.plus.nl/zoeken?q=${query}`,
+      label: 'Zoek op PLUS.nl',
+      isAppCapable: false,
+    };
+  }
+
   // 4. Barcode fallback to OpenFoodFacts
   if (item.barcode && /^\d{8,14}$/.test(item.barcode)) {
     return {
