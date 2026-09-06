@@ -243,21 +243,7 @@ export const useDietaryTracking = (userId: string) => {
     if (isUrl) {
       const cleanUrl = input.startsWith('http') ? input : `https://${input}`;
 
-      // A. Check if URL already matches an indexed product in local database (Instant 0ms Cache Hit!)
-      const cached = filteredCatalog.find(
-        (c) =>
-          c.sourceUrl &&
-          (c.sourceUrl === cleanUrl || cleanUrl.includes(c.sourceUrl) || c.sourceUrl.includes(cleanUrl))
-      );
-      if (cached) {
-        setSelectedFoodItem(cached);
-        setPortionGrams(cached.packageWeightGrams || (cached.servingUnit === 'ml' ? 250 : 100));
-        setSearchQuery('');
-        setIsResolvingOmniInput(false);
-        return;
-      }
-
-      // B. Shared Grocery List or Multi-Ingredient Recipe List Check
+      // A. Shared Grocery List or Multi-Ingredient Recipe List Check (PRIORITIZED OVER SINGLE PRODUCTS)
       const isListUrl =
         /(?:\/lijst\/|\/basket\/|\/gedeelde-lijst\/|\/mijnlijst\/|\/shared-list\/)/i.test(cleanUrl) &&
         !cleanUrl.includes('/p/') &&
@@ -296,6 +282,20 @@ export const useDietaryTracking = (userId: string) => {
         } catch (listErr) {
           console.warn('Omni list parse error:', listErr);
         }
+      }
+
+      // B. Check if URL already matches an indexed product in local database (Instant 0ms Cache Hit!)
+      const cached = filteredCatalog.find(
+        (c) =>
+          c.sourceUrl &&
+          (c.sourceUrl === cleanUrl || cleanUrl.includes(c.sourceUrl) || c.sourceUrl.includes(cleanUrl))
+      );
+      if (cached) {
+        setSelectedFoodItem(cached);
+        setPortionGrams(cached.packageWeightGrams || (cached.servingUnit === 'ml' ? 250 : 100));
+        setSearchQuery('');
+        setIsResolvingOmniInput(false);
+        return;
       }
 
       // C. Product or Single Recipe Scraper

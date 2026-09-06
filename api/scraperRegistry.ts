@@ -162,7 +162,17 @@ export function isBlockedOrErrorTitle(title: string): boolean {
     clean === 'winkelmand' ||
     clean === 'inloggen' ||
     clean === 'mijn lijst' ||
-    clean === 'gedeelde lijst'
+    clean === 'gedeelde lijst' ||
+    clean === 'albert heijn' ||
+    clean === 'ah' ||
+    clean === 'jumbo' ||
+    clean === 'dirk' ||
+    clean === 'plus' ||
+    clean === 'lidl' ||
+    clean === 'aldi' ||
+    clean === 'picnic' ||
+    clean === 'hoogvliet' ||
+    clean === 'spar'
   ) {
     return true;
   }

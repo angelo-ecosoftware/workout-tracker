@@ -15,6 +15,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Missing required parameter: url' });
   }
 
+  // Reject shared grocery lists in the single-product scraper
+  if (/(?:\/lijst\/|\/basket\/|\/gedeelde-lijst\/|\/mijnlijst\/|\/shared-list\/)/i.test(rawUrl)) {
+    return res.status(400).json({
+      error: 'This URL is a shared grocery list. Please import it via the shared list resolver.',
+      isSharedList: true,
+    });
+  }
+
   try {
     const product = await scrapeProductFromUrl(rawUrl);
     return res.status(200).json({

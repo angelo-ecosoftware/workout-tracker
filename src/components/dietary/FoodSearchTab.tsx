@@ -62,10 +62,14 @@ function detectInputType(query: string): {
     /(?:ah\.nl|jumbo\.com|dirk\.nl|plus\.nl|lidl\.nl|aldi\.nl|picnic\.app)\//i.test(q);
 
   if (isUrl) {
-    if (/(?:\/lijst\/|\/basket\/)/i.test(q) && !q.includes('/p/') && !q.includes('/product/')) {
+    if (
+      /(?:\/lijst\/|\/basket\/|\/gedeelde-lijst\/|\/mijnlijst\/|\/shared-list\/)/i.test(q) &&
+      !q.includes('/p/') &&
+      !q.includes('/product/')
+    ) {
       return {
         type: 'grocery_list',
-        label: 'Grocery List',
+        label: 'Shared Grocery List',
         badgeColor: 'text-[#00ade6] bg-[#00ade6]/10 border-[#00ade6]/30',
       };
     }
@@ -323,6 +327,22 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onPaste={(e) => {
+              const text = e.clipboardData.getData('text');
+              if (
+                text &&
+                (/^\d{8,14}$/.test(text.trim()) ||
+                  /^https?:\/\/|www\./i.test(text.trim()) ||
+                  /(?:ah\.nl|jumbo\.com|dirk\.nl|plus\.nl|lidl\.nl|aldi\.nl|picnic\.app)\//i.test(text.trim()))
+              ) {
+                e.preventDefault();
+                const clean = text.trim();
+                setSearchQuery(clean);
+                if (onResolveOmniInput) {
+                  onResolveOmniInput(clean);
+                }
+              }
+            }}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
@@ -367,18 +387,41 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
           </div>
         </div>
 
-        {/* Input format detection badge / status */}
+        {/* Input format detection banner / CTA */}
         {detected.type !== 'empty' && detected.type !== 'keyword' && (
-          <div className="flex items-center gap-2 px-1">
-            <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border ${detected.badgeColor}`}
+          <div className="p-3 bg-[#181818] border border-[#2c2c2c] rounded-2xl flex items-center justify-between gap-3 animate-in fade-in">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border ${detected.badgeColor} shrink-0`}>
+                {detected.label}
+              </span>
+              <p className="text-xs text-gray-300 truncate font-sans">
+                {detected.type === 'grocery_list'
+                  ? 'Import shared shopping list'
+                  : detected.type === 'recipe'
+                  ? 'Extract recipe nutritional values'
+                  : detected.type === 'barcode'
+                  ? 'Lookup product by barcode'
+                  : 'Extract product macros'}
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={isResolvingOmniInput}
+              onClick={() => onResolveOmniInput && onResolveOmniInput(searchQuery.trim())}
+              className="px-3.5 py-1.5 bg-[#C0FF00] hover:bg-[#a8e000] text-black text-xs font-sans font-bold rounded-xl flex items-center gap-1.5 cursor-pointer shrink-0 shadow-[0_0_10px_rgba(192,255,0,0.2)] transition-all"
             >
-              <Sparkles className="w-2.5 h-2.5" />
-              <span>{detected.label} Detected</span>
-            </span>
-            <span className="text-[10px] font-mono text-gray-400">
-              Press Enter or click "Go" to auto-resolve
-            </span>
+              {isResolvingOmniInput ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Resolving...</span>
+                </>
+              ) : (
+                <>
+                  <span>{detected.type === 'grocery_list' ? 'Fetch List' : 'Resolve & Add'}</span>
+                  <ArrowRight className="w-3.5 h-3.5 stroke-[3]" />
+                </>
+              )}
+            </button>
           </div>
         )}
 

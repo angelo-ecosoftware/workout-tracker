@@ -1,6 +1,6 @@
 import React from 'react';
 import { Exercise } from '../../../models.ts';
-import { Play, Check, Eye } from 'lucide-react';
+import { Play, Check, Eye, Dumbbell, Hash, Clock, Flame } from 'lucide-react';
 import { WgerExerciseInfo } from '../WgerExerciseInfo.tsx';
 
 interface AssistedSetCardProps {
@@ -91,8 +91,9 @@ export const AssistedSetCard: React.FC<AssistedSetCardProps> = ({
           <div className="grid grid-cols-1 gap-3.5 sm:gap-4">
             {/* Duration */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block font-bold">
-                Duration (Seconds)
+              <label className="text-[10px] font-mono text-gray-300 uppercase tracking-wider flex items-center gap-1.5 font-bold">
+                <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Duration (Seconds)</span>
               </label>
               <div className="flex items-center gap-2">
                 <button
@@ -102,15 +103,20 @@ export const AssistedSetCard: React.FC<AssistedSetCardProps> = ({
                 >
                   -5
                 </button>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={currentValues.durationSeconds || ''}
-                  onChange={(e) => onSetTextInput(currentSetKey, 'durationSeconds', e.target.value)}
-                  className="w-full min-w-0 bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-xl py-2.5 text-center font-mono font-black text-white text-base sm:text-lg focus:outline-none"
-                  placeholder="0"
-                />
+                <div className="relative flex-1 flex items-center">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={currentValues.durationSeconds || ''}
+                    onChange={(e) => onSetTextInput(currentSetKey, 'durationSeconds', e.target.value)}
+                    className="w-full min-w-0 bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-xl py-2.5 text-center font-mono font-black text-white text-base sm:text-lg focus:outline-none pr-8"
+                    placeholder="0"
+                  />
+                  <span className="absolute right-3 text-xs font-mono font-bold text-gray-500 pointer-events-none">
+                    sec
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => onUpdateInput(currentSetKey, 'durationSeconds', 5)}
@@ -123,8 +129,9 @@ export const AssistedSetCard: React.FC<AssistedSetCardProps> = ({
 
             {/* Difficulty */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block font-bold">
-                Difficulty (1-10)
+              <label className="text-[10px] font-mono text-gray-300 uppercase tracking-wider flex items-center gap-1.5 font-bold">
+                <Flame className="w-3.5 h-3.5 text-orange-400" />
+                <span>Difficulty (Scale 1-10)</span>
               </label>
               <div className="flex items-center gap-2">
                 <button
@@ -157,8 +164,9 @@ export const AssistedSetCard: React.FC<AssistedSetCardProps> = ({
           <div className="grid grid-cols-1 gap-3.5 sm:gap-4">
             {/* Weight */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block font-bold">
-                Weight (kg)
+              <label className="text-[10px] font-mono text-gray-300 uppercase tracking-wider flex items-center gap-1.5 font-bold">
+                <Dumbbell className="w-3.5 h-3.5 text-[#C0FF00]" />
+                <span>Weight (KG)</span>
               </label>
               <div className="flex items-center gap-2">
                 <button
@@ -168,14 +176,19 @@ export const AssistedSetCard: React.FC<AssistedSetCardProps> = ({
                 >
                   -2.5
                 </button>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={currentValues.weight || ''}
-                  onChange={(e) => onSetTextInput(currentSetKey, 'weight', e.target.value)}
-                  className="w-full min-w-0 bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-xl py-2.5 text-center font-mono font-black text-white text-base sm:text-lg focus:outline-none"
-                  placeholder="0"
-                />
+                <div className="relative flex-1 flex items-center">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={currentValues.weight || ''}
+                    onChange={(e) => onSetTextInput(currentSetKey, 'weight', e.target.value)}
+                    className="w-full min-w-0 bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-xl py-2.5 text-center font-mono font-black text-white text-base sm:text-lg focus:outline-none pr-8"
+                    placeholder="0"
+                  />
+                  <span className="absolute right-3 text-xs font-mono font-bold text-gray-500 pointer-events-none">
+                    kg
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => onUpdateInput(currentSetKey, 'weight', 2.5)}
@@ -188,8 +201,9 @@ export const AssistedSetCard: React.FC<AssistedSetCardProps> = ({
 
             {/* Reps */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block font-bold">
-                Reps (Count)
+              <label className="text-[10px] font-mono text-gray-300 uppercase tracking-wider flex items-center gap-1.5 font-bold">
+                <Hash className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Reps (Count)</span>
               </label>
               <div className="flex items-center gap-2">
                 <button
@@ -199,15 +213,20 @@ export const AssistedSetCard: React.FC<AssistedSetCardProps> = ({
                 >
                   -1
                 </button>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={currentValues.reps || ''}
-                  onChange={(e) => onSetTextInput(currentSetKey, 'reps', e.target.value)}
-                  className="w-full min-w-0 bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-xl py-2.5 text-center font-mono font-black text-[#C0FF00] text-base sm:text-lg focus:outline-none"
-                  placeholder="0"
-                />
+                <div className="relative flex-1 flex items-center">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={currentValues.reps || ''}
+                    onChange={(e) => onSetTextInput(currentSetKey, 'reps', e.target.value)}
+                    className="w-full min-w-0 bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-xl py-2.5 text-center font-mono font-black text-[#C0FF00] text-base sm:text-lg focus:outline-none pr-10"
+                    placeholder="0"
+                  />
+                  <span className="absolute right-3 text-xs font-mono font-bold text-gray-500 pointer-events-none">
+                    reps
+                  </span>
+                </div>
                 <button
                   type="button"
                   onClick={() => onUpdateInput(currentSetKey, 'reps', 1)}

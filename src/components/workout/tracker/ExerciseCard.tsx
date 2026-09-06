@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, EyeOff, Zap } from 'lucide-react';
+import { Eye, EyeOff, Zap, Dumbbell, Clock } from 'lucide-react';
 import { Exercise, UserProfile } from '../../../models.ts';
 import { WgerExerciseInfo } from '../WgerExerciseInfo.tsx';
 import { ExerciseSetRow } from './ExerciseSetRow.tsx';
@@ -154,13 +154,32 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           {/* Active Entry fields grid */}
           <div className="space-y-3">
             {/* Rows header */}
-            <div className="hidden sm:grid grid-cols-12 gap-3 text-[9px] font-black text-gray-500 uppercase tracking-widest px-2 pb-1.5 font-mono">
-              <div className="col-span-3">SET</div>
-              <div className="col-span-5 text-center">
-                {exercise.type === 'timed' ? 'DURATION (SECONDS)' : 'WEIGHT (KG)'}
+            <div className="hidden sm:grid grid-cols-12 gap-3 text-[10px] font-black text-gray-400 uppercase tracking-wider px-2 pb-1 font-mono border-b border-[#222]">
+              <div className="col-span-3 flex items-center gap-1 text-[#C0FF00]">
+                <span>SET NUMBER</span>
               </div>
-              <div className="col-span-4 text-center">
-                {exercise.type === 'timed' ? 'DIFFICULTY (1-10)' : 'REPS'}
+              <div className="col-span-5 flex items-center justify-center gap-1.5 text-center">
+                {exercise.type === 'timed' ? (
+                  <>
+                    <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>DURATION (SECONDS)</span>
+                  </>
+                ) : (
+                  <>
+                    <Dumbbell className="w-3.5 h-3.5 text-[#C0FF00]" />
+                    <span>WEIGHT (KG)</span>
+                  </>
+                )}
+              </div>
+              <div className="col-span-4 flex items-center justify-center gap-1.5 text-center">
+                {exercise.type === 'timed' ? (
+                  <span>DIFFICULTY (1-10)</span>
+                ) : (
+                  <>
+                    <span className="text-cyan-400 font-bold">#</span>
+                    <span>REPS (COUNT)</span>
+                  </>
+                )}
               </div>
             </div>
 
