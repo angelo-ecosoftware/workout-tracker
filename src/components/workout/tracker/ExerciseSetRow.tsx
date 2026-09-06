@@ -1,6 +1,6 @@
 import React from 'react';
 import { Exercise } from '../../../models.ts';
-import { Dumbbell, Hash, Clock, Flame, Check } from 'lucide-react';
+import { Check, Minus, Plus } from 'lucide-react';
 
 interface ExerciseSetRowProps {
   exercise: Exercise;
@@ -42,233 +42,185 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
 
   return (
     <div
-      className={`flex flex-col sm:grid sm:grid-cols-12 gap-3 items-stretch sm:items-center p-3 sm:p-2.5 rounded-xl border transition-all ${
+      className={`grid grid-cols-12 gap-1.5 sm:gap-2 items-center px-2.5 py-2 sm:py-2.5 rounded-xl border transition-all ${
         isCompleted
-          ? 'bg-[#141414]/90 border-emerald-500/30 opacity-80'
+          ? 'bg-[#121212] border-emerald-500/20 opacity-70'
           : isCurrent
-          ? 'bg-[#1e1e1e] border-[#C0FF00]/50 shadow-[0_0_15px_rgba(192,255,0,0.08)]'
-          : 'bg-[#1a1a1a] border-[#222] hover:border-[#333]'
+          ? 'bg-[#181818] border-[#C0FF00]/40 shadow-[0_0_12px_rgba(192,255,0,0.06)]'
+          : 'bg-[#141414] border-[#202020] hover:border-[#2a2a2a]'
       }`}
     >
-      {/* Label set number + 1-tap checkmark button */}
-      <div className="col-span-3 flex items-center justify-between sm:justify-start gap-2 font-mono text-xs font-bold text-gray-300 border-b border-[#2d2d2d] sm:border-0 pb-2 sm:pb-0 mb-1 sm:mb-0">
-        <div className="flex items-center gap-2">
-          {/* 1-Tap Completion Toggle Circle */}
-          <button
-            type="button"
-            onClick={() => onToggleCompleted && onToggleCompleted(inputKey)}
-            title={isCompleted ? `Completed at ${values.completedAt || 'earlier'} - click to uncheck` : 'Click to mark set completed'}
-            className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 border ${
-              isCompleted
-                ? 'bg-[#C0FF00] border-[#C0FF00] text-black shadow-[0_0_10px_rgba(192,255,0,0.3)]'
-                : 'bg-[#222] border-[#383838] hover:border-[#C0FF00]/60 text-transparent hover:text-gray-400'
-            }`}
-          >
-            <Check className="w-3.5 h-3.5 stroke-[3]" />
-          </button>
+      {/* Col 1-3: Set Number & 1-Tap Check */}
+      <div className="col-span-3 flex items-center gap-1.5 min-w-0">
+        <button
+          type="button"
+          onClick={() => onToggleCompleted && onToggleCompleted(inputKey)}
+          title={isCompleted ? `Done at ${values.completedAt || ''}` : 'Mark complete'}
+          className={`w-5 h-5 sm:w-6 sm:h-6 rounded-md flex items-center justify-center transition-all cursor-pointer shrink-0 border ${
+            isCompleted
+              ? 'bg-[#C0FF00] border-[#C0FF00] text-black shadow-sm'
+              : isCurrent
+              ? 'bg-[#1a1a1a] border-[#C0FF00]/50 text-transparent hover:text-gray-400'
+              : 'bg-[#1a1a1a] border-[#2d2d2d] hover:border-gray-500 text-transparent hover:text-gray-400'
+          }`}
+        >
+          <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />
+        </button>
 
+        <div className="min-w-0 flex items-center gap-1">
           <span
-            className={`uppercase tracking-wider transition-colors ${
-              isCompleted ? 'text-gray-400 line-through' : isCurrent ? 'text-[#C0FF00]' : 'text-gray-200'
+            className={`font-mono text-xs font-bold uppercase truncate ${
+              isCompleted ? 'text-gray-500 line-through' : isCurrent ? 'text-[#C0FF00]' : 'text-gray-300'
             }`}
           >
             SET {setNum}
           </span>
-        </div>
 
-        {/* Micro-status badge (Done timestamp or active current indicator) */}
-        <div className="flex items-center gap-1.5 ml-auto sm:ml-0">
           {isCompleted && values.completedAt && (
-            <span className="text-[9px] font-mono text-emerald-400 font-normal bg-emerald-950/40 border border-emerald-500/20 px-1.5 py-0.2 rounded">
+            <span className="text-[8px] font-mono text-emerald-400 hidden sm:inline">
               {values.completedAt}
             </span>
           )}
+
           {!isCompleted && isCurrent && (
-            <span className="text-[8px] font-mono font-bold uppercase tracking-wider text-[#C0FF00] bg-[#C0FF00]/10 px-1.5 py-0.2 rounded border border-[#C0FF00]/30 animate-pulse">
-              NEXT
-            </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C0FF00] animate-pulse shrink-0 hidden sm:inline" />
           )}
         </div>
-
-        <span className="sm:hidden font-sans font-semibold text-[10px] text-gray-500 ml-auto">
-          Target: {exercise.targetRepMin}-{exercise.targetRepMax}{' '}
-          {exercise.type === 'timed' ? 'sec' : 'reps'}
-        </span>
       </div>
 
       {exercise.type === 'timed' ? (
         <>
-          {/* Duration seconds quick adjust with icon & label */}
-          <div className="col-span-5 flex flex-col sm:flex-row items-center justify-center gap-1.5">
-            <div className="sm:hidden flex items-center gap-1 text-[10px] font-mono text-gray-400 self-start mb-0.5">
-              <Clock className="w-3 h-3 text-cyan-400" />
-              <span>DURATION (SECONDS)</span>
-            </div>
-            <div className="flex items-center justify-center gap-1 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => onUpdateInput(inputKey, 'durationSeconds', -10)}
-                className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
-              >
-                -10s
-              </button>
-              <button
-                type="button"
-                onClick={() => onUpdateInput(inputKey, 'durationSeconds', -5)}
-                className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
-              >
-                -5s
-              </button>
+          {/* Col 4-8: Duration Stepper */}
+          <div className="col-span-5 flex items-center justify-center gap-1">
+            <button
+              type="button"
+              onClick={() => onUpdateInput(inputKey, 'durationSeconds', -5)}
+              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+            >
+              <Minus className="w-3 h-3" />
+            </button>
 
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  value={values.durationSeconds || ''}
-                  onChange={(e) => onTextInput(inputKey, 'durationSeconds', e.target.value)}
-                  className="w-20 px-2 py-1.5 bg-[#111] border border-[#333] rounded-lg text-center text-xs font-mono font-black text-white focus:outline-none focus:ring-1 focus:ring-[#C0FF00] pr-6"
-                  placeholder="0"
-                />
-                <span className="absolute right-2 text-[10px] font-mono text-gray-500 pointer-events-none">s</span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => onUpdateInput(inputKey, 'durationSeconds', 5)}
-                className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
-              >
-                +5s
-              </button>
-              <button
-                type="button"
-                onClick={() => onUpdateInput(inputKey, 'durationSeconds', 10)}
-                className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
-              >
-                +10s
-              </button>
-            </div>
-          </div>
-
-          {/* Difficulty Rating with Flame icon */}
-          <div className="col-span-4 flex flex-col sm:flex-row items-center justify-center gap-1.5 mt-2 sm:mt-0">
-            <div className="sm:hidden flex items-center gap-1 text-[10px] font-mono text-gray-400 self-start mb-0.5">
-              <Flame className="w-3 h-3 text-orange-400" />
-              <span>DIFFICULTY (1-10)</span>
-            </div>
-            <div className="flex items-center justify-center gap-1.5 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => onUpdateInput(inputKey, 'difficulty', -1)}
-                className="p-1 px-2 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-xs cursor-pointer select-none"
-              >
-                -1
-              </button>
+            <div className="relative flex items-center min-w-0 flex-1 max-w-[80px]">
               <input
                 type="text"
-                value={values.difficulty || ''}
-                onChange={(e) => onTextInput(inputKey, 'difficulty', e.target.value)}
-                className="w-14 px-1 py-1.5 bg-[#111] border border-[#333] rounded-lg text-center text-xs font-mono font-black text-[#C0FF00] focus:outline-none focus:ring-1 focus:ring-[#C0FF00]"
-                placeholder="1-10"
+                value={values.durationSeconds || ''}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => onTextInput(inputKey, 'durationSeconds', e.target.value)}
+                className="w-full bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 text-center font-mono font-bold text-white text-xs sm:text-sm focus:outline-none pr-4"
+                placeholder="0"
               />
-              <button
-                type="button"
-                onClick={() => onUpdateInput(inputKey, 'difficulty', 1)}
-                className="p-1 px-2 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-xs cursor-pointer select-none"
-              >
-                +1
-              </button>
+              <span className="absolute right-1.5 text-[9px] font-mono text-gray-500 pointer-events-none">
+                s
+              </span>
             </div>
+
+            <button
+              type="button"
+              onClick={() => onUpdateInput(inputKey, 'durationSeconds', 5)}
+              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+            >
+              <Plus className="w-3 h-3" />
+            </button>
+          </div>
+
+          {/* Col 9-12: Difficulty Stepper */}
+          <div className="col-span-4 flex items-center justify-center gap-1">
+            <button
+              type="button"
+              onClick={() => onUpdateInput(inputKey, 'difficulty', -1)}
+              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+            >
+              <Minus className="w-3 h-3" />
+            </button>
+
+            <input
+              type="text"
+              value={values.difficulty || ''}
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => onTextInput(inputKey, 'difficulty', e.target.value)}
+              className="w-10 sm:w-12 bg-[#0d0d0d] border border-[#282828] focus:border-amber-400 rounded-lg py-1 text-center font-mono font-bold text-amber-400 text-xs sm:text-sm focus:outline-none"
+              placeholder="7"
+            />
+
+            <button
+              type="button"
+              onClick={() => onUpdateInput(inputKey, 'difficulty', 1)}
+              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+            >
+              <Plus className="w-3 h-3" />
+            </button>
           </div>
         </>
       ) : (
         <>
-          {/* Weight input with Dumbbell icon and KG badge */}
-          <div className="col-span-5 flex flex-col sm:flex-row items-center justify-center gap-1.5">
-            <div className="sm:hidden flex items-center gap-1 text-[10px] font-mono text-gray-400 self-start mb-0.5">
-              <Dumbbell className="w-3 h-3 text-[#C0FF00]" />
-              <span>WEIGHT (KG)</span>
-            </div>
-            <div className="flex items-center justify-center gap-1 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => onUpdateInput(inputKey, 'weight', -2.5)}
-                className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
-              >
-                -2.5
-              </button>
-              <button
-                type="button"
-                onClick={() => onUpdateInput(inputKey, 'weight', -0.5)}
-                className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
-              >
-                -0.5
-              </button>
+          {/* Col 4-8: Weight Stepper */}
+          <div className="col-span-5 flex items-center justify-center gap-1">
+            <button
+              type="button"
+              onClick={() => onUpdateInput(inputKey, 'weight', -2.5)}
+              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-white flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              title="-2.5 kg"
+            >
+              <Minus className="w-3 h-3" />
+            </button>
 
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  value={values.weight || ''}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => onTextInput(inputKey, 'weight', e.target.value)}
-                  className="w-20 px-2 py-1.5 bg-[#111] border border-[#333] rounded-lg text-center text-xs font-mono font-black text-white focus:outline-none focus:ring-1 focus:ring-[#C0FF00] pr-7"
-                  placeholder="0"
-                />
-                <span className="absolute right-2 text-[10px] font-mono font-bold text-gray-500 pointer-events-none">
-                  kg
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => onUpdateInput(inputKey, 'weight', 0.5)}
-                className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
-              >
-                +0.5
-              </button>
-              <button
-                type="button"
-                onClick={() => onUpdateInput(inputKey, 'weight', 2.5)}
-                className="p-1 px-1.5 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-[10px] font-mono cursor-pointer select-none"
-              >
-                +2.5
-              </button>
+            <div className="relative flex items-center min-w-0 flex-1 max-w-[84px]">
+              <input
+                type="text"
+                value={values.weight || ''}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => onTextInput(inputKey, 'weight', e.target.value)}
+                className="w-full bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 text-center font-mono font-black text-white text-xs sm:text-sm focus:outline-none pr-5.5"
+                placeholder="0"
+              />
+              <span className="absolute right-1.5 text-[9px] font-mono font-bold text-gray-500 pointer-events-none">
+                kg
+              </span>
             </div>
+
+            <button
+              type="button"
+              onClick={() => onUpdateInput(inputKey, 'weight', 2.5)}
+              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-[#C0FF00] flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              title="+2.5 kg"
+            >
+              <Plus className="w-3 h-3" />
+            </button>
           </div>
 
-          {/* Reps selector with Hash/Rep icon */}
-          <div className="col-span-4 flex flex-col sm:flex-row items-center justify-center gap-1.5 mt-2 sm:mt-0">
-            <div className="sm:hidden flex items-center gap-1 text-[10px] font-mono text-gray-400 self-start mb-0.5">
-              <Hash className="w-3 h-3 text-cyan-400" />
-              <span>REPS (COUNT)</span>
+          {/* Col 9-12: Reps Stepper */}
+          <div className="col-span-4 flex items-center justify-center gap-1">
+            <button
+              type="button"
+              onClick={() => onUpdateInput(inputKey, 'reps', -1)}
+              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-white flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              title="-1 rep"
+            >
+              <Minus className="w-3 h-3" />
+            </button>
+
+            <div className="relative flex items-center min-w-0 flex-1 max-w-[68px]">
+              <input
+                type="text"
+                value={values.reps || ''}
+                onFocus={(e) => e.target.select()}
+                onChange={(e) => onTextInput(inputKey, 'reps', e.target.value)}
+                className="w-full bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 text-center font-mono font-black text-[#C0FF00] text-xs sm:text-sm focus:outline-none pr-5"
+                placeholder="0"
+              />
+              <span className="absolute right-1.5 text-[8px] font-mono font-bold text-gray-500 pointer-events-none">
+                r
+              </span>
             </div>
-            <div className="flex items-center justify-center gap-1.5 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => onUpdateInput(inputKey, 'reps', -1)}
-                className="p-1 px-2 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-xs cursor-pointer select-none"
-              >
-                -1
-              </button>
-              <div className="relative flex items-center">
-                <input
-                  type="text"
-                  value={values.reps || ''}
-                  onFocus={(e) => e.target.select()}
-                  onChange={(e) => onTextInput(inputKey, 'reps', e.target.value)}
-                  className="w-16 px-2 py-1.5 bg-[#111] border border-[#333] rounded-lg text-center text-xs font-mono font-black text-[#C0FF00] focus:outline-none focus:ring-1 focus:ring-[#C0FF00] pr-6"
-                  placeholder="0"
-                />
-                <span className="absolute right-1.5 text-[9px] font-mono font-bold text-gray-500 pointer-events-none">
-                  reps
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => onUpdateInput(inputKey, 'reps', 1)}
-                className="p-1 px-2 border border-[#333] bg-[#222] rounded-lg hover:border-[#C0FF00]/40 text-gray-300 text-xs cursor-pointer select-none"
-              >
-                +1
-              </button>
-            </div>
+
+            <button
+              type="button"
+              onClick={() => onUpdateInput(inputKey, 'reps', 1)}
+              className="w-7 h-7 sm:w-8 sm:h-8 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-[#C0FF00] flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              title="+1 rep"
+            >
+              <Plus className="w-3 h-3" />
+            </button>
           </div>
         </>
       )}
