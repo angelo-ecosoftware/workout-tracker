@@ -99,8 +99,10 @@ export function normalizeOpenFoodFactsProduct(data: OpenFoodFactsProductPayload 
 /**
  * Multi-tier lookup service:
  * 1. Checks Supabase `food_items` by `barcode` or `id = ean_{barcode}`
- * 2. If missing, queries Open Food Facts API v2
- * 3. Auto-indexes newly fetched Open Food Facts items into Supabase for global hive-mind access
+ * 1.5. Checks in-store Bakery PLU scale barcode mapping
+ * 2. Supermarket Direct Barcode Resolver (Albert Heijn GTIN + FIR nutrition table)
+ * 3. Open Food Facts API v2 (Crowdsourced global catalog fallback before UI)
+ * 4. User UI fallback (Report missing / Manual entry)
  */
 export async function lookupBarcodeProduct(barcode: string, currentUserId?: string): Promise<BarcodeLookupResult> {
   const cleanCode = barcode.trim();
@@ -125,7 +127,7 @@ export async function lookupBarcodeProduct(barcode: string, currentUserId?: stri
       };
     }
   } catch (dbErr) {
-    console.warn('Database barcode lookup fallback to OpenFoodFacts:', dbErr);
+    console.warn('Database barcode lookup fallback to retailer/OpenFoodFacts:', dbErr);
   }
 
   // 1.5. Check if it matches an in-store Bakery PLU alias in our database (e.g. 285623 -> AH Vloer waldkorn half)
@@ -162,40 +164,7 @@ export async function lookupBarcodeProduct(barcode: string, currentUserId?: stri
     }
   }
 
-  // 2. Query Open Food Facts API v2
-  try {
-    const offUrl = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(cleanCode)}.json`;
-    const response = await fetch(offUrl, {
-      headers: {
-        'User-Agent': 'WorkoutTrackerPWA/1.0 (Personal Fitness & Nutrition App)',
-      },
-    });
-
-    if (response.ok) {
-      const payload = await response.json();
-      if (payload.status === 1 && payload.product) {
-        const normalized = normalizeOpenFoodFactsProduct(payload, cleanCode);
-        if (normalized) {
-          // Auto-persist into global hive-mind database so ALL users have instant access
-          try {
-            await saveHiveMindFoodItem(normalized, currentUserId);
-          } catch (saveErr) {
-            console.error('Could not auto-save Open Food Facts product to global index:', saveErr);
-          }
-
-          return {
-            found: true,
-            source: 'openfoodfacts',
-            item: normalized,
-          };
-        }
-      }
-    }
-  } catch (apiErr: unknown) {
-    console.warn('Open Food Facts API lookup skipped/failed:', apiErr);
-  }
-
-  // 3. Fallback: Supermarket Direct Barcode Resolver (Albert Heijn Mobile Services GTIN & FIR)
+  // 2. Supermarket Direct Barcode Resolver (Albert Heijn Mobile Services GTIN & FIR)
   try {
     const smRes = await fetch(`/api/barcode-lookup?barcode=${encodeURIComponent(cleanCode)}`);
     if (smRes.ok) {
@@ -216,7 +185,40 @@ export async function lookupBarcodeProduct(barcode: string, currentUserId?: stri
       }
     }
   } catch (smErr) {
-    console.warn('Supermarket barcode fallback lookup error:', smErr);
+    console.warn('Supermarket barcode fallback lookup error, falling back to Open Food Facts:', smErr);
+  }
+
+  // 3. Fallback before UI: Open Food Facts API v2 (Crowdsourced global catalog)
+  try {
+    const offUrl = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(cleanCode)}.json`;
+    const response = await fetch(offUrl, {
+      headers: {
+        'User-Agent': 'WorkoutTrackerPWA/1.0 (Personal Fitness & Nutrition App)',
+      },
+    });
+
+    if (response.ok) {
+      const payload = (await response.json()) as OpenFoodFactsProductPayload;
+      if (payload.status === 1 && payload.product) {
+        const normalized = normalizeOpenFoodFactsProduct(payload, cleanCode);
+        if (normalized) {
+          // Auto-persist into global hive-mind database so ALL users have instant access
+          try {
+            await saveHiveMindFoodItem(normalized, currentUserId);
+          } catch (saveErr) {
+            console.error('Could not auto-save Open Food Facts product to global index:', saveErr);
+          }
+
+          return {
+            found: true,
+            source: 'openfoodfacts',
+            item: normalized,
+          };
+        }
+      }
+    }
+  } catch (apiErr: unknown) {
+    console.warn('Open Food Facts API lookup skipped/failed:', apiErr);
   }
 
   return { found: false, source: 'none', item: null, error: 'No product matches this barcode.' };

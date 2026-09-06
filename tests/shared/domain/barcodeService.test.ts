@@ -139,7 +139,7 @@ describe('barcodeService', () => {
       expect(result.item?.name).toBe('Magere Kwark');
     });
 
-    it('queries Open Food Facts and auto-saves if not found in database', async () => {
+    it('resolves official supermarket product first if available', async () => {
       const mockSelect = vi.fn().mockReturnValue({
         or: vi.fn().mockReturnValue({
           limit: vi.fn().mockReturnValue({
@@ -149,24 +149,70 @@ describe('barcodeService', () => {
       });
       vi.mocked(supabase.from).mockReturnValue({ select: mockSelect } as any);
 
-      const mockFetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          status: 1,
-          product: {
-            product_name: 'High Protein Pudding',
-            brands: 'Jumbo',
-            quantity: '200g',
-            nutriments: {
-              'energy-kcal_100g': 78,
-              'proteins_100g': 10.0,
-              'carbohydrates_100g': 5.5,
-              'sugars_100g': 4.0,
-              'fat_100g': 1.5,
-              'fiber_100g': 0,
-            },
-          },
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/api/barcode-lookup')) {
+          return {
+            ok: true,
+            json: async () => ({
+              id: 'ah_wi12345',
+              name: 'AH Halfvolle Melk',
+              brand: 'Albert Heijn',
+              kcalPer100g: 47,
+              proteinPer100g: 3.5,
+              carbsPer100g: 4.8,
+              fatPer100g: 1.5,
+              fiberPer100g: 0,
+            }),
+          };
+        }
+        return { ok: false, status: 404 };
+      });
+      global.fetch = mockFetch;
+
+      const result = await lookupBarcodeProduct('8710400000001', 'user-123');
+
+      expect(result.found).toBe(true);
+      expect(result.source).toBe('supermarket');
+      expect(result.item?.name).toBe('AH Halfvolle Melk');
+      expect(dietaryData.saveHiveMindFoodItem).toHaveBeenCalled();
+    });
+
+    it('queries Open Food Facts as fallback before UI if not found in database or supermarket API', async () => {
+      const mockSelect = vi.fn().mockReturnValue({
+        or: vi.fn().mockReturnValue({
+          limit: vi.fn().mockReturnValue({
+            maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          }),
         }),
+      });
+      vi.mocked(supabase.from).mockReturnValue({ select: mockSelect } as any);
+
+      const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+        if (url.includes('/api/barcode-lookup')) {
+          return { ok: false, status: 404, json: async () => ({ error: 'Not found' }) };
+        }
+        if (url.includes('openfoodfacts.org')) {
+          return {
+            ok: true,
+            json: async () => ({
+              status: 1,
+              product: {
+                product_name: 'High Protein Pudding',
+                brands: 'Jumbo',
+                quantity: '200g',
+                nutriments: {
+                  'energy-kcal_100g': 78,
+                  'proteins_100g': 10.0,
+                  'carbohydrates_100g': 5.5,
+                  'sugars_100g': 4.0,
+                  'fat_100g': 1.5,
+                  'fiber_100g': 0,
+                },
+              },
+            }),
+          };
+        }
+        return { ok: false, status: 404 };
       });
       global.fetch = mockFetch;
 
