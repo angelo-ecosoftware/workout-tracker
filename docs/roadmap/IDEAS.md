@@ -189,12 +189,13 @@ Combining the strengths of these repositories produces a best-in-class exercise 
 
 ## 10. Document & PDF Architecture (PDF Export, Visual Summary & Reporting Engine)
 
-### 10.1 Automated Workout & Biometric PDF Export Engine
-- **Concept**: Generate client-side / serverless downloadable PDF reports summarizing training blocks, volume progressions, and nutrition adherence.
+### 10.1 Automated Workout & Biometric PDF Export Engine (Cardio-Only Scope)
+- **Scope Restriction**: **Exclusively for Cardio / Endurance Training & Biometric Metrics** (e.g. running, cycling, rowing, HIIT, duration, distance, pace, heart rate zones, and cardiovascular recovery). Strength splits remain in-app only.
+- **Concept**: Generate client-side / serverless downloadable PDF reports summarizing cardio blocks, cardiovascular volume progressions, and biometric response.
 - **Features & Use Cases**:
-  - **Athlete Milestone Report**: Downloadable monthly PDF summary of total tonnage lifted, personal records (PRs), consistency heatmaps, and bodyweight trends.
-  - **Coach Client Review PDF**: 1-click comprehensive athlete report for coaches to export or share with athletes during monthly check-ins.
-  - **Dietary & Macro Breakdown PDF**: Weekly summary of caloric intake, macro ratios, and nutrient adherence.
+  - **Cardio Athlete Milestone Report**: Downloadable monthly PDF summary of total cardio distance/duration, pace progression, VO2 max / heart rate trends, consistency heatmaps, and bodyweight/BMI correlations.
+  - **Coach Cardio Review PDF**: 1-click comprehensive endurance report for coaches to export or share with athletes during monthly cardio check-ins.
+  - **Dietary & Cardio Energy Expenditure PDF**: Weekly summary of caloric burn vs. caloric intake and macro replenishment for endurance athletes.
   - **Export Architecture**:
     - High-performance, lightweight PDF generation (e.g. `@react-pdf/renderer` or `jspdf` + `html2canvas`) preserving dark-mode aesthetics and clean print-friendly white layout.
     - Zero server bloat: generated on-demand directly in browser memory or via lightweight edge API.
