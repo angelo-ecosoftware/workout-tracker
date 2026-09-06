@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import { scrapeProductFromUrl } from "./api/scraperRegistry.js";
 import { resolveAlbertHeijnBarcode } from "./api/barcode-lookup.js";
 import groceryListHandler from "./api/grocery-list.js";
+import blockIpHandler from "./api/block-ip.js";
 
 dotenv.config();
 
@@ -107,6 +108,13 @@ async function startServer() {
   };
 
   app.all("/api/report-missing-product", handleReportMissingProduct);
+
+  // API 6: Honeypot & Bot Defense IP / Device Block Handler
+  const handleBlockIp = async (req: express.Request, res: express.Response) => {
+    return blockIpHandler(req as any, res as any);
+  };
+
+  app.all("/api/block-ip", handleBlockIp);
 
   // Vite static middleware mount path routing
   if (process.env.NODE_ENV !== "production") {

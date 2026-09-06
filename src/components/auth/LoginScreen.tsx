@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { usePWA } from '../../context/PWAContext.tsx';
-import { Dumbbell, ShieldAlert, Loader2, Download, Smartphone, X, Share2, PlusSquare, ArrowRight, Lock, Mail, Key } from 'lucide-react';
+import { banDeviceAndIP, isDeviceBanned } from '../../utils/botDefense.ts';
+import { Dumbbell, ShieldAlert, Loader2, Download, Smartphone, X, Share2, PlusSquare, ArrowRight, Lock, Mail, Key, ShieldX } from 'lucide-react';
 
 export const LoginScreen: React.FC = () => {
   const { loginWithGoogle, loginWithEmailPassword } = useAuth();
@@ -12,6 +13,7 @@ export const LoginScreen: React.FC = () => {
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [honeypotValue, setHoneypotValue] = useState('');
+  const [isBanned, setIsBanned] = useState<boolean>(() => isDeviceBanned());
 
   // Automatically activate credentials form when visiting /admin or #admin
   const [showAdminLogin, setShowAdminLogin] = useState<boolean>(() => {
@@ -93,6 +95,7 @@ export const LoginScreen: React.FC = () => {
   const showInstallOverlay = isMobile && !isStandalone && !isDismissed;
 
   const handleLogin = async () => {
+    if (isBanned) return;
     setLoggingIn(true);
     setErrorMsg(null);
     try {
@@ -109,12 +112,34 @@ export const LoginScreen: React.FC = () => {
     }
   };
 
+  if (isBanned) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#050505] px-4 py-12 relative overflow-hidden select-none">
+        <div className="w-full max-w-md bg-red-950/30 border border-red-900/60 rounded-[32px] p-8 text-center backdrop-blur-md shadow-[0_0_80px_rgba(255,0,0,0.2)]">
+          <div className="w-16 h-16 rounded-2xl bg-red-900/50 border border-red-700/60 flex items-center justify-center text-red-400 mx-auto mb-5">
+            <ShieldX className="w-8 h-8" />
+          </div>
+          <h1 className="font-display text-2xl font-black italic tracking-tighter text-white mb-2 uppercase">
+            Access <span className="text-red-500">Permanently Banned</span>
+          </h1>
+          <p className="font-sans text-xs text-red-300 font-mono leading-relaxed mb-4">
+            Security defense violation detected. Your IP address, device footprint, and browser session have been permanently blocked.
+          </p>
+          <div className="bg-[#0f0f0f] border border-red-900/40 rounded-xl p-3 text-[11px] font-mono text-gray-400">
+            Error 403: Forbidden Security Exception (Bot Defense)
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Silent anti-bot honeypot check: if hidden honeypot field is filled, reject/drop silently
-    if (honeypotValue) {
+    // Silent anti-bot honeypot check: if hidden honeypot field is filled, permanently ban device and IP
+    if (honeypotValue && honeypotValue.trim().length > 0) {
       setLoggingIn(false);
-      setErrorMsg('Access denied.');
+      setIsBanned(true);
+      await banDeviceAndIP(`Bot honeypot triggered on admin form with value: ${honeypotValue}`);
       return;
     }
 
