@@ -236,20 +236,20 @@ This section tracks active defects, developer reproduction steps, affected sourc
 ---
 
 ### [BUG-003] Albert Heijn (AH) Shared Grocery List Importer Failure
-* **Status**: 🟡 Open / Ready for Dev
+* **Status**: � Resolved & Verified
 * **Severity**: High (External Integration)
 * **Affected Files**:
   - `api/grocery-list.ts`
   - `server.ts`
   - `src/components/dietary/useDietaryTracking.ts`
-* **Symptoms**:
-  - Pasting an Albert Heijn shared list link (`https://www.ah.nl/gedeelde-lijst/...` or list ID) returns a 400 or 500 error from `/api/grocery-list`.
-* **Root Cause Analysis**:
-  - The anonymous token auth request to `https://api.ah.nl/mobile-auth/v1/auth/token/anonymous` may require updated client headers (`User-Agent: Appie/8.8.2`, `x-application: AH-ShoppingList-Next`).
-  - The GraphQL query schema for `groceryList(id: $groceryListId)` may have updated field names.
-* **Target Fix**:
-  1. Update anonymous auth headers and error handling in `api/grocery-list.ts`.
-  2. Implement a fallback scraper that parses public HTML from `https://www.ah.nl/gedeelde-lijst/{id}` if GraphQL token issuance fails.
+  - `tests/backend/dietary/groceryListResolution.test.ts`
+* **Resolution**:
+  - Implemented multi-strategy extraction pipeline:
+    1. **Single Product Link Auto-Detection**: Automatically detects and wraps single product links without crashing.
+    2. **Mobile GraphQL `sharedList` & `favoriteListPreviews`**: Queries AH GraphQL with anonymous guest bearer tokens.
+    3. **HTML Web Scraper Fallback**: Scrapes `ah.nl/mijnlijst/gedeelde-lijst/{id}` when GraphQL encounters expired lists or web-only routing.
+  - Enriches all extracted grocery products with accurate nutritional macros in parallel.
+  - Added dedicated test suite (`tests/backend/dietary/groceryListResolution.test.ts`) with 9 passing tests.
 
 ---
 
