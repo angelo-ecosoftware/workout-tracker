@@ -118,14 +118,36 @@ Combining the strengths of these repositories produces a best-in-class exercise 
 
 ## 6. Supermarket Barcode & App API Research (Reverse Engineering Reference)
 
-### 6.1 Jumbo & Albert Heijn Barcode Resolution Pipeline
-- **Background**: There is no official public developer API for Jumbo. Community open-source projects (`shopscraper-api`, `grocy-dutch-supermarket`, `python-jumbo-api`, `jumbo-wrapper`) utilize internal mobile endpoints and search behaviors.
-- **Resolution Pipeline**:
-  1. **Primary**: Open Food Facts database (matches the majority of Dutch supermarket A-brand and private-label EAN barcodes).
-  2. **Secondary (Retailer Fallback)**:
-     - **Albert Heijn**: Direct mobile services GTIN search + FIR nutrient detail (`https://api.ah.nl/mobile-services/product/search/v1/gtin/{ean}`).
-     - **Jumbo**: Jumbo mobile search endpoint / web product resolver by keyword or EAN barcode (`searchType=keyword&searchTerms={ean}`), extracting macro tables and normalizing SKU IDs (`jumbo_<sku>`).
-  3. **Auto-Caching Hive Mind**: Every scanned or resolved barcode is automatically saved into the global Supabase `food_items` database with `barcode = {ean}`, eliminating repeated external network calls for all future users.
+### 6.1 Multi-Tier Resolution Pipeline
+- **Resolution Pipeline Sequence**:
+  1. **Primary**: Local & Remote Supabase Hive-Mind Database (`food_items` by barcode / ID).
+  2. **In-Store PLU Mapping**: Fresh bakery/scale barcode translation (GS1 prefix 20–29).
+  3. **Official Retailer Services**: Direct mobile services GTIN search + FIR nutrient detail (`https://api.ah.nl/mobile-services/product/search/v1/gtin/{ean}`).
+  4. **Open Food Facts API v2**: Global crowdsourced database fallback (`https://world.openfoodfacts.org/api/v2/product/{ean}.json`).
+  5. **Auto-Caching Hive Mind**: Every scanned or resolved barcode is automatically saved into Supabase `food_items` with `barcode = {ean}`, eliminating duplicate external network calls for all future users.
+
+### 6.2 Open-Source Tools & Community-Maintained Codebases (Albert Heijn & Dutch Retailers)
+Research and architectural patterns from open-source tools and community-maintained codebases for extracting structured product, nutrition, and shopping list data:
+
+- **[SupermarktConnector (Python)](https://github.com/robin-v/SupermarktConnector)**:
+  - *Description*: Open-source Python wrapper (`pip install SupermarktConnector`) maintained on GitHub.
+  - *Capabilities*: Automated mobile OAuth token acquisition, structured product search, EAN resolution, price mapping, and category taxonomy extraction across Albert Heijn, Jumbo, and other Dutch supermarket chains.
+  - *Applicable Pattern*: Anonymous token lifecycle management and automatic token renewal upon expiration.
+
+- **[appie-go (Go) & appie-cli](https://github.com/appie-go)**:
+  - *Description*: Open-source Go module and CLI tool providing native client wrappers around Albert Heijn's mobile and web endpoints.
+  - *Capabilities*: Reverses the mobile OAuth flow (`/mobile-auth/v1/auth/token/anonymous`), queries product GTINs, pulls live Bonus promotions, and maps ingredient lists to recipes.
+  - *Applicable Pattern*: High-concurrency batch product resolution and robust network retry strategies with anti-detection headers.
+
+- **[albert-heijn-graphql-api (Python)](https://github.com/albert-heijn-graphql-api)**:
+  - *Description*: Community repository containing reverse-engineered GraphQL schemas, queries, and introspection files for `api.ah.nl/graphql`.
+  - *Capabilities*: Documents query schemas for `sharedList`, `favoriteListV2`, `productSearch`, and `productDetails` with exact variables and fragment definitions.
+  - *Applicable Pattern*: Structured GraphQL querying for shared grocery lists (`AH-ShoppingList-Next`) and favorite product sets.
+
+- **[albert-heijn-api (Node.js)](https://github.com/albert-heijn-api)**:
+  - *Description*: Community-built Node.js microservices and npm libraries serving as local proxy wrappers around AH endpoints.
+  - *Capabilities*: Built-in in-memory caching, anti-detection user-agent rotation, FIR table parsing, and clean TypeScript typings for supermarket API responses.
+  - *Applicable Pattern*: Direct Node.js / Vercel Serverless microservice integration for server-side scraping without CORS restrictions.
 
 ---
 
