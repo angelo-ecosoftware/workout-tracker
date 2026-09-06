@@ -199,3 +199,21 @@ Combining the strengths of these repositories produces a best-in-class exercise 
     - High-performance, lightweight PDF generation (e.g. `@react-pdf/renderer` or `jspdf` + `html2canvas`) preserving dark-mode aesthetics and clean print-friendly white layout.
     - Zero server bloat: generated on-demand directly in browser memory or via lightweight edge API.
   - **Regulatory Alignment**: Pairs with GDPR Article 20 (Data Portability) by providing human-readable formatted PDF alongside raw JSON/CSV data.
+
+### 10.2 EU Cybersecurity & Compliance Audit PDF Dossier
+- **Concept**: Generate an automated compliance & security audit PDF document detailing the application's alignment with European Union regulatory frameworks.
+- **Audience**: Enterprise buyers, data protection officers (DPOs), fitness organizations, and regulatory audits.
+- **Sections in the Compliance PDF**:
+  1. **Executive Security Summary**: Architecture overview, data flow diagrams, and encryption standards (TLS 1.3 in-transit, AES-256 at-rest).
+  2. **ENISA & EU Cybersecurity Act Alignment**: European Cybersecurity Certification Framework (ECCF) checklist and security posture.
+  3. **NIS2 Directive Compliance**: Incident response protocols, access control matrices (RBAC), and least-privilege verification.
+  4. **Cyber Resilience Act (CRA) Certification**: Software Bill of Materials (SBOM), automated vulnerability scanning pipeline, and zero-known-CVE certification.
+  5. **DORA Resilience Report**: Backup replication SLAs, RTO/RPO metrics, and disaster recovery procedures.
+  6. **GDPR Data Protection Matrix**: Articles 15, 17, 20, 25, and 32 mapping table with active enforcement mechanisms in the app.
+
+### 10.3 In-App Routine Split & Program Cheat-Sheet PDF Exporter
+- **Concept**: 1-click export of the active workout routine split (e.g. PPL, Upper/Lower, Full Body) into a printable, single-page gym pocket guide.
+- **Features**:
+  - Clean, high-contrast black-and-white print styling to save ink.
+  - Includes target sets, target rep ranges, exercise order, and coach technique cues.
+  - QR code linking directly back into the live workout tracker session.
