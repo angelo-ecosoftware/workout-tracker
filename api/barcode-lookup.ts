@@ -253,12 +253,27 @@ export async function resolveAlbertHeijnBarcode(barcode: string): Promise<FoodIt
 }
 
 /**
- * Resolves product details from Jumbo by EAN barcode search / query.
+ * Resolves product details from Jumbo by EAN barcode search / query (mobile API + web fallback).
  */
 export async function resolveJumboBarcode(barcode: string): Promise<FoodItemNutrition | null> {
   const cleanBarcode = barcode.trim();
   if (!cleanBarcode) return null;
 
+  // 1. First try Jumbo Mobile API search by GTIN / EAN
+  try {
+    const mobileResult = await fetchJumboMobileProduct(cleanBarcode, '');
+    if (mobileResult && mobileResult.name) {
+      return {
+        ...mobileResult,
+        barcode: cleanBarcode,
+        isCustom: false,
+      };
+    }
+  } catch (mErr) {
+    console.warn('Jumbo Mobile API barcode search attempt failed:', mErr);
+  }
+
+  // 2. Web search fallback for Jumbo
   try {
     const searchUrl = `https://www.jumbo.com/producten/?searchType=keyword&searchTerms=${encodeURIComponent(cleanBarcode)}`;
     const res = await fetch(searchUrl, {
@@ -370,22 +385,108 @@ export async function resolveJumboBarcode(barcode: string): Promise<FoodItemNutr
   }
 }
 
+/**
+ * Resolves product details from Dirk van den Broek by EAN barcode search.
+ */
+export async function resolveDirkBarcode(barcode: string): Promise<FoodItemNutrition | null> {
+  const cleanBarcode = barcode.trim();
+  if (!cleanBarcode) return null;
+
+  try {
+    const searchUrl = `https://www.dirk.nl/zoeken?q=${encodeURIComponent(cleanBarcode)}`;
+    const res = await fetch(searchUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+    const linkMatch = html.match(/href=["'](\/boodschappen\/[^"']+)["']/i);
+    if (!linkMatch) return null;
+
+    const fullUrl = `https://www.dirk.nl${linkMatch[1]}`;
+    const product = await scrapeProductFromUrl(fullUrl);
+    if (product && product.name) {
+      return {
+        ...product,
+        barcode: cleanBarcode,
+        isCustom: false,
+      };
+    }
+  } catch (err) {
+    console.warn('Dirk barcode lookup attempt failed:', err);
+  }
+  return null;
+}
+
+/**
+ * Resolves product details from PLUS Supermarkt by EAN barcode search.
+ */
+export async function resolvePlusBarcode(barcode: string): Promise<FoodItemNutrition | null> {
+  const cleanBarcode = barcode.trim();
+  if (!cleanBarcode) return null;
+
+  try {
+    const searchUrl = `https://www.plus.nl/zoeken?q=${encodeURIComponent(cleanBarcode)}`;
+    const res = await fetch(searchUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+    const linkMatch = html.match(/href=["'](\/product\/[^"']+)["']/i);
+    if (!linkMatch) return null;
+
+    const fullUrl = `https://www.plus.nl${linkMatch[1]}`;
+    const product = await scrapeProductFromUrl(fullUrl);
+    if (product && product.name) {
+      return {
+        ...product,
+        barcode: cleanBarcode,
+        isCustom: false,
+      };
+    }
+  } catch (err) {
+    console.warn('PLUS barcode lookup attempt failed:', err);
+  }
+  return null;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const barcode = (req.query.barcode || req.body?.barcode) as string;
   if (!barcode || typeof barcode !== 'string') {
     return res.status(400).json({ error: 'Missing barcode parameter' });
   }
 
-  // 1. Try Albert Heijn resolver first
+  // 1. Try Albert Heijn resolver (Mobile GTIN + FIR + Bakery PLU + Web search)
   let product = await resolveAlbertHeijnBarcode(barcode);
 
-  // 2. Fallback to Jumbo resolver
+  // 2. Fallback to Jumbo resolver (Mobile API + Web search)
   if (!product) {
     product = await resolveJumboBarcode(barcode);
   }
 
+  // 3. Fallback to Dirk resolver
   if (!product) {
-    return res.status(404).json({ error: `Barcode ${barcode} not found on AH or Jumbo` });
+    product = await resolveDirkBarcode(barcode);
+  }
+
+  // 4. Fallback to PLUS resolver
+  if (!product) {
+    product = await resolvePlusBarcode(barcode);
+  }
+
+  if (!product) {
+    return res.status(404).json({ error: `Barcode ${barcode} not found on AH, Jumbo, Dirk, or PLUS` });
   }
 
   return res.status(200).json(product);

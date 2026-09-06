@@ -240,6 +240,139 @@ async function scrapeAhSharedListHtml(listId: string): Promise<ExtractedGroceryI
   return null;
 }
 
+/**
+ * Strategy 4: Scrapes shared list, recipe ingredients, or product links from Jumbo
+ */
+async function scrapeJumboListHtml(urlOrId: string): Promise<ExtractedGroceryItem[] | null> {
+  const targetUrl = urlOrId.startsWith('http') ? urlOrId : `https://www.jumbo.com/recepten/${urlOrId}`;
+  try {
+    const res = await fetch(targetUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    const productMatches = [...html.matchAll(/href=["'](\/producten\/[a-z0-9-]+-([0-9]+[a-z0-9]*))["']/gi)];
+    if (productMatches.length > 0) {
+      const itemsMap = new Map<string, ExtractedGroceryItem>();
+      for (const m of productMatches) {
+        const fullPath = m[1];
+        const rawSku = m[2];
+        const cleanSku = rawSku.replace(/[a-zA-Z]+$/, '');
+        if (!itemsMap.has(cleanSku)) {
+          itemsMap.set(cleanSku, {
+            id: `jumbo_${cleanSku}`,
+            title: 'Jumbo Product',
+            brand: 'Jumbo',
+            webPath: fullPath,
+            quantity: 1,
+          });
+        }
+      }
+      if (itemsMap.size > 0) {
+        return Array.from(itemsMap.values());
+      }
+    }
+  } catch (err: unknown) {
+    console.warn('Jumbo list scraper error:', err);
+  }
+  return null;
+}
+
+/**
+ * Strategy 5: Scrapes shared list or recipe ingredients from Dirk van den Broek
+ */
+async function scrapeDirkListHtml(urlOrId: string): Promise<ExtractedGroceryItem[] | null> {
+  const targetUrl = urlOrId.startsWith('http') ? urlOrId : `https://www.dirk.nl/recepten/${urlOrId}`;
+  try {
+    const res = await fetch(targetUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    const productMatches = [...html.matchAll(/href=["'](\/boodschappen\/[a-z0-9-]+\/([0-9]+))["']/gi)];
+    if (productMatches.length > 0) {
+      const itemsMap = new Map<string, ExtractedGroceryItem>();
+      for (const m of productMatches) {
+        const fullPath = m[1];
+        const rawId = m[2];
+        if (!itemsMap.has(rawId)) {
+          itemsMap.set(rawId, {
+            id: `dirk_${rawId}`,
+            title: 'Dirk Product',
+            brand: 'Dirk',
+            webPath: fullPath,
+            quantity: 1,
+          });
+        }
+      }
+      if (itemsMap.size > 0) {
+        return Array.from(itemsMap.values());
+      }
+    }
+  } catch (err: unknown) {
+    console.warn('Dirk list scraper error:', err);
+  }
+  return null;
+}
+
+/**
+ * Strategy 6: Scrapes shared list or recipe ingredients from PLUS Supermarkt
+ */
+async function scrapePlusListHtml(urlOrId: string): Promise<ExtractedGroceryItem[] | null> {
+  const targetUrl = urlOrId.startsWith('http') ? urlOrId : `https://www.plus.nl/recepten/${urlOrId}`;
+  try {
+    const res = await fetch(targetUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    const productMatches = [...html.matchAll(/href=["'](\/product\/[a-z0-9-]+-([0-9]+))["']/gi)];
+    if (productMatches.length > 0) {
+      const itemsMap = new Map<string, ExtractedGroceryItem>();
+      for (const m of productMatches) {
+        const fullPath = m[1];
+        const rawId = m[2];
+        if (!itemsMap.has(rawId)) {
+          itemsMap.set(rawId, {
+            id: `plus_${rawId}`,
+            title: 'PLUS Product',
+            brand: 'PLUS',
+            webPath: fullPath,
+            quantity: 1,
+          });
+        }
+      }
+      if (itemsMap.size > 0) {
+        return Array.from(itemsMap.values());
+      }
+    }
+  } catch (err: unknown) {
+    console.warn('PLUS list scraper error:', err);
+  }
+  return null;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS headers for any consumer
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -257,14 +390,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // 1. Check if user accidentally pasted a single product link (e.g. ah.nl/producten/product/wi12345/...)
-  const isProductLink = /ah\.nl\/producten\/product|jumbo\.com\/producten|dirk\.nl\/boodschappen|plus\.nl\/product/i.test(rawInput);
+  const isProductLink = /ah\.nl\/producten\/product|jumbo\.com\/producten\/[a-z0-9-]+|dirk\.nl\/boodschappen\/[a-z0-9-]+\/\d+|plus\.nl\/product\/[a-z0-9-]+/i.test(rawInput);
   if (isProductLink) {
     try {
       const singleProduct = await scrapeProductFromUrl(rawInput.trim());
       const wrappedItem: ExtractedGroceryItem = {
         id: singleProduct.id,
         title: singleProduct.name,
-        brand: singleProduct.brand || 'Albert Heijn',
+        brand: singleProduct.brand || 'Supermarket',
         salesUnitSize: singleProduct.servingUnit,
         quantity: 1,
         nutrition: singleProduct,
@@ -280,9 +413,97 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  // 1.5. Check if the URL is from Jumbo, Dirk, or PLUS specifically
+  if (rawInput.toLowerCase().includes('jumbo.com')) {
+    const jumboItems = await scrapeJumboListHtml(rawInput.trim());
+    if (jumboItems && jumboItems.length > 0) {
+      const enrichedJumbo = await Promise.all(
+        jumboItems.map(async (item) => {
+          if (!item.webPath) return item;
+          try {
+            const productUrl = `https://www.jumbo.com${item.webPath}`;
+            const nutrition = await scrapeProductFromUrl(productUrl);
+            return {
+              ...item,
+              title: nutrition.name || item.title,
+              brand: nutrition.brand || item.brand,
+              nutrition,
+            };
+          } catch {
+            return item;
+          }
+        })
+      );
+      return res.status(200).json({
+        success: true,
+        listId: 'jumbo_list',
+        totalItems: enrichedJumbo.length,
+        products: enrichedJumbo,
+      });
+    }
+  }
+
+  if (rawInput.toLowerCase().includes('dirk.nl')) {
+    const dirkItems = await scrapeDirkListHtml(rawInput.trim());
+    if (dirkItems && dirkItems.length > 0) {
+      const enrichedDirk = await Promise.all(
+        dirkItems.map(async (item) => {
+          if (!item.webPath) return item;
+          try {
+            const productUrl = `https://www.dirk.nl${item.webPath}`;
+            const nutrition = await scrapeProductFromUrl(productUrl);
+            return {
+              ...item,
+              title: nutrition.name || item.title,
+              brand: nutrition.brand || item.brand,
+              nutrition,
+            };
+          } catch {
+            return item;
+          }
+        })
+      );
+      return res.status(200).json({
+        success: true,
+        listId: 'dirk_list',
+        totalItems: enrichedDirk.length,
+        products: enrichedDirk,
+      });
+    }
+  }
+
+  if (rawInput.toLowerCase().includes('plus.nl')) {
+    const plusItems = await scrapePlusListHtml(rawInput.trim());
+    if (plusItems && plusItems.length > 0) {
+      const enrichedPlus = await Promise.all(
+        plusItems.map(async (item) => {
+          if (!item.webPath) return item;
+          try {
+            const productUrl = `https://www.plus.nl${item.webPath}`;
+            const nutrition = await scrapeProductFromUrl(productUrl);
+            return {
+              ...item,
+              title: nutrition.name || item.title,
+              brand: nutrition.brand || item.brand,
+              nutrition,
+            };
+          } catch {
+            return item;
+          }
+        })
+      );
+      return res.status(200).json({
+        success: true,
+        listId: 'plus_list',
+        totalItems: enrichedPlus.length,
+        products: enrichedPlus,
+      });
+    }
+  }
+
   const listId = extractAlbertHeijnListId(rawInput);
   if (!listId) {
-    return res.status(400).json({ error: 'Could not detect a valid Albert Heijn shared list ID or URL.' });
+    return res.status(400).json({ error: 'Could not detect a valid supermarket shared list ID or URL.' });
   }
 
   try {

@@ -90,17 +90,17 @@ export const FoodLinkTabs: React.FC<FoodLinkTabsProps> = ({
     <div className="space-y-4">
       <div>
         <label className="block text-xs font-mono uppercase tracking-wider text-gray-400 font-bold mb-1">
-          Albert Heijn Shared Grocery List Link
+          Supermarket Shared Grocery List or Recipe (AH / Jumbo / Dirk / PLUS)
         </label>
         <p className="text-[11px] text-gray-500 font-sans mb-2">
-          Share your cart/list from the AH app or web and paste the link below to import products:
+          Share your cart/list from the AH, Jumbo, Dirk, or PLUS app/web and paste the link below to import products:
         </p>
         <div className="flex items-center gap-2">
           <input
             type="text"
             value={listLinkInput}
             onChange={(e) => setListLinkInput(e.target.value)}
-            placeholder="https://www.ah.nl/mijnlijst/gedeelde-lijst/..."
+            placeholder="https://www.ah.nl/mijnlijst/gedeelde-lijst/..., https://www.jumbo.com/..., https://www.dirk.nl/..., https://www.plus.nl/..."
             className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#00ade6] rounded-xl px-3.5 py-2.5 text-xs text-white font-mono outline-none"
           />
           <button
