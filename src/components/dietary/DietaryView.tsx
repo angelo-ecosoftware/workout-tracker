@@ -50,6 +50,9 @@ export const DietaryView: React.FC<DietaryViewProps> = ({ userId: propUserId }) 
     setSelectedFoodItem,
     portionGrams,
     setPortionGrams,
+    isResolvingOmniInput,
+    omniResolveError,
+    handleResolveOmniInput,
     singleLinkInput,
     setSingleLinkInput,
     singleLinkLoading,
@@ -207,6 +210,9 @@ export const DietaryView: React.FC<DietaryViewProps> = ({ userId: propUserId }) 
         getStoreMetadata={getStoreMetadata}
         cleanProductTitle={cleanProductTitle}
         isHouseBrand={isHouseBrand}
+        isResolvingOmniInput={isResolvingOmniInput}
+        omniResolveError={omniResolveError}
+        onResolveOmniInput={handleResolveOmniInput}
         singleLinkInput={singleLinkInput}
         setSingleLinkInput={setSingleLinkInput}
         singleLinkLoading={singleLinkLoading}

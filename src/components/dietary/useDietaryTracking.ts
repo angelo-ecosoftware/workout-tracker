@@ -13,6 +13,7 @@ import {
   calculatePortionNutrients,
   computeDailyTotals,
 } from '../../lib/dietaryData.ts';
+import { lookupBarcodeProduct } from '../../lib/barcodeService.ts';
 
 export const useDietaryTracking = (userId: string) => {
   // Date State: YYYY-MM-DD
@@ -39,6 +40,10 @@ export const useDietaryTracking = (userId: string) => {
   const [filteredCatalog, setFilteredCatalog] = useState<FoodItemNutrition[]>([]);
   const [selectedFoodItem, setSelectedFoodItem] = useState<FoodItemNutrition | null>(null);
   const [portionGrams, setPortionGrams] = useState<number>(100);
+
+  // Omni-Input State
+  const [isResolvingOmniInput, setIsResolvingOmniInput] = useState(false);
+  const [omniResolveError, setOmniResolveError] = useState<string | null>(null);
 
   // Link Scraper Modal States
   const [singleLinkInput, setSingleLinkInput] = useState('');
@@ -197,6 +202,151 @@ export const useDietaryTracking = (userId: string) => {
     setIsAddModalOpen(false);
     setSelectedFoodItem(null);
     setPortionGrams(100);
+  };
+
+  // 5-in-1 Omni-Input Resolver (Name, Barcode, Store Product, Shared List, Recipe)
+  const handleResolveOmniInput = async (rawInput: string) => {
+    const input = rawInput.trim();
+    if (!input) return;
+    setIsResolvingOmniInput(true);
+    setOmniResolveError(null);
+
+    // 1. EAN / UPC Barcode Detection
+    const isBarcode = /^\d{8,14}$/.test(input);
+    if (isBarcode) {
+      try {
+        const barcodeResult = await lookupBarcodeProduct(input, userId);
+        if (barcodeResult.found && barcodeResult.item) {
+          setSelectedFoodItem(barcodeResult.item);
+          setPortionGrams(
+            barcodeResult.item.packageWeightGrams || (barcodeResult.item.servingUnit === 'ml' ? 250 : 100)
+          );
+          setSearchQuery('');
+          setIsResolvingOmniInput(false);
+          return;
+        } else {
+          setOmniResolveError(`No product found matching barcode ${input}.`);
+        }
+      } catch (err) {
+        setOmniResolveError(err instanceof Error ? err.message : 'Barcode resolution failed.');
+      } finally {
+        setIsResolvingOmniInput(false);
+      }
+      return;
+    }
+
+    // 2. URL Detection (Store Product, Shared List, or Recipe)
+    const isUrl =
+      /^https?:\/\/|www\./i.test(input) ||
+      /(?:ah\.nl|jumbo\.com|dirk\.nl|plus\.nl|lidl\.nl|aldi\.nl|picnic\.app)\//i.test(input);
+
+    if (isUrl) {
+      const cleanUrl = input.startsWith('http') ? input : `https://${input}`;
+
+      // A. Check if URL already matches an indexed product in local database (Instant 0ms Cache Hit!)
+      const cached = filteredCatalog.find(
+        (c) =>
+          c.sourceUrl &&
+          (c.sourceUrl === cleanUrl || cleanUrl.includes(c.sourceUrl) || c.sourceUrl.includes(cleanUrl))
+      );
+      if (cached) {
+        setSelectedFoodItem(cached);
+        setPortionGrams(cached.packageWeightGrams || (cached.servingUnit === 'ml' ? 250 : 100));
+        setSearchQuery('');
+        setIsResolvingOmniInput(false);
+        return;
+      }
+
+      // B. Shared Grocery List or Multi-Ingredient Recipe List Check
+      const isListUrl =
+        /(?:\/lijst\/|\/basket\/)/i.test(cleanUrl) &&
+        !cleanUrl.includes('/p/') &&
+        !cleanUrl.includes('/product/');
+
+      if (isListUrl) {
+        try {
+          const res = await fetch(`/api/grocery-list?url=${encodeURIComponent(cleanUrl)}`);
+          if (res.ok) {
+            const listData = await res.json();
+            if (listData.success && Array.isArray(listData.products) && listData.products.length > 0) {
+              if (listData.products.length === 1 && listData.products[0].nutrition) {
+                const single = listData.products[0].nutrition;
+                await saveHiveMindFoodItem(single, userId);
+                setSelectedFoodItem(single);
+                setPortionGrams(single.packageWeightGrams || 100);
+                setSearchQuery('');
+                setIsResolvingOmniInput(false);
+                return;
+              }
+
+              const mapped = (
+                listData.products as Array<{
+                  id: string | number;
+                  title: string;
+                  brand?: string;
+                  salesUnitSize?: string;
+                  nutrition?: FoodItemNutrition;
+                }>
+              ).map((p) => ({
+                id: String(p.id),
+                title: p.title,
+                brand: p.brand || 'Supermarket',
+                salesUnitSize: p.salesUnitSize,
+                nutrition: p.nutrition,
+              }));
+
+              setListExtractedProducts(mapped);
+              setActiveModalTab('list');
+              setSearchQuery('');
+              setIsResolvingOmniInput(false);
+              return;
+            }
+          }
+        } catch (listErr) {
+          console.warn('Omni list parse error:', listErr);
+        }
+      }
+
+      // C. Product or Single Recipe Scraper
+      try {
+        const res = await fetch(`/api/product-link?url=${encodeURIComponent(cleanUrl)}`);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || `Failed to fetch product (Status ${res.status})`);
+        }
+        const data = await res.json();
+        if (!data.success || !data.product) {
+          throw new Error(data.error || 'Could not extract product or recipe information.');
+        }
+
+        const scrapedProduct: FoodItemNutrition = {
+          ...data.product,
+          id: data.product.id || `scraped_${Date.now()}`,
+          sourceUrl: cleanUrl,
+        };
+
+        await saveHiveMindFoodItem(scrapedProduct, userId);
+        setSelectedFoodItem(scrapedProduct);
+        setPortionGrams(
+          scrapedProduct.packageWeightGrams || (scrapedProduct.servingUnit === 'ml' ? 250 : 100)
+        );
+        setSearchQuery('');
+      } catch (err) {
+        setOmniResolveError(err instanceof Error ? err.message : 'Failed to extract product or recipe from link.');
+      } finally {
+        setIsResolvingOmniInput(false);
+      }
+      return;
+    }
+
+    // 3. Regular search keywords: if user pressed Enter and there is a top match, select it
+    if (filteredCatalog.length > 0) {
+      const topMatch = filteredCatalog[0];
+      setSelectedFoodItem(topMatch);
+      setPortionGrams(topMatch.packageWeightGrams || (topMatch.servingUnit === 'ml' ? 250 : 100));
+      setSearchQuery('');
+    }
+    setIsResolvingOmniInput(false);
   };
 
   // Supermarket Product Link Scraper Handler
@@ -477,6 +627,9 @@ export const useDietaryTracking = (userId: string) => {
     setSelectedFoodItem,
     portionGrams,
     setPortionGrams,
+    isResolvingOmniInput,
+    omniResolveError,
+    handleResolveOmniInput,
     singleLinkInput,
     setSingleLinkInput,
     singleLinkLoading,

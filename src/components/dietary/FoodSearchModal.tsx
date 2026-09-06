@@ -39,6 +39,9 @@ interface FoodSearchModalProps {
   getStoreMetadata: (url?: string, id?: string) => StoreMetadata | null;
   cleanProductTitle: (rawName: string) => string;
   isHouseBrand: (brandName?: string, storeMeta?: StoreMetadata | null) => boolean;
+  isResolvingOmniInput?: boolean;
+  omniResolveError?: string | null;
+  onResolveOmniInput?: (input: string) => Promise<void>;
   // Link Scraper Tab Props
   singleLinkInput: string;
   setSingleLinkInput: (url: string) => void;
@@ -97,6 +100,9 @@ export const FoodSearchModal: React.FC<FoodSearchModalProps> = ({
   getStoreMetadata,
   cleanProductTitle,
   isHouseBrand,
+  isResolvingOmniInput,
+  omniResolveError,
+  onResolveOmniInput,
   singleLinkInput,
   setSingleLinkInput,
   singleLinkLoading,
@@ -231,6 +237,9 @@ export const FoodSearchModal: React.FC<FoodSearchModalProps> = ({
               getStoreMetadata={getStoreMetadata}
               cleanProductTitle={cleanProductTitle}
               isHouseBrand={isHouseBrand}
+              isResolvingOmniInput={isResolvingOmniInput}
+              omniResolveError={omniResolveError}
+              onResolveOmniInput={onResolveOmniInput}
             />
           )}
 

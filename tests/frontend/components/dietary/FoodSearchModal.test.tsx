@@ -133,7 +133,7 @@ describe('FoodSearchModal Component', () => {
     );
 
     // Verify search query input reflects props and provided item card is visible
-    expect(screen.getByPlaceholderText(/search shared database/i)).toHaveValue('Greek');
+    expect(screen.getByPlaceholderText(/search name, barcode/i)).toHaveValue('Greek');
     const itemCard = screen.getByText(/greek yogurt 0%/i);
     expect(itemCard).toBeInTheDocument();
 

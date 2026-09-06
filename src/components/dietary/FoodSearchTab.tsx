@@ -2,7 +2,21 @@ import React, { useState } from 'react';
 import { FoodItemNutrition } from '../../models.ts';
 import { calculatePortionNutrients } from '../../lib/dietaryData.ts';
 import { StoreMetadata } from './FoodSearchModal.tsx';
-import { Check, Globe, Search, ExternalLink, Send } from 'lucide-react';
+import {
+  Check,
+  Globe,
+  Search,
+  ExternalLink,
+  Send,
+  Barcode,
+  ShoppingCart,
+  Utensils,
+  Link as LinkIcon,
+  Loader2,
+  Clipboard,
+  ArrowRight,
+  Sparkles,
+} from 'lucide-react';
 import { getProductExternalUrl } from '../../lib/storeBranding.ts';
 import { reportMissingProductToDev } from '../../lib/barcodeService.ts';
 
@@ -22,6 +36,57 @@ interface FoodSearchTabProps {
   getStoreMetadata: (url?: string, id?: string) => StoreMetadata | null;
   cleanProductTitle: (rawName: string) => string;
   isHouseBrand: (brandName?: string, storeMeta?: StoreMetadata | null) => boolean;
+  isResolvingOmniInput?: boolean;
+  omniResolveError?: string | null;
+  onResolveOmniInput?: (input: string) => Promise<void>;
+}
+
+function detectInputType(query: string): {
+  type: 'empty' | 'barcode' | 'grocery_list' | 'recipe' | 'product_link' | 'keyword';
+  label: string;
+  badgeColor: string;
+} {
+  const q = query.trim();
+  if (!q) {
+    return { type: 'empty', label: 'Search', badgeColor: 'text-gray-400' };
+  }
+  if (/^\d{8,14}$/.test(q)) {
+    return {
+      type: 'barcode',
+      label: 'EAN Barcode',
+      badgeColor: 'text-[#C0FF00] bg-[#C0FF00]/10 border-[#C0FF00]/30',
+    };
+  }
+  const isUrl =
+    /^https?:\/\/|www\./i.test(q) ||
+    /(?:ah\.nl|jumbo\.com|dirk\.nl|plus\.nl|lidl\.nl|aldi\.nl|picnic\.app)\//i.test(q);
+
+  if (isUrl) {
+    if (/(?:\/lijst\/|\/basket\/)/i.test(q) && !q.includes('/p/') && !q.includes('/product/')) {
+      return {
+        type: 'grocery_list',
+        label: 'Grocery List',
+        badgeColor: 'text-[#00ade6] bg-[#00ade6]/10 border-[#00ade6]/30',
+      };
+    }
+    if (
+      /(?:recept|recipe|allerhande|24kitchen|lekkerensimpel|hellofresh|smulweb|bbcgoodfood|allrecipes)/i.test(
+        q
+      )
+    ) {
+      return {
+        type: 'recipe',
+        label: 'Recipe Link',
+        badgeColor: 'text-amber-400 bg-amber-400/10 border-amber-400/30',
+      };
+    }
+    return {
+      type: 'product_link',
+      label: 'Store Link',
+      badgeColor: 'text-sky-400 bg-sky-400/10 border-sky-400/30',
+    };
+  }
+  return { type: 'keyword', label: 'Name Search', badgeColor: 'text-gray-400' };
 }
 
 export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
@@ -40,9 +105,32 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
   getStoreMetadata,
   cleanProductTitle,
   isHouseBrand,
+  isResolvingOmniInput,
+  omniResolveError,
+  onResolveOmniInput,
 }) => {
   const [isReportingSearch, setIsReportingSearch] = useState(false);
   const [reportedSearchQuery, setReportedSearchQuery] = useState<string | null>(null);
+
+  const detected = detectInputType(searchQuery);
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      if (typeof navigator !== 'undefined' && navigator.clipboard?.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim()) {
+          const trimmed = text.trim();
+          setSearchQuery(trimmed);
+          if (onResolveOmniInput) {
+            await onResolveOmniInput(trimmed);
+          }
+        }
+      }
+    } catch (clipErr) {
+      console.warn('Clipboard paste failed:', clipErr);
+    }
+  };
+
   if (selectedFoodItem) {
     const preview = calculatePortionNutrients(selectedFoodItem, portionGrams);
     const isLiquid = selectedFoodItem.servingUnit === 'ml';
@@ -211,18 +299,128 @@ export const FoodSearchTab: React.FC<FoodSearchTabProps> = ({
 
   return (
     <>
-      {/* Search Bar & Database Status */}
-      <div className="space-y-1.5">
+      {/* Omni Search & Link Resolution Bar */}
+      <div className="space-y-2">
         <div className="relative">
-          <Search className="w-4 h-4 text-gray-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          {/* Dynamic Detection Icon */}
+          <div className="absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+            {isResolvingOmniInput ? (
+              <Loader2 className="w-4 h-4 text-[#C0FF00] animate-spin" />
+            ) : detected.type === 'barcode' ? (
+              <Barcode className="w-4 h-4 text-[#C0FF00]" />
+            ) : detected.type === 'grocery_list' ? (
+              <ShoppingCart className="w-4 h-4 text-[#00ade6]" />
+            ) : detected.type === 'recipe' ? (
+              <Utensils className="w-4 h-4 text-amber-400" />
+            ) : detected.type === 'product_link' ? (
+              <LinkIcon className="w-4 h-4 text-sky-400" />
+            ) : (
+              <Search className="w-4 h-4 text-gray-500" />
+            )}
+          </div>
+
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search shared database (e.g. Kipfilet, Kwark, Melk)..."
-            className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white font-sans placeholder:text-gray-600 outline-none transition-colors"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                if (onResolveOmniInput && searchQuery.trim()) {
+                  onResolveOmniInput(searchQuery.trim());
+                }
+              }
+            }}
+            placeholder="Search name, barcode (EAN), or paste product / recipe / list link..."
+            className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl pl-10 pr-24 py-2.5 text-xs sm:text-sm text-white font-sans placeholder:text-gray-500 outline-none transition-colors"
           />
+
+          {/* Right Action Icons: Paste / Resolve Button */}
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {searchQuery.trim().length > 0 ? (
+              <button
+                type="button"
+                onClick={() => onResolveOmniInput && onResolveOmniInput(searchQuery.trim())}
+                disabled={isResolvingOmniInput}
+                className="px-2 py-1 bg-[#C0FF00] hover:bg-[#a8e000] text-black rounded-lg text-[10px] font-mono font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-sm"
+              >
+                {isResolvingOmniInput ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <>
+                    <span>Go</span>
+                    <ArrowRight className="w-2.5 h-2.5 stroke-[3]" />
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handlePasteFromClipboard}
+                title="Paste link or barcode from clipboard"
+                className="px-2 py-1 bg-[#252525] hover:bg-[#303030] text-gray-300 hover:text-white rounded-lg text-[10px] font-mono flex items-center gap-1 transition-colors cursor-pointer border border-[#333]"
+              >
+                <Clipboard className="w-2.5 h-2.5" />
+                <span>Paste</span>
+              </button>
+            )}
+          </div>
         </div>
+
+        {/* Input format detection badge / status */}
+        {detected.type !== 'empty' && detected.type !== 'keyword' && (
+          <div className="flex items-center gap-2 px-1">
+            <span
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-bold border ${detected.badgeColor}`}
+            >
+              <Sparkles className="w-2.5 h-2.5" />
+              <span>{detected.label} Detected</span>
+            </span>
+            <span className="text-[10px] font-mono text-gray-400">
+              Press Enter or click "Go" to auto-resolve
+            </span>
+          </div>
+        )}
+
+        {/* Helper chips for available inputs */}
+        {detected.type === 'empty' && (
+          <div className="flex items-center gap-1.5 flex-wrap px-1 text-[10px] font-mono text-gray-500">
+            <span className="text-gray-600">Accepts:</span>
+            <span className="bg-[#202020] text-gray-300 px-1.5 py-0.5 rounded border border-[#2d2d2d]">
+              🔤 Name
+            </span>
+            <span className="bg-[#202020] text-gray-300 px-1.5 py-0.5 rounded border border-[#2d2d2d]">
+              🏷️ EAN Barcode
+            </span>
+            <span className="bg-[#202020] text-gray-300 px-1.5 py-0.5 rounded border border-[#2d2d2d]">
+              🔗 Store Link
+            </span>
+            <span className="bg-[#202020] text-gray-300 px-1.5 py-0.5 rounded border border-[#2d2d2d]">
+              🍲 Recipe Link
+            </span>
+            <span className="bg-[#202020] text-gray-300 px-1.5 py-0.5 rounded border border-[#2d2d2d]">
+              🛒 Shared List
+            </span>
+          </div>
+        )}
+
+        {/* Error Alert */}
+        {omniResolveError && (
+          <div className="p-2.5 bg-rose-950/40 border border-rose-500/40 rounded-xl text-xs text-rose-300 font-sans flex items-center justify-between">
+            <span>{omniResolveError}</span>
+            <button
+              onClick={() => {
+                setNewFoodName(searchQuery);
+                onSelectTab('custom');
+              }}
+              className="text-[11px] font-mono underline font-bold text-[#C0FF00] ml-2 shrink-0 cursor-pointer"
+            >
+              Add Custom
+            </button>
+          </div>
+        )}
+
+        {/* Database Stats */}
         <div className="flex items-center justify-between text-[10px] font-mono text-gray-500 px-1">
           <span className="flex items-center gap-1">
             <Globe className="w-3 h-3 text-[#C0FF00]" />

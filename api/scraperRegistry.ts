@@ -149,15 +149,41 @@ export function isBlockedOrErrorTitle(title: string): boolean {
 
 // -------------------------------------------------------------
 // Helper: Extract JSON-LD, H1, and Markdown title/brand fallbacks
+// Supports both Schema.org 'Product' and 'Recipe' structured data
 // -------------------------------------------------------------
 export function extractSchemaAndHeadings(
   html: string,
   defaultBrand: string
-): { title: string; brand: string; barcode?: string; packageWeightGrams?: number } {
+): {
+  title: string;
+  brand: string;
+  barcode?: string;
+  packageWeightGrams?: number;
+  pieceCount?: number;
+  nutrition?: {
+    kcalPer100g: number;
+    proteinPer100g: number;
+    carbsPer100g: number;
+    sugarPer100g: number;
+    fatPer100g: number;
+    fiberPer100g: number;
+  };
+} {
   let title = '';
   let brand = defaultBrand;
   let barcode: string | undefined;
   let packageWeightGrams: number | undefined;
+  let pieceCount: number | undefined;
+  let nutrition:
+    | {
+        kcalPer100g: number;
+        proteinPer100g: number;
+        carbsPer100g: number;
+        sugarPer100g: number;
+        fatPer100g: number;
+        fiberPer100g: number;
+      }
+    | undefined;
 
   const jsonLdMatches = html.match(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi) || [];
   for (const jld of jsonLdMatches) {
@@ -173,7 +199,10 @@ export function extractSchemaAndHeadings(
         : [parsed];
 
       for (const node of nodes) {
-        if (node.name && typeof node.name === 'string' && (node['@type'] === 'Product' || !title)) {
+        const typeStr = Array.isArray(node['@type']) ? node['@type'].join(' ') : String(node['@type'] || '');
+        const isProductOrRecipe = typeStr.includes('Product') || typeStr.includes('Recipe');
+
+        if (node.name && typeof node.name === 'string' && (isProductOrRecipe || !title)) {
           const candidateTitle = node.name
             .replace(/\s*bestellen\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
             .replace(/\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/i, '')
@@ -182,13 +211,24 @@ export function extractSchemaAndHeadings(
             title = candidateTitle;
           }
         }
+
+        // Extract Brand or Author / Publisher for Recipes
         if (node.brand) {
           if (typeof node.brand === 'string') brand = node.brand;
           else if (node.brand?.name) brand = node.brand.name;
+        } else if (node.author) {
+          if (typeof node.author === 'string') brand = node.author;
+          else if (node.author?.name) brand = node.author.name;
+          else if (Array.isArray(node.author) && node.author[0]?.name) brand = node.author[0].name;
+        } else if (node.publisher?.name) {
+          brand = node.publisher.name;
         }
+
         if (node.gtin13 || node.gtin8 || node.gtin14 || node.gtin) {
           barcode = String(node.gtin13 || node.gtin8 || node.gtin14 || node.gtin).trim();
         }
+
+        // Extract package weight if available
         if (node.weight?.value && typeof node.weight.value === 'string') {
           const wtMatch = node.weight.value.match(/(\d+(?:[.,]\d+)?)\s*(?:g|gram)\b/i);
           if (wtMatch) {
@@ -198,6 +238,51 @@ export function extractSchemaAndHeadings(
             if (kgMatch) {
               packageWeightGrams = Math.round(parseFloat(kgMatch[1].replace(',', '.')) * 1000);
             }
+          }
+        }
+
+        // Extract Recipe servings / yield e.g. "4 porties", "4 servings", 4
+        const yieldVal = node.recipeYield || node.yield;
+        if (yieldVal) {
+          if (typeof yieldVal === 'number') {
+            pieceCount = yieldVal;
+          } else if (typeof yieldVal === 'string') {
+            const yMatch = yieldVal.match(/(\d+)/);
+            if (yMatch) pieceCount = parseInt(yMatch[1], 10);
+          } else if (Array.isArray(yieldVal) && yieldVal[0]) {
+            const yMatch = String(yieldVal[0]).match(/(\d+)/);
+            if (yMatch) pieceCount = parseInt(yMatch[1], 10);
+          }
+        }
+
+        // Extract Schema.org NutritionInformation (calories, proteinContent, carbs, etc.)
+        if (node.nutrition && typeof node.nutrition === 'object') {
+          const nutObj = node.nutrition as Record<string, unknown>;
+          const parseNutVal = (val: unknown): number => {
+            if (typeof val === 'number') return val;
+            if (typeof val === 'string') {
+              const m = val.match(/(\d+(?:[.,]\d+)?)/);
+              if (m) return parseFloat(m[1].replace(',', '.'));
+            }
+            return 0;
+          };
+
+          const kcal = parseNutVal(nutObj.calories);
+          const prot = parseNutVal(nutObj.proteinContent);
+          const carbs = parseNutVal(nutObj.carbohydrateContent);
+          const sugar = parseNutVal(nutObj.sugarContent);
+          const fat = parseNutVal(nutObj.fatContent);
+          const fib = parseNutVal(nutObj.fiberContent);
+
+          if (kcal > 0 || prot > 0 || carbs > 0 || fat > 0) {
+            nutrition = {
+              kcalPer100g: kcal,
+              proteinPer100g: prot,
+              carbsPer100g: carbs,
+              sugarPer100g: sugar,
+              fatPer100g: fat,
+              fiberPer100g: fib,
+            };
           }
         }
       }
@@ -252,7 +337,7 @@ export function extractSchemaAndHeadings(
     .replace(/^(AH|Albert Heijn|Jumbo|PLUS|Dirk)\s+/i, '')
     .trim();
 
-  return { title, brand, barcode, packageWeightGrams };
+  return { title, brand, barcode, packageWeightGrams, pieceCount, nutrition };
 }
 
 // -------------------------------------------------------------
@@ -902,7 +987,7 @@ export const aldiAdapter: StoreScraperAdapter = {
 };
 
 // -------------------------------------------------------------
-// ADAPTER 7: Generic Fallback (Custom Stores)
+// ADAPTER 7: Generic Fallback & Recipe Resolver (Custom Stores & Recipe Sites)
 // -------------------------------------------------------------
 export const genericAdapter: StoreScraperAdapter = {
   name: 'Generic Store',
@@ -916,23 +1001,36 @@ export const genericAdapter: StoreScraperAdapter = {
       hostname = hostname.charAt(0).toUpperCase() + hostname.slice(1);
     } catch {}
 
-    const { title, brand } = extractSchemaAndHeadings(html, hostname);
-    const nutrition = parseDutchNutritionTable(html);
+    const {
+      title,
+      brand,
+      barcode,
+      packageWeightGrams,
+      pieceCount,
+      nutrition: schemaNutrition,
+    } = extractSchemaAndHeadings(html, hostname);
+    const tableNutrition = parseDutchNutritionTable(html);
     const sizing = extractPackageSizing(title, html);
+
+    const hasTableNutrition = tableNutrition.kcalPer100g > 0 || tableNutrition.proteinPer100g > 0;
+    const finalNutrition = hasTableNutrition ? tableNutrition : (schemaNutrition || tableNutrition);
 
     const isDrink =
       html.toLowerCase().includes('per 100 milliliter') ||
       html.toLowerCase().includes('per 100 ml') ||
       title.toLowerCase().includes('melk') ||
-      title.toLowerCase().includes('drank');
+      title.toLowerCase().includes('drank') ||
+      title.toLowerCase().includes('shake');
 
     return {
       id: `food_${Date.now()}`,
       name: title,
       brand,
+      barcode,
       servingUnit: isDrink ? 'ml' : 'gram',
-      ...nutrition,
-      ...sizing,
+      ...finalNutrition,
+      packageWeightGrams: packageWeightGrams || sizing.packageWeightGrams,
+      pieceCount: pieceCount || sizing.pieceCount,
       sourceUrl: url,
     };
   },
