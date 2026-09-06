@@ -9,9 +9,35 @@ export const LoginScreen: React.FC = () => {
   const [loggingIn, setLoggingIn] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  const [honeypotValue, setHoneypotValue] = useState('');
+
+  // Automatically activate credentials form when visiting /admin or #admin
+  const [showAdminLogin, setShowAdminLogin] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname.toLowerCase();
+    const hash = window.location.hash.toLowerCase();
+    return path.includes('/admin') || hash.includes('admin');
+  });
+
+  // Listen to hash or URL changes for #admin or /admin
+  useEffect(() => {
+    const checkAdminRoute = () => {
+      const path = window.location.pathname.toLowerCase();
+      const hash = window.location.hash.toLowerCase();
+      if (path.includes('/admin') || hash.includes('admin')) {
+        setShowAdminLogin(true);
+      }
+    };
+    checkAdminRoute();
+    window.addEventListener('hashchange', checkAdminRoute);
+    window.addEventListener('popstate', checkAdminRoute);
+    return () => {
+      window.removeEventListener('hashchange', checkAdminRoute);
+      window.removeEventListener('popstate', checkAdminRoute);
+    };
+  }, []);
 
   // Check if the user previously dismissed the prompt during this session or recently
   const [isDismissed, setIsDismissed] = useState<boolean>(() => {
@@ -85,6 +111,13 @@ export const LoginScreen: React.FC = () => {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Silent anti-bot honeypot check: if hidden honeypot field is filled, reject/drop silently
+    if (honeypotValue) {
+      setLoggingIn(false);
+      setErrorMsg('Access denied.');
+      return;
+    }
+
     if (!emailInput || !passwordInput) {
       setErrorMsg('Please enter both email and password.');
       return;
@@ -135,6 +168,20 @@ export const LoginScreen: React.FC = () => {
 
           {showAdminLogin ? (
             <form onSubmit={handleEmailLogin} className="w-full space-y-3.5 text-left animate-fade-in">
+              {/* Invisible honeypot field to trap automated scrapers/bots */}
+              <div aria-hidden="true" style={{ position: 'absolute', opacity: 0, zIndex: -1, width: 0, height: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+                <label htmlFor="website_url_trap">Leave this field blank</label>
+                <input
+                  type="text"
+                  id="website_url_trap"
+                  name="website_url_trap"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypotValue}
+                  onChange={(e) => setHoneypotValue(e.target.value)}
+                />
+              </div>
+
               <div>
                 <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 font-bold mb-1">
                   Admin Email
@@ -183,6 +230,9 @@ export const LoginScreen: React.FC = () => {
                 onClick={() => {
                   setShowAdminLogin(false);
                   setErrorMsg(null);
+                  if (window.location.hash.includes('admin')) {
+                    window.history.replaceState(null, '', window.location.pathname);
+                  }
                 }}
                 className="w-full text-center text-[11px] font-mono text-gray-400 hover:text-white transition-colors cursor-pointer pt-1"
               >
@@ -190,52 +240,36 @@ export const LoginScreen: React.FC = () => {
               </button>
             </form>
           ) : (
-            <>
-              <button
-                id="google-signin-btn"
-                onClick={handleLogin}
-                disabled={loggingIn}
-                className="w-full flex items-center justify-center gap-3 px-5 py-3.5 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#151515] border border-[#333] hover:border-[#C0FF00] rounded-xl font-sans text-xs font-bold text-white uppercase tracking-wider transition-all duration-250 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-md hover:shadow-[0_0_20px_rgba(192,255,0,0.08)]"
-              >
-                {loggingIn ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
-                ) : (
-                  <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" width="100%" height="100%">
-                    <path
-                      fill="#EA4335"
-                      d="M12 5.04c1.64 0 3.12.56 4.28 1.67l3.2-3.2C17.52 1.58 14.93 1 12 1 7.37 1 3.4 3.66 1.48 7.56l3.8 2.95c.9-2.7 3.43-4.47 6.72-4.47z"
-                    />
-                    <path
-                      fill="#4285F4"
-                      d="M23.49 12.27c0-.81-.07-1.59-.2-2.33H12v4.42h6.45c-.28 1.47-1.11 2.72-2.36 3.56l3.66 2.84c2.14-1.98 3.38-4.89 3.38-8.49z"
-                    />
-                    <path
-                      fill="#FBBC05"
-                      d="M5.28 14.51c-.24-.71-.38-1.47-.38-2.26s.14-1.55.38-2.26L1.48 7.04C.54 8.94 0 11.06 0 13.3s.54 4.36 1.48 6.26l3.8-3.05z"
-                    />
-                    <path
-                      fill="#34A853"
-                      d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.66-2.84c-1.01.68-2.31 1.09-3.9 1.09-3.29 0-5.82-1.77-6.72-4.47l-3.8 2.95C3.4 20.34 7.37 23 12 23z"
-                    />
-                  </svg>
-                )}
-                {loggingIn ? 'Connecting...' : 'Sign in with Google'}
-              </button>
-
-              <div className="w-full pt-4 mt-4 border-t border-[#222] flex justify-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAdminLogin(true);
-                    setErrorMsg(null);
-                  }}
-                  className="inline-flex items-center gap-1.5 text-[11px] font-mono text-purple-400 hover:text-purple-300 transition-colors cursor-pointer"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  <span>Admin Credentials Login</span>
-                </button>
-              </div>
-            </>
+            <button
+              id="google-signin-btn"
+              onClick={handleLogin}
+              disabled={loggingIn}
+              className="w-full flex items-center justify-center gap-3 px-5 py-3.5 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#151515] border border-[#333] hover:border-[#C0FF00] rounded-xl font-sans text-xs font-bold text-white uppercase tracking-wider transition-all duration-250 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-md hover:shadow-[0_0_20px_rgba(192,255,0,0.08)]"
+            >
+              {loggingIn ? (
+                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+              ) : (
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" width="100%" height="100%">
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.04c1.64 0 3.12.56 4.28 1.67l3.2-3.2C17.52 1.58 14.93 1 12 1 7.37 1 3.4 3.66 1.48 7.56l3.8 2.95c.9-2.7 3.43-4.47 6.72-4.47z"
+                  />
+                  <path
+                    fill="#4285F4"
+                    d="M23.49 12.27c0-.81-.07-1.59-.2-2.33H12v4.42h6.45c-.28 1.47-1.11 2.72-2.36 3.56l3.66 2.84c2.14-1.98 3.38-4.89 3.38-8.49z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.28 14.51c-.24-.71-.38-1.47-.38-2.26s.14-1.55.38-2.26L1.48 7.04C.54 8.94 0 11.06 0 13.3s.54 4.36 1.48 6.26l3.8-3.05z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c3.24 0 5.97-1.07 7.96-2.91l-3.66-2.84c-1.01.68-2.31 1.09-3.9 1.09-3.29 0-5.82-1.77-6.72-4.47l-3.8 2.95C3.4 20.34 7.37 23 12 23z"
+                  />
+                </svg>
+              )}
+              {loggingIn ? 'Connecting...' : 'Sign in with Google'}
+            </button>
           )}
         </div>
       </div>
