@@ -1,21 +1,22 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = 'https://khvnlmzhymocnvdnptci.supabase.co';
-const supabaseAnonKey = 'sb_publishable_VjnCda-dV7N-hxqEwhsyuA_A4CqNMV-';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from './client.ts';
 
 async function cleanJunkFoodItems() {
   console.log('=== 🧹 CLEANING JUNK / RANDOM "PRODUCT" ITEMS ===\n');
 
-  // Sign in as admin to satisfy RLS for deletions
-  const { error: authError } = await supabase.auth.signInWithPassword({
-    email: 'tuO45744@gmail.com',
-    password: 'TestUser2005@',
-  });
-  if (authError) {
-    console.warn('Admin sign-in notice:', authError.message);
-  } else {
-    console.log('Authenticated as admin.');
+  // Sign in with admin credentials from env if provided
+  const adminEmail = process.env.ADMIN_EMAIL || process.env.VITE_ADMIN_EMAIL || '';
+  const adminPassword = process.env.ADMIN_PASSWORD || process.env.VITE_ADMIN_PASSWORD || '';
+
+  if (adminEmail && adminPassword) {
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email: adminEmail,
+      password: adminPassword,
+    });
+    if (authError) {
+      console.warn('Admin sign-in notice:', authError.message);
+    } else {
+      console.log('Authenticated as admin.');
+    }
   }
 
   // Fetch all items from food_items

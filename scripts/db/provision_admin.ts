@@ -1,13 +1,13 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = 'https://khvnlmzhymocnvdnptci.supabase.co';
-const supabaseAnonKey = 'sb_publishable_VjnCda-dV7N-hxqEwhsyuA_A4CqNMV-';
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from './client.ts';
 
 async function provisionAdmin() {
-  const email = 'tuO45744@gmail.com';
-  const password = 'TestUser2005@';
+  const email = process.env.ADMIN_EMAIL || process.env.VITE_ADMIN_EMAIL || '';
+  const password = process.env.ADMIN_PASSWORD || process.env.VITE_ADMIN_PASSWORD || '';
+
+  if (!email || !password) {
+    console.error('Missing ADMIN_EMAIL or ADMIN_PASSWORD environment variable.');
+    return;
+  }
 
   console.log(`Checking / creating admin account for: ${email}`);
 

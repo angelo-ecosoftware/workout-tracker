@@ -1,11 +1,17 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient('https://khvnlmzhymocnvdnptci.supabase.co', 'sb_publishable_VjnCda-dV7N-hxqEwhsyuA_A4CqNMV-');
+import { supabase } from './client.ts';
 
 async function testLogin() {
+  const email = process.env.ADMIN_EMAIL || process.env.VITE_ADMIN_EMAIL || '';
+  const password = process.env.ADMIN_PASSWORD || process.env.VITE_ADMIN_PASSWORD || '';
+
+  if (!email || !password) {
+    console.error('Missing ADMIN_EMAIL or ADMIN_PASSWORD environment variable.');
+    return;
+  }
+
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: 'tuO45744@gmail.com',
-    password: 'TestUser2005@',
+    email,
+    password,
   });
   console.log('Login error:', error);
   console.log('User ID:', data?.user?.id);

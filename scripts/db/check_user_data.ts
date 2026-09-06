@@ -1,9 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = "https://khvnlmzhymocnvdnptci.supabase.co";
-const supabaseAnonKey = "sb_publishable_VjnCda-dV7N-hxqEwhsyuA_A4CqNMV-";
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+import { supabase } from './client.ts';
 
 const TEST_USER_ID = "c7b8e78f-24c3-447f-8ad2-5c31dd8421ec";
 

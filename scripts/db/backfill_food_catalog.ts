@@ -1,11 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './client.ts';
 import { resolveAlbertHeijnBarcode, resolveJumboBarcode, resolveDirkBarcode, resolvePlusBarcode } from '../../api/barcode-lookup.ts';
 import { scrapeProductFromUrl, searchAlbertHeijnProduct, searchJumboProduct } from '../../api/scraperRegistry.ts';
 import { FoodItemNutrition } from '../../src/models.ts';
-
-const supabaseUrl = 'https://khvnlmzhymocnvdnptci.supabase.co';
-const supabaseAnonKey = 'sb_publishable_VjnCda-dV7N-hxqEwhsyuA_A4CqNMV-';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /**
  * Audit and Backfill script for all products in `food_items`.
