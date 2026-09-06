@@ -268,11 +268,10 @@ export const useDietaryTracking = (userId: string) => {
     setListExtractedProducts([]);
 
     try {
-      const match = listLinkInput.trim().match(/gedeelde-lijst\/([a-zA-Z0-9_-]+)/);
-      const listId = match ? match[1] : listLinkInput.trim();
-      const res = await fetch(`/api/grocery-list?listId=${encodeURIComponent(listId)}`);
+      const trimmedInput = listLinkInput.trim();
+      const res = await fetch(`/api/grocery-list?listId=${encodeURIComponent(trimmedInput)}`);
       if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
+        const errorData = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(errorData.error || `Failed to fetch list (status ${res.status})`);
       }
       const data = await res.json();
@@ -280,11 +279,12 @@ export const useDietaryTracking = (userId: string) => {
         throw new Error(data.error || 'Invalid list response');
       }
 
-      const mapped = (data.products as { id: string | number; title: string; brand?: string; salesUnitSize?: string }[]).map((p) => ({
+      const mapped = (data.products as { id: string | number; title: string; brand?: string; salesUnitSize?: string; nutrition?: FoodItemNutrition }[]).map((p) => ({
         id: String(p.id),
         title: p.title,
         brand: p.brand || 'Albert Heijn',
         salesUnitSize: p.salesUnitSize,
+        nutrition: p.nutrition,
       }));
       setListExtractedProducts(mapped);
     } catch (err: unknown) {
@@ -299,8 +299,24 @@ export const useDietaryTracking = (userId: string) => {
     title: string;
     brand?: string;
     salesUnitSize?: string;
+    nutrition?: FoodItemNutrition;
   }) => {
     const directUrl = `https://www.ah.nl/producten/product/${item.id}`;
+
+    // If already pre-scraped and enriched by server
+    if (item.nutrition && item.nutrition.name) {
+      const foodItem: FoodItemNutrition = {
+        ...item.nutrition,
+        id: item.nutrition.id || `ah_${item.id}`,
+        sourceUrl: item.nutrition.sourceUrl || directUrl,
+      };
+      await saveHiveMindFoodItem(foodItem, userId);
+      setSelectedFoodItem(foodItem);
+      setPortionGrams(foodItem.packageWeightGrams || 100);
+      setActiveModalTab('search');
+      return;
+    }
+
     try {
       const res = await fetch(`/api/product-link?url=${encodeURIComponent(directUrl)}`);
       if (res.ok) {
@@ -353,6 +369,15 @@ export const useDietaryTracking = (userId: string) => {
 
     const importedItems: FoodItemNutrition[] = [];
     for (const item of listExtractedProducts) {
+      if (item.nutrition && item.nutrition.name) {
+        importedItems.push({
+          ...item.nutrition,
+          id: item.nutrition.id || `ah_${item.id}`,
+          sourceUrl: item.nutrition.sourceUrl || `https://www.ah.nl/producten/product/${item.id}`,
+        });
+        continue;
+      }
+
       const directUrl = `https://www.ah.nl/producten/product/${item.id}`;
       try {
         const res = await fetch(`/api/product-link?url=${encodeURIComponent(directUrl)}`);
