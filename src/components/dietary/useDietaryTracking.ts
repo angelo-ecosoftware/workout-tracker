@@ -259,26 +259,16 @@ export const useDietaryTracking = (userId: string) => {
 
       // B. Shared Grocery List or Multi-Ingredient Recipe List Check
       const isListUrl =
-        /(?:\/lijst\/|\/basket\/)/i.test(cleanUrl) &&
+        /(?:\/lijst\/|\/basket\/|\/gedeelde-lijst\/|\/mijnlijst\/|\/shared-list\/)/i.test(cleanUrl) &&
         !cleanUrl.includes('/p/') &&
         !cleanUrl.includes('/product/');
 
       if (isListUrl) {
         try {
-          const res = await fetch(`/api/grocery-list?url=${encodeURIComponent(cleanUrl)}`);
+          const res = await fetch(`/api/grocery-list?listId=${encodeURIComponent(cleanUrl)}`);
           if (res.ok) {
             const listData = await res.json();
             if (listData.success && Array.isArray(listData.products) && listData.products.length > 0) {
-              if (listData.products.length === 1 && listData.products[0].nutrition) {
-                const single = listData.products[0].nutrition;
-                await saveHiveMindFoodItem(single, userId);
-                setSelectedFoodItem(single);
-                setPortionGrams(single.packageWeightGrams || 100);
-                setSearchQuery('');
-                setIsResolvingOmniInput(false);
-                return;
-              }
-
               const mapped = (
                 listData.products as Array<{
                   id: string | number;
@@ -296,6 +286,7 @@ export const useDietaryTracking = (userId: string) => {
               }));
 
               setListExtractedProducts(mapped);
+              setListLinkInput(cleanUrl);
               setActiveModalTab('list');
               setSearchQuery('');
               setIsResolvingOmniInput(false);

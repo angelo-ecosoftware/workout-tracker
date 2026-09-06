@@ -136,12 +136,34 @@ const BLOCKED_PAGE_INDICATORS = [
   '404 niet gevonden',
   'onbekend product',
   'unknown product',
+  'winkelmandje',
+  'winkelmand',
+  'inloggen',
+  'mijn lijst',
+  'gedeelde lijst',
+  'shopping list',
+  'cart',
+  'basket',
 ];
 
 export function isBlockedOrErrorTitle(title: string): boolean {
   if (!title) return true;
   const clean = title.toLowerCase().trim();
-  if (clean === 'product' || clean === 'unknown' || clean === 'null' || clean === 'undefined' || clean === 'ah product' || clean === 'jumbo product' || clean === 'dirk product' || clean === 'plus product') {
+  if (
+    clean === 'product' ||
+    clean === 'unknown' ||
+    clean === 'null' ||
+    clean === 'undefined' ||
+    clean === 'ah product' ||
+    clean === 'jumbo product' ||
+    clean === 'dirk product' ||
+    clean === 'plus product' ||
+    clean === 'winkelmandje' ||
+    clean === 'winkelmand' ||
+    clean === 'inloggen' ||
+    clean === 'mijn lijst' ||
+    clean === 'gedeelde lijst'
+  ) {
     return true;
   }
   return BLOCKED_PAGE_INDICATORS.some((ind) => clean.includes(ind));
@@ -350,30 +372,30 @@ export function extractPackageSizing(
   let packageWeightGrams: number | undefined;
   let pieceCount: number | undefined;
 
-  const targetText = `${title} ${html.slice(0, 4000)}`;
+  // Prioritize checking the title first for sizing tokens (e.g. "1L", "500g", "1 kg")
+  const titleText = title || '';
+  const bodySnippet = html ? html.slice(0, 2000) : '';
 
-  // Match e.g. "200 g", "800g", "1 kg", "1.5 kg", "500 ml", "1 l"
-  const kgMatch = targetText.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i);
-  if (kgMatch) {
-    packageWeightGrams = Math.round(parseFloat(kgMatch[1].replace(',', '.')) * 1000);
-  } else {
-    const gMatch = targetText.match(/(\d+(?:[.,]\d+)?)\s*(?:g|gram)\b/i);
-    if (gMatch) {
-      packageWeightGrams = parseFloat(gMatch[1].replace(',', '.'));
-    } else {
-      const literMatch = targetText.match(/(\d+(?:[.,]\d+)?)\s*(?:l|liter)\b/i);
-      if (literMatch) {
-        packageWeightGrams = Math.round(parseFloat(literMatch[1].replace(',', '.')) * 1000);
-      } else {
-        const mlMatch = targetText.match(/(\d+(?:[.,]\d+)?)\s*(?:ml|milliliter)\b/i);
-        if (mlMatch) {
-          packageWeightGrams = parseFloat(mlMatch[1].replace(',', '.'));
-        }
-      }
-    }
-  }
+  const parseWeightFrom = (text: string): number | undefined => {
+    const kg = text.match(/(\d+(?:[.,]\d+)?)\s*kg\b/i);
+    if (kg) return Math.round(parseFloat(kg[1].replace(',', '.')) * 1000);
+
+    const liter = text.match(/(\d+(?:[.,]\d+)?)\s*(?:l|liter)\b/i);
+    if (liter) return Math.round(parseFloat(liter[1].replace(',', '.')) * 1000);
+
+    const ml = text.match(/(\d+(?:[.,]\d+)?)\s*(?:ml|milliliter)\b/i);
+    if (ml) return parseFloat(ml[1].replace(',', '.'));
+
+    const g = text.match(/(\d+(?:[.,]\d+)?)\s*(?:g|gram)\b/i);
+    if (g) return parseFloat(g[1].replace(',', '.'));
+
+    return undefined;
+  };
+
+  packageWeightGrams = parseWeightFrom(titleText) || parseWeightFrom(bodySnippet);
 
   // Match piece count e.g. "2 stuks", "1 stuk", "4x", "6 pack"
+  const targetText = `${titleText} ${bodySnippet}`;
   const piecesMatch = targetText.match(/(\d+)\s*(?:stuks|stuk|pack|porties)\b/i);
   if (piecesMatch) {
     pieceCount = parseInt(piecesMatch[1], 10);
@@ -987,7 +1009,130 @@ export const aldiAdapter: StoreScraperAdapter = {
 };
 
 // -------------------------------------------------------------
-// ADAPTER 7: Generic Fallback & Recipe Resolver (Custom Stores & Recipe Sites)
+// ADAPTER 7: Picnic Nederland (picnic.app)
+// -------------------------------------------------------------
+export const picnicAdapter: StoreScraperAdapter = {
+  name: 'Picnic',
+  canHandle(url: string) {
+    return url.toLowerCase().includes('picnic.app') || url.toLowerCase().includes('picnic.nl');
+  },
+  parse(html: string, url: string): ProductScraperResult {
+    const { title, brand, barcode, packageWeightGrams, pieceCount, nutrition: schemaNutrition } =
+      extractSchemaAndHeadings(html, 'Picnic');
+    const tableNutrition = parseDutchNutritionTable(html);
+    const sizing = extractPackageSizing(title, html);
+
+    const hasTableNutrition = tableNutrition.kcalPer100g > 0 || tableNutrition.proteinPer100g > 0;
+    const finalNutrition = hasTableNutrition ? tableNutrition : (schemaNutrition || tableNutrition);
+
+    const picnicIdMatch = url.match(/\/p\/([a-z0-9-]+)(?:[/?#]|$)/i) || url.match(/article\/([a-z0-9-]+)/i);
+    const productId = picnicIdMatch ? `picnic_${picnicIdMatch[1]}` : `picnic_${Date.now()}`;
+
+    const isDrink =
+      html.toLowerCase().includes('per 100 milliliter') ||
+      html.toLowerCase().includes('per 100 ml') ||
+      title.toLowerCase().includes('melk') ||
+      title.toLowerCase().includes('drank') ||
+      title.toLowerCase().includes('sap');
+
+    return {
+      id: productId,
+      name: title,
+      brand: brand || 'Picnic',
+      barcode,
+      servingUnit: isDrink ? 'ml' : 'gram',
+      ...finalNutrition,
+      packageWeightGrams: packageWeightGrams || sizing.packageWeightGrams,
+      pieceCount: pieceCount || sizing.pieceCount,
+      sourceUrl: url,
+    };
+  },
+};
+
+// -------------------------------------------------------------
+// ADAPTER 8: Hoogvliet Supermarkt (hoogvliet.com)
+// -------------------------------------------------------------
+export const hoogvlietAdapter: StoreScraperAdapter = {
+  name: 'Hoogvliet',
+  canHandle(url: string) {
+    return url.toLowerCase().includes('hoogvliet.com');
+  },
+  parse(html: string, url: string): ProductScraperResult {
+    const { title, brand, barcode, packageWeightGrams, pieceCount, nutrition: schemaNutrition } =
+      extractSchemaAndHeadings(html, 'Hoogvliet');
+    const tableNutrition = parseDutchNutritionTable(html);
+    const sizing = extractPackageSizing(title, html);
+
+    const hasTableNutrition = tableNutrition.kcalPer100g > 0 || tableNutrition.proteinPer100g > 0;
+    const finalNutrition = hasTableNutrition ? tableNutrition : (schemaNutrition || tableNutrition);
+
+    const hoogvlietIdMatch = url.match(/\/product\/([a-z0-9-]+)(?:[/?#]|$)/i) || url.match(/-(\d+)(?:[/?#]|$)/i);
+    const productId = hoogvlietIdMatch ? `hoogvliet_${hoogvlietIdMatch[1]}` : `hoogvliet_${Date.now()}`;
+
+    const isDrink =
+      html.toLowerCase().includes('per 100 milliliter') ||
+      html.toLowerCase().includes('per 100 ml') ||
+      title.toLowerCase().includes('melk') ||
+      title.toLowerCase().includes('drank') ||
+      title.toLowerCase().includes('sap');
+
+    return {
+      id: productId,
+      name: title,
+      brand: brand || 'Hoogvliet',
+      barcode,
+      servingUnit: isDrink ? 'ml' : 'gram',
+      ...finalNutrition,
+      packageWeightGrams: packageWeightGrams || sizing.packageWeightGrams,
+      pieceCount: pieceCount || sizing.pieceCount,
+      sourceUrl: url,
+    };
+  },
+};
+
+// -------------------------------------------------------------
+// ADAPTER 9: Spar Nederland (spar.nl)
+// -------------------------------------------------------------
+export const sparAdapter: StoreScraperAdapter = {
+  name: 'Spar',
+  canHandle(url: string) {
+    return url.toLowerCase().includes('spar.nl');
+  },
+  parse(html: string, url: string): ProductScraperResult {
+    const { title, brand, barcode, packageWeightGrams, pieceCount, nutrition: schemaNutrition } =
+      extractSchemaAndHeadings(html, 'Spar');
+    const tableNutrition = parseDutchNutritionTable(html);
+    const sizing = extractPackageSizing(title, html);
+
+    const hasTableNutrition = tableNutrition.kcalPer100g > 0 || tableNutrition.proteinPer100g > 0;
+    const finalNutrition = hasTableNutrition ? tableNutrition : (schemaNutrition || tableNutrition);
+
+    const sparIdMatch = url.match(/\/producten\/([a-z0-9-]+)(?:[/?#]|$)/i) || url.match(/-(\d+)(?:[/?#]|$)/i);
+    const productId = sparIdMatch ? `spar_${sparIdMatch[1]}` : `spar_${Date.now()}`;
+
+    const isDrink =
+      html.toLowerCase().includes('per 100 milliliter') ||
+      html.toLowerCase().includes('per 100 ml') ||
+      title.toLowerCase().includes('melk') ||
+      title.toLowerCase().includes('drank') ||
+      title.toLowerCase().includes('sap');
+
+    return {
+      id: productId,
+      name: title,
+      brand: brand || 'Spar',
+      barcode,
+      servingUnit: isDrink ? 'ml' : 'gram',
+      ...finalNutrition,
+      packageWeightGrams: packageWeightGrams || sizing.packageWeightGrams,
+      pieceCount: pieceCount || sizing.pieceCount,
+      sourceUrl: url,
+    };
+  },
+};
+
+// -------------------------------------------------------------
+// ADAPTER 10: Generic Fallback & Recipe Resolver (Custom Stores & Recipe Sites)
 // -------------------------------------------------------------
 export const genericAdapter: StoreScraperAdapter = {
   name: 'Generic Store',
@@ -1038,7 +1183,7 @@ export const genericAdapter: StoreScraperAdapter = {
 
 // -------------------------------------------------------------
 // Registry of all Store Adapters
-// (Easily register future stores here: Jumbo, AH, Dirk, Plus, Lidl, Aldi, etc.)
+// (Easily register future stores here: Jumbo, AH, Dirk, Plus, Lidl, Aldi, Picnic, Hoogvliet, Spar, etc.)
 // -------------------------------------------------------------
 export const STORE_SCRAPERS: StoreScraperAdapter[] = [
   jumboAdapter,
@@ -1047,6 +1192,9 @@ export const STORE_SCRAPERS: StoreScraperAdapter[] = [
   plusAdapter,
   lidlAdapter,
   aldiAdapter,
+  picnicAdapter,
+  hoogvlietAdapter,
+  sparAdapter,
   genericAdapter,
 ];
 

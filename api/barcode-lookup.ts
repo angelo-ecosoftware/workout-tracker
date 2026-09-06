@@ -542,6 +542,120 @@ export async function resolveAldiBarcode(barcode: string): Promise<FoodItemNutri
   return null;
 }
 
+/**
+ * Resolves product details from Picnic Nederland by EAN barcode search.
+ */
+export async function resolvePicnicBarcode(barcode: string): Promise<FoodItemNutrition | null> {
+  const cleanBarcode = barcode.trim();
+  if (!cleanBarcode) return null;
+
+  try {
+    const searchUrl = `https://picnic.app/nl/zoeken?q=${encodeURIComponent(cleanBarcode)}`;
+    const res = await fetch(searchUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+    const linkMatch = html.match(/href=["'](\/p\/[^"']+|\/article\/[^"']+)["']/i);
+    if (!linkMatch) return null;
+
+    const fullUrl = linkMatch[1].startsWith('http') ? linkMatch[1] : `https://picnic.app${linkMatch[1]}`;
+    const product = await scrapeProductFromUrl(fullUrl);
+    if (product && product.name) {
+      return {
+        ...product,
+        barcode: cleanBarcode,
+        isCustom: false,
+      };
+    }
+  } catch (err) {
+    console.warn('Picnic barcode lookup attempt failed:', err);
+  }
+  return null;
+}
+
+/**
+ * Resolves product details from Hoogvliet by EAN barcode search.
+ */
+export async function resolveHoogvlietBarcode(barcode: string): Promise<FoodItemNutrition | null> {
+  const cleanBarcode = barcode.trim();
+  if (!cleanBarcode) return null;
+
+  try {
+    const searchUrl = `https://www.hoogvliet.com/zoeken?q=${encodeURIComponent(cleanBarcode)}`;
+    const res = await fetch(searchUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+    const linkMatch = html.match(/href=["'](\/product\/[^"']+)["']/i);
+    if (!linkMatch) return null;
+
+    const fullUrl = linkMatch[1].startsWith('http') ? linkMatch[1] : `https://www.hoogvliet.com${linkMatch[1]}`;
+    const product = await scrapeProductFromUrl(fullUrl);
+    if (product && product.name) {
+      return {
+        ...product,
+        barcode: cleanBarcode,
+        isCustom: false,
+      };
+    }
+  } catch (err) {
+    console.warn('Hoogvliet barcode lookup attempt failed:', err);
+  }
+  return null;
+}
+
+/**
+ * Resolves product details from Spar Nederland by EAN barcode search.
+ */
+export async function resolveSparBarcode(barcode: string): Promise<FoodItemNutrition | null> {
+  const cleanBarcode = barcode.trim();
+  if (!cleanBarcode) return null;
+
+  try {
+    const searchUrl = `https://www.spar.nl/zoeken/?q=${encodeURIComponent(cleanBarcode)}`;
+    const res = await fetch(searchUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+    const linkMatch = html.match(/href=["'](\/producten\/[^"']+)["']/i);
+    if (!linkMatch) return null;
+
+    const fullUrl = linkMatch[1].startsWith('http') ? linkMatch[1] : `https://www.spar.nl${linkMatch[1]}`;
+    const product = await scrapeProductFromUrl(fullUrl);
+    if (product && product.name) {
+      return {
+        ...product,
+        barcode: cleanBarcode,
+        isCustom: false,
+      };
+    }
+  } catch (err) {
+    console.warn('Spar barcode lookup attempt failed:', err);
+  }
+  return null;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const rawBarcode = (req.query.barcode || req.body?.barcode) as string;
   if (!rawBarcode || typeof rawBarcode !== 'string') {
@@ -577,10 +691,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 6. Fallback to Aldi resolver
     product = await resolveAldiBarcode(variant);
     if (product) break;
+
+    // 7. Fallback to Picnic resolver
+    product = await resolvePicnicBarcode(variant);
+    if (product) break;
+
+    // 8. Fallback to Hoogvliet resolver
+    product = await resolveHoogvlietBarcode(variant);
+    if (product) break;
+
+    // 9. Fallback to Spar resolver
+    product = await resolveSparBarcode(variant);
+    if (product) break;
   }
 
   if (!product) {
-    return res.status(404).json({ error: `Barcode ${cleanBarcode} not found on AH, Jumbo, Dirk, PLUS, Lidl, or Aldi` });
+    return res.status(404).json({ error: `Barcode ${cleanBarcode} not found on AH, Jumbo, Dirk, PLUS, Lidl, Aldi, Picnic, Hoogvliet, or Spar` });
   }
 
   return res.status(200).json({

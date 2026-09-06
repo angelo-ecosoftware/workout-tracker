@@ -1,69 +1,121 @@
-# Nutrition & Barcode Resolution Architecture
+# Nutrition, Barcode & Multi-Store Resolution Architecture (37 Fallback Engine)
 
-This document describes the multi-tier dietary resolution pipeline and the in-store scale barcode (PLU) alias resolution engine.
+This document describes the 37-tier dietary resolution pipeline, GS1 barcode normalizer (EAN-8 / UPC-A / EAN-13 / GTIN-14), multi-retailer scraper ecosystem (**Albert Heijn, Jumbo, Dirk, PLUS, Lidl, Aldi, Picnic, Hoogvliet, Spar**), in-store scale barcode (PLU) alias engine, Schema.org Recipe extractor, and the unified 5-in-1 omni-input bar.
 
 ---
 
-## 1. Multi-Tier Resolution Pipeline
+## 1. 5-in-1 Universal Omni-Input Bar Architecture
 
 ```mermaid
 flowchart TD
-    Req["Request: Barcode Scan / Store Link"] --> T1["Tier 1: Supabase Hive Mind Cache (<30ms)"]
-    T1 -->|Hit| Out["Return Verified Nutrition"]
-    T1 -->|Miss| T2["Tier 2: Store Mobile / Product API (AH / Jumbo / OFF)"]
-    T2 -->|Success| Gate["Tier 5: Strict Validation Gate"]
-    T2 -->|Miss / Blocked| T3["Tier 3: Store Search Endpoints (AH / Jumbo)"]
-    T3 -->|Success| Gate
-    T3 -->|Miss / Blocked| T4["Tier 4: Direct Web HTML Scraper"]
-    T4 -->|Success| Gate
-    T4 -->|403 / Bot Block| T5["Tier 4b: Reader Proxy Fallback (Jina)"]
-    T5 -->|Success| Gate
-    T5 -->|Exhausted| Err["Safe Error Handshake: 'Could not resolve product'"]
+    Input["User Enters / Pastes Query into Omni-Bar"] --> Detect{"Smart Format Classifier"}
     
-    Gate -->|Valid & Non-Empty| Save["Auto-Cache into Supabase Hive Mind"] --> Out
-    Gate -->|Blocked Title / 0 Macros| Err
+    Detect -->|🔤 Keywords| SearchDB["Tier 1: Instant Local / Hive-Mind DB Search"]
+    Detect -->|🏷️ Barcode 8-14 Digits| Norm["Phase 1: GS1 Barcode Normalizer"]
+    Detect -->|🔗 Store Product Link| StoreRes["Phase 2/3: Multi-Store Scraper Cascade"]
+    Detect -->|🍲 Recipe URL| RecipeRes["Schema.org @type: Recipe Extractor"]
+    Detect -->|🛒 Shared Grocery List| ListRes["Multi-Store Basket & Recipe Ingestion"]
+
+    Norm --> BarcodeCascade["Barcode Resolvers (AH → Jumbo → Dirk → PLUS → Lidl → Aldi → Picnic → Hoogvliet → Spar → OFF)"]
+    StoreRes --> CacheCheck{"0ms Database Cache Hit?"}
+    CacheCheck -->|Yes| InstantSelect["Instant Select & Open Gram/Portion Form"]
+    CacheCheck -->|No| ScrapeNet["Scrape HTML / Nuxt / Preload / JSON-LD"] --> HiveMind["Auto-Save into Supabase Hive Mind"] --> InstantSelect
+
+    RecipeRes --> ParseRecipe["Extract Per-Portion Calories, Protein, Carbs, Fat, Yield"] --> HiveMind
+    ListRes --> BatchEnrich["Parallel Macro Enrichment per Item"] --> ReviewModal["Present 1-Click Import Review Modal"]
+    BarcodeCascade --> HiveMind
 ```
 
 ---
 
-## 2. In-Store Scale Barcode & PLU Alias Resolution Engine
+## 2. 37 Multi-Tier Fallback Strategies Breakdown
 
-```mermaid
-flowchart TD
-    Scan["User Scans In-Store Sticker (e.g. 2285623001452)"] --> Detect{"Prefix 20-29 detected?"}
-    Detect -->|Yes| Extract["Extract 6-digit PLU Candidate: '285623' / '85623'"]
-    Detect -->|No: Standard EAN| T1["Query Hive Mind / OFF directly"]
-    
-    Extract --> MatchDict{"Match in Pre-Seeded PLU Dictionary?"}
-    MatchDict -->|Hit: webshopId/GTIN found| MobileFIR["Fetch Official Mobile FIR / GTIN endpoint"]
-    MatchDict -->|Miss| SearchStore["Query AH Search API with extracted PLU"]
-    
-    MobileFIR -->|Success| SaveAlias["Auto-Save into Hive Mind with barcode=2285623001452"] --> Resolve["Return Full Macros & Deep Link"]
-    SearchStore -->|Match Found| SaveAlias
-    SearchStore -->|Not Found| QuickSearch["Provide 1-Tap Quick Search: 'Search in App / Web'"]
-```
+### A. Barcode Resolution Pipeline (15 Fallback Methods)
+1. **UPC / EAN-13 / GTIN-14 Normalizer**: Auto-evaluates 8-digit (EAN-8), 12-digit (UPC-A), 13-digit (EAN-13 with zero-padding `0...`), and 14-digit GTIN variants across all search queries.
+2. **GS1 Modulo-10 Checksum Validator**: Validates mathematical integrity of scanned barcodes before dispatching network requests.
+3. **In-Store Bakery PLU Aliasing**: Maps 6-digit scale barcodes (`20-29` prefix) to verified catalog items.
+4. **Albert Heijn Primary Mobile API**: GTIN lookup via `/mobile-services/product/detail/v4/fir/gtin/{barcode}`.
+5. **Albert Heijn Secondary Web Search**: HTML fallback querying `ah.nl/zoeken?query={barcode}`.
+6. **Jumbo Primary Mobile API**: Querying `mobileapi.jumbo.com/v17/search?q={barcode}`.
+7. **Jumbo Secondary Web Search Scraper**: HTML fallback on `jumbo.com/zoeken`.
+8. **Dirk van den Broek Primary API**: Catalog search via `api.dirk.nl/v1/assortment/search?search={barcode}`.
+9. **Dirk Secondary Web Scraper**: HTML fallback on `dirk.nl/boodschappen`.
+10. **PLUS Supermarkt Preload HotCache**: Search via `plus.nl/zoeken?zoekterm={barcode}`.
+11. **Lidl Nederland Catalog & Web Search**: Queries `lidl.nl/q/search?q={barcode}`.
+12. **Aldi Nederland Web Search Scraper**: Product scraper on `aldi.nl/zoekresultaten.html`.
+13. **Picnic Online Supermarket Search API**: Queries `picnic.app/nl/zoeken?q={barcode}`.
+14. **Hoogvliet & Spar Nederland Resolvers**: Search on `hoogvliet.com/zoeken` and `spar.nl/zoeken`.
+15. **Open Food Facts Global API v2**: Global multi-variant query on `world.openfoodfacts.org/api/v2/product/{barcode}.json`.
 
 ---
 
-## 3. Component Details & Fallback Sequence
+### B. Product Link & 404 Recovery Pipeline (13 Fallback Methods)
+16. **Direct Chrome Browser-Header Fetch**: Bypasses basic WAF checks with realistic client headers.
+17. **AH Mobile Services FIR API**: Resolves `wi...` IDs directly when AH web pages block requests.
+18. **AH Keyword Slug Recovery**: Recovers from moved/changed AH product URLs.
+19. **Jumbo Mobile API**: Resolves SKU IDs directly when Jumbo web pages are blocked.
+20. **Jumbo 404 Auto-Recovery**: Detects 404 / discontinued pages and swaps them with active live product URLs via keyword search.
+21. **Dirk Nuxt 3 `__NUXT_DATA__` Devalue Parser**: Extracts raw reactive state from Dirk pages.
+22. **PLUS HotCache Preload Endpoint**: Bypasses SSR hydration latency.
+23. **Lidl Nederland Adapter**: JSON-LD Schema.org + German/Dutch nutrition table parser for `lidl.nl/p/...`.
+24. **Aldi Nederland Adapter**: HTML & Microdata parser for `aldi.nl/producten/...`.
+25. **Picnic Adapter**: Product article parser for `picnic.app/nl/p/...`.
+26. **Hoogvliet Adapter**: Product details scraper for `hoogvliet.com/product/...`.
+27. **Spar Adapter**: Product details scraper for `spar.nl/producten/...`.
+28. **High-Availability Reader Proxy (`r.jina.ai`)**: Headless bypass for `403 Forbidden`, `429 Too Many Requests`, and `503 Service Unavailable`.
+
+---
+
+### C. Boodschappenlijst & Recipe Ingestion Pipeline (9 Fallback Methods)
+29. **AH GraphQL Mobile Shared List**: Resolves anonymous token lists (`getSharedList`).
+30. **AH HTML List Scraper**: Parses `ah.nl/lijst/...`.
+31. **AH Allerhande Recipe Scraper**: Parses `ah.nl/allerhande/recepten/...`.
+32. **Jumbo Recipe & Shared List Scraper**: Parses `jumbo.com/recepten/...`.
+33. **Dirk Recipe & Shared List Scraper**: Parses `dirk.nl/recepten/...`.
+34. **PLUS Recipe & Shared List Scraper**: Parses `plus.nl/recepten/...`.
+35. **Lidl Recipe / List Scraper**: Parses `lidl.nl/recepten/...`.
+36. **Picnic Shared Basket / List Scraper**: Parses `picnic.app/nl/basket/...`.
+37. **Schema.org Universal Recipe Parser & Single-Link Auto-Wrap**: Extracts `@type: "Recipe"` from *any* website (e.g. 24Kitchen, Lekker & Simpel, HelloFresh) with per-portion calorie and macro calculations.
+
+---
+
+## 3. Supported Supermarkets & Retailers Matrix
+
+| Supermarket / Source | Barcode Scanner | Product Link Scraper | Shared List / Basket | 404 Auto-Recovery | Verified Deep Search Link |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Albert Heijn** (`ah.nl`) | ✅ Yes | ✅ Yes | ✅ Yes (GraphQL/HTML) | ✅ Yes | `Zoek in AH App / Web` |
+| **Jumbo** (`jumbo.com`) | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | `Zoek op Jumbo.com` |
+| **Dirk van den Broek** (`dirk.nl`) | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | `Zoek op Dirk.nl` |
+| **PLUS Supermarkt** (`plus.nl`) | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | `Zoek op PLUS.nl` |
+| **Lidl Nederland** (`lidl.nl`) | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | `Zoek op Lidl.nl` |
+| **Aldi Nederland** (`aldi.nl`) | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | `Zoek op Aldi.nl` |
+| **Picnic** (`picnic.app`) | ✅ Yes | ✅ Yes | ✅ Yes (Basket) | ✅ Yes | `Zoek op Picnic` |
+| **Hoogvliet** (`hoogvliet.com`) | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | `Zoek op Hoogvliet.com` |
+| **Spar** (`spar.nl`) | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes | `Zoek op Spar.nl` |
+| **Open Food Facts** (`world.openfoodfacts.org`) | ✅ Yes | ✅ Yes | — | — | `Bekijk op OpenFoodFacts` |
+| **Universal Recipe Sites** (*24Kitchen, HelloFresh...*) | — | ✅ Yes | ✅ Yes | ✅ Yes | `Bekijk recept` |
+
+---
+
+## 4. Component Details & Latency Profile
 
 | Tier | Component | Strategy | Latency |
 | :--- | :--- | :--- | :--- |
-| **Tier 1** | Supabase `food_items` | Checks `barcode`, `id = ean_{barcode}`, or `id = ah_wi{webshopId}` | `< 30ms` |
-| **Tier 1.5** | PLU Alias Mapper | `extractScalePluCandidates()` + `BAKERY_PLU_DICTIONARY` | `< 1ms` |
-| **Tier 2** | Mobile Services API | Anonymous mobile token + direct GTIN & FIR webshop ID endpoints | `~150ms` |
-| **Tier 3** | Store Search Endpoints | Store search query resolution via store search APIs | `~300ms` |
-| **Tier 4** | Web HTML Scraper | Server-side parsing of structured JSON-LD and Dutch nutrition tables | `~500ms` |
-| **Tier 4b** | Proxy Reader | Fallback proxy when supermarket bot mitigations trigger | `~1.2s` |
-| **Tier 5** | Strict Quality Gate | Verifies title cleanliness, non-zero macro validation, and unit normalization | `< 1ms` |
+| **Tier 1** | Supabase `food_items` | Checks `barcode`, `id = ean_{barcode}`, or `id = {id}` | `< 30ms` |
+| **Tier 1.5** | GS1 & PLU Normalizer | `generateBarcodeVariants()` + `BAKERY_PLU_DICTIONARY` | `< 1ms` |
+| **Tier 2** | Retailer Native Mobile APIs | Anonymous mobile token + direct GTIN & FIR webshop ID endpoints | `~150ms` |
+| **Tier 3** | Retailer Search Endpoints | Automated catalog search fallback across all 9 supermarket engines | `~300ms` |
+| **Tier 4** | Web HTML / Nuxt Scraper | Server-side parsing of structured JSON-LD, Nuxt 3 devalue, and Dutch nutrition tables | `~500ms` |
+| **Tier 4b** | High-Availability Proxy | Fallback reader proxy (`r.jina.ai`) when supermarket bot mitigations trigger | `~1.2s` |
+| **Tier 5** | Strict Quality Gate | Suppresses generic `"Product"` titles, validates non-zero macros, and normalizes serving units (`g` vs. `ml`) | `< 1ms` |
 
 ---
 
-## 4. Open-Source Reverse-Engineering Research & Fallback Ecosystem
+## 5. Open-Source Reverse-Engineering Research & Fallback Ecosystem
 
 The application's supermarket resolution and shopping list ingestion pipelines incorporate architectural research and patterns from community-maintained open-source projects:
 
-### 4.1 SupermarktConnector (Python)
+### 5.1 SupermarktConnector (Python)
 - **Repo**: [robin-v/SupermarktConnector](https://github.com/robin-v/SupermarktConnector)
 - **Ecosystem**: Python package (`pip install SupermarktConnector`)
 - **Key Concepts Adopted**:
@@ -71,7 +123,7 @@ The application's supermarket resolution and shopping list ingestion pipelines i
   - Multi-retailer mapping (Albert Heijn, Jumbo, PLUS, Dirk, Aldi, Lidl).
   - Normalization of package weights and serving units (`g` vs. `ml`).
 
-### 4.2 appie-go (Go) & appie-cli
+### 5.2 appie-go (Go) & appie-cli
 - **Repo**: [appie-go](https://github.com/appie-go)
 - **Ecosystem**: Go module and command-line tool
 - **Key Concepts Adopted**:
@@ -79,7 +131,7 @@ The application's supermarket resolution and shopping list ingestion pipelines i
   - Native mobile header rotation (`Appie/8.8.2 iOS/17.0`, `Host: api.ah.nl`) to ensure reliable upstream response rates.
   - Clean error categorization distinguishing expired shared lists from missing products.
 
-### 4.3 albert-heijn-graphql-api (Python)
+### 5.3 albert-heijn-graphql-api (Python)
 - **Repo**: [albert-heijn-graphql-api](https://github.com/albert-heijn-graphql-api)
 - **Ecosystem**: GraphQL schema definitions & query tools
 - **Key Concepts Adopted**:
@@ -87,7 +139,7 @@ The application's supermarket resolution and shopping list ingestion pipelines i
   - Application identification header (`x-application: AH-ShoppingList-Next`).
   - Handling of nested product fragments and sales unit sizing attributes.
 
-### 4.4 albert-heijn-api (Node.js)
+### 5.4 albert-heijn-api (Node.js)
 - **Repo**: [albert-heijn-api](https://github.com/albert-heijn-api)
 - **Ecosystem**: Node.js & TypeScript microservice wrappers
 - **Key Concepts Adopted**:

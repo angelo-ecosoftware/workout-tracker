@@ -482,6 +482,51 @@ async function scrapeAldiListHtml(urlOrId: string): Promise<ExtractedGroceryItem
   return null;
 }
 
+/**
+ * Strategy 9: Scrapes shared baskets / lists from Picnic Nederland
+ */
+async function scrapePicnicBasketHtml(urlOrId: string): Promise<ExtractedGroceryItem[] | null> {
+  const targetUrl = urlOrId.startsWith('http') ? urlOrId : `https://picnic.app/nl/basket/${urlOrId}`;
+  try {
+    const res = await fetch(targetUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    const productMatches = [...html.matchAll(/href=["'](\/(?:p|article)\/([a-z0-9-]+))["']/gi)];
+    if (productMatches.length > 0) {
+      const itemsMap = new Map<string, ExtractedGroceryItem>();
+      for (const m of productMatches) {
+        const fullPath = m[1];
+        const rawSlug = m[2];
+        const cleanTitle = rawSlug.replace(/-/g, ' ').trim();
+        if (!itemsMap.has(rawSlug)) {
+          itemsMap.set(rawSlug, {
+            id: `picnic_${rawSlug}`,
+            title: cleanTitle || 'Picnic Product',
+            brand: 'Picnic',
+            webPath: fullPath,
+            quantity: 1,
+          });
+        }
+      }
+      if (itemsMap.size > 0) {
+        return Array.from(itemsMap.values());
+      }
+    }
+  } catch (err: unknown) {
+    console.warn('Picnic list scraper error:', err);
+  }
+  return null;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Enable CORS headers for any consumer
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -664,6 +709,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         listId: 'aldi_list',
         totalItems: enrichedAldi.length,
         products: enrichedAldi,
+      });
+    }
+  }
+
+  if (rawInput.toLowerCase().includes('picnic.app') || rawInput.toLowerCase().includes('picnic.nl')) {
+    const picnicItems = await scrapePicnicBasketHtml(rawInput.trim());
+    if (picnicItems && picnicItems.length > 0) {
+      const enrichedPicnic = await Promise.all(
+        picnicItems.map(async (item) => {
+          if (!item.webPath) return item;
+          try {
+            const productUrl = item.webPath.startsWith('http') ? item.webPath : `https://picnic.app${item.webPath}`;
+            const nutrition = await scrapeProductFromUrl(productUrl);
+            return {
+              ...item,
+              title: nutrition.name || item.title,
+              brand: nutrition.brand || item.brand,
+              nutrition,
+            };
+          } catch {
+            return item;
+          }
+        })
+      );
+      return res.status(200).json({
+        success: true,
+        listId: 'picnic_list',
+        totalItems: enrichedPicnic.length,
+        products: enrichedPicnic,
       });
     }
   }

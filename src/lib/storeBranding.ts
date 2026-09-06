@@ -61,6 +61,30 @@ export const KNOWN_STORES: Record<string, StoreMetadata> = {
     bgColor: 'bg-[#00205b]/10',
     borderColor: 'border-[#00205b]/30',
   },
+  picnic: {
+    id: 'picnic',
+    name: 'Picnic',
+    badgeLabel: 'PICNIC',
+    textColor: 'text-[#e11d48]',
+    bgColor: 'bg-[#e11d48]/10',
+    borderColor: 'border-[#e11d48]/30',
+  },
+  hoogvliet: {
+    id: 'hoogvliet',
+    name: 'Hoogvliet',
+    badgeLabel: 'HOOGVLIET',
+    textColor: 'text-[#0284c7]',
+    bgColor: 'bg-[#0284c7]/10',
+    borderColor: 'border-[#0284c7]/30',
+  },
+  spar: {
+    id: 'spar',
+    name: 'Spar',
+    badgeLabel: 'SPAR',
+    textColor: 'text-[#15803d]',
+    bgColor: 'bg-[#15803d]/10',
+    borderColor: 'border-[#15803d]/30',
+  },
   generic: {
     id: 'generic',
     name: 'Store',
@@ -94,6 +118,15 @@ export function getStoreMetadata(sourceUrl?: string, productId?: string): StoreM
   }
   if (target.includes('aldi.nl') || target.startsWith('aldi_')) {
     return KNOWN_STORES.aldi;
+  }
+  if (target.includes('picnic.app') || target.includes('picnic.nl') || target.startsWith('picnic_')) {
+    return KNOWN_STORES.picnic;
+  }
+  if (target.includes('hoogvliet.com') || target.startsWith('hoogvliet_')) {
+    return KNOWN_STORES.hoogvliet;
+  }
+  if (target.includes('spar.nl') || target.startsWith('spar_')) {
+    return KNOWN_STORES.spar;
   }
   if (sourceUrl) {
     return KNOWN_STORES.generic;
@@ -153,6 +186,9 @@ export function isHouseBrand(brand?: string, storeMeta?: StoreMetadata | null): 
     'river',
     'golden seafood',
     'gut bio',
+    'picnic',
+    'hoogvliet',
+    'spar',
   ];
 
   if (storeMeta && b === storeMeta.id.toLowerCase()) return true;
@@ -255,6 +291,39 @@ export function getProductExternalUrl(item: { id?: string; sourceUrl?: string; n
     return {
       url: `https://www.aldi.nl/zoekresultaten.html?query=${query}`,
       label: 'Zoek op Aldi.nl',
+      isAppCapable: false,
+    };
+  }
+
+  // 3.10. If item is Picnic brand or has Picnic ID
+  const isPicnic = storeMeta?.id === 'picnic' || item.id?.startsWith('picnic_') || item.brand?.toLowerCase().includes('picnic');
+  if (isPicnic && item.name) {
+    const query = encodeURIComponent(cleanProductTitle(item.name));
+    return {
+      url: `https://picnic.app/nl/zoeken?q=${query}`,
+      label: 'Zoek op Picnic',
+      isAppCapable: false,
+    };
+  }
+
+  // 3.11. If item is Hoogvliet brand or has Hoogvliet ID
+  const isHoogvliet = storeMeta?.id === 'hoogvliet' || item.id?.startsWith('hoogvliet_') || item.brand?.toLowerCase().includes('hoogvliet');
+  if (isHoogvliet && item.name) {
+    const query = encodeURIComponent(cleanProductTitle(item.name));
+    return {
+      url: `https://www.hoogvliet.com/zoeken?q=${query}`,
+      label: 'Zoek op Hoogvliet.com',
+      isAppCapable: false,
+    };
+  }
+
+  // 3.12. If item is Spar brand or has Spar ID
+  const isSpar = storeMeta?.id === 'spar' || item.id?.startsWith('spar_') || item.brand?.toLowerCase().includes('spar');
+  if (isSpar && item.name) {
+    const query = encodeURIComponent(cleanProductTitle(item.name));
+    return {
+      url: `https://www.spar.nl/zoeken/?q=${query}`,
+      label: 'Zoek op Spar.nl',
       isAppCapable: false,
     };
   }
