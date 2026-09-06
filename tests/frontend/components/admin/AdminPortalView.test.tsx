@@ -63,7 +63,7 @@ describe('AdminPortalView (Command Center)', () => {
     vi.mocked(AdminDb.updateMissingProductReportStatus).mockResolvedValue({ success: true });
   });
 
-  it('renders admin command center header and user directory', async () => {
+  it('renders admin command center header and user directory (excluding admin accounts)', async () => {
     render(<AdminPortalView />);
 
     await waitFor(() => {
@@ -73,7 +73,7 @@ describe('AdminPortalView (Command Center)', () => {
 
     expect(screen.getByText('John Athlete')).toBeInTheDocument();
     expect(screen.getByText('Coach Pending')).toBeInTheDocument();
-    expect(screen.getByText('Platform Administrator')).toBeInTheDocument();
+    expect(screen.queryByText('Platform Administrator')).not.toBeInTheDocument();
   });
 
   it('filters users by search query and role', async () => {
@@ -85,10 +85,10 @@ describe('AdminPortalView (Command Center)', () => {
     });
 
     const searchInput = screen.getByPlaceholderText(/Search user by name/i);
-    await user.type(searchInput, 'Platform');
+    await user.type(searchInput, 'John');
 
-    expect(screen.getByText('Platform Administrator')).toBeInTheDocument();
-    expect(screen.queryByText('John Athlete')).not.toBeInTheDocument();
+    expect(screen.getByText('John Athlete')).toBeInTheDocument();
+    expect(screen.queryByText('Coach Pending')).not.toBeInTheDocument();
   });
 
   it('allows approving pending coach applications directly', async () => {

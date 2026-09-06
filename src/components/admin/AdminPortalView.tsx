@@ -76,6 +76,10 @@ export const AdminPortalView: React.FC = () => {
     newSpecialty: CoachSpecialty | null,
     newApproved: boolean
   ) => {
+    if (userItem.role === 'admin' || newRole === 'admin') {
+      showFeedback('Administrator roles are immutable and cannot be modified.', true);
+      return;
+    }
     setUpdatingUserId(userItem.userId);
     const res = await updateUserRoleByAdmin(userItem.userId, newRole, newSpecialty, newApproved);
     setUpdatingUserId(null);
@@ -106,8 +110,11 @@ export const AdminPortalView: React.FC = () => {
     }
   };
 
+  // Exclude admin accounts from directory so admins cannot accidentally change their own roles or clutter the athlete/coach list
+  const manageableUsers = users.filter((u) => u.role !== 'admin');
+
   // Filter users based on search and role
-  const filteredUsers = users.filter((u) => {
+  const filteredUsers = manageableUsers.filter((u) => {
     const matchesSearch =
       (u.name && u.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (u.email && u.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -182,7 +189,7 @@ export const AdminPortalView: React.FC = () => {
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>User & Role Directory ({users.length})</span>
+            <span>User & Role Directory ({manageableUsers.length})</span>
           </button>
 
           <button
@@ -261,7 +268,6 @@ export const AdminPortalView: React.FC = () => {
                 <option value="all">All Roles</option>
                 <option value="athlete">Athletes Only</option>
                 <option value="coach">Coaches Only</option>
-                <option value="admin">Admins Only</option>
               </select>
             </div>
           </div>
@@ -379,27 +385,6 @@ export const AdminPortalView: React.FC = () => {
                                 }`}
                               >
                                 {u.isApproved ? 'Revoke Approval' : 'Approve Coach'}
-                              </button>
-                            )}
-
-                            {/* Toggle Admin */}
-                            {u.role !== 'admin' ? (
-                              <button
-                                type="button"
-                                disabled={isUpdating}
-                                onClick={() => handleRoleChange(u, 'admin', null, true)}
-                                className="px-2 py-1 bg-purple-950/50 hover:bg-purple-900/60 text-purple-300 border border-purple-800 rounded-lg text-[10px] font-mono transition-colors cursor-pointer"
-                              >
-                                Make Admin
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                disabled={isUpdating}
-                                onClick={() => handleRoleChange(u, 'athlete', null, true)}
-                                className="px-2 py-1 bg-red-950/50 hover:bg-red-900/60 text-red-300 border border-red-800 rounded-lg text-[10px] font-mono transition-colors cursor-pointer"
-                              >
-                                Demote Admin
                               </button>
                             )}
                           </div>
