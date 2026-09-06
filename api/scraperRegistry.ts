@@ -112,7 +112,7 @@ export function parseDutchNutritionTable(html: string): {
 }
 
 // -------------------------------------------------------------
-// Helper: Detect anti-bot challenge pages and error titles
+// Helper: Detect anti-bot challenge pages, 404s, and error titles
 // -------------------------------------------------------------
 const BLOCKED_PAGE_INDICATORS = [
   'access denied',
@@ -126,6 +126,14 @@ const BLOCKED_PAGE_INDICATORS = [
   'datadome',
   'blocked',
   'enable javascript and cookies',
+  'deze pagina bestaat niet',
+  'pagina niet gevonden',
+  'page not found',
+  'niet meer beschikbaar',
+  'product niet gevonden',
+  'helaas, deze pagina',
+  'geen resultaten gevonden',
+  '404 niet gevonden',
 ];
 
 export function isBlockedOrErrorTitle(title: string): boolean {
@@ -459,6 +467,56 @@ export const jumboAdapter: StoreScraperAdapter = {
     };
   },
 };
+
+/**
+ * Direct search endpoint fallback for Jumbo products.
+ * Searches Jumbo by keyword/slug when a direct product link has expired or returns a 404.
+ */
+export async function searchJumboProduct(query: string, sourceUrl: string): Promise<ProductScraperResult | null> {
+  const cleanQuery = query.trim();
+  if (!cleanQuery) return null;
+
+  try {
+    const searchUrl = `https://www.jumbo.com/producten/?searchType=keyword&searchTerms=${encodeURIComponent(cleanQuery)}`;
+    const res = await fetch(searchUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'nl-NL,nl;q=0.9',
+      },
+    });
+
+    if (!res.ok) return null;
+    const html = await res.text();
+    const productMatches = [...html.matchAll(/href=["'](\/producten\/[a-z0-9-]+-([0-9]+[a-z0-9]*))["']/gi)];
+    if (productMatches.length > 0) {
+      const bestMatchPath = productMatches[0][1];
+      const bestMatchUrl = `https://www.jumbo.com${bestMatchPath}`;
+      const prodRes = await fetch(bestMatchUrl, {
+        headers: {
+          'User-Agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'nl-NL,nl;q=0.9',
+        },
+      });
+      if (prodRes.ok) {
+        const prodHtml = await prodRes.text();
+        const parsed = jumboAdapter.parse(prodHtml, bestMatchUrl);
+        if (parsed && !isBlockedOrErrorTitle(parsed.name)) {
+          return {
+            ...parsed,
+            sourceUrl: sourceUrl || bestMatchUrl,
+          };
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Jumbo search fallback error:', err);
+  }
+  return null;
+}
 
 // -------------------------------------------------------------
 // ADAPTER 2: Albert Heijn
@@ -885,9 +943,9 @@ export async function scrapeProductFromUrl(rawUrl: string): Promise<ProductScrap
     }
   }
 
-  // 3. Fallback: If Jumbo web fetch was blocked (e.g. 403 / challenge), attempt Jumbo Mobile/Search API
-  if (!html && adapter.name === 'Jumbo') {
-    const jumboIdMatch = targetUrl.match(/-(\d+)[a-z]*(?:[/?#]|$)/i) || targetUrl.match(/-([0-9A-Z]+)$/i) || targetUrl.match(/producten\/([^/?#]+)/i);
+  // 3. Fallback: If Jumbo web fetch was blocked (404, 403, or invalid page), attempt Jumbo Mobile/Search API
+  if ((!html || lastStatus === 404 || lastStatus === 403) && adapter.name === 'Jumbo') {
+    const jumboIdMatch = targetUrl.match(/-(\d+)[a-z0-9]*(?:[/?#]|$)/i) || targetUrl.match(/producten\/([^/?#]+)/i);
     const sku = jumboIdMatch ? jumboIdMatch[1] : '';
     if (sku) {
       try {
@@ -902,6 +960,31 @@ export async function scrapeProductFromUrl(rawUrl: string): Promise<ProductScrap
       } catch (jumboApiErr) {
         console.warn('Jumbo Mobile API fallback attempt failed:', jumboApiErr);
       }
+    }
+
+    // Secondary Jumbo fallback: Search by URL slug keywords (e.g. "scharrelkip kipfilet")
+    try {
+      const slugMatch = targetUrl.match(/producten\/([a-z0-9-]+)/i);
+      if (slugMatch) {
+        const cleanQuery = slugMatch[1]
+          .replace(/-\d+[a-z0-9]*$/i, '')
+          .replace(/^jumbo-?/i, '')
+          .replace(/-/g, ' ')
+          .replace(/\bca\s*\d+\s*g\b/i, '')
+          .trim();
+        if (cleanQuery) {
+          const jumboSearchResult = await searchJumboProduct(cleanQuery, targetUrl);
+          if (
+            jumboSearchResult &&
+            !isBlockedOrErrorTitle(jumboSearchResult.name) &&
+            (jumboSearchResult.kcalPer100g > 0 || jumboSearchResult.proteinPer100g > 0)
+          ) {
+            return jumboSearchResult;
+          }
+        }
+      }
+    } catch (jumboSearchErr) {
+      console.warn('Jumbo Search fallback attempt failed:', jumboSearchErr);
     }
   }
 
@@ -928,9 +1011,32 @@ export async function scrapeProductFromUrl(rawUrl: string): Promise<ProductScrap
 
   const parsed = adapter.parse(html, targetUrl);
 
-  // 4. Strict Validation Gate: Check for bot block titles or invalid parses
+  // 4. Strict Validation Gate: Check for bot block titles, 404s, or invalid parses
   if (isBlockedOrErrorTitle(parsed.name)) {
-    throw new Error(`Could not resolve ${adapter.name} product. The store returned an access challenge or restricted page.`);
+    // Attempt final keyword fallback for Jumbo if not yet resolved
+    if (adapter.name === 'Jumbo') {
+      const slugMatch = targetUrl.match(/producten\/([a-z0-9-]+)/i);
+      if (slugMatch) {
+        const cleanQuery = slugMatch[1]
+          .replace(/-\d+[a-z0-9]*$/i, '')
+          .replace(/^jumbo-?/i, '')
+          .replace(/-/g, ' ')
+          .replace(/\bca\s*\d+\s*g\b/i, '')
+          .trim();
+        if (cleanQuery) {
+          const jumboSearchResult = await searchJumboProduct(cleanQuery, targetUrl);
+          if (
+            jumboSearchResult &&
+            !isBlockedOrErrorTitle(jumboSearchResult.name) &&
+            (jumboSearchResult.kcalPer100g > 0 || jumboSearchResult.proteinPer100g > 0)
+          ) {
+            return jumboSearchResult;
+          }
+        }
+      }
+    }
+
+    throw new Error(`Could not resolve ${adapter.name} product. The product is discontinued or the page is no longer available (Page not found / 404).`);
   }
 
   return parsed;
