@@ -146,4 +146,3 @@ The application's supermarket resolution and shopping list ingestion pipelines i
   - Server-side CORS proxy architecture implemented in `/api/grocery-list.ts` and `/api/product-link.ts`.
   - FIR (Food Information Regulation) nutritional table regex and structured schema parsing.
   - Automated database indexing ensuring every resolved item is permanently cached for all users.
-

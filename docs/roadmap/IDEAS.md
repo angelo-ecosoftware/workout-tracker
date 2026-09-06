@@ -228,32 +228,29 @@ This section tracks active defects, developer reproduction steps, affected sourc
 ---
 
 ### [BUG-001] Exercise Accordion Initial State & Closed/Opened Symmetry
-* **Status**: 🟡 Open / Ready for Dev
+* **Status**: � Resolved & Verified
 * **Severity**: Medium (UI / UX Polish)
 * **Affected Files**:
   - `src/components/workout/tracker/useWorkoutSession.ts`
   - `src/components/workout/tracker/ExerciseCard.tsx`
   - `src/components/workout/WorkoutDayTracker.tsx`
-* **Symptoms**:
-  - Upon logging in or switching active workout splits, the first exercise card (`activeWorkout.exercises[0].id`) is automatically expanded by default.
-  - Tapping an opened exercise to collapse it sometimes leaves unequal margins or sticky padding compared to natively closed cards.
-* **Target Fix**:
-  1. Default `expandedExerciseId` to `null` on workout load and session switch so all exercise cards start cleanly collapsed.
-  2. Ensure opened and closed card container transitions are symmetrical (`h-auto` with uniform padding).
+* **Resolution**:
+  1. Defaulted `expandedExerciseId` to `null` on workout load and session switch so all exercise cards start cleanly collapsed.
+  2. Implemented `localStorage` state persistence per workout routine (`workout_expanded_ex_{userId}_{workoutId}`) so user expand/collapse preferences persist across sessions.
+  3. Refactored `RecoveryAndReadinessCard` to start collapsed by default with persistent state in `localStorage`.
 
 ---
 
 ### [BUG-002] Sets Input Form Integer & Step Handling (Integer 1 Jumpiness)
-* **Status**: 🟡 Open / Ready for Dev
+* **Status**: 🟢 Resolved & Verified
 * **Severity**: Medium (Input UX)
 * **Affected Files**:
+  - `src/components/workout/tracker/ExerciseSetRow.tsx`
   - `src/components/workout/tracker/ExerciseCard.tsx`
   - `src/components/workout/tracker/useWorkoutSession.ts`
-* **Symptoms**:
-  - Typing small numbers (e.g. `1` or `10`) in reps, weight, or duration input fields causes jumpy cursor positioning, unwanted step snapping, or string conversion clearing.
-* **Target Fix**:
-  1. Preserve raw user string input in state during active typing without premature numeric coercion.
-  2. Sanitize and clamp only on `onBlur` or submit.
+* **Resolution**:
+  1. Implemented sleek single-line set rows with minimal `[-] [ 20 kg ] [+]` steppers and native `onFocus={(e) => e.target.select()}` handlers.
+  2. Added 1-tap set completion checkmark (`[ ✓ ]`) with automatic active focus (`NEXT`) advancement and completion timestamp tracking.
 
 ---
 
@@ -288,7 +285,28 @@ This section tracks active defects, developer reproduction steps, affected sourc
   1. Add calorie sanity validation formula: $\text{Calculated Kcal} \approx (4 \times \text{Protein}) + (4 \times \text{Carbs}) + (9 \times \text{Fat})$.
   2. Normalize serving size detection to standard 100g/100ml.
 
-- **Features**:
-  - Clean, high-contrast black-and-white print styling to save ink.
-  - Includes target sets, target rep ranges, exercise order, and coach technique cues.
-  - QR code linking directly back into the live workout tracker session.
+---
+
+### [BUG-005] Mobile History Loop & Back-Swipe to Login Screen
+* **Status**: 🟢 Resolved & Verified
+* **Severity**: High (Navigation / Session UX)
+* **Affected Files**:
+  - `src/App.tsx`
+  - `src/context/AuthContext.tsx`
+* **Resolution**:
+  - Sanitized `window.history` via `replaceState` upon successful authentication to remove OAuth callback and login entries.
+  - Added root-level back-trap ensuring mobile back swipe gestures remain on the active tab and allow the OS to background/exit the PWA without cycling through login screens.
+
+---
+
+### [BUG-006] Unique ID Remapping & Cross-Account Isolation on Import
+* **Status**: 🟢 Resolved & Verified
+* **Severity**: Critical (Data Integrity)
+* **Affected Files**:
+  - `src/lib/supabaseData.ts`
+  - `src/lib/db/backup.ts`
+  - `src/components/modals/SettingsBackupSection.tsx`
+  - `tests/backend/auth/dataBackup.test.ts`
+* **Resolution**:
+  - Implemented dynamic ID remapping engine so all imported workouts, exercises, sessions, and sets receive fresh unique IDs and remap foreign keys on import.
+  - Added granular export scopes ("Shareable Routines & Exercises", "Full Backup", "Custom Selection") in Settings.
