@@ -4,8 +4,13 @@ async function makeAngeloCoachOfOela() {
   console.log('=== 🏋️ LINKING ANGELO GHAFOERKHAN AS COACH OF OELA DEXTER ===\n');
 
   // Authenticate as Platform Administrator
-  const adminEmail = process.env.ADMIN_EMAIL || 'tuO45744@gmail.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'TestUser2005@';
+  const adminEmail = process.env.ADMIN_EMAIL || '';
+  const adminPassword = process.env.ADMIN_PASSWORD || '';
+
+  if (!adminEmail || !adminPassword) {
+    console.error('Missing ADMIN_EMAIL or ADMIN_PASSWORD in environment.');
+    return;
+  }
 
   const { data: authData, error: authErr } = await supabase.auth.signInWithPassword({
     email: adminEmail,
