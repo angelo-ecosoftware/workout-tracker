@@ -6,6 +6,53 @@ import { DbFoodItemRow } from '../types/supabase.ts';
 export const DEFAULT_FOOD_CATALOG: FoodItemNutrition[] = [];
 
 // Helper to calculate exact portion values given grams and 100g base
+export function sanitizeNutritionMacros(nut: {
+  kcalPer100g?: number;
+  proteinPer100g?: number;
+  carbsPer100g?: number;
+  sugarPer100g?: number;
+  fatPer100g?: number;
+  fiberPer100g?: number;
+}): {
+  kcalPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  sugarPer100g: number;
+  fatPer100g: number;
+  fiberPer100g: number;
+} {
+  let protein = Math.max(0, Math.round(Number(nut.proteinPer100g || 0) * 10) / 10);
+  let carbs = Math.max(0, Math.round(Number(nut.carbsPer100g || 0) * 10) / 10);
+  let sugar = Math.max(0, Math.round(Number(nut.sugarPer100g || 0) * 10) / 10);
+  let fat = Math.max(0, Math.round(Number(nut.fatPer100g || 0) * 10) / 10);
+  let fiber = Math.max(0, Math.round(Number(nut.fiberPer100g || 0) * 10) / 10);
+  let kcal = Math.max(0, Math.round(Number(nut.kcalPer100g || 0)));
+
+  if (sugar > carbs) {
+    sugar = carbs;
+  }
+
+  const computedAtwaterKcal = Math.round((protein * 4) + (carbs * 4) + (fat * 9) + (fiber * 2));
+
+  if (kcal === 0 && (protein > 0 || carbs > 0 || fat > 0)) {
+    kcal = computedAtwaterKcal;
+  } else if (kcal > 0 && (protein > 0 || carbs > 0 || fat > 0)) {
+    const deviation = Math.abs(kcal - computedAtwaterKcal);
+    if (computedAtwaterKcal > 20 && deviation > computedAtwaterKcal * 0.6) {
+      kcal = computedAtwaterKcal;
+    }
+  }
+
+  return {
+    kcalPer100g: kcal,
+    proteinPer100g: protein,
+    carbsPer100g: carbs,
+    sugarPer100g: sugar,
+    fatPer100g: fat,
+    fiberPer100g: fiber,
+  };
+}
+
 export function calculatePortionNutrients(
   base: Pick<FoodItemNutrition, 'kcalPer100g' | 'proteinPer100g' | 'carbsPer100g' | 'sugarPer100g' | 'fatPer100g' | 'fiberPer100g'>,
   grams: number
@@ -38,17 +85,22 @@ export function computeDailyTotals(entries: LoggedDietaryEntry[]) {
 // Supabase Hive-Mind Food Item Database Mappers & API
 export function mapSupabaseRowToFoodItem(row: DbFoodItemRow | Record<string, unknown>): FoodItemNutrition {
   const r = row as Partial<DbFoodItemRow>;
-  return {
-    id: String(r.id || ''),
-    name: String(r.name || ''),
-    brand: r.brand || '',
-    servingUnit: (r.serving_unit === 'ml' ? 'ml' : 'gram') as 'gram' | 'ml',
+  const rawMacros = {
     kcalPer100g: Number(r.kcal_per_100g) || 0,
     proteinPer100g: Number(r.protein_per_100g) || 0,
     carbsPer100g: Number(r.carbs_per_100g) || 0,
     sugarPer100g: Number(r.sugar_per_100g) || 0,
     fatPer100g: Number(r.fat_per_100g) || 0,
     fiberPer100g: Number(r.fiber_per_100g) || 0,
+  };
+  const sanitized = sanitizeNutritionMacros(rawMacros);
+
+  return {
+    id: String(r.id || ''),
+    name: String(r.name || ''),
+    brand: r.brand || '',
+    servingUnit: (r.serving_unit === 'ml' ? 'ml' : 'gram') as 'gram' | 'ml',
+    ...sanitized,
     sourceUrl: r.source_url || undefined,
     barcode: r.barcode || undefined,
     packageWeightGrams: r.package_weight_grams ? Number(r.package_weight_grams) : undefined,
@@ -61,18 +113,19 @@ export function mapSupabaseRowToFoodItem(row: DbFoodItemRow | Record<string, unk
 export function mapFoodItemToSupabaseRow(item: FoodItemNutrition, createdByUserId?: string) {
   const isCustom = Boolean(item.isCustom);
   const resolvedUserId = isCustom ? (item.userId || createdByUserId || null) : null;
+  const sanitized = sanitizeNutritionMacros(item);
 
   return {
     id: item.id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `food_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`),
     name: item.name,
     brand: item.brand || '',
     serving_unit: item.servingUnit || 'gram',
-    kcal_per_100g: item.kcalPer100g || 0,
-    protein_per_100g: item.proteinPer100g || 0,
-    carbs_per_100g: item.carbsPer100g || 0,
-    sugar_per_100g: item.sugarPer100g || 0,
-    fat_per_100g: item.fatPer100g || 0,
-    fiber_per_100g: item.fiberPer100g || 0,
+    kcal_per_100g: sanitized.kcalPer100g,
+    protein_per_100g: sanitized.proteinPer100g,
+    carbs_per_100g: sanitized.carbsPer100g,
+    sugar_per_100g: sanitized.sugarPer100g,
+    fat_per_100g: sanitized.fatPer100g,
+    fiber_per_100g: sanitized.fiberPer100g,
     source_url: item.sourceUrl || null,
     barcode: item.barcode || null,
     package_weight_grams: item.packageWeightGrams || null,

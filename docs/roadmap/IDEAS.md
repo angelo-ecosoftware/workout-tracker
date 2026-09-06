@@ -410,17 +410,22 @@ This section tracks active defects, developer reproduction steps, affected sourc
 ---
 
 ### [BUG-004] Supermarket Sourced Product Macro & Portion Discrepancies
-* **Status**: 🟡 Open / Ready for Dev
+* **Status**: � Resolved & Verified
 * **Severity**: Medium (Data Quality)
 * **Affected Files**:
   - `api/scraperRegistry.ts`
   - `api/product-link.ts`
   - `src/lib/dietaryData.ts`
+  - `tests/backend/dietary/nutritionSanitization.test.ts`
 * **Symptoms**:
   - Occasional product link resolutions return inaccurate caloric values or confuse per-portion values with per-100g standard metrics.
-* **Target Fix**:
-  1. Add calorie sanity validation formula: $\text{Calculated Kcal} \approx (4 \times \text{Protein}) + (4 \times \text{Carbs}) + (9 \times \text{Fat})$.
-  2. Normalize serving size detection to standard 100g/100ml.
+* **Resolution**:
+  1. Implemented Atwater calorie validation formula in `sanitizeNutritionMacros`:
+     $$\text{Expected Kcal} = (4 \times \text{Protein}) + (4 \times \text{Carbs}) + (9 \times \text{Fat}) + (2 \times \text{Fiber})$$
+  2. Synthesizes calories automatically when retailer reports 0 kcal with non-zero macros.
+  3. Detects and corrects extreme discrepancies (>60%) where retailers report kJ or per-package totals instead of per-100g.
+  4. Automatically clamps sugar $\le$ total carbs and prevents negative values across all scraper adapters and Supabase row mappers.
+  5. Added dedicated unit test suite (`tests/backend/dietary/nutritionSanitization.test.ts`) with 6 passing tests.
 
 ---
 

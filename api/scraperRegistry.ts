@@ -27,6 +27,57 @@ export interface StoreScraperAdapter {
 // Helper: Parse standard Dutch nutritional table (Voedingswaarden)
 // Supports both HTML <table> and Markdown table formats (| Key | Val |)
 // -------------------------------------------------------------
+export function sanitizeNutritionMacros(nut: {
+  kcalPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  sugarPer100g: number;
+  fatPer100g: number;
+  fiberPer100g: number;
+}): {
+  kcalPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  sugarPer100g: number;
+  fatPer100g: number;
+  fiberPer100g: number;
+} {
+  let protein = Math.max(0, Math.round(Number(nut.proteinPer100g || 0) * 10) / 10);
+  let carbs = Math.max(0, Math.round(Number(nut.carbsPer100g || 0) * 10) / 10);
+  let sugar = Math.max(0, Math.round(Number(nut.sugarPer100g || 0) * 10) / 10);
+  let fat = Math.max(0, Math.round(Number(nut.fatPer100g || 0) * 10) / 10);
+  let fiber = Math.max(0, Math.round(Number(nut.fiberPer100g || 0) * 10) / 10);
+  let kcal = Math.max(0, Math.round(Number(nut.kcalPer100g || 0)));
+
+  // If sugar exceeds carbs due to retail table parsing anomaly, clamp sugar
+  if (sugar > carbs) {
+    sugar = carbs;
+  }
+
+  // Calculate expected kcal from Atwater factors: 4 kcal/g protein, 4 kcal/g carb, 9 kcal/g fat, 2 kcal/g fiber
+  const computedAtwaterKcal = Math.round((protein * 4) + (carbs * 4) + (fat * 9) + (fiber * 2));
+
+  // If kcal is 0 but macros exist, synthesize kcal from Atwater calculation
+  if (kcal === 0 && (protein > 0 || carbs > 0 || fat > 0)) {
+    kcal = computedAtwaterKcal;
+  } else if (kcal > 0 && (protein > 0 || carbs > 0 || fat > 0)) {
+    // If reported kcal deviates wildly (>60%) from Atwater calculation, normalize towards calculated
+    const deviation = Math.abs(kcal - computedAtwaterKcal);
+    if (computedAtwaterKcal > 20 && deviation > computedAtwaterKcal * 0.6) {
+      kcal = computedAtwaterKcal;
+    }
+  }
+
+  return {
+    kcalPer100g: kcal,
+    proteinPer100g: protein,
+    carbsPer100g: carbs,
+    sugarPer100g: sugar,
+    fatPer100g: fat,
+    fiberPer100g: fiber,
+  };
+}
+
 export function parseDutchNutritionTable(html: string): {
   kcalPer100g: number;
   proteinPer100g: number;
@@ -1393,5 +1444,17 @@ export async function scrapeProductFromUrl(rawUrl: string): Promise<ProductScrap
     throw new Error(`Could not resolve ${adapter.name} product. The product is discontinued or the page is no longer available (Page not found / 404).`);
   }
 
-  return parsed;
+  const sanitizedMacros = sanitizeNutritionMacros({
+    kcalPer100g: parsed.kcalPer100g,
+    proteinPer100g: parsed.proteinPer100g,
+    carbsPer100g: parsed.carbsPer100g,
+    sugarPer100g: parsed.sugarPer100g,
+    fatPer100g: parsed.fatPer100g,
+    fiberPer100g: parsed.fiberPer100g,
+  });
+
+  return {
+    ...parsed,
+    ...sanitizedMacros,
+  };
 }
