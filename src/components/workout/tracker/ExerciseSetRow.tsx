@@ -34,13 +34,10 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
 }) => {
   return (
     <div className="flex flex-col sm:grid sm:grid-cols-12 gap-3 items-stretch sm:items-center bg-[#1a1a1a] border border-[#222] p-4 sm:p-2.5 rounded-xl hover:border-[#333] transition-colors">
-      {/* Label set number with icon & pill */}
+      {/* Label set number */}
       <div className="col-span-3 flex items-center justify-between sm:justify-start gap-2 font-mono text-xs font-bold text-gray-300 border-b border-[#2d2d2d] sm:border-0 pb-2 sm:pb-0 mb-1 sm:mb-0">
-        <span className="inline-flex items-center gap-1.5 uppercase tracking-wider text-[#C0FF00] bg-[#C0FF00]/10 px-2 py-0.5 rounded-lg border border-[#C0FF00]/20">
-          <Hash className="w-3.5 h-3.5 text-[#C0FF00]" />
-          <span>SET {setNum}</span>
-        </span>
-        <span className="sm:hidden font-sans font-semibold text-[10px] text-gray-400">
+        <span className="uppercase tracking-wider text-[#C0FF00]">SET {setNum}</span>
+        <span className="sm:hidden font-sans font-semibold text-[10px] text-gray-500">
           Target: {exercise.targetRepMin}-{exercise.targetRepMax}{' '}
           {exercise.type === 'timed' ? 'sec' : 'reps'}
         </span>
