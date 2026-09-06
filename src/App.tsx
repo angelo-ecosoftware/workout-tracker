@@ -193,6 +193,18 @@ const GymAppContent: React.FC = () => {
     return <LoginScreen />;
   }
 
+  // Pure Admin Experience: Strip all athlete and coaching modules
+  if (isAdmin) {
+    return (
+      <div className="min-h-screen bg-[#050505] text-[#f3f4f6] pb-16">
+        <Header />
+        <main className="max-w-7xl mx-auto px-4 py-8">
+          <AdminPortalView />
+        </main>
+      </div>
+    );
+  }
+
   // Coach Workspace vs Personal Athlete Mode toggle
   const isDedicatedCoachWorkspace = isCoach && !coachPersonalWorkoutMode && !inspectingClient;
 

@@ -126,4 +126,26 @@ describe('ProfileModal Component (Dynamic Behavioral Suite)', () => {
       })
     );
   });
+
+  it('renders dedicated Admin Profile card when isAdmin is true and strips biometric inputs', () => {
+    render(
+      <ProfileModal
+        isOpen={true}
+        onClose={vi.fn()}
+        user={{
+          id: 'usr_admin_test',
+          uid: 'usr_admin_test',
+          email: 'admin@platform.com',
+          displayName: 'Platform Admin',
+        }}
+        isAdmin={true}
+      />
+    );
+
+    expect(screen.getByRole('heading', { name: /admin profile/i })).toBeInTheDocument();
+    expect(screen.getByText(/superuser • full access/i)).toBeInTheDocument();
+    expect(screen.getByText('admin@platform.com')).toBeInTheDocument();
+    expect(screen.getByText(/athlete tracking and coaching tools are disabled/i)).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText(/182/i)).not.toBeInTheDocument();
+  });
 });

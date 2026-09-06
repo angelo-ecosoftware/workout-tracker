@@ -206,7 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const isApprovedCoach = Boolean(roleInfo?.role === 'coach' && roleInfo?.isApproved);
   const isCoach = roleInfo?.role === 'coach';
   const isAdmin = roleInfo?.role === 'admin';
-  const isAthlete = !roleInfo || roleInfo.role === 'athlete';
+  const isAthlete = !isAdmin && (!roleInfo || roleInfo.role === 'athlete');
 
   return (
     <AuthContext.Provider

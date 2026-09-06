@@ -21,7 +21,7 @@ interface Props {
 }
 
 export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
-  const { user, logout, switchAccount, isCoach, specialty } = useAuth();
+  const { user, logout, switchAccount, isCoach, isAdmin, specialty } = useAuth();
   const { installPrompt, setInstallPrompt, isStandalone, isIOS, isMobile } = usePWA();
   const [settingsMode, setSettingsMode] = useState<'trainer' | 'personal'>(() => isCoach ? 'trainer' : 'personal');
   const [isExporting, setIsExporting] = useState(false);
@@ -201,8 +201,8 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
           {/* Modal Scrollable Body */}
           <div className="p-3 sm:p-4 flex flex-col gap-2 sm:gap-2.5 overflow-y-auto overscroll-contain flex-1">
-            {/* Mode Switcher inside Settings (Only for Coaches) */}
-            {isCoach && (
+            {/* Mode Switcher inside Settings (Only for Coaches when not Admin) */}
+            {!isAdmin && isCoach && (
               <div className="flex bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 font-mono text-xs mb-1">
                 <button
                   type="button"
@@ -232,8 +232,30 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
               </div>
             )}
 
-            {/* COACH / TRAINER SETTINGS VIEW */}
-            {isCoach && settingsMode === 'trainer' ? (
+            {isAdmin ? (
+              /* ADMIN SETTINGS VIEW (Zero athlete / coaching clutter) */
+              <>
+                <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-xl flex items-center gap-2.5 text-xs font-mono text-purple-300">
+                  <Shield className="w-4 h-4 text-purple-400 shrink-0" />
+                  <div>
+                    <div className="font-bold">Superuser Administrator</div>
+                    <div className="text-[10px] text-purple-400/80">Athlete & coaching functions disabled</div>
+                  </div>
+                </div>
+
+                {/* Theme Selector */}
+                <SettingsThemeSection />
+
+                {/* PWA Section */}
+                <SettingsPWASection
+                  isMobile={isMobile}
+                  isStandalone={isStandalone}
+                  showIOSGuide={showIOSGuide}
+                  setShowIOSGuide={setShowIOSGuide}
+                  onInstallApp={handleInstallApp}
+                />
+              </>
+            ) : isCoach && settingsMode === 'trainer' ? (
               <>
                 <CoachSettingsSection />
                 <SettingsThemeSection />

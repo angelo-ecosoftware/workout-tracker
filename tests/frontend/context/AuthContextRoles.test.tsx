@@ -142,4 +142,29 @@ describe('AuthContext RBAC & Role Derivation', () => {
       expect(screen.getByTestId('is-approved-coach')).toHaveTextContent('no');
     });
   });
+
+  it('correctly sets admin role and strips athlete and coaching flags', async () => {
+    vi.spyOn(RolesDb, 'fetchUserRole').mockResolvedValue({
+      userId: 'user-athlete-1',
+      role: 'admin',
+      specialty: null,
+      isApproved: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    render(
+      <AuthProvider>
+        <TestComponent />
+      </AuthProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user-role')).toHaveTextContent('admin');
+      expect(screen.getByTestId('is-admin')).toHaveTextContent('yes');
+      expect(screen.getByTestId('is-coach')).toHaveTextContent('no');
+      expect(screen.getByTestId('is-athlete')).toHaveTextContent('no');
+      expect(screen.getByTestId('is-approved-coach')).toHaveTextContent('no');
+    });
+  });
 });

@@ -8,7 +8,7 @@ import { UserMetrics, Workout } from '../../models.ts';
 import { initializeUser, fetchWorkoutsData } from '../../lib/supabaseData.ts';
 
 export const Header: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { isOnline, pendingSyncCount, triggerManualSync } = usePWA();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -17,7 +17,7 @@ export const Header: React.FC = () => {
   const [routines, setRoutines] = useState<Workout[]>([]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || isAdmin) return;
 
     // Load initial user metrics & active routines for frequency calculation
     const loadProfileData = async () => {
@@ -81,11 +81,16 @@ export const Header: React.FC = () => {
               <Dumbbell className="w-5 h-5 stroke-[2]" />
             </div>
             <div>
-              <h1 className="font-display font-black italic text-base tracking-tight text-white leading-none uppercase">
-                WORKOUT <span className="text-[#C0FF00]">TRACKER</span>
+              <h1 className="font-display font-black italic text-base tracking-tight text-white leading-none uppercase flex items-center gap-1.5">
+                <span>WORKOUT</span> <span className="text-[#C0FF00]">TRACKER</span>
+                {isAdmin && (
+                  <span className="ml-1 text-[9px] font-mono font-black bg-purple-500/20 text-purple-300 border border-purple-500/40 px-1.5 py-0.5 rounded not-italic">
+                    ADMIN
+                  </span>
+                )}
               </h1>
               <p className="font-sans text-[9px] uppercase tracking-wider text-gray-500 mt-1 leading-none font-semibold">
-                Powering consistent progression
+                {isAdmin ? 'Platform Administrator Command Center' : 'Powering consistent progression'}
               </p>
             </div>
           </div>
@@ -102,7 +107,7 @@ export const Header: React.FC = () => {
             {/* Desktop User Pill / Button */}
             <button
               onClick={() => setIsProfileOpen(true)}
-              title="View & Edit Athlete Profile"
+              title={isAdmin ? 'View Admin Account' : 'View & Edit Athlete Profile'}
               className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-[#1a1a1a] hover:bg-[#252525] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl transition-all cursor-pointer group"
             >
               {user.photoURL ? (
@@ -123,7 +128,7 @@ export const Header: React.FC = () => {
             {/* Mobile User Icon / Button */}
             <button
               onClick={() => setIsProfileOpen(true)}
-              title="View & Edit Athlete Profile"
+              title={isAdmin ? 'View Admin Account' : 'View & Edit Athlete Profile'}
               className="sm:hidden flex items-center justify-center w-8 h-8 border border-[#333] hover:border-[#C0FF00] bg-[#1a1a1a] rounded-xl cursor-pointer transition-colors"
             >
               {user.photoURL ? (
@@ -155,6 +160,7 @@ export const Header: React.FC = () => {
         user={user}
         metrics={metrics}
         routines={routines}
+        isAdmin={isAdmin}
         onMetricsUpdated={(newMetrics) => setMetrics(newMetrics)}
       />
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, X, Dumbbell, MapPin, Sparkles, Check } from 'lucide-react';
+import { User, X, Dumbbell, MapPin, Sparkles, Check, ShieldCheck } from 'lucide-react';
 import { AuthUser } from '../../context/AuthContext.tsx';
 import { UserMetrics, Workout } from '../../models.ts';
 import { saveUserMetrics } from '../../lib/supabaseData.ts';
@@ -13,6 +13,7 @@ interface ProfileModalProps {
   user: AuthUser;
   metrics?: UserMetrics;
   routines?: Workout[];
+  isAdmin?: boolean;
   onMetricsUpdated?: (newMetrics: UserMetrics) => void;
 }
 
@@ -22,6 +23,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   user,
   metrics: initialMetrics,
   routines = [],
+  isAdmin = false,
   onMetricsUpdated,
 }) => {
   const [dob, setDob] = useState(initialMetrics?.dateOfBirth || '');
@@ -67,6 +69,75 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   }, [isOpen, initialMetrics, user.id]);
 
   if (!isOpen) return null;
+
+  if (isAdmin) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in">
+        <div 
+          className="w-full max-w-md bg-[#111] border border-[#222] rounded-3xl overflow-hidden shadow-2xl flex flex-col animate-scale-up"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-5 border-b border-[#222] bg-[#161616]">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 font-black text-lg">
+                <ShieldCheck className="w-6 h-6 stroke-[2.2]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-black italic uppercase tracking-wider text-white flex items-center gap-2">
+                  Admin <span className="text-purple-400">Profile</span>
+                </h2>
+                <p className="text-[11px] font-mono text-gray-400">
+                  Platform Administrator
+                </p>
+              </div>
+            </div>
+            <button 
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-xl bg-[#222] border border-[#333] text-gray-400 hover:text-white hover:border-[#555] transition-all cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="p-6 space-y-4 font-mono text-xs">
+            <div className="bg-[#181818] border border-[#2a2a2a] rounded-2xl p-4 space-y-3">
+              <div>
+                <span className="text-[10px] uppercase text-gray-500 font-bold block mb-0.5">Admin Name</span>
+                <span className="text-white font-bold text-sm">{user.displayName || 'Administrator'}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase text-gray-500 font-bold block mb-0.5">Account Email</span>
+                <span className="text-gray-300 text-xs">{user.email}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase text-gray-500 font-bold block mb-0.5">Superuser ID</span>
+                <span className="text-gray-400 text-[11px] break-all select-all">{user.id}</span>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase text-gray-500 font-bold block mb-0.5">Role Privileges</span>
+                <span className="inline-block px-2.5 py-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[10px] font-black uppercase tracking-wider">
+                  Superuser • Full Access
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-purple-950/20 border border-purple-900/40 rounded-xl p-3 text-[11px] text-purple-200 leading-relaxed">
+              Athlete tracking and coaching tools are disabled on this administrative account for pure platform management.
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-3 bg-[#222] hover:bg-[#333] text-white rounded-xl font-bold uppercase tracking-wider transition-colors cursor-pointer text-xs"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Calculate dynamic age from Date of Birth
   const calculateAge = (birthDateStr: string): number | null => {
