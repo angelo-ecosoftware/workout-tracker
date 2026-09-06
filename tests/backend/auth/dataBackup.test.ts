@@ -1,7 +1,14 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { exportAllLogs, importAllLogs } from '../../../src/lib/supabaseData.ts';
+import { supabase } from '../../../src/lib/supabase.ts';
 
-describe('exportAllLogs & importAllLogs data backup integrity', () => {
+vi.mock('../../../src/lib/supabase.ts', () => ({
+  supabase: {
+    from: vi.fn(),
+  },
+}));
+
+describe('exportAllLogs & importAllLogs data backup integrity & unique ID remapping', () => {
   const TEST_BACKUP_DATA = {
     version: 3,
     exported_at: '2026-09-03T12:00:00.000Z',
@@ -12,7 +19,7 @@ describe('exportAllLogs & importAllLogs data backup integrity', () => {
       name: 'Test Backup User',
     },
     workouts: [
-      { id: 'w_1', user_id: 'test_user_backup_123', name: 'Day 1 - Push', order: 1 }
+      { id: 'w_1', user_id: 'test_user_backup_123', name: 'Day 1 - Push', order: 1, exercise_ids: ['ex_1'] }
     ],
     exercises: [
       { id: 'ex_1', user_id: 'test_user_backup_123', name: 'Bench Press', type: 'strength', target_sets: 3, target_rep_min: 8, target_rep_max: 12 }
@@ -40,16 +47,6 @@ describe('exportAllLogs & importAllLogs data backup integrity', () => {
         total_sugar: 35,
         total_fat: 65,
         total_fiber: 28,
-        entries_json: [
-          {
-            id: 'entry_1',
-            foodItemId: 'food_kipfilet',
-            name: 'Kipfilet',
-            amountGrams: 200,
-            calculatedKcal: 220,
-            calculatedProtein: 46,
-          }
-        ]
       }
     ],
     dietary_log_entries: [
@@ -77,6 +74,10 @@ describe('exportAllLogs & importAllLogs data backup integrity', () => {
     ]
   };
 
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('contains dietary logs, entries, and custom food items in exported backup bundle schema', () => {
     expect(TEST_BACKUP_DATA.version).toBe(3);
     expect(TEST_BACKUP_DATA.dietary_logs).toHaveLength(1);
@@ -84,5 +85,78 @@ describe('exportAllLogs & importAllLogs data backup integrity', () => {
     expect(TEST_BACKUP_DATA.custom_food_items).toHaveLength(1);
     expect(TEST_BACKUP_DATA.dietary_logs[0].total_protein).toBe(160);
     expect(TEST_BACKUP_DATA.custom_food_items[0].name).toBe('Custom Protein Shake');
+  });
+
+  it('exportAllLogs respects granular scope selection (e.g. routines & exercises only)', async () => {
+    const mockFrom = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({
+        data: [{ id: 'w_1', name: 'Upper Body A' }],
+      }),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null }),
+    });
+    (supabase.from as unknown as ReturnType<typeof vi.fn>).mockImplementation(mockFrom);
+
+    const exported = await exportAllLogs('target_user_456', {
+      includeRoutines: true,
+      includeExercises: true,
+      includeWorkoutHistory: false,
+      includeBodyLogs: false,
+      includeDietary: false,
+      includeProfile: false,
+    });
+
+    expect(exported.scope.includeRoutines).toBe(true);
+    expect(exported.scope.includeWorkoutHistory).toBe(false);
+    expect(exported.sessions).toEqual([]);
+    expect(exported.sets).toEqual([]);
+    expect(exported.body_logs).toEqual([]);
+  });
+
+  it('importAllLogs generates fresh unique IDs on import and remaps all foreign keys', async () => {
+    const upsertMap: Record<string, unknown[]> = {};
+    const mockFrom = vi.fn((table: string) => ({
+      upsert: vi.fn((data: unknown[]) => {
+        upsertMap[table] = Array.isArray(data) ? data : [data];
+        return Promise.resolve({ error: null });
+      }),
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    }));
+    (supabase.from as unknown as ReturnType<typeof vi.fn>).mockImplementation(mockFrom);
+
+    await importAllLogs('new_athlete_id_999', TEST_BACKUP_DATA);
+
+    // 1. Verify exercises were remapped with new IDs and assigned to new_athlete_id_999
+    const importedExercises = upsertMap['exercises'] as Array<{ id: string; user_id: string; name: string }>;
+    expect(importedExercises).toBeDefined();
+    expect(importedExercises[0].user_id).toBe('new_athlete_id_999');
+    expect(importedExercises[0].id).not.toBe('ex_1');
+    expect(importedExercises[0].id).toMatch(/^ex_/);
+    const newExId = importedExercises[0].id;
+
+    // 2. Verify workouts were remapped with new IDs and updated exercise_ids
+    const importedWorkouts = upsertMap['workouts'] as Array<{ id: string; user_id: string; exercise_ids: string[] }>;
+    expect(importedWorkouts).toBeDefined();
+    expect(importedWorkouts[0].user_id).toBe('new_athlete_id_999');
+    expect(importedWorkouts[0].id).not.toBe('w_1');
+    expect(importedWorkouts[0].id).toMatch(/^w_/);
+    expect(importedWorkouts[0].exercise_ids).toContain(newExId); // Linked to new remapped exercise ID!
+    const newWorkoutId = importedWorkouts[0].id;
+
+    // 3. Verify sessions were remapped and link to new workout ID
+    const importedSessions = upsertMap['sessions'] as Array<{ id: string; user_id: string; workout_id: string }>;
+    expect(importedSessions).toBeDefined();
+    expect(importedSessions[0].user_id).toBe('new_athlete_id_999');
+    expect(importedSessions[0].id).not.toBe('sess_1');
+    expect(importedSessions[0].workout_id).toBe(newWorkoutId); // Linked to new remapped workout ID!
+    const newSessionId = importedSessions[0].id;
+
+    // 4. Verify sets were remapped and link to new session ID and new exercise ID
+    const importedSets = upsertMap['sets'] as Array<{ id: string; user_id: string; session_id: string; exercise_id: string }>;
+    expect(importedSets).toBeDefined();
+    expect(importedSets[0].user_id).toBe('new_athlete_id_999');
+    expect(importedSets[0].session_id).toBe(newSessionId); // Linked to new session ID!
+    expect(importedSets[0].exercise_id).toBe(newExId);     // Linked to new exercise ID!
   });
 });

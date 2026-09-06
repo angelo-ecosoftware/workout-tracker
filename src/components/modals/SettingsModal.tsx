@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { usePWA } from '../../context/PWAContext.tsx';
 import { X, LogOut, Loader2, Layers, UserCheck, Bookmark, Shield } from 'lucide-react';
-import { exportAllLogs, importAllLogs, fetchWorkoutsData, saveWorkoutsAndExercises } from '../../lib/supabaseData.ts';
+import { exportAllLogs, importAllLogs, fetchWorkoutsData, saveWorkoutsAndExercises, ExportScopeOptions } from '../../lib/supabaseData.ts';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { SavedRoutinesLibraryModal } from './SavedRoutinesLibraryModal.tsx';
 import { PrivacySettingsModal } from '../settings/PrivacySettingsModal.tsx';
@@ -123,10 +123,10 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
     );
   };
 
-  const handleExport = async () => {
+  const handleExport = async (options?: ExportScopeOptions, label = 'data') => {
     setIsExporting(true);
     try {
-      const data = await exportAllLogs(user.uid);
+      const data = await exportAllLogs(user.uid, options);
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -138,15 +138,15 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         .replace(/[^a-z0-9_-]/g, '_')
         .replace(/_+/g, '_')
         .trim();
-      a.download = `${cleanUsername}_data.json`;
+      a.download = `${cleanUsername}_${label}.json`;
 
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
-      console.error('Failed to save complete backup:', e);
-      alert('Failed to save complete backup.');
+      console.error('Failed to export data:', e);
+      alert('Failed to export data.');
     } finally {
       setIsExporting(false);
     }

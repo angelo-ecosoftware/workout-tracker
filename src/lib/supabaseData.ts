@@ -952,8 +952,25 @@ export async function fetchBodyMeasurementLogs(userId: string): Promise<import('
   return [];
 }
 
-export async function exportAllLogs(userId: string) {
-  // Fetch complete dataset for the user: Workouts (Routines), Exercises, Workout-Exercise links, Sessions, Sets, Body Logs, Dietary Logs & Entries, Custom Food Items, and User Profile
+export interface ExportScopeOptions {
+  includeRoutines?: boolean;
+  includeExercises?: boolean;
+  includeWorkoutHistory?: boolean;
+  includeBodyLogs?: boolean;
+  includeDietary?: boolean;
+  includeProfile?: boolean;
+}
+
+export async function exportAllLogs(userId: string, options?: ExportScopeOptions) {
+  const opts: ExportScopeOptions = {
+    includeRoutines: options?.includeRoutines ?? true,
+    includeExercises: options?.includeExercises ?? true,
+    includeWorkoutHistory: options?.includeWorkoutHistory ?? true,
+    includeBodyLogs: options?.includeBodyLogs ?? true,
+    includeDietary: options?.includeDietary ?? true,
+    includeProfile: options?.includeProfile ?? true,
+  };
+
   const [
     { data: workouts },
     { data: exercises },
@@ -966,22 +983,43 @@ export async function exportAllLogs(userId: string) {
     { data: customFoodItems },
     { data: userProfile }
   ] = await Promise.all([
-    supabase.from('workouts').select('*').eq('user_id', userId),
-    supabase.from('exercises').select('*').eq('user_id', userId),
-    supabase.from('workout_exercises').select('*').eq('user_id', userId),
-    supabase.from('sessions').select('*').eq('user_id', userId),
-    supabase.from('sets').select('*').eq('user_id', userId),
-    supabase.from('body_logs').select('*').eq('user_id', userId),
-    supabase.from('dietary_logs').select('*').eq('user_id', userId),
-    supabase.from('dietary_log_entries').select('*').eq('user_id', userId),
-    supabase.from('food_items').select('*').eq('user_id', userId),
-    supabase.from('users').select('*').eq('id', userId).maybeSingle()
+    opts.includeRoutines
+      ? supabase.from('workouts').select('*').eq('user_id', userId)
+      : Promise.resolve({ data: [] }),
+    (opts.includeExercises || opts.includeRoutines)
+      ? supabase.from('exercises').select('*').eq('user_id', userId)
+      : Promise.resolve({ data: [] }),
+    opts.includeRoutines
+      ? supabase.from('workout_exercises').select('*').eq('user_id', userId)
+      : Promise.resolve({ data: [] }),
+    opts.includeWorkoutHistory
+      ? supabase.from('sessions').select('*').eq('user_id', userId)
+      : Promise.resolve({ data: [] }),
+    opts.includeWorkoutHistory
+      ? supabase.from('sets').select('*').eq('user_id', userId)
+      : Promise.resolve({ data: [] }),
+    opts.includeBodyLogs
+      ? supabase.from('body_logs').select('*').eq('user_id', userId)
+      : Promise.resolve({ data: [] }),
+    opts.includeDietary
+      ? supabase.from('dietary_logs').select('*').eq('user_id', userId)
+      : Promise.resolve({ data: [] }),
+    opts.includeDietary
+      ? supabase.from('dietary_log_entries').select('*').eq('user_id', userId)
+      : Promise.resolve({ data: [] }),
+    opts.includeDietary
+      ? supabase.from('food_items').select('*').eq('user_id', userId)
+      : Promise.resolve({ data: [] }),
+    opts.includeProfile
+      ? supabase.from('users').select('*').eq('user_id', userId).maybeSingle()
+      : Promise.resolve({ data: null })
   ]);
 
   return {
     version: 3,
     exported_at: new Date().toISOString(),
     user_id: userId,
+    scope: opts,
     user_profile: userProfile || null,
     workouts: workouts || [],
     exercises: exercises || [],
@@ -1003,19 +1041,42 @@ export async function deleteAllLogs(userId: string) {
   await supabase.from('dietary_logs').delete().eq('user_id', userId);
 }
 
-export async function importAllLogs(userId: string, data: Record<string, unknown>) {
+export async function importAllLogs(
+  userId: string,
+  data: Record<string, unknown>,
+  options?: { preserveOriginalIds?: boolean }
+) {
   if (!data || typeof data !== 'object') {
     throw new Error('Invalid JSON structure');
   }
 
+  // Remap IDs to ensure newly imported routines, exercises, sessions, and sets never overwrite existing accounts or clash IDs
+  const shouldRemapIds = options?.preserveOriginalIds !== true;
+  const idRemap = new Map<string, string>();
+
+  const generateNewId = (oldId: string | number | undefined, prefix: string): string => {
+    const randomSuffix = Math.random().toString(36).substring(2, 8);
+    const time = Date.now();
+    return `${prefix}_${time}_${randomSuffix}`;
+  };
+
   // 1. Restore User Profile & Settings if present
   if (data.user_profile && typeof data.user_profile === 'object') {
     try {
+      const u = data.user_profile as Record<string, unknown>;
       await supabase.from('users').upsert({
-        ...data.user_profile,
-        id: userId,
+        user_id: userId,
+        email: u.email || undefined,
+        name: u.name || undefined,
+        date_of_birth: u.date_of_birth || undefined,
+        gender: u.gender || undefined,
+        height_cm: u.height_cm || undefined,
+        weight_kg: u.weight_kg || undefined,
+        fitness_level: u.fitness_level || undefined,
+        training_location: u.training_location || undefined,
+        metrics: u.metrics || undefined,
         updated_at: new Date().toISOString(),
-      });
+      }, { onConflict: 'user_id' });
     } catch (e) {
       console.warn('Failed to restore user profile:', e);
     }
@@ -1023,53 +1084,109 @@ export async function importAllLogs(userId: string, data: Record<string, unknown
 
   // 2. Restore Exercises first (needed for foreign keys)
   if (Array.isArray(data.exercises) && data.exercises.length > 0) {
-    const cleanExercises = data.exercises.map((ex: Record<string, unknown>) => ({
-      ...ex,
-      user_id: userId,
-    }));
-    await supabase.from('exercises').upsert(cleanExercises);
+    const cleanExercises = data.exercises.map((ex: Record<string, unknown>) => {
+      const oldId = String(ex.id || '');
+      const newId = shouldRemapIds ? generateNewId(oldId, 'ex') : oldId;
+      if (oldId) idRemap.set(oldId, newId);
+
+      return {
+        ...ex,
+        id: newId,
+        user_id: userId,
+        created_at: ex.created_at || new Date().toISOString(),
+      };
+    });
+    await supabase.from('exercises').upsert(cleanExercises, { onConflict: 'id' });
   }
 
   // 3. Restore Workouts (Routines)
   if (Array.isArray(data.workouts) && data.workouts.length > 0) {
-    const cleanWorkouts = data.workouts.map((w: Record<string, unknown>) => ({
-      ...w,
-      user_id: userId,
-    }));
-    await supabase.from('workouts').upsert(cleanWorkouts);
+    const cleanWorkouts = data.workouts.map((w: Record<string, unknown>) => {
+      const oldId = String(w.id || '');
+      const newId = shouldRemapIds ? generateNewId(oldId, 'w') : oldId;
+      if (oldId) idRemap.set(oldId, newId);
+
+      const oldExerciseIds = Array.isArray(w.exercise_ids) ? w.exercise_ids : [];
+      const newExerciseIds = shouldRemapIds
+        ? oldExerciseIds.map((eid: string) => idRemap.get(String(eid)) || eid)
+        : oldExerciseIds;
+
+      return {
+        ...w,
+        id: newId,
+        exercise_ids: newExerciseIds,
+        user_id: userId,
+        created_at: w.created_at || new Date().toISOString(),
+      };
+    });
+    await supabase.from('workouts').upsert(cleanWorkouts, { onConflict: 'id' });
   }
 
   // 4. Restore Workout-Exercises Junction
   if (Array.isArray(data.workout_exercises) && data.workout_exercises.length > 0) {
-    const cleanJunction = data.workout_exercises.map((we: Record<string, unknown>) => ({
-      ...we,
-      user_id: userId,
-    }));
+    const cleanJunction = data.workout_exercises.map((we: Record<string, unknown>) => {
+      const oldWorkoutId = String(we.workout_id || '');
+      const oldExId = String(we.exercise_id || '');
+      return {
+        ...we,
+        id: shouldRemapIds
+          ? (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : generateNewId(we.id as string, 'we'))
+          : we.id,
+        workout_id: idRemap.get(oldWorkoutId) || oldWorkoutId,
+        exercise_id: idRemap.get(oldExId) || oldExId,
+        user_id: userId,
+      };
+    });
     await supabase.from('workout_exercises').upsert(cleanJunction);
   }
 
   // 5. Restore Sessions (Workout Logs)
   if (Array.isArray(data.sessions) && data.sessions.length > 0) {
-    const cleanSessions = data.sessions.map((s: Record<string, unknown>) => ({
-      ...s,
-      user_id: userId,
-    }));
-    await supabase.from('sessions').upsert(cleanSessions);
+    const cleanSessions = data.sessions.map((s: Record<string, unknown>) => {
+      const oldSessionId = String(s.id || '');
+      const newSessionId = shouldRemapIds
+        ? (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : generateNewId(oldSessionId, 'sess'))
+        : oldSessionId;
+      if (oldSessionId) idRemap.set(oldSessionId, newSessionId);
+
+      const oldWorkoutId = String(s.workout_id || '');
+      return {
+        ...s,
+        id: newSessionId,
+        workout_id: idRemap.get(oldWorkoutId) || (oldWorkoutId || null),
+        user_id: userId,
+      };
+    });
+    await supabase.from('sessions').upsert(cleanSessions, { onConflict: 'id' });
   }
 
   // 6. Restore Sets
   if (Array.isArray(data.sets) && data.sets.length > 0) {
-    const cleanSets = data.sets.map((st: Record<string, unknown>) => ({
-      ...st,
-      user_id: userId,
-    }));
-    await supabase.from('sets').upsert(cleanSets);
+    const cleanSets = data.sets.map((st: Record<string, unknown>) => {
+      const { sessions: _s, ...rest } = st;
+      const oldSessionId = String(st.session_id || '');
+      const oldExId = String(st.exercise_id || '');
+
+      return {
+        ...rest,
+        id: shouldRemapIds
+          ? (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : generateNewId(st.id as string, 'set'))
+          : st.id,
+        session_id: idRemap.get(oldSessionId) || oldSessionId,
+        exercise_id: idRemap.get(oldExId) || oldExId,
+        user_id: userId,
+      };
+    });
+    await supabase.from('sets').upsert(cleanSets, { onConflict: 'id' });
   }
 
   // 7. Restore Body Logs (Weigh-ins & BMI)
   if (Array.isArray(data.body_logs) && data.body_logs.length > 0) {
     const cleanBodyLogs = data.body_logs.map((bl: Record<string, unknown>) => ({
       ...bl,
+      id: shouldRemapIds
+        ? (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : generateNewId(bl.id as string, 'bl'))
+        : bl.id,
       user_id: userId,
     }));
     await supabase.from('body_logs').upsert(cleanBodyLogs, { onConflict: 'user_id,log_date' });
@@ -1079,6 +1196,7 @@ export async function importAllLogs(userId: string, data: Record<string, unknown
   if (Array.isArray(data.custom_food_items) && data.custom_food_items.length > 0) {
     const cleanCustomFoods = data.custom_food_items.map((cf: Record<string, unknown>) => ({
       ...cf,
+      id: shouldRemapIds ? `custom_${Date.now()}_${Math.random().toString(36).slice(2, 7)}` : cf.id,
       user_id: userId,
     }));
     await supabase.from('food_items').upsert(cleanCustomFoods, { onConflict: 'id' });
@@ -1097,6 +1215,9 @@ export async function importAllLogs(userId: string, data: Record<string, unknown
   if (Array.isArray(data.dietary_log_entries) && data.dietary_log_entries.length > 0) {
     const cleanDietaryEntries = data.dietary_log_entries.map((de: Record<string, unknown>) => ({
       ...de,
+      id: shouldRemapIds
+        ? (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : generateNewId(de.id as string, 'entry'))
+        : de.id,
       user_id: userId,
     }));
     await supabase.from('dietary_log_entries').upsert(cleanDietaryEntries, { onConflict: 'id' });
