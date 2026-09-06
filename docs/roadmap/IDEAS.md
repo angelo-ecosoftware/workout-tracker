@@ -73,6 +73,17 @@ Combining the strengths of these repositories produces a best-in-class exercise 
      - Clear live status badges (e.g., *"Fetching live macros from Jumbo..."*, *"Verified & Added"*).
      - Instant macro confirmation card with 1-tap portion logger.
 
+### 2.2 Health Stores, Pharmacies & Supplements (Kruidvat, Etos, Holland & Barrett)
+- **Concept**: Expand the dietary ingestion pipeline beyond standard supermarkets to include drugstore vitamins, sports nutrition, protein snacks, and health supplements.
+- **Target Retailers**:
+  - **Kruidvat Nederland** (`kruidvat.nl`): High-volume sports nutrition (protein powders, vitamins, creatine, protein bars, meal replacements).
+  - **Etos** (`etos.nl`): Health supplements, multi-vitamins, electrolyte powders, and recovery snacks.
+  - **Holland & Barrett Nederland / België** (`hollandandbarrett.nl`): Extensive catalog of specialized vitamins, vegan proteins, amino acids, healthy snacks, and dietary whole foods.
+- **Implementation**:
+  - Store scraper adapters with Schema.org JSON-LD and Dutch FIR nutrition parsers.
+  - Barcode search resolution on drugstore assortment search APIs.
+  - Dedicated store badges (`KRUIDVAT`, `ETOS`, `H&B`) and external verification links in the dietary log.
+
 ---
 
 ## 3. Workout Tracking & Session Logging Enhancements
@@ -83,6 +94,12 @@ Combining the strengths of these repositories produces a best-in-class exercise 
 ### 3.2 Unrealistic Weight / Reps Confirmation Guard ("Are you sure?" Modal)
 - **Concept**: Protect against accidental input errors (e.g., entering 500kg or 100 reps instead of 50kg/10 reps).
 - **Behavior**: Trigger a friendly confirmation modal if logged set weight or rep count exceeds realistic human thresholds or sudden 3x jumps compared to historical benchmarks.
+
+### 3.3 Screen Wake Lock & Keep-Awake Toggle
+- **Concept**: Prevent the phone screen from sleeping/locking during active workout sessions so athletes can see rest timers and set instructions hands-free.
+- **Features**:
+  - Automatically acquires `navigator.wakeLock` on the active workout tab.
+  - User toggle in Settings: *"Keep Screen Awake During Workouts"* (with automatic release on session completion or low battery).
 
 ---
 
@@ -248,6 +265,95 @@ Research and architectural patterns from open-source tools and community-maintai
 - **Single-Line Set Steppers (`Hick's Law` & `Fitts's Law`)**: Replaced 4-button clusters with streamlined `[-] [ 20 kg ] [+]` steppers and 1-tap `[ ✓ ]` completion checkmarks.
 - **Omni-Bar Live Format Detection (`Jakob's Law`)**: Dynamic chips (`[ 🍲 Recipe Link ]`, `[ 🛒 Shared List ]`) with instant clipboard auto-paste.
 - **Collapsed-by-Default Accordion Architecture (`Miller's Law`)**: Initializing `Recovery & Readiness` and exercise cards collapsed with `localStorage` state persistence.
+
+---
+
+## 11. AI Intelligence, LLM Coaching & Response Caching Architecture
+
+### 11.1 Cached AI Response Architecture
+- **Concept**: High-performance, cost-effective LLM caching layer to eliminate redundant API calls, reduce latency from seconds to $<50\text{ms}$, and enforce rate-limit resilience.
+- **Architecture**:
+  - Semantic and exact-key response caching (e.g. Supabase table `ai_response_cache` + client-side IndexedDB/localStorage).
+  - Cache key derived from user prompt + context hash (e.g., `hash(user_profile + last_7_days_volume + prompt)`).
+  - Tiered TTL (Time-To-Live): Static nutrition advice (7-day TTL), active daily workout adjustments (24-hour TTL).
+- **Benefits**: Instant sub-second responses on repeat questions, $>80\%$ reduction in LLM inference cost.
+
+### 11.2 AI for Diet & Nutrition Intelligence
+- **Features**:
+  - **Remaining Macro Optimizer**: Analyzes logged meals against daily targets and generates 3 instant meal ideas using ingredients the user frequently buys or has in their grocery list.
+  - **Meal & Food Photo Recognition (Computer Vision)**: Optional photo-based meal scanner estimating ingredients and portion sizing.
+  - **Dynamic Calorie & Macro Adjuster**: Automatically scales daily carb and calorie recommendations based on scheduled training intensity (e.g. Heavy Leg Day $+300\text{ kcal}$ vs. Rest Day deficit).
+
+### 11.3 AI Workout & Recovery Coaching
+- **Features**:
+  - **"Today's Focus" Daily Briefing**: Synthesizes logged sleep ($\text{hrs}$), energy ($1\text{--}10$), and historical 1RM velocity to propose weight/rep adjustments for today's session.
+  - **Auto-Deload Recommendations**: Detects stagnation or multi-session fatigue drop-offs and drafts a recommended deload week.
+
+---
+
+## 12. Adaptive Onboarding System & Settings Knowledge Base
+
+### 12.1 Interactive Skippable Onboarding Flow
+- **Concept**: Smooth, non-intrusive onboarding experience guiding new athletes and coaches into the app without forced drop-off.
+- **Key UX Tenets**:
+  - **100% Skippable**: Prominent *"Skip for Now & Explore"* button on every screen for experienced lifters who want to start immediately.
+  - **Progress Indicator**: Step dots ($1\text{ of }4$) chunking information into bite-sized screens (Goals $\rightarrow$ Experience Level $\rightarrow$ Split Preference $\rightarrow$ Biometrics).
+  - **Non-Destructive Defaults**: Missing values gracefully fall back to standard beginner/intermediate presets.
+
+### 12.2 AI-Powered Adaptive Onboarding Assessment
+- **Concept**: Conversational / questionnaire-based AI intake analyzing user goals (Hypertrophy, Strength, Fat Loss, Endurance) + available equipment (Gym, Dumbbells-only, Bodyweight/Calisthenics) to auto-generate an initial tailored 3-to-5 day workout routine and custom macro targets.
+
+### 12.3 In-App FAQ & Knowledge Base in Settings
+- **Concept**: Built-in, searchable FAQ accordion accessible via Settings $\rightarrow$ Knowledge Base.
+- **Sections Included**:
+  - *Workout Tracking & Sets*: How 1-tap checkmarks, 1RM estimates, and auto-progression work.
+  - *Dietary & Barcodes*: How to scan barcodes, paste supermarket links (AH, Jumbo, Dirk, PLUS, Lidl, Aldi, Kruidvat), and import shared lists.
+  - *Data Privacy & Backups*: How to export JSON backups, share routines with friends without personal logs, and manage cloud sync.
+  - *Coaching & Trainer Connections*: How to link with a coach, accept invite codes, and toggle review receipts.
+
+---
+
+## 13. Gym × Diet Complete API Ecosystem & Architecture
+
+A production-grade fitness and nutrition architecture incorporates 17 core service APIs organized into 4 functional domains:
+
+```mermaid
+flowchart TD
+    subgraph Fitness ["🏋️ Fitness & Gym APIs"]
+        A1["1. Exercise Database API (Anatomy, Cues, GIFs)"]
+        A2["2. Workout Engine API (Routines, Sets, Steppers)"]
+        A3["3. Health Data APIs (HealthKit / Health Connect / Garmin / Fitbit)"]
+        A4["4. Wearables API (Steps, HR, Active Cal, Sleep)"]
+        A5["5. Progress Tracking API (Bodyweight, Measurements, Photos)"]
+    end
+
+    subgraph Nutrition ["🥗 Diet & Nutrition APIs"]
+        B1["6. Food Database API (Open Food Facts / NEVO / Hive-Mind)"]
+        B2["7. Barcode API (GS1 Normalizer & Multi-Store GTIN)"]
+        B3["8. Recipe API (Schema.org Extractor)"]
+        B4["9. Meal Planning API (Macro Target Solver)"]
+        B5["10. Food Logging API (Daily Journal & Timed Entries)"]
+    end
+
+    subgraph AI ["🤖 AI & Vision APIs"]
+        C1["11. LLM Coaching API (Adaptive Advice & Cached Responses)"]
+        C2["12. Computer Vision API (Food Photo & Form Analysis)"]
+    end
+
+    subgraph Core ["🔐 Core Platform APIs"]
+        D1["13. Auth API (Google, Apple, Supabase)"]
+        D2["14. Location / Gym Finder API"]
+        D3["15. Push Notifications API (Reminders & Rest Cues)"]
+        D4["16. Payments & Subscription API"]
+        D5["17. Analytics & Retention API"]
+    end
+```
+
+### 13.1 Recommended MVP Execution Stack
+For the core platform, the prioritized implementation sequence is:
+$$\text{Auth} \longrightarrow \text{Exercise DB} \longrightarrow \text{Nutrition DB} \longrightarrow \text{AI Layer} \longrightarrow \text{Health Connect / HealthKit} \longrightarrow \text{Notifications} \longrightarrow \text{Payments}$$
+
+- **AI Synthesis Layer**: Combines user goals + workout history + nutrition logs + wearable sleep/recovery data to generate a cohesive daily dashboard: *"Today's Workout + Today's Nutrition Plan"*.
 
 ---
 ---

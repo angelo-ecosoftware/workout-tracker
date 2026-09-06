@@ -10,48 +10,52 @@ Prioritization is structured by **direct athlete & coach impact**, moving from d
 ┌────────────────────────────────────────────────────────────────────────┐
 │                   USER VALUE PROGRESSION ROADMAP                       │
 ├────────────────────────────────────────────────────────────────────────┤
-│  Phase 1: Active Workout Flow & Immediate Habit Loops (Highest ROI)    │
-│  Phase 2: Exercise Intelligence, Anatomy Heatmaps & Form Videos        │
-│  Phase 3: Actionable Performance Analytics & Overload Velocity         │
+│  Phase 1: Active Workout Flow, Onboarding & Habit Loops (Highest ROI)  │
+│  Phase 2: Exercise Intelligence, Drugstore Nutrition & Form Videos     │
+│  Phase 3: AI Coaching, Cached Responses & Overload Velocity Analytics  │
 │  Phase 4: Cardio & Endurance Tracking Engine                           │
 │  Phase 5: Document & PDF Export Engine (Cardio-Only Scope)             │
-│  Phase 6: Enterprise Security, ENISA & EU Compliance Dossier           │
+│  Phase 6: Enterprise Security, Wearables & EU Compliance Dossier       │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🏆 Phase 1: Active Workout Flow & Immediate Habit Loops (Daily Athlete Experience)
-> **User Goal**: *"Make logging my daily sets fast, rewarding, and hands-free while I'm sweating in the gym."*
+## 🏆 Phase 1: Active Workout Flow, Onboarding & Habit Loops (Daily Athlete Experience)
+> **User Goal**: *"Make logging my daily sets fast, rewarding, and hands-free while I'm sweating in the gym, with a clean skippable start."*
 
 | Priority | Feature Name | Why the User Cares | Psychological Driver | Status |
 | :---: | :--- | :--- | :--- | :---: |
 | **P1.1** | **Workout Completion "PR Celebration" Modal** | Seeing total tonnage (e.g. *12,450 kg lifted*) and new 1RM record badges with confetti at the end of a session delivers instant closure and accomplishment. | **Peak-End Rule** | ⏳ Queued |
 | **P1.2** | **Weekly Consistency Streak & Activity Heatmap** | A 7-day pill bar (`[M] [T] [W] [T] [F] [S] [S]`) and *"🔥 4-Week Streak"* counter at the top of the Logbook motivates athletes never to break the chain. | **Goal-Gradient & Zeigarnik Effect** | ⏳ Queued |
 | **P1.3** | **Rest Timer Auto-Start & Vibration Buzz** | Checking off a set row (`[ ✓ ]`) automatically triggers the background rest timer and vibrates the phone when rest is over so athletes don't need to stare at their screen. | **Mental Offloading** | ⏳ Queued |
-| **P1.4** | **Supermarket Macro Sanity Validation `[BUG-004]`** | Automatically verifies that scraped food items obey $(4 \times P) + (4 \times C) + (9 \times F) \approx \text{kcal}$ to prevent corrupted dietary logs. | **Trust & Reliability** | ⏳ Queued |
+| **P1.4** | **Interactive Skippable Onboarding Flow** | Fast 4-step onboarding (Goals $\rightarrow$ Experience $\rightarrow$ Equipment $\rightarrow$ Biometrics) with prominent *"Skip for Now & Explore"* button so lifters aren't blocked. | **User Freedom & Control** | ⏳ Queued |
+| **P1.5** | **In-App Searchable FAQ in Settings** | Instant help accordion in Settings answering common questions about sets, barcode scanning, coach sharing, and backups. | **Self-Service Support** | ⏳ Queued |
+| **P1.6** | **Supermarket Macro Sanity Validation `[BUG-004]`** | Automatically verifies that scraped food items obey $(4 \times P) + (4 \times C) + (9 \times F) \approx \text{kcal}$ to prevent corrupted dietary logs. | **Trust & Reliability** | ⏳ Queued |
 
 ---
 
-## 🏋️ Phase 2: Exercise Intelligence, Anatomy Heatmaps & Form Guidance
-> **User Goal**: *"Show me exactly how to perform an exercise, what muscles should be working, and keep the interface uncluttered."*
+## 🏋️ Phase 2: Exercise Intelligence, Drugstore Nutrition & Form Guidance
+> **User Goal**: *"Show me exactly how to perform an exercise, what muscles should be working, and let me scan vitamins & drugstore snacks."*
 
 | Priority | Feature Name | Why the User Cares | Implementation Scope | Status |
 | :---: | :--- | :--- | :--- | :---: |
 | **P2.1** | **Minimalist `(i)` Exercise Guide Drawer** | Tapping a sleek `(i)` badge opens an overlay with looping execution animations (WebP) and muscle cues instead of cluttering active set rows. | Hybrid dataset (`hasaneyldrm` + `free-exercise-db`) | ⏳ Queued |
 | **P2.2** | **Interactive WGER Muscle Anatomy Heatmap** | Visual anterior & posterior SVG body diagrams showing primary and secondary target muscles highlighted in red. | `wger-project/wger` SVG vector layers | ⏳ Queued |
-| **P2.3** | **Form Tutorial Video Links & Technique Notes** | 1-tap link to 1080p biomechanical form breakdowns and coach technique notes. | In-app modal / WebM video stream | ⏳ Queued |
+| **P2.3** | **Drugstore Nutrition & Vitamins (Kruidvat, Etos, Holland & Barrett)** | Allows scanning and pasting protein bars, creatine, vitamins, and health supplements from Dutch drugstore chains into the dietary log. | Scrapers & EAN search for `kruidvat.nl`, `etos.nl`, `hollandandbarrett.nl` | ⏳ Queued |
+| **P2.4** | **Form Tutorial Video Links & Technique Notes** | 1-tap link to 1080p biomechanical form breakdowns and coach technique notes. | In-app modal / WebM video stream | ⏳ Queued |
 
 ---
 
-## 📈 Phase 3: Actionable Performance Analytics & Overload Velocity
-> **User Goal**: *"Tell me if I'm actually getting stronger, warn me if I'm overtraining, and give me real coaching advice."*
+## 🤖 Phase 3: AI Coaching, Cached Responses & Overload Velocity
+> **User Goal**: *"Give me instant AI coaching on my training and diet without waiting or lag, and tell me if I'm progressing."*
 
 | Priority | Feature Name | Why the User Cares | Implementation Scope | Status |
 | :---: | :--- | :--- | :--- | :---: |
-| **P3.1** | **Progressive Overload Velocity Tracker** | Week-over-week velocity curve showing true strength progression on compound lifts (Squat, Bench, Deadlift, Overhead Press). | Brzycki / Epley 1RM velocity algorithms | ⏳ Queued |
-| **P3.2** | **Muscle Group Volume & Recovery Balancing** | Highlights muscle groups in optimal hypertrophy ranges ($10\text{--}20$ sets/week) vs. under-stimulated or over-fatigued groups ($>25$ sets). | Weekly volume aggregation engine | ⏳ Queued |
-| **P3.3** | **Fatigue & Deload Recommender** | Cross-references logged sleep ($\le 6\text{h}$) and energy ($\le 4/10$) with volume tonnage drops to recommend scheduled deloads before injury occurs. | Automated load optimization heuristic | ⏳ Queued |
+| **P3.1** | **Sub-50ms Cached AI Response Architecture** | Semantic & exact-key response caching in Supabase/localStorage so repeated workout and meal questions answer instantly with zero lag or API limits. | `ai_response_cache` with context hashing & tiered TTL | ⏳ Queued |
+| **P3.2** | **AI Diet & Macro Target Optimizer** | Suggests 3 quick meal options to hit remaining daily macros based on grocery items the user frequently buys or has in their pantry. | Contextual LLM prompt generator | ⏳ Queued |
+| **P3.3** | **Progressive Overload Velocity Tracker** | Week-over-week velocity curve showing true strength progression on compound lifts (Squat, Bench, Deadlift, Overhead Press). | Brzycki / Epley 1RM velocity algorithms | ⏳ Queued |
+| **P3.4** | **Fatigue & Deload Recommender** | Cross-references logged sleep ($\le 6\text{h}$) and energy ($\le 4/10$) with volume tonnage drops to recommend scheduled deloads before injury occurs. | Automated load optimization heuristic | ⏳ Queued |
 
 ---
 
