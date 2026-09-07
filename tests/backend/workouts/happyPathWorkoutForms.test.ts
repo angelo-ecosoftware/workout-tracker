@@ -48,6 +48,25 @@ describe('End-to-End Happy Path Tests: All Forms & Tracking Cases', () => {
       // Completed Day 3 -> Cycles cleanly back to Day 1
       next = SessionEngine.calculateNextWorkoutOrder({ ...testUser, lastCompletedWorkoutOrder: 3 }, sampleWorkouts);
       expect(next).toBe(1);
+
+      // When record is deleted and order is reset to 0 -> starts cleanly at Day 1
+      next = SessionEngine.calculateNextWorkoutOrder({ ...testUser, lastCompletedWorkoutOrder: 0 }, sampleWorkouts);
+      expect(next).toBe(1);
+
+      // Negative or invalid order defaults safely to first workout
+      next = SessionEngine.calculateNextWorkoutOrder({ ...testUser, lastCompletedWorkoutOrder: -1 }, sampleWorkouts);
+      expect(next).toBe(1);
+
+      // Handles index gaps (e.g. Day 2 deleted from split leaving Day 1 and Day 3)
+      const gapWorkouts = [
+        { ...sampleWorkouts[0], order: 1 },
+        { ...sampleWorkouts[2], order: 3 },
+      ];
+      next = SessionEngine.calculateNextWorkoutOrder({ ...testUser, lastCompletedWorkoutOrder: 1 }, gapWorkouts);
+      expect(next).toBe(3);
+
+      next = SessionEngine.calculateNextWorkoutOrder({ ...testUser, lastCompletedWorkoutOrder: 3 }, gapWorkouts);
+      expect(next).toBe(1);
     });
 
     it('creates in-progress session header with valid user & target workout link', () => {

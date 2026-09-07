@@ -77,6 +77,20 @@ export function useWorkoutSession(user: AuthUser | null) {
     return () => window.removeEventListener('workout_settings_updated', handleSettingsUpdate);
   }, []);
 
+  // Re-synchronize workflow state and suggested day when a session is deleted or user profile updates
+  useEffect(() => {
+    const handleSync = () => {
+      loadWorkflowState();
+    };
+
+    window.addEventListener('workout_session_deleted', handleSync);
+    window.addEventListener('user_profile_updated', handleSync);
+    return () => {
+      window.removeEventListener('workout_session_deleted', handleSync);
+      window.removeEventListener('user_profile_updated', handleSync);
+    };
+  }, [user]);
+
   // Screen Wake Lock API to keep the screen active during workouts
   useEffect(() => {
     if (!activeWorkout) return;
@@ -247,7 +261,12 @@ export function useWorkoutSession(user: AuthUser | null) {
       );
       setSuggestedDay(computedNextDay);
 
-      if (progressState.lastCompletedWorkoutOrder) {
+      // Verify that lastCompletedWorkoutOrder is positive and matches an actual existing workout in the split
+      if (
+        progressState.lastCompletedWorkoutOrder &&
+        progressState.lastCompletedWorkoutOrder > 0 &&
+        wData.combinedWorkouts.some((w) => w.order === progressState.lastCompletedWorkoutOrder)
+      ) {
         setLastSessionDay(progressState.lastCompletedWorkoutOrder);
       } else {
         setLastSessionDay(null);

@@ -16,10 +16,16 @@ export const SessionEngine = {
     // Relational/Dynamic calculation based on available user workouts
     if (availableWorkouts && availableWorkouts.length > 0) {
       const sortedOrders = availableWorkouts.map(w => w.order).sort((a, b) => a - b);
+
+      // If user has not completed any workout yet (0 or negative), begin with first workout
+      if (user.lastCompletedWorkoutOrder <= 0) {
+        return sortedOrders[0];
+      }
+
       const currentIndex = sortedOrders.indexOf(user.lastCompletedWorkoutOrder);
       
       // If last completed order is not found or it was the last workout in the cycle -> loop back to the first
-      if (currentIndex === -1 || currentIndex === sortedOrders.length - 1) {
+      if (currentIndex === -1 || currentIndex >= sortedOrders.length - 1) {
         return sortedOrders[0];
       }
       return sortedOrders[currentIndex + 1];

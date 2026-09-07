@@ -239,6 +239,43 @@ export async function getUserProgressState(userId: string) {
   const resolvedWeight = data.weight_kg != null ? Number(data.weight_kg) : (data.metrics?.weight != null ? Number(data.metrics.weight) : (localMetrics?.weight || latestCachedWeight));
   const resolvedHeight = data.height_cm != null ? Number(data.height_cm) : (data.metrics?.height != null ? Number(data.metrics.height) : localMetrics?.height);
 
+  // Verify last_completed_workout_order against actual completed sessions in database
+  // to prevent stale state / gaps if sessions were deleted
+  let verifiedLastCompletedOrder = data.last_completed_workout_order ?? 0;
+  try {
+    const { data: latestSession } = await supabase
+      .from('sessions')
+      .select('workout_id, workouts(order)')
+      .eq('user_id', userId)
+      .eq('status', 'completed')
+      .not('completed_at', 'is', null)
+      .order('completed_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!latestSession) {
+      // No completed sessions exist -> reset last completed order to 0
+      verifiedLastCompletedOrder = 0;
+    } else {
+      const order =
+        (latestSession as any)?.workouts?.order ??
+        (latestSession as any)?.workout_order;
+      if (typeof order === 'number') {
+        verifiedLastCompletedOrder = order;
+      }
+    }
+
+    if (data.last_completed_workout_order !== verifiedLastCompletedOrder) {
+      await supabase
+        .from('users')
+        .update({ last_completed_workout_order: verifiedLastCompletedOrder })
+        .eq('user_id', userId);
+      data.last_completed_workout_order = verifiedLastCompletedOrder;
+    }
+  } catch (syncErr) {
+    console.warn('Could not verify latest session order:', syncErr);
+  }
+
   return {
     profile: {
       userId: data.user_id || userId,
@@ -250,7 +287,7 @@ export async function getUserProgressState(userId: string) {
       weightKg: resolvedWeight,
       fitnessLevel: data.fitness_level || data.metrics?.fitnessLevel,
       trainingLocation: data.training_location || data.metrics?.trainingLocation,
-      lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
+      lastCompletedWorkoutOrder: verifiedLastCompletedOrder,
       maxWorkoutOrder: data.max_workout_order ?? 3,
       lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
       createdAt: data.created_at ? new Date(data.created_at) : new Date(),
@@ -326,8 +363,24 @@ export async function updateSessionPhotos(sessionId: string, photos: string[]) {
     .eq('id', sessionId);
 }
 
-export async function deleteSessions(sessionIds: string[]) {
+export async function deleteSessions(sessionIds: string[], userId?: string) {
   if (!sessionIds.length) return;
+
+  // Retrieve user_id from session if not provided
+  let targetUserId = userId;
+  if (!targetUserId) {
+    try {
+      const { data: sessRow } = await supabase
+        .from('sessions')
+        .select('user_id')
+        .in('id', sessionIds)
+        .limit(1)
+        .maybeSingle();
+      targetUserId = sessRow?.user_id;
+    } catch {
+      // ignore
+    }
+  }
 
   // Retrieve photos associated with these sessions to cleanly remove them from storage
   try {
@@ -354,6 +407,38 @@ export async function deleteSessions(sessionIds: string[]) {
 
   await supabase.from('sets').delete().in('session_id', sessionIds);
   await supabase.from('sessions').delete().in('id', sessionIds);
+
+  // Synchronize user's last_completed_workout_order with the latest remaining completed session
+  if (targetUserId) {
+    try {
+      const { data: latestSession } = await supabase
+        .from('sessions')
+        .select('workout_id, workouts(order)')
+        .eq('user_id', targetUserId)
+        .eq('status', 'completed')
+        .not('completed_at', 'is', null)
+        .order('completed_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const newOrder =
+        (latestSession as any)?.workouts?.order ??
+        (latestSession as any)?.workout_order ??
+        0;
+
+      await supabase
+        .from('users')
+        .update({ last_completed_workout_order: newOrder })
+        .eq('user_id', targetUserId);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('workout_session_deleted'));
+        window.dispatchEvent(new Event('user_profile_updated'));
+      }
+    } catch (syncErr) {
+      console.warn('Could not sync user last completed order after session deletion:', syncErr);
+    }
+  }
 }
 
 export async function fetchWorkoutHistory(userId: string) {

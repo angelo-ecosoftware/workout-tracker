@@ -58,18 +58,29 @@ export const RoutineSplitSelector: React.FC<RoutineSplitSelectorProps> = ({
         })}
       </div>
 
-      {lastSessionDay && (
+      {lastSessionDay && workouts.some((w) => w.order === lastSessionDay) ? (
         <div className="mt-4 text-[10px] text-gray-500 font-sans flex items-center justify-between border-t border-[#222] pt-3">
           <span className="font-mono">
             LAST COMPLETED ROUTINE:{' '}
             <strong className="text-gray-200">
-              {workouts.find((w) => w.order === lastSessionDay)?.name || lastSessionDay}
+              {workouts.find((w) => w.order === lastSessionDay)?.name || `Day ${lastSessionDay}`}
             </strong>
           </span>
           <span className="flex items-center gap-1.5 text-[#C0FF00] font-bold font-mono">
             <span className="h-1.5 w-1.5 rounded-full bg-[#C0FF00] inline-block animate-pulse"></span>
             SUGGESTED:{' '}
-            {workouts.find((w) => w.order === suggestedDay)?.name.split(' (')[0] || suggestedDay}
+            {workouts.find((w) => w.order === suggestedDay)?.name.split(' (')[0] || `Day ${suggestedDay}`}
+          </span>
+        </div>
+      ) : (
+        <div className="mt-4 text-[10px] text-gray-500 font-sans flex items-center justify-between border-t border-[#222] pt-3">
+          <span className="font-mono text-gray-400">
+            CURRENT SPLIT PROGRESSION
+          </span>
+          <span className="flex items-center gap-1.5 text-[#C0FF00] font-bold font-mono">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#C0FF00] inline-block animate-pulse"></span>
+            SUGGESTED:{' '}
+            {workouts.find((w) => w.order === suggestedDay)?.name.split(' (')[0] || `Day ${suggestedDay}`}
           </span>
         </div>
       )}

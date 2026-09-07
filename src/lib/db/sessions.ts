@@ -111,6 +111,53 @@ export async function deleteSessions(sessionIds: string[], userId?: string) {
 
   const { error: sessionsError } = await sessionDeleteQuery;
   if (sessionsError) throw sessionsError;
+
+  // Synchronize user's last_completed_workout_order with the latest remaining completed session
+  let targetUserId = userId;
+  if (!targetUserId) {
+    try {
+      const { data: sessRow } = await supabase
+        .from('sessions')
+        .select('user_id')
+        .in('id', sessionIds)
+        .limit(1)
+        .maybeSingle();
+      targetUserId = sessRow?.user_id;
+    } catch {
+      // ignore
+    }
+  }
+
+  if (targetUserId) {
+    try {
+      const { data: latestSession } = await supabase
+        .from('sessions')
+        .select('workout_id, workouts(order)')
+        .eq('user_id', targetUserId)
+        .eq('status', 'completed')
+        .not('completed_at', 'is', null)
+        .order('completed_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const newOrder =
+        (latestSession as any)?.workouts?.order ??
+        (latestSession as any)?.workout_order ??
+        0;
+
+      await supabase
+        .from('users')
+        .update({ last_completed_workout_order: newOrder })
+        .eq('user_id', targetUserId);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('workout_session_deleted'));
+        window.dispatchEvent(new Event('user_profile_updated'));
+      }
+    } catch (syncErr) {
+      console.warn('Could not sync user last completed order after session deletion:', syncErr);
+    }
+  }
 }
 
 export async function fetchWorkoutHistory(userId: string) {

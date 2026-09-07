@@ -77,6 +77,7 @@ interface WindowEventMap {
   offline_queue_updated: Event;
   workout_settings_updated: Event;
   user_profile_updated: Event;
+  workout_session_deleted: Event;
 }
 
 declare module '@vercel/node' {
