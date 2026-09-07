@@ -301,7 +301,7 @@ Research and architectural patterns from open-source tools and community-maintai
   - **Non-Destructive Defaults**: Missing values gracefully fall back to standard beginner/intermediate presets.
 
 ### 12.2 AI-Powered Adaptive Onboarding Assessment
-- **Concept**: Conversational / questionnaire-based AI intake analyzing user goals (Hypertrophy, Strength, Fat Loss, Endurance) + available equipment (Gym, Dumbbells-only, Bodyweight/Calisthenics) to auto-generate an initial tailored 3-to-5 day workout routine and custom macro targets.
+- **Concept**: Conversational / questionnaire-based AI intake analyzing user goals (Hypertrophy, Strength, Fat Loss, Endurance) + available equipment (Gym, Dumbbells-only, Bodyweight/Calisthenics) to auto-generate an initial tailored 3-to-5 day workout routine and custom macro targetss.
 
 ### 12.3 In-App FAQ & Knowledge Base in Settings
 - **Concept**: Built-in, searchable FAQ accordion accessible via Settings $\rightarrow$ Knowledge Base.
