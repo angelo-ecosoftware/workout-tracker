@@ -44,6 +44,7 @@ vi.mock('../../../src/lib/supabaseData.ts', () => ({
     profile: mockProfile,
     isNewUser: false,
   })),
+  fetchWorkoutHistory: vi.fn(async () => []),
   seedTemplatesIfMissing: vi.fn(async () => {}),
   logSessionCompletion: vi.fn(async () => ({ success: true })),
   logDailyBodyWeight: vi.fn(async () => {}),

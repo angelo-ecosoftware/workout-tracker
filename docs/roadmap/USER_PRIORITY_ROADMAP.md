@@ -27,7 +27,7 @@ Prioritization is structured by **direct athlete & coach impact**, moving from d
 | Priority | Feature Name | Why the User Cares | Psychological Driver | Status |
 | :---: | :--- | :--- | :--- | :---: |
 | **P1.1** | **Workout Completion "PR Celebration" Modal** | Seeing total tonnage (e.g. *12,450 kg lifted*) and new 1RM record badges with confetti at the end of a session delivers instant closure and accomplishment. | **Peak-End Rule** | 🟢 **Completed** |
-| **P1.2** | **Weekly Consistency Streak & Activity Heatmap** | A 7-day pill bar (`[M] [T] [W] [T] [F] [S] [S]`) and *"🔥 4-Week Streak"* counter at the top of the Logbook motivates athletes never to break the chain. | **Goal-Gradient & Zeigarnik Effect** | ⏳ Queued |
+| **P1.2** | **Weekly Consistency Streak & Activity Heatmap** | A 7-day pill bar (`[M] [T] [W] [T] [F] [S] [S]`) and *"🔥 4-Week Streak"* counter at the top of the Logbook motivates athletes never to break the chain. | **Goal-Gradient & Zeigarnik Effect** | 🟢 **Completed** |
 | **P1.3** | **Rest Timer Auto-Start & Vibration Buzz** | Checking off a set row (`[ ✓ ]`) automatically triggers the background rest timer and vibrates the phone when rest is over so athletes don't need to stare at their screen. | **Mental Offloading** | ⏳ Queued |
 | **P1.4** | **Interactive Skippable Onboarding Flow** | Fast 4-step onboarding (Goals $\rightarrow$ Experience $\rightarrow$ Equipment $\rightarrow$ Biometrics) with prominent *"Skip for Now & Explore"* button so lifters aren't blocked. | **User Freedom & Control** | ⏳ Queued |
 | **P1.5** | **In-App Searchable FAQ in Settings** | Instant help accordion in Settings answering common questions about sets, barcode scanning, coach sharing, and backups. | **Self-Service Support** | ⏳ Queued |

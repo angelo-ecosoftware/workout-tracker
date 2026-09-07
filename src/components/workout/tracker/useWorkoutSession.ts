@@ -4,6 +4,7 @@ import { Workout, Exercise, UserProfile } from '../../../models.ts';
 import {
   fetchWorkoutsData,
   getUserProgressState,
+  fetchWorkoutHistory,
   logSessionCompletion,
   seedTemplatesIfMissing,
   logDailyBodyWeight,
@@ -33,6 +34,7 @@ export function useWorkoutSession(user: AuthUser | null) {
   const [isRoutineEditorOpen, setIsRoutineEditorOpen] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [celebrationSummary, setCelebrationSummary] = useState<WorkoutSummaryCelebration | null>(null);
+  const [historySessions, setHistorySessions] = useState<{ id?: string; completedAt?: Date | null; startedAt?: Date; status?: string }[]>([]);
 
   // Recovery & Note States
   const [sleepHours, setSleepHours] = useState(8);
@@ -241,14 +243,16 @@ export function useWorkoutSession(user: AuthUser | null) {
 
       await seedTemplatesIfMissing(user.uid);
 
-      const [wData, userProgress] = await Promise.all([
+      const [wData, userProgress, historyLogs] = await Promise.all([
         fetchWorkoutsData(user.uid),
         getUserProgressState(user.uid),
+        fetchWorkoutHistory(user.uid).catch(() => []),
       ]);
 
       const progressState = userProgress.profile;
       setWorkouts(wData.combinedWorkouts);
       setUserProfile(progressState);
+      setHistorySessions(historyLogs || []);
 
       const welcomeKey = `welcome_shown_${user.uid}`;
       if (userProgress.isNewUser && !localStorage.getItem(welcomeKey)) {
@@ -899,6 +903,7 @@ export function useWorkoutSession(user: AuthUser | null) {
     setUnrealisticWarningConfig,
     celebrationSummary,
     setCelebrationSummary,
+    historySessions,
     getProgressionAdvice,
     handleLogWorkout,
   };

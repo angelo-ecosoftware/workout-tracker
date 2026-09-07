@@ -13,6 +13,7 @@ import { WorkoutSubmitButton } from "./tracker/WorkoutSubmitButton.tsx";
 import { useWorkoutSession } from "./tracker/useWorkoutSession.ts";
 import { ConfirmModal } from "../ui/ConfirmModal.tsx";
 import { WorkoutCompletionModal } from "./tracker/WorkoutCompletionModal.tsx";
+import { WeeklyConsistencyStreak } from "./history/WeeklyConsistencyStreak.tsx";
 
 export const WorkoutDayTracker: React.FC = () => {
   const { user } = useAuth();
@@ -63,6 +64,7 @@ export const WorkoutDayTracker: React.FC = () => {
     setUnrealisticWarningConfig,
     celebrationSummary,
     setCelebrationSummary,
+    historySessions,
     handlePhotoSelect,
     handleRemovePhoto,
     saveDraftCheckpoint,
@@ -148,6 +150,11 @@ export const WorkoutDayTracker: React.FC = () => {
           setShowWelcomeModal(false);
         }}
       />
+
+      {/* P1.2: Weekly Consistency Streak & Activity Heatmap */}
+      {(!isAssistedMode || assistedFinished) && (
+        <WeeklyConsistencyStreak sessions={historySessions} />
+      )}
 
       {/* Routine split selector - only visible in standard mode or after assisted sets are done */}
       {(!isAssistedMode || assistedFinished) && (
