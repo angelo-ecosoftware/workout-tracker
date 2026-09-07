@@ -13,6 +13,7 @@ import { WorkoutSubmitButton } from "./tracker/WorkoutSubmitButton.tsx";
 import { useWorkoutSession } from "./tracker/useWorkoutSession.ts";
 import { ConfirmModal } from "../ui/ConfirmModal.tsx";
 import { WorkoutCompletionModal } from "./tracker/WorkoutCompletionModal.tsx";
+import { RestTimerDrawer } from "./tracker/RestTimerDrawer.tsx";
 
 export const WorkoutDayTracker: React.FC = () => {
   const { user } = useAuth();
@@ -63,6 +64,8 @@ export const WorkoutDayTracker: React.FC = () => {
     setUnrealisticWarningConfig,
     celebrationSummary,
     setCelebrationSummary,
+    autoRestTimer,
+    setAutoRestTimer,
     historySessions,
     handlePhotoSelect,
     handleRemovePhoto,
@@ -142,11 +145,19 @@ export const WorkoutDayTracker: React.FC = () => {
     <div className="space-y-6">
       <WelcomeModal
         isOpen={showWelcomeModal}
+        userId={user?.uid}
         onClose={() => {
           if (user) {
             localStorage.setItem(`welcome_shown_${user.uid}`, "true");
           }
           setShowWelcomeModal(false);
+        }}
+        onCompletedOnboarding={() => {
+          if (user) {
+            localStorage.setItem(`welcome_shown_${user.uid}`, "true");
+          }
+          setShowWelcomeModal(false);
+          loadWorkflowState();
         }}
       />
 
@@ -373,6 +384,15 @@ export const WorkoutDayTracker: React.FC = () => {
             isOpen={Boolean(celebrationSummary)}
             summary={celebrationSummary}
             onClose={() => setCelebrationSummary(null)}
+          />
+
+          {/* P1.3: Rest Timer Auto-Start & Vibration Buzz Drawer */}
+          <RestTimerDrawer
+            isOpen={autoRestTimer.isOpen}
+            initialSeconds={autoRestTimer.durationSeconds}
+            exerciseName={autoRestTimer.exerciseName}
+            setNumber={autoRestTimer.setNumber}
+            onClose={() => setAutoRestTimer((prev) => ({ ...prev, isOpen: false }))}
           />
         </div>
       )}

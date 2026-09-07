@@ -14,6 +14,7 @@ import { SettingsBackupSection } from './SettingsBackupSection.tsx';
 import { SettingsPWASection } from './SettingsPWASection.tsx';
 import { CoachConnectionsSection } from '../settings/CoachConnectionsSection.tsx';
 import { CoachSettingsSection } from './CoachSettingsSection.tsx';
+import { SettingsFAQSection } from './SettingsFAQSection.tsx';
 
 interface Props {
   isOpen: boolean;
@@ -415,6 +416,9 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   fileInputRef={fileInputRef}
                   onFileChange={handleFileChange}
                 />
+
+                {/* P1.5: In-App Searchable Help & FAQ Accordion */}
+                <SettingsFAQSection />
               </>
             )}
 

@@ -36,6 +36,19 @@ export function useWorkoutSession(user: AuthUser | null) {
   const [celebrationSummary, setCelebrationSummary] = useState<WorkoutSummaryCelebration | null>(null);
   const [historySessions, setHistorySessions] = useState<{ id?: string; completedAt?: Date | null; startedAt?: Date; status?: string }[]>([]);
 
+  // P1.3: Auto-start rest timer state when a set row is checked off
+  const [autoRestTimer, setAutoRestTimer] = useState<{
+    isOpen: boolean;
+    durationSeconds: number;
+    exerciseName: string;
+    setNumber: number;
+  }>({
+    isOpen: false,
+    durationSeconds: 90,
+    exerciseName: '',
+    setNumber: 1,
+  });
+
   // Recovery & Note States
   const [sleepHours, setSleepHours] = useState(8);
   const [energyScore, setEnergyScore] = useState(7);
@@ -845,6 +858,34 @@ export function useWorkoutSession(user: AuthUser | null) {
       };
 
       saveDraftCheckpoint(updated);
+
+      // P1.3: Trigger rest timer auto-start and haptic vibration when set is checked off
+      if (isNowCompleted && activeWorkout) {
+        // Extract exerciseId and setNumber from key (e.g. "ex-1-2" -> exerciseId: "ex-1", setNum: 2)
+        const lastDashIdx = key.lastIndexOf('-');
+        const exId = lastDashIdx !== -1 ? key.substring(0, lastDashIdx) : key;
+        const setNum = lastDashIdx !== -1 ? parseInt(key.substring(lastDashIdx + 1), 10) : 1;
+        const targetExercise = activeWorkout.exercises.find((e) => e.id === exId);
+
+        // Light haptic pulse confirming checkoff
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          try {
+            navigator.vibrate(50);
+          } catch {}
+        }
+
+        const configuredRest = restDurationSeconds > 0 ? restDurationSeconds : 90;
+        setAutoRestTimer({
+          isOpen: true,
+          durationSeconds: configuredRest,
+          exerciseName: targetExercise?.name || '',
+          setNumber: setNum,
+        });
+      } else if (!isNowCompleted) {
+        // Dismiss rest timer if set was unchecked
+        setAutoRestTimer((prev) => ({ ...prev, isOpen: false }));
+      }
+
       return updated;
     });
   };
@@ -903,6 +944,8 @@ export function useWorkoutSession(user: AuthUser | null) {
     setUnrealisticWarningConfig,
     celebrationSummary,
     setCelebrationSummary,
+    autoRestTimer,
+    setAutoRestTimer,
     historySessions,
     getProgressionAdvice,
     handleLogWorkout,
