@@ -132,3 +132,46 @@ export function playCountdownBeep(freq = 600, duration = 0.12) {
     // Ignore audio cue errors
   }
 }
+
+/**
+ * Tonal sound effect for workout completion or celebratory moments
+ */
+export function playCelebrationTones() {
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6 arpeggio
+    notes.forEach((freq, idx) => {
+      const startTime = ctx.currentTime + idx * 0.1;
+      const duration = 0.25;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.2, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    });
+
+    if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+      navigator.vibrate([100, 50, 100, 50, 200]);
+    }
+  } catch {
+    // Ignore audio cue errors
+  }
+}
+
+export const soundEffects = {
+  playFinish: playCelebrationTones,
+  playOneSecondVibrateAlarm,
+  playCountdownBeep,
+};

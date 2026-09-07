@@ -12,6 +12,7 @@ import { ExerciseCard } from "./tracker/ExerciseCard.tsx";
 import { WorkoutSubmitButton } from "./tracker/WorkoutSubmitButton.tsx";
 import { useWorkoutSession } from "./tracker/useWorkoutSession.ts";
 import { ConfirmModal } from "../ui/ConfirmModal.tsx";
+import { WorkoutCompletionModal } from "./tracker/WorkoutCompletionModal.tsx";
 
 export const WorkoutDayTracker: React.FC = () => {
   const { user } = useAuth();
@@ -60,6 +61,8 @@ export const WorkoutDayTracker: React.FC = () => {
     toggleSetCompleted,
     unrealisticWarningConfig,
     setUnrealisticWarningConfig,
+    celebrationSummary,
+    setCelebrationSummary,
     handlePhotoSelect,
     handleRemovePhoto,
     saveDraftCheckpoint,
@@ -361,6 +364,13 @@ export const WorkoutDayTracker: React.FC = () => {
             confirmVariant="primary"
             onConfirm={unrealisticWarningConfig.onConfirm}
             onCancel={() => setUnrealisticWarningConfig((prev) => ({ ...prev, isOpen: false }))}
+          />
+
+          {/* P1.1: Workout Completion "PR Celebration" Modal */}
+          <WorkoutCompletionModal
+            isOpen={Boolean(celebrationSummary)}
+            summary={celebrationSummary}
+            onClose={() => setCelebrationSummary(null)}
           />
         </div>
       )}

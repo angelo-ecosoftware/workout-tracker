@@ -17,6 +17,7 @@ import {
   loadDraftPhotosFromStorage,
   clearDraftPhotosFromStorage,
 } from '../../../utils/draftPhotoStorage.ts';
+import { WorkoutSummaryCelebration, ExercisePR } from './WorkoutCompletionModal.tsx';
 
 export function useWorkoutSession(user: AuthUser | null) {
   const [workouts, setWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
@@ -31,6 +32,7 @@ export function useWorkoutSession(user: AuthUser | null) {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isRoutineEditorOpen, setIsRoutineEditorOpen] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [celebrationSummary, setCelebrationSummary] = useState<WorkoutSummaryCelebration | null>(null);
 
   // Recovery & Note States
   const [sleepHours, setSleepHours] = useState(8);
@@ -588,6 +590,61 @@ export function useWorkoutSession(user: AuthUser | null) {
         throw networkErr;
       }
 
+      // Calculate Celebration Summary (Tonnage, Reps, PR Milestones) for P1.1
+      let totalVolume = 0;
+      let totalRepsCount = 0;
+      const prsAchieved: ExercisePR[] = [];
+
+      for (const ex of activeWorkout.exercises) {
+        const exSets = finalSetsPayload.filter((s) => s.exerciseId === ex.id);
+        const cachedEx = userProfile?.lastSetSummaryPerExercise?.[ex.id];
+        const previous1RM = cachedEx
+          ? ProgressionEngine.calculate1RM(cachedEx.lastWeight, cachedEx.lastReps)
+          : undefined;
+
+        let bestSet1RM = 0;
+        let bestWeight = 0;
+        let bestReps = 0;
+
+        for (const s of exSets) {
+          const w = s.weight || 0;
+          const r = s.reps || 0;
+          totalVolume += w * r;
+          totalRepsCount += r;
+
+          if (w > 0 && r > 0) {
+            const set1RM = ProgressionEngine.calculate1RM(w, r);
+            if (set1RM > bestSet1RM) {
+              bestSet1RM = set1RM;
+              bestWeight = w;
+              bestReps = r;
+            }
+          }
+        }
+
+        if (bestSet1RM > 0) {
+          if (!previous1RM || bestSet1RM > previous1RM) {
+            prsAchieved.push({
+              exerciseName: ex.name,
+              weight: bestWeight,
+              reps: bestReps,
+              estimated1RM: bestSet1RM,
+              previous1RM,
+              improvementKg: previous1RM ? Math.round((bestSet1RM - previous1RM) * 10) / 10 : undefined,
+              isNew1RMRecord: true,
+            });
+          }
+        }
+      }
+
+      const celebrationData: WorkoutSummaryCelebration = {
+        workoutName: activeWorkout.name,
+        totalVolumeKg: Math.round(totalVolume),
+        totalReps: totalRepsCount,
+        completedSetsCount: finalSetsPayload.length,
+        prsAchieved,
+      };
+
       clearDraftCheckpoint(activeWorkout.id);
       setSessionNotes('');
       setSelectedPhotos([]);
@@ -595,6 +652,8 @@ export function useWorkoutSession(user: AuthUser | null) {
       setPhotoPreviews([]);
       setAssistedSessionTimings(null);
 
+      // Trigger Celebration Modal
+      setCelebrationSummary(celebrationData);
       setSuccessMsg(`Workout successfully saved! Next workout Day updated.`);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       await loadWorkflowState();
@@ -819,6 +878,8 @@ export function useWorkoutSession(user: AuthUser | null) {
     toggleSetCompleted,
     unrealisticWarningConfig,
     setUnrealisticWarningConfig,
+    celebrationSummary,
+    setCelebrationSummary,
     getProgressionAdvice,
     handleLogWorkout,
   };
