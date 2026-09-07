@@ -147,15 +147,15 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           {/* Active Entry fields grid */}
           <div className="space-y-1.5">
             {/* Minimal Clean Header */}
-            <div className="grid grid-cols-12 gap-1.5 sm:gap-2 text-[10px] font-mono font-bold text-gray-500 uppercase tracking-wider px-2 sm:px-2.5 pb-1 border-b border-[#222]">
-              <div className="col-span-3 sm:col-span-3 flex items-center">
+            <div className="grid grid-cols-12 gap-1 sm:gap-2 text-[10px] font-mono font-bold text-gray-500 uppercase tracking-wider px-1.5 sm:px-2.5 pb-1 border-b border-[#222]">
+              <div className="col-span-2 sm:col-span-2 flex items-center">
                 <span>SET</span>
               </div>
               <div className="col-span-5 sm:col-span-5 text-center">
-                {exercise.type === 'timed' ? 'DURATION' : 'WEIGHT (KG)'}
+                {exercise.type === 'timed' ? 'DURATION (S)' : 'WEIGHT (KG)'}
               </div>
-              <div className="col-span-4 sm:col-span-4 text-center">
-                {exercise.type === 'timed' ? 'DIFFICULTY' : 'REPS'}
+              <div className="col-span-5 sm:col-span-5 text-center">
+                {exercise.type === 'timed' ? 'DIFF (1-10)' : 'REPS'}
               </div>
             </div>
 

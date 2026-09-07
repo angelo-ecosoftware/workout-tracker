@@ -42,7 +42,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
 
   return (
     <div
-      className={`grid grid-cols-12 gap-1.5 sm:gap-2 items-center px-2 sm:px-2.5 py-1.5 sm:py-2 rounded-xl border transition-all ${
+      className={`grid grid-cols-12 gap-1 sm:gap-2 items-center px-1.5 sm:px-2.5 py-1.5 sm:py-2 rounded-xl border transition-all ${
         isCompleted
           ? 'bg-[#121212] border-emerald-500/20 opacity-70'
           : isCurrent
@@ -50,65 +50,54 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
           : 'bg-[#141414] border-[#202020] hover:border-[#2a2a2a]'
       }`}
     >
-      {/* Col 1-3: Set Number & 1-Tap Check */}
-      <div className="col-span-3 flex items-center gap-1.5 min-w-0">
+      {/* Col 1-2: Set Number & 1-Tap Check */}
+      <div className="col-span-2 flex items-center gap-1 min-w-0">
         <button
           type="button"
           onClick={() => onToggleCompleted && onToggleCompleted(inputKey)}
           aria-label={isCompleted ? `Mark set ${setNum} incomplete` : `Mark set ${setNum} complete`}
           title={isCompleted ? `Done at ${values.completedAt || ''}` : 'Mark complete'}
-          className={`w-7 h-7 sm:w-8 sm:h-8 min-w-[44px] min-h-[44px] sm:min-w-[44px] sm:min-h-[44px] rounded-md flex items-center justify-center transition-all cursor-pointer shrink-0 border ${
+          className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 border ${
             isCompleted
               ? 'bg-[#C0FF00] border-[#C0FF00] text-black shadow-sm'
               : isCurrent
-              ? 'bg-[#1a1a1a] border-[#C0FF00]/50 text-transparent hover:text-gray-400'
+              ? 'bg-[#1a1a1a] border-[#C0FF00]/60 text-transparent hover:text-gray-400'
               : 'bg-[#1a1a1a] border-[#2d2d2d] hover:border-gray-400 text-transparent hover:text-gray-400'
           }`}
         >
-          <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
+          <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
         </button>
 
-        <div className="flex items-center gap-1 shrink-0">
-          <span
-            className={`font-mono text-[11px] sm:text-xs font-bold uppercase whitespace-nowrap ${
-              isCompleted ? 'text-gray-500 line-through' : isCurrent ? 'text-[#C0FF00]' : 'text-gray-300'
-            }`}
-          >
-            SET {setNum}
-          </span>
-
-          {isCompleted && values.completedAt && (
-            <span className="text-[8px] font-mono text-emerald-400 hidden sm:inline">
-              {values.completedAt}
-            </span>
-          )}
-
-          {!isCompleted && isCurrent && (
-            <span className="w-1.5 h-1.5 rounded-full bg-[#C0FF00] animate-pulse shrink-0 hidden sm:inline" />
-          )}
-        </div>
+        <span
+          className={`font-mono text-[10px] sm:text-xs font-bold uppercase whitespace-nowrap ${
+            isCompleted ? 'text-gray-500 line-through' : isCurrent ? 'text-[#C0FF00]' : 'text-gray-300'
+          }`}
+        >
+          SET {setNum}
+        </span>
       </div>
 
       {exercise.type === 'timed' ? (
         <>
-          {/* Col 4-8: Duration Stepper */}
-          <div className="col-span-5 flex items-center justify-center gap-1">
+          {/* Col 3-7: Duration Stepper (Flex container with integrated +/- buttons) */}
+          <div className="col-span-5 flex items-stretch h-9 sm:h-10 bg-[#0d0d0d] border border-[#282828] focus-within:border-[#C0FF00] rounded-xl overflow-hidden">
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'durationSeconds', -5)}
               aria-label={`Decrease duration for set ${setNum} by 5 seconds`}
-              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
             >
-              <Minus className="w-4 h-4" />
+              <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             <input
               type="text"
+              inputMode="numeric"
               value={values.durationSeconds || ''}
               onFocus={(e) => e.target.select()}
               onChange={(e) => onTextInput(inputKey, 'durationSeconds', e.target.value)}
               aria-label={`Duration in seconds for set ${setNum}`}
-              className="w-full min-w-0 min-h-[44px] bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-0.5 text-center font-mono font-bold text-white text-xs sm:text-sm focus:outline-none"
+              className="w-full min-w-0 bg-transparent py-1 px-0.5 text-center font-mono font-bold text-white text-xs sm:text-sm focus:outline-none"
               placeholder="0"
             />
 
@@ -116,30 +105,31 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
               type="button"
               onClick={() => onUpdateInput(inputKey, 'durationSeconds', 5)}
               aria-label={`Increase duration for set ${setNum} by 5 seconds`}
-              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
 
-          {/* Col 9-12: Difficulty Stepper */}
-          <div className="col-span-4 flex items-center justify-center gap-1">
+          {/* Col 8-12: Difficulty Stepper */}
+          <div className="col-span-5 flex items-stretch h-9 sm:h-10 bg-[#0d0d0d] border border-[#282828] focus-within:border-amber-400 rounded-xl overflow-hidden">
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'difficulty', -1)}
               aria-label={`Decrease difficulty for set ${setNum}`}
-              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
             >
-              <Minus className="w-4 h-4" />
+              <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             <input
               type="text"
+              inputMode="numeric"
               value={values.difficulty || ''}
               onFocus={(e) => e.target.select()}
               onChange={(e) => onTextInput(inputKey, 'difficulty', e.target.value)}
               aria-label={`Difficulty out of 10 for set ${setNum}`}
-              className="w-full min-w-0 min-h-[44px] bg-[#0d0d0d] border border-[#282828] focus:border-amber-400 rounded-lg py-1 px-0.5 text-center font-mono font-bold text-amber-400 text-xs sm:text-sm focus:outline-none"
+              className="w-full min-w-0 bg-transparent py-1 px-0.5 text-center font-mono font-bold text-amber-400 text-xs sm:text-sm focus:outline-none"
               placeholder="7"
             />
 
@@ -147,33 +137,34 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
               type="button"
               onClick={() => onUpdateInput(inputKey, 'difficulty', 1)}
               aria-label={`Increase difficulty for set ${setNum}`}
-              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
         </>
       ) : (
         <>
-          {/* Col 4-8: Weight Stepper */}
-          <div className="col-span-5 flex items-center justify-center gap-1">
+          {/* Col 3-7: Weight Stepper (Integrated segment with +/- and center input) */}
+          <div className="col-span-5 flex items-stretch h-9 sm:h-10 bg-[#0d0d0d] border border-[#282828] focus-within:border-[#C0FF00] rounded-xl overflow-hidden">
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'weight', -2.5)}
               aria-label={`Decrease weight for set ${setNum} by 2.5 kilograms`}
-              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-white flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 hover:text-white flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
               title="-2.5 kg"
             >
-              <Minus className="w-4 h-4" />
+              <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             <input
               type="text"
+              inputMode="decimal"
               value={values.weight || ''}
               onFocus={(e) => e.target.select()}
               onChange={(e) => onTextInput(inputKey, 'weight', e.target.value)}
               aria-label={`Weight in kilograms for set ${setNum}`}
-              className="w-full min-w-0 min-h-[44px] bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-0.5 text-center font-mono font-black text-white text-xs sm:text-sm focus:outline-none"
+              className="w-full min-w-0 bg-transparent py-1 px-0.5 text-center font-mono font-black text-white text-xs sm:text-sm focus:outline-none"
               placeholder="0"
             />
 
@@ -181,32 +172,33 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
               type="button"
               onClick={() => onUpdateInput(inputKey, 'weight', 2.5)}
               aria-label={`Increase weight for set ${setNum} by 2.5 kilograms`}
-              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-[#C0FF00] flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 hover:text-[#C0FF00] flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
               title="+2.5 kg"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
 
-          {/* Col 9-12: Reps Stepper */}
-          <div className="col-span-4 flex items-center justify-center gap-1">
+          {/* Col 8-12: Reps Stepper */}
+          <div className="col-span-5 flex items-stretch h-9 sm:h-10 bg-[#0d0d0d] border border-[#282828] focus-within:border-[#C0FF00] rounded-xl overflow-hidden">
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'reps', -1)}
               aria-label={`Decrease reps for set ${setNum}`}
-              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-white flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 hover:text-white flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
               title="-1 rep"
             >
-              <Minus className="w-4 h-4" />
+              <Minus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
 
             <input
               type="text"
+              inputMode="numeric"
               value={values.reps || ''}
               onFocus={(e) => e.target.select()}
               onChange={(e) => onTextInput(inputKey, 'reps', e.target.value)}
               aria-label={`Reps for set ${setNum}`}
-              className="w-full min-w-0 min-h-[44px] bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-0.5 text-center font-mono font-black text-[#C0FF00] text-xs sm:text-sm focus:outline-none"
+              className="w-full min-w-0 bg-transparent py-1 px-0.5 text-center font-mono font-black text-[#C0FF00] text-xs sm:text-sm focus:outline-none"
               placeholder="0"
             />
 
@@ -214,10 +206,10 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
               type="button"
               onClick={() => onUpdateInput(inputKey, 'reps', 1)}
               aria-label={`Increase reps for set ${setNum}`}
-              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-[#C0FF00] flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 hover:text-[#C0FF00] flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
               title="+1 rep"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </button>
           </div>
         </>
