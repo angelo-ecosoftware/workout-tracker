@@ -54,11 +54,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       }`}
     >
       {/* Exercise metadata details header */}
-      <div
-        className={`flex flex-col sm:flex-row sm:items-start justify-between gap-3 cursor-pointer ${
+      <button
+        type="button"
+        className={`w-full flex flex-col sm:flex-row sm:items-start justify-between gap-3 cursor-pointer text-left ${
           isExpanded ? 'border-b border-[#1f1f1f] pb-3' : ''
         }`}
         onClick={onToggleExpand}
+        aria-expanded={isExpanded}
       >
         <div className="flex-1">
           <div className="flex items-center justify-between">
@@ -70,28 +72,14 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               {exercise.name}
             </h4>
             {!isExpanded && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleExpand();
-                }}
-                className="p-1.5 text-gray-500 hover:text-white bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors"
-              >
-                <Eye className="w-4 h-4" />
-              </button>
+              <div className="p-2 sm:p-1.5 text-gray-500 bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
+                <Eye className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
+              </div>
             )}
             {isExpanded && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleExpand();
-                }}
-                className="p-1.5 text-[#C0FF00] bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors self-start ml-3 sm:hidden"
-              >
-                <EyeOff className="w-4 h-4" />
-              </button>
+              <div className="p-2 sm:p-1.5 text-[#C0FF00] bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors self-start ml-3 sm:hidden pointer-events-none">
+                <EyeOff className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
+              </div>
             )}
           </div>
           <p className="font-sans text-[11px] text-gray-400 mt-0.5 uppercase tracking-wider font-semibold">
@@ -121,19 +109,12 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           ) : null}
 
           {isExpanded && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleExpand();
-              }}
-              className="hidden sm:block p-1.5 text-[#C0FF00] bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors hover:bg-[#222]"
-            >
-              <EyeOff className="w-4 h-4" />
-            </button>
+            <div className="hidden sm:block p-1.5 text-[#C0FF00] bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
+              <EyeOff className="w-4 h-4" aria-hidden="true" />
+            </div>
           )}
         </div>
-      </div>
+      </button>
 
       {isExpanded && (
         <>

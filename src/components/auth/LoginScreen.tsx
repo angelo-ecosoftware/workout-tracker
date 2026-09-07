@@ -174,9 +174,9 @@ export const LoginScreen: React.FC = () => {
             Workout <span className="text-[#C0FF00]">Tracker</span>
           </h1>
           
-          <p className="font-sans text-xs text-gray-400 max-w-xs mb-8 uppercase tracking-widest font-semibold leading-relaxed">
+          <p className="font-sans text-xs text-gray-300 max-w-xs mb-8 uppercase tracking-widest font-semibold leading-relaxed">
             Minimal personal split tracker<br />
-            <span className="text-gray-600 font-mono text-[10px]">No fluff. log sets & leave.</span>
+            <span className="text-gray-400 font-mono text-[10px]">No fluff. log sets & leave.</span>
           </p>
 
           {errorMsg && (
@@ -208,35 +208,39 @@ export const LoginScreen: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 font-bold mb-1">
+                <label htmlFor="admin_email" className="block text-[10px] font-mono uppercase tracking-wider text-gray-300 font-bold mb-1">
                   Admin Email
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
+                    id="admin_email"
                     type="email"
                     required
                     placeholder="admin@example.com"
                     value={emailInput}
                     onChange={(e) => setEmailInput(e.target.value)}
-                    className="w-full bg-[#181818] border border-[#333] focus:border-purple-500 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white font-mono placeholder:text-gray-600 outline-none transition-colors"
+                    className="w-full bg-[#181818] border border-[#333] focus:border-purple-500 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white font-mono placeholder:text-gray-500 outline-none transition-colors"
+                    aria-label="Admin Email Address"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-mono uppercase tracking-wider text-gray-400 font-bold mb-1">
+                <label htmlFor="admin_password" className="block text-[10px] font-mono uppercase tracking-wider text-gray-300 font-bold mb-1">
                   Password
                 </label>
                 <div className="relative">
-                  <Key className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Key className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
+                    id="admin_password"
                     type="password"
                     required
                     placeholder="••••••••••••"
                     value={passwordInput}
                     onChange={(e) => setPasswordInput(e.target.value)}
-                    className="w-full bg-[#181818] border border-[#333] focus:border-purple-500 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white font-mono placeholder:text-gray-600 outline-none transition-colors"
+                    className="w-full bg-[#181818] border border-[#333] focus:border-purple-500 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white font-mono placeholder:text-gray-500 outline-none transition-colors"
+                    aria-label="Admin Password"
                   />
                 </div>
               </div>

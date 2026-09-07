@@ -55,16 +55,17 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
         <button
           type="button"
           onClick={() => onToggleCompleted && onToggleCompleted(inputKey)}
+          aria-label={isCompleted ? `Mark set ${setNum} incomplete` : `Mark set ${setNum} complete`}
           title={isCompleted ? `Done at ${values.completedAt || ''}` : 'Mark complete'}
-          className={`w-5 h-5 sm:w-6 sm:h-6 rounded-md flex items-center justify-center transition-all cursor-pointer shrink-0 border ${
+          className={`w-7 h-7 sm:w-8 sm:h-8 min-w-[44px] min-h-[44px] sm:min-w-[44px] sm:min-h-[44px] rounded-md flex items-center justify-center transition-all cursor-pointer shrink-0 border ${
             isCompleted
               ? 'bg-[#C0FF00] border-[#C0FF00] text-black shadow-sm'
               : isCurrent
               ? 'bg-[#1a1a1a] border-[#C0FF00]/50 text-transparent hover:text-gray-400'
-              : 'bg-[#1a1a1a] border-[#2d2d2d] hover:border-gray-500 text-transparent hover:text-gray-400'
+              : 'bg-[#1a1a1a] border-[#2d2d2d] hover:border-gray-400 text-transparent hover:text-gray-400'
           }`}
         >
-          <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 stroke-[3]" />
+          <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
         </button>
 
         <div className="flex items-center gap-1 shrink-0">
@@ -95,9 +96,10 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'durationSeconds', -5)}
-              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              aria-label={`Decrease duration for set ${setNum} by 5 seconds`}
+              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
             >
-              <Minus className="w-3 h-3" />
+              <Minus className="w-4 h-4" />
             </button>
 
             <input
@@ -105,16 +107,18 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
               value={values.durationSeconds || ''}
               onFocus={(e) => e.target.select()}
               onChange={(e) => onTextInput(inputKey, 'durationSeconds', e.target.value)}
-              className="w-full min-w-0 bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-0.5 text-center font-mono font-bold text-white text-xs sm:text-sm focus:outline-none"
+              aria-label={`Duration in seconds for set ${setNum}`}
+              className="w-full min-w-0 min-h-[44px] bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-0.5 text-center font-mono font-bold text-white text-xs sm:text-sm focus:outline-none"
               placeholder="0"
             />
 
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'durationSeconds', 5)}
-              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              aria-label={`Increase duration for set ${setNum} by 5 seconds`}
+              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
             >
-              <Plus className="w-3 h-3" />
+              <Plus className="w-4 h-4" />
             </button>
           </div>
 
@@ -123,9 +127,10 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'difficulty', -1)}
-              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              aria-label={`Decrease difficulty for set ${setNum}`}
+              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
             >
-              <Minus className="w-3 h-3" />
+              <Minus className="w-4 h-4" />
             </button>
 
             <input
@@ -133,16 +138,18 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
               value={values.difficulty || ''}
               onFocus={(e) => e.target.select()}
               onChange={(e) => onTextInput(inputKey, 'difficulty', e.target.value)}
-              className="w-full min-w-0 bg-[#0d0d0d] border border-[#282828] focus:border-amber-400 rounded-lg py-1 px-0.5 text-center font-mono font-bold text-amber-400 text-xs sm:text-sm focus:outline-none"
+              aria-label={`Difficulty out of 10 for set ${setNum}`}
+              className="w-full min-w-0 min-h-[44px] bg-[#0d0d0d] border border-[#282828] focus:border-amber-400 rounded-lg py-1 px-0.5 text-center font-mono font-bold text-amber-400 text-xs sm:text-sm focus:outline-none"
               placeholder="7"
             />
 
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'difficulty', 1)}
-              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              aria-label={`Increase difficulty for set ${setNum}`}
+              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
             >
-              <Plus className="w-3 h-3" />
+              <Plus className="w-4 h-4" />
             </button>
           </div>
         </>
@@ -153,10 +160,11 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'weight', -2.5)}
-              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-white flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              aria-label={`Decrease weight for set ${setNum} by 2.5 kilograms`}
+              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-white flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
               title="-2.5 kg"
             >
-              <Minus className="w-3 h-3" />
+              <Minus className="w-4 h-4" />
             </button>
 
             <input
@@ -164,17 +172,19 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
               value={values.weight || ''}
               onFocus={(e) => e.target.select()}
               onChange={(e) => onTextInput(inputKey, 'weight', e.target.value)}
-              className="w-full min-w-0 bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-0.5 text-center font-mono font-black text-white text-xs sm:text-sm focus:outline-none"
+              aria-label={`Weight in kilograms for set ${setNum}`}
+              className="w-full min-w-0 min-h-[44px] bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-0.5 text-center font-mono font-black text-white text-xs sm:text-sm focus:outline-none"
               placeholder="0"
             />
 
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'weight', 2.5)}
-              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-[#C0FF00] flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              aria-label={`Increase weight for set ${setNum} by 2.5 kilograms`}
+              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-[#C0FF00] flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
               title="+2.5 kg"
             >
-              <Plus className="w-3 h-3" />
+              <Plus className="w-4 h-4" />
             </button>
           </div>
 
@@ -183,10 +193,11 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'reps', -1)}
-              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-white flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              aria-label={`Decrease reps for set ${setNum}`}
+              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-white flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
               title="-1 rep"
             >
-              <Minus className="w-3 h-3" />
+              <Minus className="w-4 h-4" />
             </button>
 
             <input
@@ -194,17 +205,19 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
               value={values.reps || ''}
               onFocus={(e) => e.target.select()}
               onChange={(e) => onTextInput(inputKey, 'reps', e.target.value)}
-              className="w-full min-w-0 bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-0.5 text-center font-mono font-black text-[#C0FF00] text-xs sm:text-sm focus:outline-none"
+              aria-label={`Reps for set ${setNum}`}
+              className="w-full min-w-0 min-h-[44px] bg-[#0d0d0d] border border-[#282828] focus:border-[#C0FF00] rounded-lg py-1 px-0.5 text-center font-mono font-black text-[#C0FF00] text-xs sm:text-sm focus:outline-none"
               placeholder="0"
             />
 
             <button
               type="button"
               onClick={() => onUpdateInput(inputKey, 'reps', 1)}
-              className="w-6 h-6 sm:w-7 sm:h-7 bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-[#C0FF00] flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
+              aria-label={`Increase reps for set ${setNum}`}
+              className="w-8 h-8 sm:w-9 sm:h-9 min-w-[44px] min-h-[44px] bg-[#1c1c1c] hover:bg-[#252525] border border-[#2a2a2a] rounded-lg text-gray-300 hover:text-[#C0FF00] flex items-center justify-center text-xs font-mono font-bold cursor-pointer shrink-0 active:scale-95 transition-transform"
               title="+1 rep"
             >
-              <Plus className="w-3 h-3" />
+              <Plus className="w-4 h-4" />
             </button>
           </div>
         </>
