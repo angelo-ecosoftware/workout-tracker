@@ -67,11 +67,26 @@ describe('P2.1, P2.2 & P2.4: Exercise Guide Drawer & Muscle Anatomy Heatmap', ()
       expect(screen.getByText(/controlled eccentric:/i)).toBeInTheDocument();
       expect(screen.getByText(/explosive concentric:/i)).toBeInTheDocument();
 
-      // Video Tutorial Link
+      // Video Tutorial Link (YouTube)
       expect(screen.getByText(/video form tutorial \(1080p\)/i)).toBeInTheDocument();
       const watchLink = screen.getByRole('link', { name: /watch/i });
       expect(watchLink).toBeInTheDocument();
       expect(watchLink).toHaveAttribute('href', expect.stringContaining('youtube.com'));
+
+      // Social Video Link (TikTok Form Cues)
+      expect(screen.getByText(/tiktok form cues/i)).toBeInTheDocument();
+      const cuesLink = screen.getByRole('link', { name: /cues/i });
+      expect(cuesLink).toBeInTheDocument();
+      expect(cuesLink).toHaveAttribute('href', expect.stringContaining('tiktok.com'));
+
+      // Dual-phase motion toggle
+      expect(screen.getByText(/motion & form phases/i)).toBeInTheDocument();
+      const peakBtn = screen.getByRole('button', { name: /2\. peak squeeze/i });
+      fireEvent.click(peakBtn);
+      expect(screen.getByText(/concentric lockout & peak contraction/i)).toBeInTheDocument();
+
+      // Step-by-step instructions
+      expect(screen.getByText(/step-by-step instructions/i)).toBeInTheDocument();
 
       // Close button
       const closeBtn = screen.getByRole('button', { name: /close guide/i });

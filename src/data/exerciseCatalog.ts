@@ -8,6 +8,11 @@ export interface CatalogExercise {
   defaultSets: number;
   defaultRepMin: number;
   defaultRepMax: number;
+  instructions?: string[];
+  motionCues?: {
+    setup: string;
+    peak: string;
+  };
 }
 
 export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
