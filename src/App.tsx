@@ -16,6 +16,7 @@ import { CoachInviteAcceptModal } from './components/modals/CoachInviteAcceptMod
 import { fetchInviteByCode } from './lib/db/roles.ts';
 import { CoachAthleteLink } from './models.ts';
 import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
+import { isGoogleAuthUrl, sanitizeAuthenticatedSession } from './utils/authUrl.ts';
 import { Loader2, UserCheck, Dumbbell } from 'lucide-react';
 
 // Extract public session ID from query param (?session=xxx or ?share=xxx) or hash (#/share/xxx or #/session/xxx)
@@ -108,11 +109,16 @@ const GymAppContent: React.FC = () => {
   };
 
   useEffect(() => {
-    // Prevent back-swipe from ever exiting to the login screen when authenticated
+    // Prevent back-swipe from ever exiting to the login screen or Google sign-in when authenticated
     if (user) {
       try {
         const currentHash = window.location.hash || '#tracker';
-        window.history.replaceState({ appState: 'authenticated', tab: activeTab }, '', `${window.location.pathname}${currentHash}`);
+        sanitizeAuthenticatedSession(currentHash);
+
+        // Trap back-navigation so users cannot be pushed back to Google signin or OAuth pages
+        for (let i = 1; i <= 5; i++) {
+          window.history.pushState({ appState: 'barrier', index: i, tab: activeTab }, '', `${window.location.pathname}#${activeTab}`);
+        }
       } catch {}
     }
 
@@ -121,12 +127,17 @@ const GymAppContent: React.FC = () => {
       setPendingInviteCode(getCoachInviteCodeFromUrl());
       const hash = window.location.hash.toLowerCase();
 
-      // If user is authenticated and navigating back with empty hash or root, stay on active tab without exposing login
-      if (user && (!hash || hash === '#' || hash === '#/')) {
-        const fallbackTab = (localStorage.getItem('workout_tracker_active_tab') as TabType) || 'tracker';
-        setActiveTabState(fallbackTab);
-        window.history.replaceState({ appState: 'authenticated', tab: fallbackTab }, '', `${window.location.pathname}#${fallbackTab}`);
-        return;
+      // If user is authenticated and navigating back, trap history so it stays in app instead of Google signin
+      if (user) {
+        if (!hash || hash === '#' || hash === '#/' || hash.includes('login') || isGoogleAuthUrl()) {
+          const fallbackTab = (localStorage.getItem('workout_tracker_active_tab') as TabType) || 'tracker';
+          setActiveTabState(fallbackTab);
+          sanitizeAuthenticatedSession(`#${fallbackTab}`);
+          for (let i = 1; i <= 3; i++) {
+            window.history.pushState({ appState: 'barrier', index: i, tab: fallbackTab }, '', `${window.location.pathname}#${fallbackTab}`);
+          }
+          return;
+        }
       }
 
       if (hash.includes('admin')) setActiveTabState('admin');
@@ -153,7 +164,7 @@ const GymAppContent: React.FC = () => {
       window.removeEventListener('hashchange', handlePopState);
       window.removeEventListener('switch_app_tab', handleCustomTabSwitch);
     };
-  }, []);
+  }, [user, activeTab]);
 
   // Fetch coach invite metadata when pendingInviteCode is detected in URL
   useEffect(() => {
