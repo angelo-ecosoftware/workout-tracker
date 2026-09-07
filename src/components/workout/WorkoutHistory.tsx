@@ -21,7 +21,6 @@ import { Activity, Loader2, ChevronLeft, Trash2 } from 'lucide-react';
 import { ConfirmModal } from '../ui/ConfirmModal.tsx';
 import { PopulatedSession, SessionDetailCard } from './history/SessionDetailCard.tsx';
 import { SessionGridCard } from './history/SessionGridCard.tsx';
-import { WeeklyConsistencyStreak } from './history/WeeklyConsistencyStreak.tsx';
 
 export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientMode?: boolean }> = ({
   targetUserId,
@@ -501,23 +500,16 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
 
   if (sessions.length === 0) {
     return (
-      <div className="space-y-6">
-        <WeeklyConsistencyStreak sessions={[]} />
-        <div className="text-center p-10 bg-[#111] border border-[#222] rounded-[24px]">
-          <Activity className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-          <h3 className="text-white font-display font-medium text-lg mb-2">No Workouts Yet</h3>
-          <p className="text-gray-400 font-sans text-sm">Complete your first workout to see it logged here.</p>
-        </div>
+      <div className="text-center p-10 bg-[#111] border border-[#222] rounded-[24px]">
+        <Activity className="w-12 h-12 text-gray-600 mx-auto mb-4" />
+        <h3 className="text-white font-display font-medium text-lg mb-2">No Workouts Yet</h3>
+        <p className="text-gray-400 font-sans text-sm">Complete your first workout to see it logged here.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {!expandedSessionId && (
-        <WeeklyConsistencyStreak sessions={sessions} />
-      )}
-
       <div className="flex items-center justify-between min-h-[32px]">
         <h2 className="text-xl font-display font-black text-white uppercase tracking-tight">
           Training History
