@@ -54,6 +54,8 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
       <div className="col-span-2 flex items-center gap-1 min-w-0">
         <button
           type="button"
+          role="checkbox"
+          aria-checked={isCompleted}
           onClick={() => onToggleCompleted && onToggleCompleted(inputKey)}
           aria-label={isCompleted ? `Mark set ${setNum} incomplete` : `Mark set ${setNum} complete`}
           title={isCompleted ? `Done at ${values.completedAt || ''}` : 'Mark complete'}
@@ -61,8 +63,8 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             isCompleted
               ? 'bg-[#C0FF00] border-[#C0FF00] text-black shadow-sm'
               : isCurrent
-              ? 'bg-[#1a1a1a] border-[#C0FF00]/60 text-transparent hover:text-gray-400'
-              : 'bg-[#1a1a1a] border-[#2d2d2d] hover:border-gray-400 text-transparent hover:text-gray-400'
+              ? 'bg-[#1a1a1a] border-[#C0FF00]/60 text-zinc-500 hover:text-[#C0FF00]'
+              : 'bg-[#1a1a1a] border-[#2d2d2d] hover:border-gray-500 text-zinc-600 hover:text-gray-300'
           }`}
         >
           <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
