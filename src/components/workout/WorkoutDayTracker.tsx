@@ -13,7 +13,6 @@ import { WorkoutSubmitButton } from "./tracker/WorkoutSubmitButton.tsx";
 import { useWorkoutSession } from "./tracker/useWorkoutSession.ts";
 import { ConfirmModal } from "../ui/ConfirmModal.tsx";
 import { WorkoutCompletionModal } from "./tracker/WorkoutCompletionModal.tsx";
-import { WeeklyConsistencyStreak } from "./history/WeeklyConsistencyStreak.tsx";
 
 export const WorkoutDayTracker: React.FC = () => {
   const { user } = useAuth();
@@ -151,11 +150,6 @@ export const WorkoutDayTracker: React.FC = () => {
         }}
       />
 
-      {/* P1.2: Weekly Consistency Streak & Activity Heatmap */}
-      {(!isAssistedMode || assistedFinished) && (
-        <WeeklyConsistencyStreak sessions={historySessions} />
-      )}
-
       {/* Routine split selector - only visible in standard mode or after assisted sets are done */}
       {(!isAssistedMode || assistedFinished) && (
         <RoutineSplitSelector
@@ -163,6 +157,7 @@ export const WorkoutDayTracker: React.FC = () => {
           activeWorkout={activeWorkout}
           suggestedDay={suggestedDay}
           lastSessionDay={lastSessionDay}
+          sessions={historySessions}
           onSelectWorkout={(w) => {
             setActiveWorkout(w);
             setErrorMsg(null);

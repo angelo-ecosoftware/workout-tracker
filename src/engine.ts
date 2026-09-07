@@ -7,6 +7,16 @@ export class EngineError extends Error {
   }
 }
 
+export interface RoutineStreakStatus {
+  streakCount: number; // 0, 1, 2, ... endless
+  isBroken: boolean;
+  hoursSinceLastSession: number | null;
+  recoveryState: 'recovering' | 'ready' | 'streak_at_risk' | 'broken' | 'none';
+  recoveryHoursRemaining: number; // 0 to 48
+  hoursUntilStreakBreak: number; // 0 to 96
+  lastCompletedAt: Date | null;
+}
+
 export const SessionEngine = {
   calculateNextWorkoutOrder(user: UserProfile, availableWorkouts?: Workout[]): number {
     if (typeof user.lastCompletedWorkoutOrder !== 'number') {
@@ -48,6 +58,104 @@ export const SessionEngine = {
       status: 'in_progress',
       startedAt: new Date(),
       completedAt: null
+    };
+  },
+
+  /**
+   * Calculates continuous routine completion streak (1 to endless) and 48-hour recovery state.
+   * Breaks officially if more than 96 hours elapse between consecutive completed sessions.
+   * Supports athletes training daily (5-7 days/week) as well as those training every 48-72h.
+   */
+  calculateRoutineStreak(
+    sessions?: Array<{ completedAt?: Date | string | null; startedAt?: Date | string | null; status?: string }>,
+    referenceDate = new Date()
+  ): RoutineStreakStatus {
+    if (!sessions || sessions.length === 0) {
+      return {
+        streakCount: 0,
+        isBroken: false,
+        hoursSinceLastSession: null,
+        recoveryState: 'none',
+        recoveryHoursRemaining: 0,
+        hoursUntilStreakBreak: 96,
+        lastCompletedAt: null,
+      };
+    }
+
+    const completed = sessions
+      .filter((s) => s.status !== 'in_progress')
+      .map((s) => {
+        const raw = s.completedAt || s.startedAt;
+        return raw ? new Date(raw) : null;
+      })
+      .filter((d): d is Date => d !== null && !isNaN(d.getTime()))
+      .sort((a, b) => b.getTime() - a.getTime());
+
+    if (completed.length === 0) {
+      return {
+        streakCount: 0,
+        isBroken: false,
+        hoursSinceLastSession: null,
+        recoveryState: 'none',
+        recoveryHoursRemaining: 0,
+        hoursUntilStreakBreak: 96,
+        lastCompletedAt: null,
+      };
+    }
+
+    const now = new Date(referenceDate);
+    const lastCompletedAt = completed[0];
+    const diffMs = now.getTime() - lastCompletedAt.getTime();
+    const hoursSinceLast = Math.max(0, diffMs / (1000 * 60 * 60));
+
+    // If more than 96 hours elapsed since last completed session, streak is officially broken
+    if (hoursSinceLast > 96) {
+      return {
+        streakCount: 0,
+        isBroken: true,
+        hoursSinceLastSession: Math.round(hoursSinceLast * 10) / 10,
+        recoveryState: 'broken',
+        recoveryHoursRemaining: 0,
+        hoursUntilStreakBreak: 0,
+        lastCompletedAt,
+      };
+    }
+
+    // Streak is active! Count consecutive sessions completed within 96h of each other
+    let streakCount = 1;
+    for (let i = 0; i < completed.length - 1; i++) {
+      const current = completed[i];
+      const previous = completed[i + 1];
+      const gapHours = (current.getTime() - previous.getTime()) / (1000 * 60 * 60);
+
+      if (gapHours <= 96 && gapHours >= 0) {
+        streakCount++;
+      } else {
+        break;
+      }
+    }
+
+    let recoveryState: 'recovering' | 'ready' | 'streak_at_risk' = 'ready';
+    let recoveryHoursRemaining = 0;
+    const hoursUntilStreakBreak = Math.max(0, Math.ceil(96 - hoursSinceLast));
+
+    if (hoursSinceLast < 48) {
+      recoveryState = 'recovering';
+      recoveryHoursRemaining = Math.max(0, Math.ceil(48 - hoursSinceLast));
+    } else if (hoursSinceLast >= 72) {
+      recoveryState = 'streak_at_risk';
+    } else {
+      recoveryState = 'ready';
+    }
+
+    return {
+      streakCount,
+      isBroken: false,
+      hoursSinceLastSession: Math.round(hoursSinceLast * 10) / 10,
+      recoveryState,
+      recoveryHoursRemaining,
+      hoursUntilStreakBreak,
+      lastCompletedAt,
     };
   }
 };
