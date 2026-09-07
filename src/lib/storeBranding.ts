@@ -85,6 +85,30 @@ export const KNOWN_STORES: Record<string, StoreMetadata> = {
     bgColor: 'bg-[#15803d]/10',
     borderColor: 'border-[#15803d]/30',
   },
+  kruidvat: {
+    id: 'kruidvat',
+    name: 'Kruidvat',
+    badgeLabel: 'KRUIDVAT',
+    textColor: 'text-[#e11d48]',
+    bgColor: 'bg-[#e11d48]/10',
+    borderColor: 'border-[#e11d48]/30',
+  },
+  etos: {
+    id: 'etos',
+    name: 'Etos',
+    badgeLabel: 'ETOS',
+    textColor: 'text-[#7c3aed]',
+    bgColor: 'bg-[#7c3aed]/10',
+    borderColor: 'border-[#7c3aed]/30',
+  },
+  hollandandbarrett: {
+    id: 'hollandandbarrett',
+    name: 'Holland & Barrett',
+    badgeLabel: 'H&B',
+    textColor: 'text-[#15803d]',
+    bgColor: 'bg-[#15803d]/10',
+    borderColor: 'border-[#15803d]/30',
+  },
   generic: {
     id: 'generic',
     name: 'Store',
@@ -99,34 +123,44 @@ export const KNOWN_STORES: Record<string, StoreMetadata> = {
  * Detect store metadata from a product source URL or product ID
  */
 export function getStoreMetadata(sourceUrl?: string, productId?: string): StoreMetadata | null {
-  const target = `${sourceUrl || ''} ${productId || ''}`.toLowerCase();
+  const urlLower = (sourceUrl || '').toLowerCase();
+  const idLower = (productId || '').toLowerCase();
 
-  if (target.includes('ah.nl') || target.startsWith('ah_') || target.startsWith('wi')) {
+  if (urlLower.includes('ah.nl') || idLower.startsWith('ah_') || idLower.startsWith('wi')) {
     return KNOWN_STORES.ah;
   }
-  if (target.includes('jumbo.com') || target.startsWith('jumbo_')) {
+  if (urlLower.includes('jumbo.com') || idLower.startsWith('jumbo_')) {
     return KNOWN_STORES.jumbo;
   }
-  if (target.includes('dirk.nl') || target.startsWith('dirk_')) {
+  if (urlLower.includes('dirk.nl') || idLower.startsWith('dirk_')) {
     return KNOWN_STORES.dirk;
   }
-  if (target.includes('plus.nl') || target.startsWith('plus_')) {
+  if (urlLower.includes('plus.nl') || idLower.startsWith('plus_')) {
     return KNOWN_STORES.plus;
   }
-  if (target.includes('lidl.nl') || target.startsWith('lidl_')) {
+  if (urlLower.includes('lidl.nl') || idLower.startsWith('lidl_')) {
     return KNOWN_STORES.lidl;
   }
-  if (target.includes('aldi.nl') || target.startsWith('aldi_')) {
+  if (urlLower.includes('aldi.nl') || idLower.startsWith('aldi_')) {
     return KNOWN_STORES.aldi;
   }
-  if (target.includes('picnic.app') || target.includes('picnic.nl') || target.startsWith('picnic_')) {
+  if (urlLower.includes('picnic.app') || urlLower.includes('picnic.nl') || idLower.startsWith('picnic_')) {
     return KNOWN_STORES.picnic;
   }
-  if (target.includes('hoogvliet.com') || target.startsWith('hoogvliet_')) {
+  if (urlLower.includes('hoogvliet.com') || idLower.startsWith('hoogvliet_')) {
     return KNOWN_STORES.hoogvliet;
   }
-  if (target.includes('spar.nl') || target.startsWith('spar_')) {
+  if (urlLower.includes('spar.nl') || idLower.startsWith('spar_')) {
     return KNOWN_STORES.spar;
+  }
+  if (urlLower.includes('kruidvat.nl') || idLower.startsWith('kruidvat_')) {
+    return KNOWN_STORES.kruidvat;
+  }
+  if (urlLower.includes('etos.nl') || idLower.startsWith('etos_')) {
+    return KNOWN_STORES.etos;
+  }
+  if (urlLower.includes('hollandandbarrett.nl') || urlLower.includes('hollandandbarrett.com') || idLower.startsWith('hb_')) {
+    return KNOWN_STORES.hollandandbarrett;
   }
   if (sourceUrl) {
     return KNOWN_STORES.generic;
@@ -143,9 +177,9 @@ export function getStoreMetadata(sourceUrl?: string, productId?: string): StoreM
 export function cleanProductTitle(rawTitle: string): string {
   if (!rawTitle) return '';
   return rawTitle
-    .replace(/^(AH|Albert Heijn|Jumbo|PLUS|Dirk)\s+/i, '')
-    .replace(/\s*bestellen\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/gi, '')
-    .replace(/\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl)/gi, '')
+    .replace(/^(AH|Albert Heijn|Jumbo|PLUS|Dirk|Kruidvat|Etos|Holland & Barrett|H&B)\s+/i, '')
+    .replace(/\s*bestellen\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl|Kruidvat|Etos|Holland & Barrett)/gi, '')
+    .replace(/\s*\|\s*(Albert Heijn|Jumbo|Plus|Dirk|Aldi|Lidl|Kruidvat|Etos|Holland & Barrett)/gi, '')
     .trim();
 }
 
@@ -189,6 +223,11 @@ export function isHouseBrand(brand?: string, storeMeta?: StoreMetadata | null): 
     'picnic',
     'hoogvliet',
     'spar',
+    'kruidvat',
+    'etos',
+    'holland & barrett',
+    'holland and barrett',
+    'de tuinen',
   ];
 
   if (storeMeta && b === storeMeta.id.toLowerCase()) return true;

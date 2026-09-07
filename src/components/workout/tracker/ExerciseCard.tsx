@@ -1,8 +1,9 @@
-import React from 'react';
-import { Eye, EyeOff, Zap, Dumbbell, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { Eye, EyeOff, Zap, Dumbbell, Clock, Info } from 'lucide-react';
 import { Exercise, UserProfile } from '../../../models.ts';
 import { WgerExerciseInfo } from '../WgerExerciseInfo.tsx';
 import { ExerciseSetRow } from './ExerciseSetRow.tsx';
+import { ExerciseGuideDrawer } from '../ExerciseGuideDrawer.tsx';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -45,6 +46,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onTextInput,
   onToggleCompleted,
 }) => {
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const cachedEx = userProfile?.lastSetSummaryPerExercise?.[exercise.id];
 
   return (
@@ -64,13 +66,34 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       >
         <div className="flex-1">
           <div className="flex items-center justify-between">
-            <h4
-              className={`font-display font-black text-base tracking-tight uppercase hover:text-[#C0FF00] transition-colors ${
-                isExpanded ? 'text-white' : 'text-gray-300'
-              }`}
-            >
-              {exercise.name}
-            </h4>
+            <div className="flex items-center gap-2">
+              <h4
+                className={`font-display font-black text-base tracking-tight uppercase hover:text-[#C0FF00] transition-colors ${
+                  isExpanded ? 'text-white' : 'text-gray-300'
+                }`}
+              >
+                {exercise.name}
+              </h4>
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsGuideOpen(true);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.stopPropagation();
+                    setIsGuideOpen(true);
+                  }
+                }}
+                title={`View guide & muscle anatomy for ${exercise.name}`}
+                aria-label={`View guide & muscle anatomy for ${exercise.name}`}
+                className="p-1 rounded-md text-gray-500 hover:text-[#C0FF00] hover:bg-[#1a1a1a] transition-colors cursor-pointer shrink-0"
+              >
+                <Info className="w-3.5 h-3.5" />
+              </span>
+            </div>
             {!isExpanded && (
               <div className="p-2 sm:p-1.5 text-gray-500 bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
                 <Eye className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
@@ -200,6 +223,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           </div>
         </>
       )}
+
+      {/* P2.1 & P2.2 & P2.4: Minimalist Exercise Guide Drawer */}
+      <ExerciseGuideDrawer
+        isOpen={isGuideOpen}
+        exerciseName={exercise.name}
+        onClose={() => setIsGuideOpen(false)}
+      />
     </div>
   );
 };

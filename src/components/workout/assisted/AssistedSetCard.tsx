@@ -1,7 +1,8 @@
 import React from 'react';
 import { Exercise } from '../../../models.ts';
-import { Play, Check, Eye, Dumbbell, Hash, Clock, Flame } from 'lucide-react';
+import { Play, Check, Eye, Dumbbell, Hash, Clock, Flame, Info } from 'lucide-react';
 import { WgerExerciseInfo } from '../WgerExerciseInfo.tsx';
+import { ExerciseGuideDrawer } from '../ExerciseGuideDrawer.tsx';
 
 interface AssistedSetCardProps {
   exerciseIndex: number;
@@ -57,21 +58,21 @@ export const AssistedSetCard: React.FC<AssistedSetCardProps> = ({
 
         <button
           type="button"
-          onClick={() => setShowWgerInfo(!showWgerInfo)}
+          onClick={() => setShowWgerInfo(true)}
           className="px-2.5 py-1.5 bg-[#181818] hover:bg-[#222] border border-[#333] rounded-xl text-[10px] sm:text-[11px] font-mono text-gray-300 flex items-center gap-1.5 cursor-pointer shrink-0"
         >
-          <Eye className="w-3.5 h-3.5 text-[#C0FF00]" />
-          <span className="hidden xs:inline">{showWgerInfo ? 'Hide Guide' : 'Exercise Guide'}</span>
-          <span className="xs:hidden">{showWgerInfo ? 'Hide' : 'Guide'}</span>
+          <Info className="w-3.5 h-3.5 text-[#C0FF00]" />
+          <span className="hidden xs:inline">Exercise Guide</span>
+          <span className="xs:hidden">Guide</span>
         </button>
       </div>
 
-      {/* Guide Dropdown */}
-      {showWgerInfo && (
-        <div className="p-3.5 sm:p-4 bg-[#161616] border border-[#262626] rounded-2xl">
-          <WgerExerciseInfo exerciseName={currentExercise.name} />
-        </div>
-      )}
+      {/* P2.1 & P2.2 & P2.4: Minimalist Exercise Guide Drawer */}
+      <ExerciseGuideDrawer
+        isOpen={showWgerInfo}
+        exerciseName={currentExercise.name}
+        onClose={() => setShowWgerInfo(false)}
+      />
 
       {/* Active Set Box */}
       <div className="bg-[#161616] border border-[#2e2e2e] rounded-2xl p-4 sm:p-6 space-y-4 sm:space-y-5">

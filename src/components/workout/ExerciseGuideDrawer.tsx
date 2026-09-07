@@ -1,0 +1,156 @@
+import React, { useMemo } from 'react';
+import { X, ExternalLink, Dumbbell, ShieldCheck, Video, Info, Sparkles, CheckCircle2 } from 'lucide-react';
+import { MuscleAnatomyHeatmap } from './anatomy/MuscleAnatomyHeatmap.tsx';
+import { WGER_EXERCISE_CATALOG } from '../../data/exerciseCatalog.ts';
+
+interface ExerciseGuideDrawerProps {
+  isOpen: boolean;
+  exerciseName: string;
+  onClose: () => void;
+}
+
+export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
+  isOpen,
+  exerciseName,
+  onClose,
+}) => {
+  const matchedCatalog = useMemo(() => {
+    if (!exerciseName) return null;
+    const clean = exerciseName.toLowerCase().trim();
+    return (
+      WGER_EXERCISE_CATALOG.find((e) => e.name.toLowerCase() === clean) ||
+      WGER_EXERCISE_CATALOG.find((e) => clean.includes(e.name.toLowerCase()) || e.name.toLowerCase().includes(clean)) ||
+      null
+    );
+  }, [exerciseName]);
+
+  const primaryMuscles = matchedCatalog?.muscles || [exerciseName];
+  const equipment = matchedCatalog?.equipment || 'Free Weights / Machines';
+  const category = matchedCatalog?.category || 'Strength';
+
+  const videoTutorialUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
+    exerciseName + ' proper form tutorial biomechanics'
+  )}`;
+
+  if (!isOpen) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="exercise-guide-title"
+    >
+      <div className="bg-[#0f0f0f] border border-[#262626] rounded-t-[28px] sm:rounded-[32px] w-full max-w-lg p-5 sm:p-6 shadow-2xl relative overflow-hidden flex flex-col max-h-[88vh] text-left">
+        {/* Glow accent */}
+        <div className="absolute top-0 right-0 w-48 h-48 bg-[#C0FF00]/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Header */}
+        <div className="flex items-start justify-between pb-3 border-b border-[#202020] relative">
+          <div className="pr-4 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="px-2 py-0.5 rounded-md bg-[#C0FF00]/15 text-[#C0FF00] border border-[#C0FF00]/30 text-[9px] font-mono font-bold uppercase tracking-wider">
+                {category}
+              </span>
+              <span className="text-[10px] font-mono text-gray-500 uppercase tracking-widest">
+                • {equipment}
+              </span>
+            </div>
+            <h3
+              id="exercise-guide-title"
+              className="text-lg sm:text-xl font-display font-black text-white uppercase tracking-tight truncate"
+            >
+              {exerciseName}
+            </h3>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close exercise guide"
+            className="p-2 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] text-gray-400 hover:text-white transition-colors cursor-pointer shrink-0"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto space-y-4 pt-3 pr-1 scrollbar-none">
+          {/* P2.2: Interactive Anatomical Heatmap */}
+          <div>
+            <MuscleAnatomyHeatmap
+              primaryMuscles={primaryMuscles}
+              secondaryMuscles={['Core', 'Forearms']}
+            />
+          </div>
+
+          {/* Form Cues & Biomechanical Technique Steps */}
+          <div className="bg-[#141414] border border-[#222222] rounded-2xl p-4 space-y-2.5">
+            <div className="flex items-center gap-1.5 text-xs font-mono font-bold uppercase tracking-wider text-[#C0FF00]">
+              <ShieldCheck className="w-4 h-4" />
+              <span>Biomechanical Form Cues</span>
+            </div>
+            <ul className="space-y-2 text-xs font-sans text-gray-300">
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#C0FF00] shrink-0 mt-0.5" />
+                <span>
+                  <strong>Set the Base:</strong> Brace your core, lock the scapulae, and verify symmetric grip/stance before moving the load.
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#C0FF00] shrink-0 mt-0.5" />
+                <span>
+                  <strong>Controlled Eccentric:</strong> Lower the weight in a smooth 2–3 second tempo to maximize muscle tension and joint longevity.
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-[#C0FF00] shrink-0 mt-0.5" />
+                <span>
+                  <strong>Explosive Concentric:</strong> Drive through the primary target muscles without hyperextending or bouncing out of the hole.
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          {/* P2.4: 1-Tap Form Tutorial Video Links */}
+          <div className="bg-[#141414] border border-[#222222] rounded-2xl p-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-red-600/15 border border-red-600/30 flex items-center justify-center text-red-500 shrink-0">
+                <Video className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <span className="font-display font-bold text-xs uppercase text-white block truncate">
+                  Video Form Tutorial (1080p)
+                </span>
+                <span className="text-[10px] font-mono text-gray-400 block truncate">
+                  Biomechanical demonstration on YouTube
+                </span>
+              </div>
+            </div>
+
+            <a
+              href={videoTutorialUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#1c1c1c] hover:bg-[#252525] border border-[#333] hover:border-red-500/50 text-white font-mono text-xs font-bold transition-all shrink-0 cursor-pointer shadow-sm"
+            >
+              <span>Watch</span>
+              <ExternalLink className="w-3.5 h-3.5 text-red-400" />
+            </a>
+          </div>
+        </div>
+
+        {/* Done / Close Drawer Button */}
+        <div className="pt-3 border-t border-[#202020] mt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-3 px-4 rounded-xl bg-[#1c1c1c] hover:bg-[#242424] border border-[#333] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer text-center"
+          >
+            Close Guide
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
