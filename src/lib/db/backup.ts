@@ -306,4 +306,3 @@ export async function importAllLogs(
     throw err;
   }
 }
-}

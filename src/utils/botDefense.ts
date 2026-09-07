@@ -77,8 +77,9 @@ export async function banDeviceAndIP(reason: string = 'Automated bot attack / Ho
     sessionStorage.setItem(BOT_BAN_STORAGE_KEY, 'true');
     sessionStorage.setItem(BOT_BAN_TIMESTAMP_KEY, timestamp);
 
-    // 3. Ban in secure persistent Cookie
-    document.cookie = `${BOT_BAN_STORAGE_KEY}=true; path=/; max-age=315360000; SameSite=Strict`;
+    // 3. Ban in secure persistent Cookie (30-day security window, SameSite=Strict, Secure in HTTPS)
+    const secureFlag = typeof window !== 'undefined' && window.location?.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${BOT_BAN_STORAGE_KEY}=true; path=/; max-age=2592000; SameSite=Strict${secureFlag}`;
   } catch (e) {
     console.error('Failed to write local ban flags:', e);
   }

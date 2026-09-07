@@ -8,4 +8,5 @@ coverage/
 !.env.example
 *.example
 .env.example
-*.example
+pnpm-lock.yaml
+pnpm-workspace.yaml

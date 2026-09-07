@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { FoodItemNutrition } from '../src/models.ts';
-import { extractSchemaAndHeadings, parseDutchNutritionTable, extractPackageSizing, fetchAlbertHeijnMobileProduct, searchAlbertHeijnProduct, scrapeProductFromUrl } from './scraperRegistry.js';
+import { extractSchemaAndHeadings, parseDutchNutritionTable, extractPackageSizing, fetchAlbertHeijnMobileProduct, searchAlbertHeijnProduct, scrapeProductFromUrl, fetchJumboMobileProduct } from './scraperRegistry.js';
 import { matchBakeryPlu } from '../src/lib/bakeryPluDictionary.js';
 import { sanitizeBarcode, generateBarcodeVariants } from '../src/lib/barcodeNormalizer.js';
 

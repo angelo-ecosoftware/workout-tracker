@@ -31,6 +31,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (err: unknown) {
     console.error('Product Link Scraper Error:', err);
-    return res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to parse product link' });
+    const msg = err instanceof Error ? err.message : 'Failed to parse product link';
+    const isClientError =
+      msg.includes('not permitted') ||
+      msg.includes('forbidden') ||
+      msg.includes('Invalid URL') ||
+      msg.includes('Only HTTP');
+    const statusCode = isClientError ? 400 : 500;
+    return res.status(statusCode).json({ error: msg });
   }
 }

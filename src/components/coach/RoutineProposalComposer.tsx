@@ -302,7 +302,6 @@ export const RoutineProposalComposer: React.FC<RoutineProposalComposerProps> = (
 
       {isPickerOpen && (
         <ExerciseSearchPicker
-          isOpen={isPickerOpen}
           onClose={() => setIsPickerOpen(false)}
           onSelectExercise={handleAddExercise}
         />

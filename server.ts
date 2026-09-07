@@ -45,7 +45,13 @@ async function startServer() {
       });
     } catch (err: any) {
       console.error("Product Link Scraper Error:", err);
-      return res.status(500).json({ error: err.message || "Failed to parse product link" });
+      const isClientError =
+        err.message?.includes('not permitted') ||
+        err.message?.includes('forbidden') ||
+        err.message?.includes('Invalid URL') ||
+        err.message?.includes('Only HTTP');
+      const statusCode = isClientError ? 400 : 500;
+      return res.status(statusCode).json({ error: err.message || "Failed to parse product link" });
     }
   };
 

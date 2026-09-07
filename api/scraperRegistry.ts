@@ -541,7 +541,7 @@ const JUMBO_API_HEADERS = {
  * Direct search & mobile API endpoint fallback for Jumbo products.
  * Uses Jumbo search/mobile backend queries to retrieve clean JSON product payloads.
  */
-export async function fetchJumboMobileProduct(skuOrQuery: string, sourceUrl: string): Promise<ProductScraperResult | null> {
+export async function fetchJumboMobileProduct(skuOrQuery: string, sourceUrl = ''): Promise<ProductScraperResult | null> {
   const cleanTerm = skuOrQuery.replace(/^jumbo_/i, '').trim();
   if (!cleanTerm) return null;
 
@@ -721,7 +721,7 @@ const AH_API_HEADERS = {
  * Direct fetch from Albert Heijn Mobile Services API using Webshop / Item ID (wi...)
  * Completely avoids Cloudflare / Bot protection on web pages.
  */
-export async function fetchAlbertHeijnMobileProduct(webshopId: string, sourceUrl: string): Promise<ProductScraperResult | null> {
+export async function fetchAlbertHeijnMobileProduct(webshopId: string, sourceUrl = ''): Promise<ProductScraperResult | null> {
   const cleanId = webshopId.replace(/^wi/i, '').trim();
   if (!cleanId) return null;
 
@@ -830,7 +830,7 @@ export async function fetchAlbertHeijnMobileProduct(webshopId: string, sourceUrl
  * Direct search endpoint fallback for Albert Heijn products.
  * Queries AH mobile/web search endpoint by keyword/query to resolve the product if the direct page is blocked.
  */
-export async function searchAlbertHeijnProduct(query: string, sourceUrl: string): Promise<ProductScraperResult | null> {
+export async function searchAlbertHeijnProduct(query: string, sourceUrl = ''): Promise<ProductScraperResult | null> {
   const cleanQuery = query.trim();
   if (!cleanQuery) return null;
 
@@ -1259,6 +1259,76 @@ export const STORE_SCRAPERS: StoreScraperAdapter[] = [
   genericAdapter,
 ];
 
+const ALLOWED_STORE_DOMAINS = new Set([
+  'ah.nl',
+  'jumbo.com',
+  'dirk.nl',
+  'plus.nl',
+  'lidl.nl',
+  'aldi.nl',
+  'picnic.app',
+  'picnic.nl',
+  'hoogvliet.com',
+  'spar.nl',
+]);
+
+const PRIVATE_OR_LOCAL_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  '0.0.0.0',
+  '::1',
+  '169.254.169.254',
+]);
+
+/**
+ * Validates outbound scraping target URLs against SSRF (Server-Side Request Forgery).
+ * Restricts egress to approved supermarket retail domains and blocks internal/private network targets.
+ */
+export function validateScraperTargetUrl(rawUrl: string): string {
+  if (!rawUrl || typeof rawUrl !== 'string') {
+    throw new Error('Missing or invalid target URL');
+  }
+
+  const clean = rawUrl.trim();
+  let parsed: URL;
+  try {
+    parsed = new URL(clean);
+  } catch {
+    throw new Error('Invalid URL format');
+  }
+
+  if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+    throw new Error('Only HTTP/HTTPS URLs are allowed');
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+
+  // Block private/loopback/cloud metadata
+  if (
+    PRIVATE_OR_LOCAL_HOSTS.has(hostname) ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal') ||
+    /^10\./.test(hostname) ||
+    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname) ||
+    /^192\.168\./.test(hostname)
+  ) {
+    throw new Error('Access to private or local network resources is forbidden');
+  }
+
+  // Validate that domain belongs to supported supermarket stores
+  const isAllowedDomain = Array.from(ALLOWED_STORE_DOMAINS).some(
+    (domain) => hostname === domain || hostname.endsWith(`.${domain}`)
+  );
+
+  if (!isAllowedDomain) {
+    throw new Error(
+      `Domain '${hostname}' is not permitted for product scraping. Allowed domains: AH, Jumbo, Dirk, Plus, Lidl, Aldi, Picnic, Hoogvliet, Spar.`
+    );
+  }
+
+  return parsed.toString();
+}
+
 /**
  * Parse product info directly from HTML using appropriate adapter
  */
@@ -1273,8 +1343,9 @@ export function scrapeProductFromHtml(html: string, rawUrl: string): ProductScra
  * automatically fallback to high-availability reader proxies.
  */
 export async function scrapeProductFromUrl(rawUrl: string): Promise<ProductScraperResult> {
-  const adapter = STORE_SCRAPERS.find((s) => s.canHandle(rawUrl)) || genericAdapter;
-  const targetUrl = adapter.normalizeUrl ? adapter.normalizeUrl(rawUrl) : rawUrl.trim();
+  const validatedUrl = validateScraperTargetUrl(rawUrl);
+  const adapter = STORE_SCRAPERS.find((s) => s.canHandle(validatedUrl)) || genericAdapter;
+  const targetUrl = adapter.normalizeUrl ? adapter.normalizeUrl(validatedUrl) : validatedUrl;
 
   let html = '';
   let lastStatus = 0;

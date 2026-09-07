@@ -56,6 +56,10 @@ export const AssistedRestTimerCard: React.FC<AssistedRestTimerCardProps> = ({
           <span className="text-[10px] font-mono uppercase tracking-widest text-gray-500 mt-1 font-bold">
             Resting
           </span>
+          {/* Accessible screen-reader live status message */}
+          <div role="timer" aria-live="polite" aria-atomic="true" className="sr-only">
+            Rest time remaining: {restTimeLeft} seconds
+          </div>
         </div>
       </div>
 

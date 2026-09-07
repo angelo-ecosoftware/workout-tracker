@@ -67,16 +67,6 @@ BEGIN
   END IF;
 END $$;
 
--- 6. Body Logs: Allow public SELECT on body logs for shared session weigh-ins
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE tablename = 'body_logs' AND policyname = 'Public can view body logs'
-  ) THEN
-    CREATE POLICY "Public can view body logs"
-      ON public.body_logs
-      FOR SELECT
-      TO public, anon, authenticated
-      USING (true);
-  END IF;
-END $$;
+-- 6. Body Logs: Restricted from unauthenticated public read (GDPR Art. 9 Special Category Health Data).
+-- Bodyweight and biometric data must remain restricted to authenticated owner and authorized coaches.
+DROP POLICY IF EXISTS "Public can view body logs" ON public.body_logs;
