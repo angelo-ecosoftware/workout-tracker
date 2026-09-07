@@ -73,18 +73,7 @@ Combining the strengths of these repositories produces a best-in-class exercise 
      - Clear live status badges (e.g., *"Fetching live macros from Jumbo..."*, *"Verified & Added"*).
      - Instant macro confirmation card with 1-tap portion logger.
 
-### 2.2 Health Stores, Pharmacies & Supplements (Kruidvat, Etos, Holland & Barrett)
-- **Concept**: Expand the dietary ingestion pipeline beyond standard supermarkets to include drugstore vitamins, sports nutrition, protein snacks, and health supplements.
-- **Target Retailers**:
-  - **Kruidvat Nederland** (`kruidvat.nl`): High-volume sports nutrition (protein powders, vitamins, creatine, protein bars, meal replacements).
-  - **Etos** (`etos.nl`): Health supplements, multi-vitamins, electrolyte powders, and recovery snacks.
-  - **Holland & Barrett Nederland / België** (`hollandandbarrett.nl`): Extensive catalog of specialized vitamins, vegan proteins, amino acids, healthy snacks, and dietary whole foods.
-- **Implementation**:
-  - Store scraper adapters with Schema.org JSON-LD and Dutch FIR nutrition parsers.
-  - Barcode search resolution on drugstore assortment search APIs.
-  - Dedicated store badges (`KRUIDVAT`, `ETOS`, `H&B`) and external verification links in the dietary log.
-
-### 2.3 Scraping Infrastructure: Real-Time Mobile APIs vs. Crawlee Fallback Architecture (crawlee.dev/js)
+### 2.2 Scraping Infrastructure: Real-Time Mobile APIs vs. Crawlee Fallback Architecture (crawlee.dev/js)
 - **Concept**: Establish a clear architectural separation between interactive user-facing product lookups and heavy background batch ingestion pipelines.
 - **Tier 1 (Active User Runtime - [api/scraperRegistry.ts](api/scraperRegistry.ts))**:
   - Keep the current ultra-lightweight native fetch engine utilizing reverse-engineered mobile service endpoints (`api.ah.nl`, `mobileapi.jumbo.com`).

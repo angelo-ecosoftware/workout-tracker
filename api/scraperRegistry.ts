@@ -1193,128 +1193,7 @@ export const sparAdapter: StoreScraperAdapter = {
 };
 
 // -------------------------------------------------------------
-// ADAPTER 10: Kruidvat Nederland (kruidvat.nl)
-// -------------------------------------------------------------
-export const kruidvatAdapter: StoreScraperAdapter = {
-  name: 'Kruidvat',
-  canHandle(url: string) {
-    return url.toLowerCase().includes('kruidvat.nl');
-  },
-  parse(html: string, url: string): ProductScraperResult {
-    const { title, brand, barcode, packageWeightGrams, pieceCount, nutrition: schemaNutrition } =
-      extractSchemaAndHeadings(html, 'Kruidvat');
-    const tableNutrition = parseDutchNutritionTable(html);
-    const sizing = extractPackageSizing(title, html);
-
-    const hasTableNutrition = tableNutrition.kcalPer100g > 0 || tableNutrition.proteinPer100g > 0;
-    const finalNutrition = hasTableNutrition ? tableNutrition : (schemaNutrition || tableNutrition);
-
-    const idMatch = url.match(/\/p\/([a-z0-9-]+)(?:[/?#]|$)/i) || url.match(/-(\d+)(?:[/?#]|$)/i);
-    const productId = idMatch ? `kruidvat_${idMatch[1]}` : `kruidvat_${Date.now()}`;
-
-    const isDrink =
-      html.toLowerCase().includes('per 100 milliliter') ||
-      html.toLowerCase().includes('per 100 ml') ||
-      title.toLowerCase().includes('shake') ||
-      title.toLowerCase().includes('drank');
-
-    return {
-      id: productId,
-      name: title,
-      brand: brand || 'Kruidvat',
-      barcode,
-      servingUnit: isDrink ? 'ml' : 'gram',
-      ...finalNutrition,
-      packageWeightGrams: packageWeightGrams || sizing.packageWeightGrams,
-      pieceCount: pieceCount || sizing.pieceCount,
-      sourceUrl: url,
-    };
-  },
-};
-
-// -------------------------------------------------------------
-// ADAPTER 11: Etos Nederland (etos.nl)
-// -------------------------------------------------------------
-export const etosAdapter: StoreScraperAdapter = {
-  name: 'Etos',
-  canHandle(url: string) {
-    return url.toLowerCase().includes('etos.nl');
-  },
-  parse(html: string, url: string): ProductScraperResult {
-    const { title, brand, barcode, packageWeightGrams, pieceCount, nutrition: schemaNutrition } =
-      extractSchemaAndHeadings(html, 'Etos');
-    const tableNutrition = parseDutchNutritionTable(html);
-    const sizing = extractPackageSizing(title, html);
-
-    const hasTableNutrition = tableNutrition.kcalPer100g > 0 || tableNutrition.proteinPer100g > 0;
-    const finalNutrition = hasTableNutrition ? tableNutrition : (schemaNutrition || tableNutrition);
-
-    const idMatch = url.match(/\/producten\/([a-z0-9-]+)(?:[/?#]|$)/i) || url.match(/-(\d+)(?:[/?#]|$)/i);
-    const productId = idMatch ? `etos_${idMatch[1]}` : `etos_${Date.now()}`;
-
-    const isDrink =
-      html.toLowerCase().includes('per 100 milliliter') ||
-      html.toLowerCase().includes('per 100 ml') ||
-      title.toLowerCase().includes('shake') ||
-      title.toLowerCase().includes('drank');
-
-    return {
-      id: productId,
-      name: title,
-      brand: brand || 'Etos',
-      barcode,
-      servingUnit: isDrink ? 'ml' : 'gram',
-      ...finalNutrition,
-      packageWeightGrams: packageWeightGrams || sizing.packageWeightGrams,
-      pieceCount: pieceCount || sizing.pieceCount,
-      sourceUrl: url,
-    };
-  },
-};
-
-// -------------------------------------------------------------
-// ADAPTER 12: Holland & Barrett (hollandandbarrett.nl / .com)
-// -------------------------------------------------------------
-export const hollandAndBarrettAdapter: StoreScraperAdapter = {
-  name: 'Holland & Barrett',
-  canHandle(url: string) {
-    const l = url.toLowerCase();
-    return l.includes('hollandandbarrett.nl') || l.includes('hollandandbarrett.com');
-  },
-  parse(html: string, url: string): ProductScraperResult {
-    const { title, brand, barcode, packageWeightGrams, pieceCount, nutrition: schemaNutrition } =
-      extractSchemaAndHeadings(html, 'Holland & Barrett');
-    const tableNutrition = parseDutchNutritionTable(html);
-    const sizing = extractPackageSizing(title, html);
-
-    const hasTableNutrition = tableNutrition.kcalPer100g > 0 || tableNutrition.proteinPer100g > 0;
-    const finalNutrition = hasTableNutrition ? tableNutrition : (schemaNutrition || tableNutrition);
-
-    const idMatch = url.match(/\/shop\/product\/([a-z0-9-]+)(?:[/?#]|$)/i) || url.match(/-(\d+)(?:[/?#]|$)/i);
-    const productId = idMatch ? `hb_${idMatch[1]}` : `hb_${Date.now()}`;
-
-    const isDrink =
-      html.toLowerCase().includes('per 100 milliliter') ||
-      html.toLowerCase().includes('per 100 ml') ||
-      title.toLowerCase().includes('shake') ||
-      title.toLowerCase().includes('drank');
-
-    return {
-      id: productId,
-      name: title,
-      brand: brand || 'Holland & Barrett',
-      barcode,
-      servingUnit: isDrink ? 'ml' : 'gram',
-      ...finalNutrition,
-      packageWeightGrams: packageWeightGrams || sizing.packageWeightGrams,
-      pieceCount: pieceCount || sizing.pieceCount,
-      sourceUrl: url,
-    };
-  },
-};
-
-// -------------------------------------------------------------
-// ADAPTER 13: Generic Fallback & Recipe Resolver (Custom Stores & Recipe Sites)
+// ADAPTER 10: Generic Fallback & Recipe Resolver (Custom Stores & Recipe Sites)
 // -------------------------------------------------------------
 export const genericAdapter: StoreScraperAdapter = {
   name: 'Generic Store',
@@ -1365,7 +1244,7 @@ export const genericAdapter: StoreScraperAdapter = {
 
 // -------------------------------------------------------------
 // Registry of all Store Adapters
-// (Easily register future stores here: Jumbo, AH, Dirk, Plus, Lidl, Aldi, Picnic, Hoogvliet, Spar, Kruidvat, Etos, H&B, etc.)
+// (Easily register future stores here: Jumbo, AH, Dirk, Plus, Lidl, Aldi, Picnic, Hoogvliet, Spar, etc.)
 // -------------------------------------------------------------
 export const STORE_SCRAPERS: StoreScraperAdapter[] = [
   jumboAdapter,
@@ -1377,9 +1256,6 @@ export const STORE_SCRAPERS: StoreScraperAdapter[] = [
   picnicAdapter,
   hoogvlietAdapter,
   sparAdapter,
-  kruidvatAdapter,
-  etosAdapter,
-  hollandAndBarrettAdapter,
   genericAdapter,
 ];
 
@@ -1394,10 +1270,6 @@ const ALLOWED_STORE_DOMAINS = new Set([
   'picnic.nl',
   'hoogvliet.com',
   'spar.nl',
-  'kruidvat.nl',
-  'etos.nl',
-  'hollandandbarrett.nl',
-  'hollandandbarrett.com',
 ]);
 
 const PRIVATE_OR_LOCAL_HOSTS = new Set([
@@ -1450,7 +1322,7 @@ export function validateScraperTargetUrl(rawUrl: string): string {
 
   if (!isAllowedDomain) {
     throw new Error(
-      `Domain '${hostname}' is not permitted for product scraping. Allowed domains: AH, Jumbo, Dirk, Plus, Lidl, Aldi, Picnic, Hoogvliet, Spar, Kruidvat, Etos, Holland & Barrett.`
+      `Domain '${hostname}' is not permitted for product scraping. Allowed domains: AH, Jumbo, Dirk, Plus, Lidl, Aldi, Picnic, Hoogvliet, Spar.`
     );
   }
 

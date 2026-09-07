@@ -2,15 +2,12 @@ import { describe, it, expect } from 'vitest';
 import { validateScraperTargetUrl } from '../../../api/scraperRegistry.ts';
 
 describe('SSRF Protection & URL Validation [SEC-02]', () => {
-  it('allows legitimate supermarket and drugstore domains', () => {
+  it('allows legitimate supermarket domains', () => {
     expect(() => validateScraperTargetUrl('https://www.ah.nl/producten/product/wi12345')).not.toThrow();
     expect(() => validateScraperTargetUrl('https://www.jumbo.com/producten/kipfilet-123')).not.toThrow();
     expect(() => validateScraperTargetUrl('https://www.plus.nl/product/melk-123')).not.toThrow();
     expect(() => validateScraperTargetUrl('https://www.dirk.nl/boodschappen/brood/123')).not.toThrow();
     expect(() => validateScraperTargetUrl('https://picnic.app/nl/p/havermelk')).not.toThrow();
-    expect(() => validateScraperTargetUrl('https://www.kruidvat.nl/p/protein-bar-123')).not.toThrow();
-    expect(() => validateScraperTargetUrl('https://www.etos.nl/producten/creatine-powder-456')).not.toThrow();
-    expect(() => validateScraperTargetUrl('https://www.hollandandbarrett.nl/shop/product/omega-3-789')).not.toThrow();
   });
 
   it('rejects loopback and private IP SSRF targets', () => {

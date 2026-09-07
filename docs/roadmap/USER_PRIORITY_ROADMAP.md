@@ -11,7 +11,7 @@ Prioritization is structured by **direct athlete & coach impact**, moving from d
 │                   USER VALUE PROGRESSION ROADMAP                       │
 ├────────────────────────────────────────────────────────────────────────┤
 │  Phase 1: Active Workout Flow, Onboarding & Habit Loops (Highest ROI)  │
-│  Phase 2: Exercise Intelligence, Drugstore Nutrition & Form Videos     │
+│  Phase 2: Exercise Intelligence, Biomechanics & Form Guidance          │
 │  Phase 3: AI Coaching, Cached Responses & Overload Velocity Analytics  │
 │  Phase 4: Cardio & Endurance Tracking Engine                           │
 │  Phase 5: Document & PDF Export Engine (Cardio-Only Scope)             │
@@ -35,15 +35,14 @@ Prioritization is structured by **direct athlete & coach impact**, moving from d
 
 ---
 
-## 🏋️ Phase 2: Exercise Intelligence, Drugstore Nutrition & Form Guidance
-> **User Goal**: *"Show me exactly how to perform an exercise, what muscles should be working, and let me scan vitamins & drugstore snacks."*
+## 🏋️ Phase 2: Exercise Intelligence, Biomechanics & Form Guidance
+> **User Goal**: *"Show me exactly how to perform an exercise, what muscles should be working, and direct video form tutorials."*
 
 | Priority | Feature Name | Why the User Cares | Implementation Scope | Status |
 | :---: | :--- | :--- | :--- | :---: |
-| **P2.1** | **Minimalist `(i)` Exercise Guide Drawer** | Tapping a sleek `(i)` badge opens an overlay with looping execution animations (WebP) and muscle cues instead of cluttering active set rows. | Hybrid dataset (`hasaneyldrm` + `free-exercise-db`) | 🟢 **Completed** |
+| **P2.1** | **Minimalist `(i)` Exercise Guide Drawer** | Tapping a sleek `(i)` badge opens an overlay with looping execution cues and muscle cues instead of cluttering active set rows. | Hybrid dataset (`hasaneyldrm` + `free-exercise-db`) | 🟢 **Completed** |
 | **P2.2** | **Interactive WGER Muscle Anatomy Heatmap** | Visual anterior & posterior SVG body diagrams showing primary and secondary target muscles highlighted in red. | `wger-project/wger` SVG vector layers | 🟢 **Completed** |
-| **P2.3** | **Drugstore Nutrition & Vitamins (Kruidvat, Etos, Holland & Barrett)** | Allows scanning and pasting protein bars, creatine, vitamins, and health supplements from Dutch drugstore chains into the dietary log. | Scrapers & EAN search for `kruidvat.nl`, `etos.nl`, `hollandandbarrett.nl` | 🟢 **Completed** |
-| **P2.4** | **Form Tutorial Video Links & Technique Notes** | 1-tap link to 1080p biomechanical form breakdowns and coach technique notes. | In-app modal / WebM video stream | 🟢 **Completed** |
+| **P2.3** | **Form Tutorial Video Links & Technique Notes** | 1-tap link to 1080p biomechanical form breakdowns and coach technique notes. | In-app modal / WebM video stream | 🟢 **Completed** |
 
 ---
 
