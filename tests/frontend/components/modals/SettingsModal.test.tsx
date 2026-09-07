@@ -98,4 +98,25 @@ describe('SettingsModal Component (Dynamic Behavioral Suite)', () => {
 
     expect(mockLogout).toHaveBeenCalledTimes(1);
   });
+
+  it('renders "Explore App & Onboarding Guide" button and opens WelcomeModal when clicked', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ThemeProvider>
+        <SettingsModal isOpen={true} onClose={vi.fn()} />
+      </ThemeProvider>
+    );
+
+    const exploreBtn = screen.getByRole('button', { name: /explore app & onboarding guide/i });
+    expect(exploreBtn).toBeInTheDocument();
+    expect(screen.getByText(/re-calibrate lifting goals, equipment & biometrics/i)).toBeInTheDocument();
+
+    await user.click(exploreBtn);
+
+    // WelcomeModal should open displaying Step 1 of 4
+    expect(screen.getByText(/step 1 of 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/what is your main focus\?/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /skip for now & explore/i })).toBeInTheDocument();
+  });
 });

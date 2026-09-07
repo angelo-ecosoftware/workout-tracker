@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { usePWA } from '../../context/PWAContext.tsx';
-import { X, LogOut, Loader2, Layers, UserCheck, Bookmark, Shield } from 'lucide-react';
+import { X, LogOut, Loader2, Layers, UserCheck, Bookmark, Shield, Sparkles } from 'lucide-react';
 import { exportAllLogs, importAllLogs, fetchWorkoutsData, saveWorkoutsAndExercises, ExportScopeOptions } from '../../lib/supabaseData.ts';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { SavedRoutinesLibraryModal } from './SavedRoutinesLibraryModal.tsx';
 import { PrivacySettingsModal } from '../settings/PrivacySettingsModal.tsx';
 import { CoachAccountModal } from './CoachAccountModal.tsx';
+import { WelcomeModal } from './WelcomeModal.tsx';
 import { Workout, Exercise } from '../../models.ts';
 import { SettingsThemeSection } from './SettingsThemeSection.tsx';
 import { SettingsAssistedWorkoutSection } from './SettingsAssistedWorkoutSection.tsx';
@@ -32,6 +33,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
   const [isCoachAccountOpen, setIsCoachAccountOpen] = useState(false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [userWorkouts, setUserWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
 
@@ -396,6 +398,30 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   </button>
                 )}
 
+                {/* Explore App & Onboarding Setup (Allows re-running onboarding wizard anytime) */}
+                <button
+                  type="button"
+                  onClick={() => setIsOnboardingOpen(true)}
+                  className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
+                      <Sparkles className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-xs sm:text-sm text-white truncate">
+                        Explore App & Onboarding Guide
+                      </div>
+                      <div className="text-[11px] text-gray-500 truncate">
+                        Re-calibrate lifting goals, equipment & biometrics
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
+                    Explore
+                  </div>
+                </button>
+
                 {/* Coach Connections & Proposals */}
                 <CoachConnectionsSection userId={user.uid} />
 
@@ -502,6 +528,19 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         <CoachAccountModal
           isOpen={isCoachAccountOpen}
           onClose={() => setIsCoachAccountOpen(false)}
+        />
+      )}
+
+      {/* Re-Launchable Onboarding / Explore App Wizard */}
+      {isOnboardingOpen && (
+        <WelcomeModal
+          isOpen={isOnboardingOpen}
+          userId={user.uid}
+          onClose={() => setIsOnboardingOpen(false)}
+          onCompletedOnboarding={() => {
+            setIsOnboardingOpen(false);
+            window.dispatchEvent(new Event('user_profile_updated'));
+          }}
         />
       )}
     </>

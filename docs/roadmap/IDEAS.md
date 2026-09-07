@@ -112,6 +112,13 @@ Combining the strengths of these repositories produces a best-in-class exercise 
   - Automatically acquires `navigator.wakeLock` on the active workout tab.
   - User toggle in Settings: *"Keep Screen Awake During Workouts"* (with automatic release on session completion or low battery).
 
+### 3.4 Full Onboarding Upon Entry & "Explore App" Settings Fallback
+- **Concept**: Interactive first-run onboarding sequence launched immediately upon athlete entry, with persistent revisit access from Settings.
+- **Flow & Ergonomics**:
+  - **First Entry (Zero-Friction Trigger)**: When a new user logs in or registers, the 4-step onboarding wizard opens automatically (Goals $\rightarrow$ Lifting Experience $\rightarrow$ Training Equipment $\rightarrow$ Starting Biometrics).
+  - **Frictionless Skip**: Athletes in a hurry at the gym can click *"Skip for Now & Explore"*, granting instant access to the tracker without mandatory data entry.
+  - **Settings Fallback ("Explore App & Onboarding Setup")**: If the user skips or wants to re-calibrate their lifting goals later, a dedicated card in Settings under *"Training & App Preferences"* allows re-launching the onboarding wizard at any time. Clicking *"Restart App Onboarding"* clears the welcome suppression flag and opens the full 4-step interactive guide.
+
 ---
 
 ## 4. Media Storage & Cloud Optimization
