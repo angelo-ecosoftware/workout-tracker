@@ -84,6 +84,17 @@ Combining the strengths of these repositories produces a best-in-class exercise 
   - Barcode search resolution on drugstore assortment search APIs.
   - Dedicated store badges (`KRUIDVAT`, `ETOS`, `H&B`) and external verification links in the dietary log.
 
+### 2.3 Scraping Infrastructure: Real-Time Mobile APIs vs. Crawlee Fallback Architecture (crawlee.dev/js)
+- **Concept**: Establish a clear architectural separation between interactive user-facing product lookups and heavy background batch ingestion pipelines.
+- **Tier 1 (Active User Runtime - [api/scraperRegistry.ts](api/scraperRegistry.ts))**:
+  - Keep the current ultra-lightweight native fetch engine utilizing reverse-engineered mobile service endpoints (`api.ah.nl`, `mobileapi.jumbo.com`).
+  - *Benefits*: Sub-500ms response times, zero headless browser RAM overhead, executes cleanly within Vercel serverless functions and containerless edge proxies.
+- **Tier 2 (Fallback & Batch Harvester - [Crawlee](https://crawlee.dev/js))**:
+  - Adopt **Crawlee** (`crawlee` with `PlaywrightCrawler` / `CheerioCrawler`) as the designated fallback and catalog ingestion engine.
+  - *Fallback Trigger 1: Severe Anti-Bot Defense*: If supermarkets deploy aggressive Cloudflare Turnstile, DataDome, or Akamai challenges that block raw mobile API endpoints, route requests to an asynchronous Crawlee worker equipped with automatic browser fingerprinting, TLS spoofing, and session pool rotation.
+  - *Fallback Trigger 2: Large-Scale Catalog Backfilling*: Use Crawlee in offline maintenance scripts (e.g., [scripts/db/backfill_food_catalog.ts](scripts/db/backfill_food_catalog.ts)) for crawling thousands of product items into Supabase. Crawlee manages autoscaling, request queuing, adaptive JS rendering detection, and automatic retries without dropping connections or overloading servers.
+  - *Infrastructure Isolation*: Keep Crawlee in standalone containerized CLI/cron tasks rather than bloating user-facing serverless API routes.
+
 ---
 
 ## 3. Workout Tracking & Session Logging Enhancements
@@ -165,6 +176,15 @@ Research and architectural patterns from open-source tools and community-maintai
   - *Description*: Community-built Node.js microservices and npm libraries serving as local proxy wrappers around AH endpoints.
   - *Capabilities*: Built-in in-memory caching, anti-detection user-agent rotation, FIR table parsing, and clean TypeScript typings for supermarket API responses.
   - *Applicable Pattern*: Direct Node.js / Vercel Serverless microservice integration for server-side scraping without CORS restrictions.
+
+### 6.3 Crawlee Anti-Bot Ingestion & Batch Crawling Fallback (crawlee.dev/js)
+- **Reference**: [Crawlee for JavaScript](https://crawlee.dev/js) (Open-source crawling & scraping library by Apify).
+- **Core Strengths**:
+  - **Adaptive Crawler**: Automatically switches between lightweight HTTP (`CheerioCrawler`) and full browser rendering (`PlaywrightCrawler`) depending on whether dynamic client JS is needed, reducing memory and bandwidth.
+  - **Automated Anti-Blocking**: Built-in browser fingerprint generation, session pool management, TLS handshake simulation, and proxy rotation to bypass aggressive store defenses.
+  - **Request Queuing & Auto-Scaling**: Native persistent storage queues allow batch crawls to pause, scale concurrency to system memory, and resume on errors.
+- **Architectural Placement**:
+  - Serves as the designated secondary fallback when lightweight HTTP/mobile endpoints receive persistent 403 or challenge blocks, and as the backbone for scheduled offline grocery catalog harvests in [scripts/scrapers](scripts/scrapers).
 
 ---
 
@@ -301,7 +321,7 @@ Research and architectural patterns from open-source tools and community-maintai
   - **Non-Destructive Defaults**: Missing values gracefully fall back to standard beginner/intermediate presets.
 
 ### 12.2 AI-Powered Adaptive Onboarding Assessment
-- **Concept**: Conversational / questionnaire-based AI intake analyzing user goals (Hypertrophy, Strength, Fat Loss, Endurance) + available equipment (Gym, Dumbbells-only, Bodyweight/Calisthenics) to auto-generate an initial tailored 3-to-5 day workout routine and custom macro targetss.
+- **Concept**: Conversational / questionnaire-based AI intake analyzing user goals (Hypertrophy, Strength, Fat Loss, Endurance) + available equipment (Gym, Dumbbells-only, Bodyweight/Calisthenics) to auto-generate an initial tailored 3-to-5 day workout routine and custom macro targetssx.
 
 ### 12.3 In-App FAQ & Knowledge Base in Settings
 - **Concept**: Built-in, searchable FAQ accordion accessible via Settings $\rightarrow$ Knowledge Base.
