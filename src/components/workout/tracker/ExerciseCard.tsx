@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Eye, EyeOff, Zap, Dumbbell, Clock, Info, Ban } from 'lucide-react';
+import { ChevronDown, ChevronUp, Zap, Dumbbell, Clock, Info, Ban } from 'lucide-react';
 import { Exercise, UserProfile } from '../../../models.ts';
 import { WgerExerciseInfo } from '../WgerExerciseInfo.tsx';
 import { ExerciseSetRow } from './ExerciseSetRow.tsx';
@@ -119,11 +119,11 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             <div className="shrink-0 self-start ml-2">
               {isExpanded ? (
                 <div className="p-2 sm:p-1.5 text-[#C0FF00] bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
-                  <EyeOff className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
+                  <ChevronUp className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
                 </div>
               ) : (
-                <div className="p-2 sm:p-1.5 text-gray-500 bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
-                  <Eye className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
+                <div className="p-2 sm:p-1.5 text-gray-400 bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
+                  <ChevronDown className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
                 </div>
               )}
             </div>
