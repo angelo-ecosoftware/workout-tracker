@@ -82,12 +82,13 @@ Prioritization is structured by **direct athlete & coach impact**, moving from d
 
 ## 🛡️ Phase 6: Enterprise Security, ENISA & EU Compliance Dossier
 > **User Goal**: *"Ensure my health, biometric, and personal data complies with the highest European cybersecurity and privacy laws."*
+> **Detailed Specification:** See [docs/roadmap/PHASE_6_ENTERPRISE_SECURITY_ENISA_EU_COMPLIANCE.md](docs/roadmap/PHASE_6_ENTERPRISE_SECURITY_ENISA_EU_COMPLIANCE.md)
 
 | Priority | Feature Name | Why the User Cares | Implementation Scope | Status |
 | :---: | :--- | :--- | :--- | :---: |
-| **P6.1** | **GDPR Article 17 ("Right to be Forgotten") 1-Tap Purge** | Guarantees users can permanently erase their entire account, logs, and photos in 1 click. | Automated PostgreSQL + S3 cascade | ⏳ Queued |
-| **P6.2** | **EU Cybersecurity (NIS2, CRA, DORA, ENISA) Audit Dossier** | Automated security compliance audit PDF documenting TLS 1.3 encryption, SBOM dependency tracking, and RBAC policies. | Automated compliance report builder | ⏳ Queued |
-| **P6.3** | **Zero-Knowledge Biometric Vault & MFA Readiness** | Client-side encrypted biometrics and multi-factor authentication support. | WebAuthn / TOTP security layer | ⏳ Queued |
+| **P6.1** | **GDPR Article 17 ("Right to be Forgotten") 1-Tap Purge** | Guarantees users can permanently erase their entire account, logs, and photos in 1 click. | Automated PostgreSQL + S3 cascade | 🚀 In Progress |
+| **P6.2** | **EU Cybersecurity (NIS2, CRA, DORA, ENISA) Audit Dossier** | Automated security compliance audit PDF documenting TLS 1.3 encryption, SBOM dependency tracking, and RBAC policies. | Automated compliance report builder | 🚀 In Progress |
+| **P6.3** | **Zero-Knowledge Biometric Vault & MFA Readiness** | Client-side encrypted biometrics and multi-factor authentication support. | WebAuthn / TOTP security layer | 🚀 In Progress |
 
 ---
 
@@ -95,9 +96,9 @@ Prioritization is structured by **direct athlete & coach impact**, moving from d
 
 | Phase | Focus Area | Impact Level | Status |
 | :--- | :--- | :---: | :---: |
-| **Phase 1** | Active Workout Flow & Habit Loops (PR Confetti, Streaks, Rest Vibration) | 🌟 Maximum Daily ROI | ⏳ Ready to Start |
-| **Phase 2** | Exercise Intelligence & Anatomy Heatmaps (WGER, GIFs, `(i)` Guide) | 🏋️ High Visual Value | ⏳ Queued |
-| **Phase 3** | Actionable Analytics & Overload Velocity (1RM Velocity, Deload AI) | 📈 High Coaching Value | ⏳ Queued |
-| **Phase 4** | Cardio & Endurance Tracking Engine (Distance, Pace, HR Zones) | 🏃 Hybrid Fitness Scope | ⏳ Queued |
-| **Phase 5** | Document & PDF Reporting Engine (Cardio PDFs, Program Pocket Guide) | 📄 Utility & Portability | ⏳ Queued |
-| **Phase 6** | Enterprise Security & EU Compliance Dossier (NIS2, CRA, DORA, GDPR) | 🛡️ Regulatory Standard | ⏳ Queued |
+| **Phase 1** | Active Workout Flow & Habit Loops (PR Confetti, Streaks, Rest Vibration) | 🌟 Maximum Daily ROI | 🟢 **Completed** |
+| **Phase 2** | Exercise Intelligence & Anatomy Heatmaps (WGER, GIFs, `(i)` Guide) | 🏋️ High Visual Value | 🟢 **Completed** |
+| **Phase 3** | Actionable Analytics & Overload Velocity (1RM Velocity, Deload AI) | 📈 High Coaching Value | ⏭️ Skipped / Deferred |
+| **Phase 4** | Cardio & Endurance Tracking Engine (Distance, Pace, HR Zones) | 🏃 Hybrid Fitness Scope | ⏭️ Skipped / Deferred |
+| **Phase 5** | Document & PDF Reporting Engine (Cardio PDFs, Program Pocket Guide) | 📄 Utility & Portability | ⏭️ Skipped / Deferred |
+| **Phase 6** | Enterprise Security & EU Compliance Dossier (NIS2, CRA, DORA, GDPR) | 🛡️ Regulatory Standard | 🚀 **In Progress** |
