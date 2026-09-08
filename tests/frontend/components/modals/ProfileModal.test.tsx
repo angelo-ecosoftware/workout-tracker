@@ -148,4 +148,37 @@ describe('ProfileModal Component (Dynamic Behavioral Suite)', () => {
     expect(screen.getByText(/athlete tracking and coaching tools are disabled/i)).toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/182/i)).not.toBeInTheDocument();
   });
+
+  it('allows selecting body type (ectomorph, mesomorph, endomorph) under biometrics', async () => {
+    const user = userEvent.setup();
+    const onMetricsUpdated = vi.fn();
+
+    render(
+      <ProfileModal
+        isOpen={true}
+        onClose={vi.fn()}
+        user={mockUser}
+        onMetricsUpdated={onMetricsUpdated}
+      />
+    );
+
+    expect(screen.getByText(/body type \(somatotype\)/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /ectomorph/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /mesomorph/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /endomorph/i })).toBeInTheDocument();
+
+    // Select Ectomorph
+    const ectoBtn = screen.getByRole('button', { name: /ectomorph/i });
+    await user.click(ectoBtn);
+
+    const saveBtn = screen.getByRole('button', { name: /save profile/i });
+    await user.click(saveBtn);
+
+    expect(mockSaveUserMetrics).toHaveBeenCalledWith(
+      'usr_profile_athlete',
+      expect.objectContaining({
+        somatotype: 'ectomorph',
+      })
+    );
+  });
 });

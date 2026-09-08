@@ -30,6 +30,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [height, setHeight] = useState<string>(initialMetrics?.height ? initialMetrics.height.toString() : '');
   const [weight, setWeight] = useState<string>(initialMetrics?.weight ? initialMetrics.weight.toString() : '');
   const [gender, setGender] = useState<UserMetrics['gender']>(initialMetrics?.gender || 'prefer_not_to_say');
+  const [somatotype, setSomatotype] = useState<UserMetrics['somatotype']>(initialMetrics?.somatotype || 'mesomorph');
   const [fitnessLevel, setFitnessLevel] = useState<UserMetrics['fitnessLevel']>(initialMetrics?.fitnessLevel || 'intermediate');
   const [selectedGoals, setSelectedGoals] = useState<string[]>(initialMetrics?.goals || ['Build Muscle (Hypertrophy)']);
   const [location, setLocation] = useState<UserMetrics['trainingLocation']>(initialMetrics?.trainingLocation || 'gym');
@@ -59,6 +60,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         setHeight(effectiveMetrics.height ? effectiveMetrics.height.toString() : '');
         setWeight(effectiveMetrics.weight ? effectiveMetrics.weight.toString() : '');
         setGender(effectiveMetrics.gender || 'prefer_not_to_say');
+        setSomatotype(effectiveMetrics.somatotype || 'mesomorph');
         setFitnessLevel(effectiveMetrics.fitnessLevel || 'intermediate');
         setSelectedGoals(effectiveMetrics.goals || ['Build Muscle (Hypertrophy)']);
         setLocation(effectiveMetrics.trainingLocation || 'gym');
@@ -170,6 +172,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       height: height ? parseFloat(height) : undefined,
       weight: weight ? parseFloat(weight) : undefined,
       gender,
+      somatotype,
       fitnessLevel,
       goals: selectedGoals,
       trainingLocation: location,
@@ -272,6 +275,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             setHeight={setHeight}
             weight={weight}
             setWeight={setWeight}
+            somatotype={somatotype}
+            setSomatotype={setSomatotype}
           />
 
           {/* Section: Training & Experience */}

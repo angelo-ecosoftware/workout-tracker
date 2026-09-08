@@ -7,11 +7,14 @@ export interface LastSetSummary {
   lastSessionId: string;
 }
 
+export type Somatotype = 'ectomorph' | 'mesomorph' | 'endomorph';
+
 export interface UserMetrics {
   dateOfBirth?: string; // YYYY-MM-DD
   height?: number; // cm
   weight?: number; // kg
   gender?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  somatotype?: Somatotype; // Ectomorph, Mesomorph, Endomorph
   fitnessLevel?: 'beginner' | 'intermediate' | 'advanced';
   goals?: string[]; // Multiple standard goals selected
   trainingLocation?: 'gym' | 'home' | 'hybrid';

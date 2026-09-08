@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Target, TrendingUp, Zap, Check, ArrowRight } from 'lucide-react';
-import { UserMetrics } from '../../models.ts';
+import { Target, TrendingUp, Zap, Check, ArrowRight, User } from 'lucide-react';
+import { UserMetrics, Somatotype } from '../../models.ts';
 import { saveUserMetrics } from '../../lib/supabaseData.ts';
 
 interface WelcomeModalProps {
@@ -39,6 +39,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
   const [selectedGoals, setSelectedGoals] = useState<string[]>(['Build Muscle (Hypertrophy)']);
   const [fitnessLevel, setFitnessLevel] = useState<UserMetrics['fitnessLevel']>('intermediate');
   const [trainingLocation, setTrainingLocation] = useState<UserMetrics['trainingLocation']>('gym');
+  const [somatotype, setSomatotype] = useState<Somatotype>('mesomorph');
   const [weightKg, setWeightKg] = useState<string>('80');
   const [heightCm, setHeightCm] = useState<string>('180');
   const [isSaving, setIsSaving] = useState(false);
@@ -63,6 +64,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
     const metricsPayload: UserMetrics = {
       fitnessLevel,
       trainingLocation,
+      somatotype,
       goals: selectedGoals,
       weight: !isNaN(parsedWeight) && parsedWeight > 0 ? parsedWeight : 80,
       height: !isNaN(parsedHeight) && parsedHeight > 0 ? parsedHeight : 180,
@@ -301,6 +303,47 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
                     className="w-full bg-[#1c1c1c] border border-[#333] focus:border-[#C0FF00] rounded-xl py-2 px-3 text-white font-mono font-bold text-lg outline-none"
                     placeholder="180"
                   />
+                </div>
+              </div>
+
+              {/* Somatotype / Body Type Selector */}
+              <div className="bg-[#141414] border border-[#262626] rounded-2xl p-3.5 space-y-2">
+                <label className="text-[10px] uppercase font-bold text-gray-400 flex items-center justify-between">
+                  <span className="flex items-center gap-1">
+                    <User className="w-3 h-3 text-[#C0FF00]" /> Body Type (Somatotype)
+                  </span>
+                  <span className="text-[#C0FF00] font-mono font-bold uppercase text-[9px] bg-[#C0FF00]/10 border border-[#C0FF00]/25 px-2 py-0.5 rounded">
+                    {somatotype}
+                  </span>
+                </label>
+
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[
+                    { id: 'ectomorph' as Somatotype, label: 'Ectomorph', sub: 'Lean / Fast' },
+                    { id: 'mesomorph' as Somatotype, label: 'Mesomorph', sub: 'Athletic' },
+                    { id: 'endomorph' as Somatotype, label: 'Endomorph', sub: 'Solid / Power' },
+                  ].map((st) => {
+                    const isSelected = somatotype === st.id;
+                    return (
+                      <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => setSomatotype(st.id)}
+                        className={`p-2 rounded-xl border text-center transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#C0FF00]/15 border-[#C0FF00] text-white'
+                            : 'bg-[#181818] border-[#2e2e2e] text-gray-400 hover:border-gray-500'
+                        }`}
+                      >
+                        <div className={`font-display font-bold text-xs uppercase ${isSelected ? 'text-[#C0FF00]' : 'text-white'}`}>
+                          {st.label}
+                        </div>
+                        <div className="text-[9px] font-mono text-gray-500 mt-0.5">
+                          {st.sub}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
