@@ -348,38 +348,43 @@ export async function createCoachInvite(
   coachName?: string
 ): Promise<CoachAthleteLink> {
   const inviteCode = `invite_${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-  const payload: Partial<DbCoachAthleteLinkRow> = {
-    id: `link_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+  const payload: Record<string, any> = {
     coach_id: coachId,
     specialty,
-    status: 'pending' as LinkStatus,
+    status: 'pending',
     invite_code: inviteCode,
     coach_name: coachName || 'Coach',
   };
 
-  if (athleteIdOrEmail && !athleteIdOrEmail.includes('@')) {
-    payload.athlete_id = athleteIdOrEmail;
+  if (athleteIdOrEmail) {
+    if (athleteIdOrEmail.includes('@')) {
+      payload.athlete_email = athleteIdOrEmail.trim();
+    } else {
+      payload.athlete_id = athleteIdOrEmail.trim();
+    }
   }
 
-  try {
-    const { error } = await supabase.from('coach_athlete_links').insert(payload);
-    if (error) {
-      console.error('Supabase error inserting coach invite:', error);
-    }
-  } catch (e) {
-    console.error('Exception creating coach invite:', e);
+  const { data, error } = await supabase
+    .from('coach_athlete_links')
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Supabase error inserting coach invite:', error);
+    throw new Error(`Failed to create coach invite: ${error.message}`);
   }
 
   return {
-    id: payload.id,
-    coachId,
-    athleteId: payload.athlete_id || '',
-    specialty,
+    id: data.id,
+    coachId: data.coach_id,
+    athleteId: data.athlete_id || '',
+    specialty: (data.specialty as CoachSpecialty) || specialty,
     status: 'pending',
-    inviteCode,
-    coachName: payload.coach_name,
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    inviteCode: data.invite_code,
+    coachName: data.coach_name || coachName,
+    createdAt: new Date(data.created_at || Date.now()),
+    updatedAt: new Date(data.updated_at || Date.now()),
   };
 }
 
@@ -392,7 +397,6 @@ export async function fetchInviteByCode(inviteCode: string): Promise<CoachAthlet
       .from('coach_athlete_links')
       .select('*')
       .eq('invite_code', cleanCode)
-      .eq('status', 'pending')
       .maybeSingle();
 
     if (error || !data) {
@@ -419,12 +423,33 @@ export async function fetchInviteByCode(inviteCode: string): Promise<CoachAthlet
   }
 }
 
-export async function acceptCoachLinkByCode(inviteCode: string, athleteId: string, athleteName?: string): Promise<CoachAthleteLink | null> {
+export async function acceptCoachLinkByCode(
+  inviteCode: string,
+  athleteId: string,
+  athleteName?: string
+): Promise<CoachAthleteLink | null> {
   if (!inviteCode || !athleteId) return null;
   const cleanCode = inviteCode.trim();
 
   try {
-    // 1. Direct atomic update by invite_code & status='pending'
+    const existing = await fetchInviteByCode(cleanCode);
+    if (!existing) {
+      console.warn(`Invite code not found in database: "${cleanCode}"`);
+      throw new Error('Could not find this invitation. It may have expired, was deleted, or the code is incorrect.');
+    }
+
+    if (existing.coachId === athleteId) {
+      throw new Error('You cannot accept your own coaching invite. Please share this invite link with an athlete or switch accounts.');
+    }
+
+    if (existing.status === 'accepted') {
+      if (existing.athleteId === athleteId) {
+        return existing;
+      }
+      throw new Error('This invitation has already been claimed by another athlete.');
+    }
+
+    // Direct atomic update by invite_code & status='pending'
     const { data, error } = await supabase
       .from('coach_athlete_links')
       .update({
@@ -433,57 +458,40 @@ export async function acceptCoachLinkByCode(inviteCode: string, athleteId: strin
         athlete_name: athleteName || 'Athlete',
         updated_at: new Date().toISOString(),
       })
-      .eq('invite_code', cleanCode)
+      .eq('id', existing.id)
       .eq('status', 'pending')
       .select()
       .maybeSingle();
 
-    if (!error && data) {
-      return {
-        id: data.id,
-        coachId: data.coach_id,
-        athleteId: data.athlete_id,
-        specialty: data.specialty || 'strength',
-        status: 'accepted',
-        inviteCode: data.invite_code,
-        notes: data.notes,
-        coachName: data.coach_name || 'Coach',
-        athleteName: athleteName || 'Athlete',
-        createdAt: new Date(data.created_at || Date.now()),
-        updatedAt: new Date(data.updated_at || Date.now()),
-      };
+    if (error) {
+      console.error('Failed to claim coach link:', error);
+      if (error.code === '23505') {
+        throw new Error('You are already connected with this coach.');
+      }
+      throw new Error(error.message || 'Failed to accept invitation.');
     }
 
-    // 2. If direct update didn't match (already claimed or id match fallback)
-    const existing = await fetchInviteByCode(cleanCode);
-    if (!existing) {
-      return null;
-    }
-
-    const { data: fallbackData, error: fallbackErr } = await supabase
-      .from('coach_athlete_links')
-      .update({
-        status: 'accepted',
-        athlete_id: athleteId,
-        athlete_name: athleteName || 'Athlete',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', existing.id)
-      .select()
-      .maybeSingle();
-
-    if (fallbackErr || !fallbackData) {
-      console.error('Failed to claim coach link:', fallbackErr);
+    if (!data) {
       return null;
     }
 
     return {
-      ...existing,
+      id: data.id,
+      coachId: data.coach_id,
+      athleteId: data.athlete_id,
+      specialty: data.specialty || 'strength',
       status: 'accepted',
-      athleteId,
-      athleteName,
+      inviteCode: data.invite_code,
+      notes: data.notes,
+      coachName: data.coach_name || 'Coach',
+      athleteName: athleteName || 'Athlete',
+      createdAt: new Date(data.created_at || Date.now()),
+      updatedAt: new Date(data.updated_at || Date.now()),
     };
-  } catch (err) {
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      throw err;
+    }
     console.error('Exception accepting coach link:', err);
     return null;
   }

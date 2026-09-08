@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { UserCheck, Sparkles, Check, X, Loader2, Award } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { UserCheck, Sparkles, Check, X, Loader2, Award, AlertCircle } from 'lucide-react';
 import { CoachAthleteLink } from '../../models.ts';
-import { acceptCoachLinkByCode } from '../../lib/supabaseData.ts';
+import { acceptCoachLinkByCode, fetchInviteByCode } from '../../lib/supabaseData.ts';
 
 interface CoachInviteAcceptModalProps {
   isOpen: boolean;
@@ -19,25 +19,43 @@ export const CoachInviteAcceptModal: React.FC<CoachInviteAcceptModalProps> = ({
   inviteCode,
   athleteId,
   athleteName,
-  coachInviteData,
+  coachInviteData: initialData,
   onAccepted,
 }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [inviteData, setInviteData] = useState<CoachAthleteLink | null>(initialData || null);
+
+  useEffect(() => {
+    if (initialData) {
+      setInviteData(initialData);
+    } else if (inviteCode && isOpen) {
+      fetchInviteByCode(inviteCode).then((d) => {
+        if (d) setInviteData(d);
+      });
+    }
+  }, [initialData, inviteCode, isOpen]);
 
   if (!isOpen) return null;
 
-  const coachName = coachInviteData?.coachName || 'Your Coach';
-  const specialty = coachInviteData?.specialty || 'strength';
+  const coachName = inviteData?.coachName || 'Your Coach';
+  const specialty = inviteData?.specialty || 'strength';
+  const isOwnInvite = Boolean(inviteData && inviteData.coachId === athleteId);
+  const isAlreadyConnected = Boolean(inviteData && inviteData.status === 'accepted' && inviteData.athleteId === athleteId);
 
   const handleAccept = async () => {
     try {
       setLoading(true);
       setErrorMsg(null);
+
+      if (isOwnInvite) {
+        throw new Error('You cannot accept your own coaching invite. Please share this invite link with your athlete or switch to an athlete account.');
+      }
+
       const res = await acceptCoachLinkByCode(inviteCode, athleteId, athleteName);
       if (!res) {
-        throw new Error('Could not accept this invite. It may have expired or already been claimed.');
+        throw new Error('Could not accept this invite. It may have expired or does not exist.');
       }
       setSuccess(true);
       setTimeout(() => {
@@ -97,6 +115,20 @@ export const CoachInviteAcceptModal: React.FC<CoachInviteAcceptModalProps> = ({
               <span className="font-bold text-[#C0FF00] capitalize">{specialty}</span>
             </div>
           </div>
+
+          {isOwnInvite && !errorMsg && (
+            <div className="p-3 bg-amber-950/40 border border-amber-900/40 text-amber-300 text-xs rounded-xl font-mono flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+              <span>You are signed in as the coach who created this invite. To connect, share this link with an athlete or test with an athlete account.</span>
+            </div>
+          )}
+
+          {isAlreadyConnected && !errorMsg && (
+            <div className="p-3 bg-emerald-950/40 border border-emerald-900/40 text-emerald-300 text-xs rounded-xl font-mono flex items-start gap-2">
+              <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span>You are already connected with {coachName}!</span>
+            </div>
+          )}
 
           {errorMsg && (
             <div className="p-3 bg-red-950/40 border border-red-900/40 text-red-300 text-xs rounded-xl font-mono">
