@@ -64,17 +64,24 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       }`}
     >
       {/* Exercise metadata details header */}
-      <button
-        type="button"
-        className={`w-full flex flex-col sm:flex-row sm:items-start justify-between gap-3 cursor-pointer text-left ${
+      <div
+        role="button"
+        tabIndex={0}
+        className={`w-full flex flex-col sm:flex-row sm:items-start justify-between gap-2.5 cursor-pointer text-left ${
           isExpanded && !isSkipped ? 'border-b border-[#1f1f1f] pb-3' : ''
         }`}
         onClick={onToggleExpand}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onToggleExpand();
+          }
+        }}
         aria-expanded={isExpanded}
       >
-        <div className="flex-1">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
               <h4
                 className={`font-display font-black text-base tracking-tight uppercase transition-colors ${
                   isSkipped
@@ -101,84 +108,76 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 }}
                 title={`View guide & muscle anatomy for ${exercise.name}`}
                 aria-label={`View guide & muscle anatomy for ${exercise.name}`}
-                className="p-1 rounded-md text-gray-500 hover:text-[#C0FF00] hover:bg-[#1a1a1a] transition-colors cursor-pointer shrink-0"
+                className="p-1 rounded-md text-gray-400 hover:text-[#C0FF00] hover:bg-[#1a1a1a] transition-colors cursor-pointer shrink-0 mt-0.5"
               >
                 <Info className="w-3.5 h-3.5" />
               </span>
-
-              {/* Slim Minimal Smart "Skip / Didn't Do" Button */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleSkip && onToggleSkip(exercise.id);
-                }}
-                title={isSkipped ? 'Restore exercise to current session' : "Didn't do this exercise? Skip for this session"}
-                aria-label={isSkipped ? `Restore ${exercise.name}` : `Skip ${exercise.name}`}
-                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer ${
-                  isSkipped
-                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40 hover:bg-amber-500/25'
-                    : 'bg-[#181818] hover:bg-neutral-800 text-gray-400 hover:text-white border border-[#2a2a2a]'
-                }`}
-              >
-                <Ban className="w-3 h-3" />
-                <span>{isSkipped ? 'Skipped (Undo)' : 'Skip'}</span>
-              </button>
             </div>
-            {!isExpanded && (
-              <div className="p-2 sm:p-1.5 text-gray-500 bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
-                <Eye className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
-              </div>
-            )}
-            {isExpanded && (
-              <div className="p-2 sm:p-1.5 text-[#C0FF00] bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors self-start ml-3 sm:hidden pointer-events-none">
-                <EyeOff className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
-              </div>
-            )}
+
+            <div className="shrink-0 self-start ml-2">
+              {isExpanded ? (
+                <div className="p-2 sm:p-1.5 text-[#C0FF00] bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
+                  <EyeOff className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
+                </div>
+              ) : (
+                <div className="p-2 sm:p-1.5 text-gray-500 bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
+                  <Eye className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
+                </div>
+              )}
+            </div>
           </div>
-          <p className="font-sans text-[11px] text-gray-400 mt-0.5 uppercase tracking-wider font-semibold">
-            {isSkipped ? (
-              <span className="text-amber-400/90 font-mono text-[10px] font-bold">
-                ⊘ Skipped for this session • No sets will be logged
-              </span>
-            ) : (
-              <>
-                Target Volume:{' '}
-                <span className="text-[#C0FF00] font-mono">
-                  {exercise.targetSets} sets × {exercise.targetRepMin}-{exercise.targetRepMax}{' '}
-                  {exercise.type === 'timed' ? 'seconds' : 'reps'}
+
+          {/* Subline: Target volume on the left, Skip button cleanly on the right */}
+          <div className="flex items-center justify-between gap-2 mt-2 flex-wrap">
+            <p className="font-sans text-[11px] text-gray-400 uppercase tracking-wider font-semibold">
+              {isSkipped ? (
+                <span className="text-amber-400/90 font-mono text-[10px] font-bold">
+                  ⊘ Skipped for this session • No sets will be logged
                 </span>
-              </>
-            )}
-          </p>
+              ) : (
+                <>
+                  Target Volume:{' '}
+                  <span className="text-[#C0FF00] font-mono">
+                    {exercise.targetSets} sets × {exercise.targetRepMin}-{exercise.targetRepMax}{' '}
+                    {exercise.type === 'timed' ? 'seconds' : 'reps'}
+                  </span>
+                </>
+              )}
+            </p>
+
+            {/* Slim Minimal Smart "Skip / Didn't Do" Button */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSkip && onToggleSkip(exercise.id);
+              }}
+              title={isSkipped ? 'Restore exercise to current session' : "Didn't do this exercise? Skip for this session"}
+              aria-label={isSkipped ? `Restore ${exercise.name}` : `Skip ${exercise.name}`}
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
+                isSkipped
+                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40 hover:bg-amber-500/25'
+                  : 'bg-[#181818] hover:bg-neutral-800 text-gray-400 hover:text-white border border-[#2a2a2a]'
+              }`}
+            >
+              <Ban className="w-3 h-3" />
+              <span>{isSkipped ? 'Skipped (Undo)' : 'Skip'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Dynamic Auto-progression coach recommendation badge */}
-        {!isSkipped && (
+        {!isSkipped && advice.action === 'increase' && (
           <div className="flex items-center gap-3">
-            {advice.action === 'increase' ? (
-              <div className="bg-[#C0FF00] text-black rounded-xl px-3 py-1 flex items-center gap-1.5 shrink-0 shadow-[0_0_15px_rgba(192,255,0,0.15)]">
-                <Zap className="w-3.5 h-3.5 fill-black text-black" />
-                <span className="text-[10px] sm:text-xs font-black uppercase tracking-tight font-sans">
-                  {advice.details}
-                </span>
-              </div>
-            ) : advice.action === 'keep' && cachedEx && isExpanded ? (
-              <div className="bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-xl px-2.5 py-1 flex items-center gap-1.5 shrink-0">
-                <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wide text-gray-400">
-                  {advice.details}
-                </span>
-              </div>
-            ) : null}
-
-            {isExpanded && (
-              <div className="hidden sm:block p-1.5 text-[#C0FF00] bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
-                <EyeOff className="w-4 h-4" aria-hidden="true" />
-              </div>
-            )}
+            <div className="bg-[#C0FF00] text-black rounded-xl px-3 py-1 flex items-center gap-1.5 shrink-0 shadow-[0_0_15px_rgba(192,255,0,0.15)]">
+              <Zap className="w-3.5 h-3.5 fill-black text-black" />
+              <span className="text-[10px] sm:text-xs font-black uppercase tracking-tight font-sans">
+                {advice.details}
+              </span>
+            </div>
           </div>
         )}
-      </button>
+      </div>
 
       {/* Expanded Section for Skipped Exercise */}
       {isExpanded && isSkipped && (
@@ -197,6 +196,15 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       {isExpanded && !isSkipped && (
         <>
           <WgerExerciseInfo exerciseName={exercise.name} />
+
+          {/* Coach Advice (Keep weight) */}
+          {advice.action === 'keep' && cachedEx && (
+            <div className="bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-xl px-3 py-1.5 flex items-center gap-1.5 self-start">
+              <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wide text-gray-400">
+                {advice.details}
+              </span>
+            </div>
+          )}
 
           {/* Previous Historical Reference sub-line */}
           {cachedEx && (

@@ -51,7 +51,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
       }`}
     >
       {/* Col 1-2: Set Number & 1-Tap Check */}
-      <div className="col-span-2 flex items-center gap-1 min-w-0">
+      <div className="col-span-2 flex items-center gap-1.5 min-w-0">
         <button
           type="button"
           role="checkbox"
@@ -61,10 +61,10 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
           title={isCompleted ? `Done at ${values.completedAt || ''}` : 'Mark complete'}
           className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer shrink-0 border ${
             isCompleted
-              ? 'bg-[#C0FF00] border-[#C0FF00] text-black shadow-sm'
+              ? 'bg-[#C0FF00] border-[#C0FF00] text-black shadow-sm opacity-100'
               : isCurrent
-              ? 'bg-[#1a1a1a] border-[#C0FF00]/60 text-zinc-500 hover:text-[#C0FF00]'
-              : 'bg-[#1a1a1a] border-[#2d2d2d] hover:border-gray-500 text-zinc-600 hover:text-gray-300'
+              ? 'bg-[#181818] border-[#C0FF00]/60 text-zinc-400 opacity-60 hover:opacity-100 hover:text-[#C0FF00]'
+              : 'bg-[#121212] border-[#222222] hover:border-gray-600 text-zinc-600 opacity-25 hover:opacity-70'
           }`}
         >
           <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[3]" />
@@ -72,10 +72,11 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
 
         <span
           className={`font-mono text-[10px] sm:text-xs font-bold uppercase whitespace-nowrap ${
-            isCompleted ? 'text-gray-500 line-through' : isCurrent ? 'text-[#C0FF00]' : 'text-gray-300'
+            isCompleted ? 'text-gray-500 line-through' : isCurrent ? 'text-[#C0FF00]' : 'text-gray-400'
           }`}
         >
-          SET {setNum}
+          <span className="hidden sm:inline">SET {setNum}</span>
+          <span className="sm:hidden">{setNum}</span>
         </span>
       </div>
 
