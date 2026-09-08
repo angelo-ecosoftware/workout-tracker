@@ -6,9 +6,18 @@ interface FAQItem {
   category: 'workouts' | 'nutrition' | 'coaching' | 'system';
   question: string;
   answer: string;
+  hasWalkthroughAction?: boolean;
 }
 
 const FAQ_DATABASE: FAQItem[] = [
+  {
+    id: 'faq-routine-onboarding',
+    category: 'workouts',
+    question: 'How do I create a routine and log my first exercise?',
+    answer:
+      '1. Create a Routine: Go to Settings -> Training -> Edit Routines to name your split day (e.g. Day 1: Upper Body).\n2. Add an Exercise: Tap "+ Find & Add Exercise" and pick from 100+ exercises with anatomy heatmaps and form cues.\n3. Log Your Sets: Enter your working weight and reps, then tap the checkmark [✓] when finished to trigger rest vibration timers.\n\nTap the button below to launch the interactive step-by-step walkthrough anytime!',
+    hasWalkthroughAction: true,
+  },
   {
     id: 'faq-progression',
     category: 'workouts',
@@ -53,7 +62,13 @@ const FAQ_DATABASE: FAQItem[] = [
   },
 ];
 
-export const SettingsFAQSection: React.FC = () => {
+interface SettingsFAQSectionProps {
+  onLaunchRoutineOnboarding?: () => void;
+}
+
+export const SettingsFAQSection: React.FC<SettingsFAQSectionProps> = ({
+  onLaunchRoutineOnboarding,
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -89,6 +104,30 @@ export const SettingsFAQSection: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Quick Interactive Routine Walkthrough Banner */}
+      {onLaunchRoutineOnboarding && (
+        <div className="p-3 bg-[#181818] border border-[#2a2a2a] rounded-xl flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="w-4 h-4 text-[#C0FF00] shrink-0" />
+            <div className="min-w-0">
+              <span className="text-xs text-white font-bold block truncate">
+                Interactive Routine Guide
+              </span>
+              <span className="text-[11px] text-gray-400 font-sans block truncate">
+                Learn how to add a routine, pick an exercise & log sets
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onLaunchRoutineOnboarding}
+            className="px-2.5 py-1.5 rounded-lg bg-[#C0FF00] hover:bg-[#a6dc00] text-black font-display font-black text-[10px] uppercase tracking-wider shrink-0 cursor-pointer shadow-sm"
+          >
+            Start Guide
+          </button>
+        </div>
+      )}
 
       {/* Search Input Bar */}
       <div className="relative">
@@ -129,8 +168,20 @@ export const SettingsFAQSection: React.FC = () => {
                 </button>
 
                 {isExpanded && (
-                  <div className="px-3 pb-3 pt-1 border-t border-[#222] text-xs font-sans text-gray-400 leading-relaxed animate-in fade-in">
-                    {item.answer}
+                  <div className="px-3 pb-3 pt-1 border-t border-[#222] text-xs font-sans text-gray-400 leading-relaxed animate-in fade-in space-y-2.5">
+                    <div className="whitespace-pre-line">{item.answer}</div>
+                    {item.hasWalkthroughAction && onLaunchRoutineOnboarding && (
+                      <div className="pt-1">
+                        <button
+                          type="button"
+                          onClick={onLaunchRoutineOnboarding}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#C0FF00] hover:bg-[#a6dc00] text-black font-display font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-sm"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Launch Interactive Walkthrough</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

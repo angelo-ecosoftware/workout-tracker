@@ -141,7 +141,7 @@ describe('SettingsModal Component (Dynamic Behavioral Suite)', () => {
     expect(mockLogout).toHaveBeenCalledTimes(1);
   });
 
-  it('renders "Explore App & Onboarding Guide" in Training/Help and opens WelcomeModal when clicked', async () => {
+  it('renders "How to Build a Routine & Log" in Training and opens RoutineOnboardingModal when clicked', async () => {
     const user = userEvent.setup();
 
     render(
@@ -154,11 +154,35 @@ describe('SettingsModal Component (Dynamic Behavioral Suite)', () => {
     const trainingNav = screen.getByRole('button', { name: /training/i });
     await user.click(trainingNav);
 
-    const exploreBtn = screen.getByRole('button', { name: /explore app & onboarding guide/i });
-    expect(exploreBtn).toBeInTheDocument();
-    expect(screen.getByText(/re-calibrate lifting goals, equipment & biometrics/i)).toBeInTheDocument();
+    const walkthroughBtn = screen.getByRole('button', { name: /how to build a routine & log/i });
+    expect(walkthroughBtn).toBeInTheDocument();
+    expect(screen.getByText(/interactive walkthrough: add routine, exercise & log sets/i)).toBeInTheDocument();
 
-    await user.click(exploreBtn);
+    await user.click(walkthroughBtn);
+
+    // RoutineOnboardingModal should open displaying Step 1 of 4: Create a Routine Day
+    expect(screen.getByText(/step 1 of 4/i)).toBeInTheDocument();
+    expect(screen.getByText(/1\. create a routine day/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /skip walkthrough/i })).toBeInTheDocument();
+  });
+
+  it('renders Profile & Biometrics Recalibration in Help and opens WelcomeModal when clicked', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ThemeProvider>
+        <SettingsModal isOpen={true} onClose={vi.fn()} />
+      </ThemeProvider>
+    );
+
+    // Navigate to Help subpage
+    const helpNav = screen.getByRole('button', { name: /help/i });
+    await user.click(helpNav);
+
+    const profileOnboardBtn = screen.getByRole('button', { name: /profile & biometrics recalibration/i });
+    expect(profileOnboardBtn).toBeInTheDocument();
+
+    await user.click(profileOnboardBtn);
 
     // WelcomeModal should open displaying Step 1 of 4
     expect(screen.getByText(/step 1 of 4/i)).toBeInTheDocument();

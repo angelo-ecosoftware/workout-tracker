@@ -24,6 +24,7 @@ import { SavedRoutinesLibraryModal } from './SavedRoutinesLibraryModal.tsx';
 import { PrivacySettingsModal } from '../settings/PrivacySettingsModal.tsx';
 import { CoachAccountModal } from './CoachAccountModal.tsx';
 import { WelcomeModal } from './WelcomeModal.tsx';
+import { RoutineOnboardingModal } from './RoutineOnboardingModal.tsx';
 import { ComplianceDossierModal } from '../settings/ComplianceDossierModal.tsx';
 import { DeleteAccountModal } from '../settings/DeleteAccountModal.tsx';
 import { Workout, Exercise } from '../../models.ts';
@@ -64,6 +65,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCoachAccountOpen, setIsCoachAccountOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+  const [isRoutineOnboardingOpen, setIsRoutineOnboardingOpen] = useState(false);
   const [userWorkouts, setUserWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
 
@@ -435,10 +437,10 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     </div>
                   </button>
 
-                  {/* Onboarding Guide Recalibration Button */}
+                  {/* Routine & Workout Logging Onboarding Walkthrough */}
                   <button
                     type="button"
-                    onClick={() => setIsOnboardingOpen(true)}
+                    onClick={() => setIsRoutineOnboardingOpen(true)}
                     className="flex items-center justify-between gap-3 w-full p-3 bg-[#161616] hover:bg-[#1f1f1f] border border-[#262626] hover:border-[#383838] rounded-xl text-left transition-all group cursor-pointer min-h-[48px]"
                   >
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -447,15 +449,15 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="font-bold text-xs sm:text-sm text-white truncate">
-                          Explore App & Onboarding Guide
+                          How to Build a Routine & Log
                         </div>
                         <div className="text-[11px] text-gray-500 truncate">
-                          Re-calibrate lifting goals, equipment & biometrics
+                          Interactive walkthrough: add routine, exercise & log sets
                         </div>
                       </div>
                     </div>
                     <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded">
-                      Explore
+                      Walkthrough
                     </div>
                   </button>
                 </div>
@@ -628,10 +630,10 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
               />
 
               <div className="p-3 sm:p-4 flex flex-col gap-3 overflow-y-auto overscroll-contain flex-1">
-                {/* Onboarding Wizard Launcher */}
+                {/* Routine & Workout Logging Walkthrough Launcher */}
                 <button
                   type="button"
-                  onClick={() => setIsOnboardingOpen(true)}
+                  onClick={() => setIsRoutineOnboardingOpen(true)}
                   className="flex items-center justify-between gap-3 w-full p-3.5 bg-[#161616] hover:bg-[#1f1f1f] border border-[#262626] hover:border-[#383838] rounded-xl text-left transition-all group cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -640,10 +642,32 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="font-bold text-xs sm:text-sm text-white truncate">
-                        Re-run Onboarding Walkthrough
+                        Routine & Logging Walkthrough
                       </div>
                       <div className="text-[11px] text-gray-400 truncate">
-                        Step-by-step introduction to tracker features
+                        Learn how to add routines, pick exercises & check off sets
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-[#C0FF00]" />
+                </button>
+
+                {/* Profile Goals & Biometrics Onboarding Recalibration */}
+                <button
+                  type="button"
+                  onClick={() => setIsOnboardingOpen(true)}
+                  className="flex items-center justify-between gap-3 w-full p-3.5 bg-[#161616] hover:bg-[#1f1f1f] border border-[#262626] hover:border-[#383838] rounded-xl text-left transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="w-8 h-8 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] shrink-0">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-xs sm:text-sm text-white truncate">
+                        Profile & Biometrics Recalibration
+                      </div>
+                      <div className="text-[11px] text-gray-400 truncate">
+                        Re-calibrate goals, experience level & starting weight
                       </div>
                     </div>
                   </div>
@@ -651,7 +675,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 </button>
 
                 {/* In-App Searchable Help & FAQ Accordion */}
-                <SettingsFAQSection />
+                <SettingsFAQSection onLaunchRoutineOnboarding={() => setIsRoutineOnboardingOpen(true)} />
               </div>
             </>
           )}
@@ -805,6 +829,15 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           onCompletedOnboarding={() => {
             setIsOnboardingOpen(false);
           }}
+        />
+      )}
+
+      {/* Interactive Routine Creation & Workout Logging Walkthrough */}
+      {isRoutineOnboardingOpen && (
+        <RoutineOnboardingModal
+          isOpen={isRoutineOnboardingOpen}
+          onClose={() => setIsRoutineOnboardingOpen(false)}
+          onOpenRoutineEditor={handleOpenRoutineEditor}
         />
       )}
     </>

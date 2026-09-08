@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { SettingsFAQSection } from '../../../../src/components/modals/SettingsFAQSection.tsx';
 
@@ -50,5 +50,26 @@ describe('P1.5: In-App Searchable FAQ Section (SettingsFAQSection)', () => {
     fireEvent.change(searchInput, { target: { value: 'xyznonexistentterm' } });
 
     expect(screen.getByText(/no answers matching/i)).toBeInTheDocument();
+  });
+
+  it('5. Renders routine onboarding walkthrough launcher banner and in-answer action', () => {
+    const handleLaunch = vi.fn();
+    render(<SettingsFAQSection onLaunchRoutineOnboarding={handleLaunch} />);
+
+    // Top banner is rendered
+    const startGuideBtn = screen.getByRole('button', { name: /start guide/i });
+    expect(startGuideBtn).toBeInTheDocument();
+    fireEvent.click(startGuideBtn);
+    expect(handleLaunch).toHaveBeenCalledTimes(1);
+
+    // Question accordion also contains walkthrough launcher
+    const routineQuestion = screen.getByRole('button', { name: /how do i create a routine and log my first exercise\?/i });
+    expect(routineQuestion).toBeInTheDocument();
+    fireEvent.click(routineQuestion);
+
+    const launchWalkthroughBtn = screen.getByRole('button', { name: /launch interactive walkthrough/i });
+    expect(launchWalkthroughBtn).toBeInTheDocument();
+    fireEvent.click(launchWalkthroughBtn);
+    expect(handleLaunch).toHaveBeenCalledTimes(2);
   });
 });
