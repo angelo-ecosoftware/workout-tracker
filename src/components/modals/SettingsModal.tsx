@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { usePWA } from '../../context/PWAContext.tsx';
-import { X, LogOut, Loader2, Layers, UserCheck, Bookmark, Shield, Sparkles } from 'lucide-react';
+import { X, LogOut, Loader2, Layers, UserCheck, Bookmark, Shield, Sparkles, FileCheck2 } from 'lucide-react';
 import { exportAllLogs, importAllLogs, fetchWorkoutsData, saveWorkoutsAndExercises, ExportScopeOptions } from '../../lib/supabaseData.ts';
 import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { SavedRoutinesLibraryModal } from './SavedRoutinesLibraryModal.tsx';
 import { PrivacySettingsModal } from '../settings/PrivacySettingsModal.tsx';
 import { CoachAccountModal } from './CoachAccountModal.tsx';
 import { WelcomeModal } from './WelcomeModal.tsx';
+import { ComplianceDossierModal } from '../settings/ComplianceDossierModal.tsx';
 import { Workout, Exercise } from '../../models.ts';
 import { SettingsThemeSection } from './SettingsThemeSection.tsx';
 import { SettingsAssistedWorkoutSection } from './SettingsAssistedWorkoutSection.tsx';
@@ -32,6 +33,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [isRoutineEditorOpen, setIsRoutineEditorOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isPrivacyOpen, setIsPrivacyOpen] = useState(false);
+  const [isDossierOpen, setIsDossierOpen] = useState(false);
   const [isCoachAccountOpen, setIsCoachAccountOpen] = useState(false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [userWorkouts, setUserWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
@@ -373,6 +375,29 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   </div>
                 </button>
 
+                {/* EU Cybersecurity, ENISA & GDPR Compliance Dossier Button */}
+                <button
+                  onClick={() => setIsDossierOpen(true)}
+                  className="flex items-center justify-between gap-3 w-full p-2.5 sm:p-3 bg-[#1a1a1a] border border-[#222] hover:border-[#C0FF00]/40 rounded-xl text-left transition-all group cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] group-hover:bg-[#C0FF00] group-hover:text-black shrink-0 transition-colors">
+                      <FileCheck2 className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-bold text-xs sm:text-sm text-white truncate">
+                        EU Compliance & Security Dossier
+                      </div>
+                      <div className="text-[11px] text-gray-500 truncate">
+                        CRA SBOM, TLS 1.3 proof & GDPR Art. 9/17 map
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded group-hover:bg-[#C0FF00] group-hover:text-black transition-colors">
+                    Dossier
+                  </div>
+                </button>
+
                 {/* Coach Mode / Trainer Permissions Button (Only for Non-Coaches to upgrade) */}
                 {!isCoach && (
                   <button
@@ -520,6 +545,16 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
           isOpen={isPrivacyOpen}
           onClose={() => setIsPrivacyOpen(false)}
           userId={user.uid}
+          userEmail={user.email}
+          onAccountDeleted={logout}
+        />
+      )}
+
+      {/* EU Compliance & Security Dossier Modal */}
+      {isDossierOpen && (
+        <ComplianceDossierModal
+          isOpen={isDossierOpen}
+          onClose={() => setIsDossierOpen(false)}
         />
       )}
 

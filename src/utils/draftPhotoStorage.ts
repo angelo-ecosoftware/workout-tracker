@@ -158,3 +158,32 @@ export async function clearDraftPhotosFromStorage(
     console.warn('Failed to clear draft photos from IndexedDB:', err);
   }
 }
+
+/**
+ * Clear all draft photo files for a given user from IndexedDB (GDPR erasure).
+ */
+export async function clearAllDraftPhotosForUser(userId: string): Promise<void> {
+  try {
+    const db = await openPhotoDB();
+    const tx = db.transaction(PHOTO_STORE, 'readwrite');
+    const store = tx.objectStore(PHOTO_STORE);
+
+    const records: StoredDraftPhoto[] = await new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+
+    const userRecords = records.filter((r) => r.userId === userId);
+    for (const r of userRecords) {
+      store.delete(r.id);
+    }
+
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.warn('Failed to purge all user draft photos from IndexedDB:', err);
+  }
+}

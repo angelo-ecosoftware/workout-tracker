@@ -7,6 +7,10 @@ import {
   normalizeMuscleToGroup,
 } from '../../../../src/components/workout/anatomy/MuscleAnatomyHeatmap.tsx';
 
+vi.mock('../../../../src/lib/exerciseCustomCuesService.ts', () => ({
+  saveExerciseCustomCues: vi.fn().mockResolvedValue({ success: true }),
+}));
+
 describe('P2.1, P2.2 & P2.4: Exercise Guide Drawer & Muscle Anatomy Heatmap', () => {
   describe('normalizeMuscleToGroup helper', () => {
     it('normalizes standard anatomical muscle names into canonical groups', () => {

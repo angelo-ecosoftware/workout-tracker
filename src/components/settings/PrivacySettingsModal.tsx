@@ -14,6 +14,8 @@ import {
   Plus,
   Trash2,
   Info,
+  FileCheck2,
+  AlertTriangle,
 } from 'lucide-react';
 import { UserPrivacySettings, UserPeerShare } from '../../models.ts';
 import {
@@ -23,17 +25,23 @@ import {
   saveUserPeerShare,
   deleteUserPeerShare,
 } from '../../lib/supabaseData.ts';
+import { DeleteAccountModal } from './DeleteAccountModal.tsx';
+import { ComplianceDossierModal } from './ComplianceDossierModal.tsx';
 
 interface PrivacySettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
+  userEmail?: string;
+  onAccountDeleted?: () => void;
 }
 
 export const PrivacySettingsModal: React.FC<PrivacySettingsModalProps> = ({
   isOpen,
   onClose,
   userId,
+  userEmail,
+  onAccountDeleted,
 }) => {
   const [settings, setSettings] = useState<UserPrivacySettings>({
     userId,
@@ -49,6 +57,10 @@ export const PrivacySettingsModal: React.FC<PrivacySettingsModalProps> = ({
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Modals for Phase 6
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDossierModalOpen, setIsDossierModalOpen] = useState(false);
 
   // New peer share form
   const [isAddingPeer, setIsAddingPeer] = useState(false);
@@ -475,8 +487,95 @@ export const PrivacySettingsModal: React.FC<PrivacySettingsModalProps> = ({
               </div>
             )}
           </div>
+
+          {/* Section 4: Enterprise Compliance & Cryptographic Dossier */}
+          <div className="p-4 rounded-2xl bg-[#161616] border border-[#282828] space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                <div className="p-2 rounded-xl bg-[#C0FF00]/10 border border-[#C0FF00]/20 text-[#C0FF00]">
+                  <FileCheck2 className="w-4 h-4" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-white text-xs sm:text-sm font-bold uppercase tracking-wide">
+                    EU Security & Compliance Dossier
+                  </h4>
+                  <p className="text-[11px] text-gray-400 font-sans mt-0.5">
+                    Live verification of TLS 1.3, RLS policies, CRA SBOM dependencies & GDPR data map.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsDossierModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1c1c1c] hover:bg-[#252525] border border-[#333] hover:border-[#C0FF00]/50 text-white font-mono text-xs font-bold transition-all shrink-0 cursor-pointer shadow-sm"
+              >
+                <span>View Dossier</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Section 5: GDPR Article 17 "Right to be Forgotten" (Permanent Deletion) */}
+          <div className="p-4 rounded-2xl bg-red-950/20 border border-red-500/30 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                <div className="p-2 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 mt-0.5 shrink-0">
+                  <AlertTriangle className="w-4 h-4" />
+                </div>
+                <div>
+                  <span className="text-[9px] font-mono font-bold text-red-400 uppercase tracking-wider block">
+                    GDPR Article 17
+                  </span>
+                  <h4 className="text-white text-xs sm:text-sm font-bold uppercase tracking-wide">
+                    Right to be Forgotten (Account Purge)
+                  </h4>
+                  <p className="text-[11px] text-gray-300 font-sans mt-0.5 leading-relaxed">
+                    Permanently and irreversibly erase your account, workout history, sets, biometrics, progress photos, and coach links in one atomic transaction.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-display font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Erase My Account & Data</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Compliance Dossier Viewer Modal */}
+      {isDossierModalOpen && (
+        <ComplianceDossierModal
+          isOpen={isDossierModalOpen}
+          onClose={() => setIsDossierModalOpen(false)}
+        />
+      )}
+
+      {/* GDPR Article 17 Account Purge Modal */}
+      {isDeleteModalOpen && (
+        <DeleteAccountModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          userId={userId}
+          userEmail={userEmail}
+          onAccountDeleted={() => {
+            setIsDeleteModalOpen(false);
+            onClose();
+            if (onAccountDeleted) {
+              onAccountDeleted();
+            } else {
+              window.location.href = '/';
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

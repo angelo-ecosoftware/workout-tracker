@@ -158,4 +158,22 @@ describe('PrivacySettingsModal Component', () => {
       });
     });
   });
+
+  it('renders EU Compliance Dossier and GDPR Article 17 Purge actions', async () => {
+    render(
+      <PrivacySettingsModal
+        isOpen={true}
+        onClose={vi.fn()}
+        userId="user-123"
+        userEmail="athlete@example.com"
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/eu security & compliance dossier/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /view dossier/i })).toBeInTheDocument();
+      expect(screen.getByText(/right to be forgotten \(account purge\)/i)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /erase my account & data/i })).toBeInTheDocument();
+    });
+  });
 });
