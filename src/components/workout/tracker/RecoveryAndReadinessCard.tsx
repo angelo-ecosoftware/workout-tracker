@@ -18,6 +18,7 @@ interface RecoveryAndReadinessCardProps {
   onPhotoSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   cameraInputRef: RefObject<HTMLInputElement | null>;
   fileInputRef: RefObject<HTMLInputElement | null>;
+  lastAutoSavedTime?: string | null;
 }
 
 export const RecoveryAndReadinessCard: React.FC<RecoveryAndReadinessCardProps> = ({
@@ -37,6 +38,7 @@ export const RecoveryAndReadinessCard: React.FC<RecoveryAndReadinessCardProps> =
   onPhotoSelect,
   cameraInputRef,
   fileInputRef,
+  lastAutoSavedTime,
 }) => {
   // Collapsed by default; persist user toggle state in localStorage
   const [isExpanded, setIsExpandedState] = useState<boolean>(() => {
@@ -69,10 +71,16 @@ export const RecoveryAndReadinessCard: React.FC<RecoveryAndReadinessCardProps> =
           className="flex items-center justify-between sm:justify-start gap-3 cursor-pointer group flex-1 select-none text-left"
         >
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h3 className="font-display font-black text-sm tracking-tight text-white uppercase group-hover:text-[#C0FF00] transition-colors">
                 Recovery & Readiness
               </h3>
+              {lastAutoSavedTime && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold bg-[#C0FF00]/10 text-[#C0FF00] border border-[#C0FF00]/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C0FF00] animate-pulse"></span>
+                  Auto-saved ({lastAutoSavedTime})
+                </span>
+              )}
               <span className="p-1 rounded-lg bg-[#1a1a1a] border border-[#333] text-gray-400 group-hover:text-[#C0FF00] transition-colors">
                 {isExpanded ? (
                   <ChevronUp className="w-3.5 h-3.5" />

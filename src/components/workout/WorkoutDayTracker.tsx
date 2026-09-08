@@ -183,27 +183,9 @@ export const WorkoutDayTracker: React.FC = () => {
           {/* Section 2: Recovery Metrics Header block - only in standard mode or after assisted sets finish */}
           {(!isAssistedMode || assistedFinished) && (
             <div className="space-y-4">
-              <div className="bg-[#111111] border border-[#222] rounded-[24px] p-5 shadow-xl">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#222] pb-4 gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-display font-black italic text-lg text-white uppercase tracking-tight">
-                        {activeWorkout.name}
-                      </h3>
-                      {lastAutoSavedTime && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold bg-[#C0FF00]/10 text-[#C0FF00] border border-[#C0FF00]/20">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#C0FF00] animate-pulse"></span>
-                          Auto-saved ({lastAutoSavedTime})
-                        </span>
-                      )}
-                    </div>
-                    <div className="h-[2px] bg-gradient-to-r from-[#C0FF00] to-transparent w-36 mt-1 opacity-50"></div>
-                  </div>
-                </div>
-              </div>
-
               <RecoveryAndReadinessCard
                 sessionDate={sessionDate}
+                lastAutoSavedTime={lastAutoSavedTime}
                 onSessionDateChange={(val) => {
                   setSessionDate(val);
                   saveDraftCheckpoint(
