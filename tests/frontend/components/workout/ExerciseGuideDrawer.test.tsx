@@ -168,14 +168,12 @@ describe('P2.1, P2.2 & P2.4: Exercise Guide Drawer & Muscle Anatomy Heatmap', ()
       // Verify custom bullet cue is rendered
       expect(screen.getByText(/keep torso slightly inclined/i)).toBeInTheDocument();
 
-      // Verify section edit button exists for motion phases and biomechanical cues
-      const editMotionBtn = screen.getByRole('button', { name: /edit motion phases/i });
-      expect(editMotionBtn).toBeInTheDocument();
-      const editBioBtn = screen.getByRole('button', { name: /edit biomechanical cues/i });
-      expect(editBioBtn).toBeInTheDocument();
+      // Verify top header edit button exists and click it
+      const editBtn = screen.getByRole('button', { name: /customize motion phases & form cues/i });
+      expect(editBtn).toBeInTheDocument();
 
-      // Click edit on motion phases
-      fireEvent.click(editMotionBtn);
+      // Click edit on header pencil
+      fireEvent.click(editBtn);
 
       // Verify cards transform in place with textareas pre-filled with content
       expect(screen.getByDisplayValue(/elevate back foot on bench, square hips forward/i)).toBeInTheDocument();
@@ -183,8 +181,13 @@ describe('P2.1, P2.2 & P2.4: Exercise Guide Drawer & Muscle Anatomy Heatmap', ()
       expect(screen.getByPlaceholderText(/https:\/\/example.com/i)).toBeInTheDocument();
 
       // Verify sticky bottom action bar with Save Changes and Cancel buttons appears
-      expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
+      const saveBtn = screen.getByRole('button', { name: /save changes/i });
+      expect(saveBtn).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
+
+      // Save changes and verify success modal appears
+      fireEvent.click(saveBtn);
+      expect(await screen.findByRole('dialog', { name: /successfully updated/i })).toBeInTheDocument();
     });
   });
 });

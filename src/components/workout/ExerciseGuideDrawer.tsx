@@ -25,6 +25,7 @@ import {
 import { formatSingleExerciseName } from '../../lib/exerciseSearch.ts';
 import { CustomExerciseCues } from '../../models.ts';
 import { saveExerciseCustomCues } from '../../lib/exerciseCustomCuesService.ts';
+import { SuccessModal } from '../ui/SuccessModal.tsx';
 
 interface ExerciseGuideDrawerProps {
   isOpen: boolean;
@@ -54,6 +55,7 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
   const [customGifUrl, setCustomGifUrl] = useState<string>('');
   const [isSavingCues, setIsSavingCues] = useState(false);
   const [cueSaveMsg, setCueSaveMsg] = useState<string | null>(null);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   // Section anchor refs for auto-scroll into view when toggling edit mode
   const motionCardRef = useRef<HTMLDivElement>(null);
@@ -113,9 +115,9 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
 
       // Smooth scroll the targeted card into view so the user immediately sees the form spring into place
       setTimeout(() => {
-        if (targetSection === 'biocues' && bioCuesCardRef.current) {
+        if (targetSection === 'biocues' && bioCuesCardRef.current && typeof bioCuesCardRef.current.scrollIntoView === 'function') {
           bioCuesCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        } else if (motionCardRef.current) {
+        } else if (motionCardRef.current && typeof motionCardRef.current.scrollIntoView === 'function') {
           motionCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
       }, 50);
@@ -237,21 +239,12 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
 
     // 2. Save motion & biomechanical cues to Supabase if exerciseId & userId available
     if (exerciseId && userId) {
-      const res = await saveExerciseCustomCues(exerciseId, userId, customCues);
-      if (res.success) {
-        setCueSaveMsg('Cues saved & synced!');
-      } else {
-        setCueSaveMsg('Saved locally');
-      }
-    } else {
-      setCueSaveMsg('Saved locally');
+      await saveExerciseCustomCues(exerciseId, userId, customCues);
     }
 
     setIsSavingCues(false);
-    setTimeout(() => {
-      setIsEditingCues(false);
-      setCueSaveMsg(null);
-    }, 900);
+    setIsEditingCues(false);
+    setIsSuccessModalOpen(true);
   };
 
   const effectiveGifUrl = customGifUrl.trim() || details?.gifUrl || null;
@@ -381,39 +374,28 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
               </div>
 
               {!isEditingCues ? (
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 bg-[#1a1a1a] p-1 rounded-xl border border-[#262626]">
-                    <button
-                      type="button"
-                      onClick={() => setActivePhase('setup')}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                        activePhase === 'setup'
-                          ? 'bg-[#C0FF00] text-black shadow-sm'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                    >
-                      1. Setup
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setActivePhase('peak')}
-                      className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                        activePhase === 'peak'
-                          ? 'bg-[#C0FF00] text-black shadow-sm'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                    >
-                      2. Peak Squeeze
-                    </button>
-                  </div>
+                <div className="flex items-center gap-1 bg-[#1a1a1a] p-1 rounded-xl border border-[#262626]">
                   <button
                     type="button"
-                    onClick={() => handleToggleEdit('motion')}
-                    title="Edit motion phases"
-                    aria-label="Edit motion phases"
-                    className="p-1.5 rounded-lg bg-[#1c1c1c] hover:bg-[#252525] border border-[#333] text-gray-400 hover:text-[#C0FF00] transition-colors cursor-pointer"
+                    onClick={() => setActivePhase('setup')}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                      activePhase === 'setup'
+                        ? 'bg-[#C0FF00] text-black shadow-sm'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
                   >
-                    <Edit3 className="w-3.5 h-3.5" />
+                    1. Setup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActivePhase('peak')}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                      activePhase === 'peak'
+                        ? 'bg-[#C0FF00] text-black shadow-sm'
+                        : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    2. Peak Squeeze
                   </button>
                 </div>
               ) : null}
@@ -495,18 +477,6 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
                   </span>
                 )}
               </div>
-
-              {!isEditingCues && (
-                <button
-                  type="button"
-                  onClick={() => handleToggleEdit('biocues')}
-                  title="Edit biomechanical cues"
-                  aria-label="Edit biomechanical cues"
-                  className="p-1.5 rounded-lg bg-[#1c1c1c] hover:bg-[#252525] border border-[#333] text-gray-400 hover:text-[#C0FF00] transition-colors cursor-pointer"
-                >
-                  <Edit3 className="w-3.5 h-3.5" />
-                </button>
-              )}
             </div>
 
             {isEditingCues ? (
@@ -648,6 +618,14 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
           )}
         </div>
       </div>
+
+      {/* Dynamic Success Modal for custom cue updates */}
+      <SuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={() => setIsSuccessModalOpen(false)}
+        title="Successfully Updated"
+        message="Your custom motion phases and biomechanical form cues have been saved."
+      />
     </div>
   );
 };

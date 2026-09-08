@@ -9,6 +9,7 @@ import { RoutineDaySelector } from './RoutineDaySelector.tsx';
 import { RoutineExerciseItem } from './RoutineExerciseItem.tsx';
 import { SavedRoutinesLibraryModal } from './SavedRoutinesLibraryModal.tsx';
 import { formatSingleExerciseName } from '../../lib/exerciseSearch.ts';
+import { SuccessModal } from '../ui/SuccessModal.tsx';
 
 interface RoutineEditorModalProps {
   isOpen: boolean;
@@ -34,6 +35,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
 
   const [workoutToDeleteIndex, setWorkoutToDeleteIndex] = useState<number | null>(null);
 
@@ -171,10 +173,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
         })),
       }));
       await onSaveWorkouts(sanitizedWorkouts);
-      setStatusMsg({ type: 'success', text: 'Routines and exercises updated successfully!' });
-      setTimeout(() => {
-        onClose();
-      }, 1000);
+      setIsSuccessModalOpen(true);
     } catch (err: unknown) {
       console.error('Error saving routine config:', err);
       setStatusMsg({ type: 'error', text: err instanceof Error ? err.message : 'Failed to save changes' });
@@ -384,6 +383,17 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
           }}
         />
       )}
+
+      {/* Dynamic Success Modal for routine updates */}
+      <SuccessModal
+        isOpen={isSuccessModalOpen}
+        onClose={() => {
+          setIsSuccessModalOpen(false);
+          onClose();
+        }}
+        title="Routines Saved!"
+        message="Your split routines and exercises have been updated successfully."
+      />
     </div>
   );
 };
