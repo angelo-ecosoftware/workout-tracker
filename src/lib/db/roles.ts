@@ -334,7 +334,7 @@ export async function fetchCoachAthleteLinks(
 
     return {
       coaches: formatted.filter((f) => f.athleteId === userId && f.status === 'accepted'),
-      clients: formatted.filter((f) => f.coachId === userId),
+      clients: formatted.filter((f) => f.coachId === userId && f.status !== 'revoked'),
     };
   } catch {
     return { coaches: [], clients: [] };

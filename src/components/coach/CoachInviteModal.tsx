@@ -79,15 +79,6 @@ export const CoachInviteModal: React.FC<CoachInviteModalProps> = ({
     }
   };
 
-  useEffect(() => {
-    if (isOpen && coachId) {
-      // Pre-generate an invite code on open if none exists yet
-      if (!createdInviteCode) {
-        handleCreateInvite();
-      }
-    }
-  }, [isOpen, coachId]);
-
   return (
     <div
       onClick={onClose}
