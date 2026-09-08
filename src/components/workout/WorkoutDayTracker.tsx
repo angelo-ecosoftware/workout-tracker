@@ -2,8 +2,7 @@ import React from "react";
 import { useAuth } from "../../context/AuthContext.tsx";
 import { Exercise } from "../../models.ts";
 import { saveWorkoutsAndExercises } from "../../lib/supabaseData.ts";
-import { Loader2, Plus, Settings, Timer } from "lucide-react";
-import { AssistedTimedTracker } from "./assisted/AssistedTimedTracker.tsx";
+import { Loader2, Plus, Settings } from "lucide-react";
 import { RoutineEditorModal } from "../modals/RoutineEditorModal.tsx";
 import { WelcomeModal } from "../modals/WelcomeModal.tsx";
 import { RoutineSplitSelector } from "./tracker/RoutineSplitSelector.tsx";
@@ -51,12 +50,6 @@ export const WorkoutDayTracker: React.FC = () => {
     cameraInputRef,
     sessionDate,
     setSessionDate,
-    isAssistedMode,
-    setIsAssistedMode,
-    restDurationSeconds,
-    assistedFinished,
-    setAssistedFinished,
-    setAssistedSessionTimings,
     inputs,
     toggleSetCompleted,
     unrealisticWarningConfig,
@@ -162,194 +155,143 @@ export const WorkoutDayTracker: React.FC = () => {
         }}
       />
 
-      {/* Routine split selector - only visible in standard mode or after assisted sets are done */}
-      {(!isAssistedMode || assistedFinished) && (
-        <RoutineSplitSelector
-          workouts={workouts}
-          activeWorkout={activeWorkout}
-          suggestedDay={suggestedDay}
-          lastSessionDay={lastSessionDay}
-          sessions={historySessions}
-          onSelectWorkout={(w) => {
-            setActiveWorkout(w);
-            setErrorMsg(null);
-          }}
-        />
-      )}
+      {/* Routine split selector */}
+      <RoutineSplitSelector
+        workouts={workouts}
+        activeWorkout={activeWorkout}
+        suggestedDay={suggestedDay}
+        lastSessionDay={lastSessionDay}
+        sessions={historySessions}
+        onSelectWorkout={(w) => {
+          setActiveWorkout(w);
+          setErrorMsg(null);
+        }}
+      />
 
       {activeWorkout && (
         <div className="space-y-6">
-          {/* Section 2: Recovery Metrics Header block - only in standard mode or after assisted sets finish */}
-          {(!isAssistedMode || assistedFinished) && (
-            <div className="space-y-4">
-              <RecoveryAndReadinessCard
-                sessionDate={sessionDate}
-                onSessionDateChange={(val) => {
-                  setSessionDate(val);
-                  saveDraftCheckpoint(
-                    inputs,
-                    activeWorkout.id,
-                    val,
-                    sleepHours,
-                    energyScore,
-                    sessionNotes,
-                    bodyWeightKg
-                  );
-                }}
-                sleepHours={sleepHours}
-                onSleepHoursChange={(val) => {
-                  setSleepHours(val);
-                  saveDraftCheckpoint(
-                    inputs,
-                    activeWorkout.id,
-                    sessionDate,
-                    val,
-                    energyScore,
-                    sessionNotes,
-                    bodyWeightKg
-                  );
-                }}
-                energyScore={energyScore}
-                onEnergyScoreChange={(val) => {
-                  setEnergyScore(val);
-                  saveDraftCheckpoint(
-                    inputs,
-                    activeWorkout.id,
-                    sessionDate,
-                    sleepHours,
-                    val,
-                    sessionNotes,
-                    bodyWeightKg
-                  );
-                }}
-                sessionNotes={sessionNotes}
-                onSessionNotesChange={(val) => {
-                  setSessionNotes(val);
-                  saveDraftCheckpoint(
-                    inputs,
-                    activeWorkout.id,
-                    sessionDate,
-                    sleepHours,
-                    energyScore,
-                    val,
-                    bodyWeightKg
-                  );
-                }}
-                bodyWeightKg={bodyWeightKg}
-                onBodyWeightKgChange={(val) => {
-                  setBodyWeightKg(val);
-                  saveDraftCheckpoint(
-                    inputs,
-                    activeWorkout.id,
-                    sessionDate,
-                    sleepHours,
-                    energyScore,
-                    sessionNotes,
-                    val
-                  );
-                }}
-                selectedPhotos={selectedPhotos}
-                photoPreviews={photoPreviews}
-                onRemovePhoto={handleRemovePhoto}
-                onPhotoSelect={handlePhotoSelect}
-                cameraInputRef={cameraInputRef}
-                fileInputRef={fileInputRef}
-              />
-            </div>
-          )}
-
-          {/* Section 3: Assisted Timed Mode vs Standard Full Exercise List */}
-          {isAssistedMode && !assistedFinished ? (
-            <AssistedTimedTracker
-              workout={activeWorkout}
-              userProfile={userProfile}
-              inputs={inputs}
-              onUpdateInput={updateInputValue}
-              onSetTextInput={handleTextChange}
-              onFinishAllSets={(timings) => {
-                if (timings) setAssistedSessionTimings(timings);
-                setAssistedFinished(true);
-              }}
-              onExitAssistedMode={() => {
-                setIsAssistedMode(false);
-                localStorage.setItem("setting_assisted_timed_workout", "false");
-                window.dispatchEvent(new Event("workout_settings_updated"));
-              }}
-              restDurationSeconds={restDurationSeconds}
-            />
-          ) : (
-            <div className="space-y-5">
-              {isAssistedMode && assistedFinished && (
-                <div className="bg-[#141414] border border-[#C0FF00]/40 rounded-2xl p-4 flex items-center justify-between shadow-lg">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 flex items-center justify-center text-[#C0FF00]">
-                      <Timer className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="font-display font-black text-xs uppercase tracking-wider text-white">
-                        Workout Sheet (All Sets Completed)
-                      </span>
-                      <p className="text-[10px] font-mono text-gray-400">
-                        Review weights and timings before logging
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setAssistedFinished(false)}
-                    className="text-[10px] font-mono font-bold text-[#C0FF00] hover:underline cursor-pointer"
-                  >
-                    Re-open Assisted Flow
-                  </button>
-                </div>
-              )}
-
-              {activeWorkout.exercises.map((ex: Exercise) => {
-                const advice = getProgressionAdvice(ex);
-                const isExpanded = expandedExerciseId === ex.id;
-
-                return (
-                  <ExerciseCard
-                    key={ex.id}
-                    exercise={ex}
-                    userProfile={userProfile}
-                    inputs={inputs}
-                    isExpanded={isExpanded}
-                    isSkipped={skippedExerciseIds.has(ex.id)}
-                    advice={advice}
-                    onToggleExpand={() => {
-                      const nextId = isExpanded ? null : ex.id;
-                      setExpandedExerciseId(nextId);
-                      if (user && activeWorkout) {
-                        try {
-                          if (nextId) {
-                            localStorage.setItem(`workout_expanded_ex_${user.uid}_${activeWorkout.id}`, nextId);
-                          } else {
-                            localStorage.removeItem(`workout_expanded_ex_${user.uid}_${activeWorkout.id}`);
-                          }
-                        } catch {}
-                      }
-                    }}
-                    onToggleSkip={toggleSkipExercise}
-                    onUpdateInput={updateInputValue}
-                    onTextInput={handleTextChange}
-                    onToggleCompleted={toggleSetCompleted}
-                  />
+          {/* Section 2: Recovery Metrics Header block */}
+          <div className="space-y-4">
+            <RecoveryAndReadinessCard
+              sessionDate={sessionDate}
+              onSessionDateChange={(val) => {
+                setSessionDate(val);
+                saveDraftCheckpoint(
+                  inputs,
+                  activeWorkout.id,
+                  val,
+                  sleepHours,
+                  energyScore,
+                  sessionNotes,
+                  bodyWeightKg
                 );
-              })}
-            </div>
-          )}
-
-          {/* Direct log submit button - only visible in standard mode or after assisted sets finish */}
-          {(!isAssistedMode || assistedFinished) && (
-            <WorkoutSubmitButton
-              errorMsg={errorMsg}
-              successMsg={successMsg}
-              loggingWorkout={loggingWorkout}
-              isUploadingPhotos={isUploadingPhotos}
-              onSubmit={handleLogWorkout}
+              }}
+              sleepHours={sleepHours}
+              onSleepHoursChange={(val) => {
+                setSleepHours(val);
+                saveDraftCheckpoint(
+                  inputs,
+                  activeWorkout.id,
+                  sessionDate,
+                  val,
+                  energyScore,
+                  sessionNotes,
+                  bodyWeightKg
+                );
+              }}
+              energyScore={energyScore}
+              onEnergyScoreChange={(val) => {
+                setEnergyScore(val);
+                saveDraftCheckpoint(
+                  inputs,
+                  activeWorkout.id,
+                  sessionDate,
+                  sleepHours,
+                  val,
+                  sessionNotes,
+                  bodyWeightKg
+                );
+              }}
+              sessionNotes={sessionNotes}
+              onSessionNotesChange={(val) => {
+                setSessionNotes(val);
+                saveDraftCheckpoint(
+                  inputs,
+                  activeWorkout.id,
+                  sessionDate,
+                  sleepHours,
+                  energyScore,
+                  val,
+                  bodyWeightKg
+                );
+              }}
+              bodyWeightKg={bodyWeightKg}
+              onBodyWeightKgChange={(val) => {
+                setBodyWeightKg(val);
+                saveDraftCheckpoint(
+                  inputs,
+                  activeWorkout.id,
+                  sessionDate,
+                  sleepHours,
+                  energyScore,
+                  sessionNotes,
+                  val
+                );
+              }}
+              selectedPhotos={selectedPhotos}
+              photoPreviews={photoPreviews}
+              onRemovePhoto={handleRemovePhoto}
+              onPhotoSelect={handlePhotoSelect}
+              cameraInputRef={cameraInputRef}
+              fileInputRef={fileInputRef}
             />
-          )}
+          </div>
+
+          {/* Section 3: Exercises List */}
+          <div className="space-y-5">
+            {activeWorkout.exercises.map((ex: Exercise) => {
+              const advice = getProgressionAdvice(ex);
+              const isExpanded = expandedExerciseId === ex.id;
+
+              return (
+                <ExerciseCard
+                  key={ex.id}
+                  exercise={ex}
+                  userProfile={userProfile}
+                  inputs={inputs}
+                  isExpanded={isExpanded}
+                  isSkipped={skippedExerciseIds.has(ex.id)}
+                  advice={advice}
+                  onToggleExpand={() => {
+                    const nextId = isExpanded ? null : ex.id;
+                    setExpandedExerciseId(nextId);
+                    if (user && activeWorkout) {
+                      try {
+                        if (nextId) {
+                          localStorage.setItem(`workout_expanded_ex_${user.uid}_${activeWorkout.id}`, nextId);
+                        } else {
+                          localStorage.removeItem(`workout_expanded_ex_${user.uid}_${activeWorkout.id}`);
+                        }
+                      } catch {}
+                    }
+                  }}
+                  onToggleSkip={toggleSkipExercise}
+                  onUpdateInput={updateInputValue}
+                  onTextInput={handleTextChange}
+                  onToggleCompleted={toggleSetCompleted}
+                />
+              );
+            })}
+          </div>
+
+          {/* Direct log submit button */}
+          <WorkoutSubmitButton
+            errorMsg={errorMsg}
+            successMsg={successMsg}
+            loggingWorkout={loggingWorkout}
+            isUploadingPhotos={isUploadingPhotos}
+            onSubmit={handleLogWorkout}
+          />
 
           {/* Outlier / Unrealistic Value Confirmation Guard */}
           <ConfirmModal

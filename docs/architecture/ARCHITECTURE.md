@@ -29,11 +29,7 @@ src/
 │   │   ├── ExerciseSearchPicker.tsx # Search & picker dropdown
 │   │   ├── ExerciseProgressionCard.tsx # 1RM & progression stats
 │   │   ├── WgerExerciseInfo.tsx   # Wger API exercise info guide
-│   │   └── assisted/              # ⏱️ Assisted Set/Timer System
-│   │       ├── AssistedTimedTracker.tsx
-│   │       ├── AssistedSetCard.tsx
-│   │       ├── AssistedRestTimerCard.tsx
-│   │       └── AssistedCompletedCard.tsx
+│   │   └── tracker/               # ⏱️ Active workout session & rest timer drawer
 │   │
 │   ├── dietary/                   # 🥗 Nutrition & Meal Tracking Domain
 │   │   ├── DietaryView.tsx        # Main dietary dashboard
@@ -51,7 +47,6 @@ src/
 │       └── LoginScreen.tsx        # Auth form & provider login
 │
 ├── hooks/                         # 🪝 Reusable Domain & State Hooks
-│   ├── useAssistedTracker.ts      # Active workout set & rest timer machine
 │   ├── useDietary.ts              # Meal & macro management hook
 │   ├── useWorkoutSession.ts       # Active workout sheet & logs hook
 │   └── useDebounce.ts             # Generic utility hook

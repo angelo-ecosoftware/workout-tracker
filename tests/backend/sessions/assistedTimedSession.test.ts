@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { SessionEngine, SetLogger, EngineError } from '../../../src/engine.ts';
 import { userFactory, exerciseFactory, workoutFactory, sessionFactory } from '../../shared/fixtures/factories.ts';
 
-describe('Assisted & Timed Session Execution Mechanics', () => {
+describe('Timed Exercise vs Strength Session Execution Mechanics', () => {
   const user = userFactory.build({ userId: 'usr_timed_athlete' });
 
   it('1. Correctly segregates timed exercise duration (seconds) vs strength reps', () => {

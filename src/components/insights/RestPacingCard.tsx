@@ -24,7 +24,7 @@ export const RestPacingCard: React.FC<RestPacingCardProps> = ({ restDiscipline }
           <ShieldCheck className="w-3.5 h-3.5" />
           {restDiscipline.recordedRestIntervalsCount > 0
             ? `${restDiscipline.adherencePercentage}% Target Adherence`
-            : 'Awaiting Assisted Sets'}
+            : 'Awaiting Rest Intervals'}
         </div>
       </div>
 
@@ -77,10 +77,10 @@ export const RestPacingCard: React.FC<RestPacingCardProps> = ({ restDiscipline }
       ) : (
         <div className="bg-[#141414] border border-[#222] rounded-2xl p-5 text-center space-y-1.5">
           <div className="text-xs font-display font-bold text-gray-300 uppercase">
-            No Assisted Rest Intervals Logged Yet
+            No Rest Intervals Logged Yet
           </div>
           <p className="text-[11px] font-sans text-gray-400 max-w-md mx-auto">
-            Your previous workouts were logged before assisted timer tracking or in standard manual mode. As you complete sets with the assisted rest timer active, your live rest adherence and pacing metrics will appear here.
+            No rest intervals have been recorded yet. As you complete sets with the rest countdown timer active, your live rest adherence and pacing metrics will appear here.
           </p>
         </div>
       )}

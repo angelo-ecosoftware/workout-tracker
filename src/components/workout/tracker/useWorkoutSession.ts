@@ -12,7 +12,6 @@ import {
 import { uploadWorkoutPhotos } from '../../../lib/storage.ts';
 import { compressWorkoutImage } from '../../../utils/imageCompressor.ts';
 import { SessionEngine, ProgressionEngine } from '../../../engine.ts';
-import { SetTimingRecord } from '../assisted/AssistedTimedTracker.tsx';
 import {
   saveDraftPhotosToStorage,
   loadDraftPhotosFromStorage,
@@ -66,25 +65,15 @@ export function useWorkoutSession(user: AuthUser | null) {
   });
   const [lastAutoSavedTime, setLastAutoSavedTime] = useState<string | null>(null);
 
-  // Assisted Timed Workout Mode state
-  const [isAssistedMode, setIsAssistedMode] = useState<boolean>(() => {
-    return localStorage.getItem('setting_assisted_timed_workout') === 'true';
-  });
+  // Rest Timer settings
   const [restDurationSeconds, setRestDurationSeconds] = useState<number>(() => {
     const val = localStorage.getItem('setting_rest_duration_seconds');
     return val ? parseInt(val, 10) : 5;
   });
-  const [assistedFinished, setAssistedFinished] = useState(false);
-  const [assistedSessionTimings, setAssistedSessionTimings] = useState<{
-    startedAt?: Date;
-    completedAt?: Date;
-    setTimings?: Record<string, SetTimingRecord>;
-  } | null>(null);
 
   // Sync settings when modified from SettingsModal
   useEffect(() => {
     const handleSettingsUpdate = () => {
-      setIsAssistedMode(localStorage.getItem('setting_assisted_timed_workout') === 'true');
       const restVal = localStorage.getItem('setting_rest_duration_seconds');
       if (restVal) setRestDurationSeconds(parseInt(restVal, 10));
     };
@@ -597,11 +586,11 @@ export function useWorkoutSession(user: AuthUser | null) {
     setSuccessMsg(null);
 
     try {
-      let completedAtDate = assistedSessionTimings?.completedAt || undefined;
-      let sessionStartedAtDate = assistedSessionTimings?.startedAt || undefined;
+      let completedAtDate: Date | undefined;
+      const sessionStartedAtDate: Date | undefined = undefined;
 
       if (sessionDate) {
-        const baseTime = completedAtDate || new Date();
+        const baseTime = new Date();
         const [y, m, d] = sessionDate.split('-');
         completedAtDate = new Date(
           parseInt(y),
@@ -718,7 +707,6 @@ export function useWorkoutSession(user: AuthUser | null) {
       setSelectedPhotos([]);
       photoPreviews.forEach((url) => URL.revokeObjectURL(url));
       setPhotoPreviews([]);
-      setAssistedSessionTimings(null);
 
       // Trigger Celebration Modal
       setCelebrationSummary(celebrationData);
@@ -777,8 +765,6 @@ export function useWorkoutSession(user: AuthUser | null) {
             : { weight: '20', reps: '10', durationSeconds: '', difficulty: '' };
 
           const inputValues = inputs[key] || defaultInput;
-          const setTimingKey = `${ex.id}-${i}`;
-          const recordedSetTiming = assistedSessionTimings?.setTimings?.[setTimingKey];
 
           if (isTimed) {
             let secNum = parseInt(inputValues.durationSeconds || '', 10);
@@ -806,9 +792,6 @@ export function useWorkoutSession(user: AuthUser | null) {
               reps: null,
               durationSeconds: secNum,
               difficulty: diffNum,
-              startedAt: recordedSetTiming?.startedAt,
-              completedAt: recordedSetTiming?.completedAt,
-              restSeconds: recordedSetTiming?.restSeconds,
             });
           } else {
             let weightNum = parseFloat(inputValues.weight || '');
@@ -841,11 +824,8 @@ export function useWorkoutSession(user: AuthUser | null) {
               setNumber: i,
               weight: weightNum,
               reps: repsNum,
-              durationSeconds: recordedSetTiming?.durationSeconds || null,
+              durationSeconds: null,
               difficulty: null,
-              startedAt: recordedSetTiming?.startedAt,
-              completedAt: recordedSetTiming?.completedAt,
-              restSeconds: recordedSetTiming?.restSeconds,
             });
           }
         }
@@ -966,13 +946,8 @@ export function useWorkoutSession(user: AuthUser | null) {
     sessionDate,
     setSessionDate,
     lastAutoSavedTime,
-    isAssistedMode,
-    setIsAssistedMode,
     restDurationSeconds,
-    assistedFinished,
-    setAssistedFinished,
-    assistedSessionTimings,
-    setAssistedSessionTimings,
+    setRestDurationSeconds,
     inputs,
     handlePhotoSelect,
     handleRemovePhoto,

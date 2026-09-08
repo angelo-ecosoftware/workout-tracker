@@ -29,7 +29,7 @@ import { ComplianceDossierModal } from '../settings/ComplianceDossierModal.tsx';
 import { DeleteAccountModal } from '../settings/DeleteAccountModal.tsx';
 import { Workout, Exercise } from '../../models.ts';
 import { SettingsThemeSection } from './SettingsThemeSection.tsx';
-import { SettingsAssistedWorkoutSection } from './SettingsAssistedWorkoutSection.tsx';
+import { SettingsRestTimerSection } from './SettingsRestTimerSection.tsx';
 import { SettingsBackupSection } from './SettingsBackupSection.tsx';
 import { SettingsPWASection } from './SettingsPWASection.tsx';
 import { CoachConnectionsSection } from '../settings/CoachConnectionsSection.tsx';
@@ -71,11 +71,11 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [userWorkouts, setUserWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
 
-  // Assisted Timed Workout settings
-  const [assistedTimedWorkout, setAssistedTimedWorkout] = useState<boolean>(() => {
-    return localStorage.getItem('setting_assisted_timed_workout') === 'true';
-  });
+  // Rest Timer settings
   const [restDurationSeconds, setRestDurationSeconds] = useState<number>(() => {
+    try {
+      localStorage.removeItem('setting_assisted_timed_workout');
+    } catch {}
     const val = localStorage.getItem('setting_rest_duration_seconds');
     return val ? parseInt(val, 10) : 5; // Default short 5s for quick verification
   });
@@ -88,11 +88,6 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
       setIsCoachPortalMode(localStorage.getItem('coach_personal_workout_mode') !== 'true');
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    localStorage.setItem('setting_assisted_timed_workout', assistedTimedWorkout ? 'true' : 'false');
-    window.dispatchEvent(new Event('workout_settings_updated'));
-  }, [assistedTimedWorkout]);
 
   useEffect(() => {
     localStorage.setItem('setting_rest_duration_seconds', restDurationSeconds.toString());
@@ -362,10 +357,8 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 {/* Theme Selector */}
                 <SettingsThemeSection />
 
-                {/* Assisted Timed Workout Toggle & Timer Setting */}
-                <SettingsAssistedWorkoutSection
-                  assistedTimedWorkout={assistedTimedWorkout}
-                  setAssistedTimedWorkout={setAssistedTimedWorkout}
+                {/* Rest Interval Timer Setting */}
+                <SettingsRestTimerSection
                   restDurationSeconds={restDurationSeconds}
                   setRestDurationSeconds={setRestDurationSeconds}
                 />

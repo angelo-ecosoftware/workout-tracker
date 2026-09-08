@@ -3,7 +3,7 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 import fs from 'fs';
 import path from 'path';
-import { AssistedRestTimerCard } from '../../../src/components/workout/assisted/AssistedRestTimerCard.tsx';
+import { RestTimerDrawer } from '../../../src/components/workout/tracker/RestTimerDrawer.tsx';
 
 describe('Accessibility Standards [ACC-01]', () => {
   it('does not restrict user zoom or scaling in index.html', () => {
@@ -17,12 +17,10 @@ describe('Accessibility Standards [ACC-01]', () => {
 
   it('renders aria-live timer for screen-readers during rest countdown', () => {
     render(
-      <AssistedRestTimerCard
-        restTimeLeft={45}
-        circleRadius={65}
-        circleCircumference={408}
-        strokeDashoffset={100}
-        onSkipRest={() => {}}
+      <RestTimerDrawer
+        isOpen={true}
+        initialSeconds={45}
+        onClose={() => {}}
       />
     );
 

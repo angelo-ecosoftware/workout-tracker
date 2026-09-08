@@ -90,7 +90,8 @@ describe('SettingsModal Component (Dynamic Behavioral Suite)', () => {
 
     // Verify training content is visible in subpage
     expect(screen.getByText(/theme & appearance/i)).toBeInTheDocument();
-    expect(screen.getByText(/assisted workout/i)).toBeInTheDocument();
+    expect(screen.getByText(/rest interval timer/i)).toBeInTheDocument();
+    expect(screen.queryByText(/assisted workout/i)).not.toBeInTheDocument();
     expect(screen.getByText(/edit routines & exercises/i)).toBeInTheDocument();
 
     // Click back button to return to Settings home

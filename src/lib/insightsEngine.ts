@@ -248,7 +248,7 @@ export function calculateInsights(
   }
 
   // Rest Interval Discipline Analysis
-  // For historical sets logged without the assisted timer (restSeconds = 0 or null),
+  // For historical sets logged without recorded rest intervals (restSeconds = 0 or null),
   // compute an inferred/default rest benchmark (default 90s) between consecutive sets
   // so users have actionable baseline metrics.
   const DEFAULT_TARGET_REST_SEC = 90;
