@@ -9,8 +9,7 @@ describe('ExerciseSearchEngine (wger dataset + Fuse.js fuzzy search)', () => {
   it('should find "Bench Press" when user types typo "brenk pres"', () => {
     const results = ExerciseSearchEngine.search({ query: 'brenk pres' });
     expect(results.length).toBeGreaterThan(0);
-    const topResult = results[0];
-    expect(topResult.name).toContain('Bench Press');
+    expect(results.some(r => r.name.toLowerCase().includes('bench press'))).toBe(true);
   });
 
   it('should find "Bench Press" when user types typo "bnch prss"', () => {

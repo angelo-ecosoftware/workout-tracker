@@ -1,5 +1,5 @@
 import Fuse from 'fuse.js';
-import { WGER_EXERCISE_CATALOG, CatalogExercise } from '../data/exerciseCatalog.ts';
+import { MASTER_EXERCISE_CATALOG, CatalogExercise } from '../data/exerciseCatalog.ts';
 
 export interface ExerciseSearchParams {
   query: string;
@@ -7,7 +7,7 @@ export interface ExerciseSearchParams {
   limit?: number;
 }
 
-// Instantiate and configure Fuse.js for high-recall fuzzy matching
+// Instantiate and configure Fuse.js for high-recall fuzzy matching over the 900+ exercise dataset
 const fuseOptions = {
   keys: [
     { name: 'name', weight: 0.55 },
@@ -23,26 +23,26 @@ const fuseOptions = {
   useExtendedSearch: true
 };
 
-const exerciseIndex = new Fuse(WGER_EXERCISE_CATALOG, fuseOptions);
+const exerciseIndex = new Fuse(MASTER_EXERCISE_CATALOG, fuseOptions);
 
 export const ExerciseSearchEngine = {
   /**
    * Search exercises with typo tolerance, muscle group matching, and category filtering.
    */
   search(params: ExerciseSearchParams): CatalogExercise[] {
-    const { query = '', category = null, limit = 15 } = params;
+    const { query = '', category = null, limit = 20 } = params;
     const cleanQuery = query.trim();
 
     // 1. If query is empty and category is specified, return all items in that category
     if (!cleanQuery && category && category !== 'All') {
-      return WGER_EXERCISE_CATALOG
+      return MASTER_EXERCISE_CATALOG
         .filter(ex => ex.category.toLowerCase() === category.toLowerCase())
         .slice(0, limit);
     }
 
     // 2. If both query and category are empty, return top standard exercises
     if (!cleanQuery) {
-      return WGER_EXERCISE_CATALOG.slice(0, limit);
+      return MASTER_EXERCISE_CATALOG.slice(0, limit);
     }
 
     // 3. Perform fuzzy search
@@ -61,7 +61,7 @@ export const ExerciseSearchEngine = {
    */
   getCategories(): string[] {
     const set = new Set<string>();
-    WGER_EXERCISE_CATALOG.forEach(ex => set.add(ex.category));
+    MASTER_EXERCISE_CATALOG.forEach(ex => set.add(ex.category));
     return ['All', ...Array.from(set)];
   },
 
@@ -69,7 +69,14 @@ export const ExerciseSearchEngine = {
    * Get all exercises in catalog
    */
   getAll(): CatalogExercise[] {
-    return WGER_EXERCISE_CATALOG;
+    return MASTER_EXERCISE_CATALOG;
+  },
+
+  /**
+   * Total exercises available
+   */
+  count(): number {
+    return MASTER_EXERCISE_CATALOG.length;
   }
 };
 

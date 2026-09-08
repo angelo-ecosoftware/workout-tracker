@@ -1,4 +1,4 @@
-import { WGER_EXERCISE_CATALOG, type CatalogExercise } from '../data/exerciseCatalog.ts';
+import { WGER_EXERCISE_CATALOG, MASTER_EXERCISE_CATALOG, type CatalogExercise } from '../data/exerciseCatalog.ts';
 import { formatSingleExerciseName } from './exerciseSearch.ts';
 
 export interface ExerciseApiDetails {
@@ -275,8 +275,8 @@ export function inferAccurateAnatomy(exerciseName: string): {
 } {
   const clean = cleanExerciseName(exerciseName);
 
-  // 1. Check exact match in catalog
-  const catalogMatch = WGER_EXERCISE_CATALOG.find((e) => {
+  // 1. Check exact match in master catalog (900+ exercises)
+  const catalogMatch = MASTER_EXERCISE_CATALOG.find((e) => {
     const eClean = cleanExerciseName(e.name);
     return eClean === clean || clean.includes(eClean) || eClean.includes(clean);
   });
@@ -638,6 +638,15 @@ export function getExerciseThumbnailSync(exerciseName: string, exerciseId?: stri
         if (parsed?.gifUrl) return parsed.gifUrl;
       }
     } catch {}
+  }
+
+  // Master Catalog photo sequence pass (from 876 open exercise library)
+  const masterMatch = MASTER_EXERCISE_CATALOG.find((e) => {
+    const eClean = cleanExerciseName(e.name);
+    return eClean === clean || clean.includes(eClean) || eClean.includes(clean);
+  });
+  if (masterMatch?.images && masterMatch.images.length > 0) {
+    return masterMatch.images[0];
   }
 
   return null;

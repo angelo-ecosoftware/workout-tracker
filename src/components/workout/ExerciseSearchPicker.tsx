@@ -3,6 +3,7 @@ import { Search, Plus, Check, Dumbbell, Sparkles, X, Tag } from 'lucide-react';
 import { ExerciseSearchEngine } from '../../lib/exerciseSearch.ts';
 import { CatalogExercise } from '../../data/exerciseCatalog.ts';
 import { Exercise } from '../../models.ts';
+import { getExerciseThumbnailSync } from '../../lib/exerciseApiService.ts';
 
 interface ExerciseSearchPickerProps {
   onSelectExercise: (exercise: Partial<Exercise>) => void;
@@ -57,9 +58,14 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
           <div className="w-6 h-6 rounded-lg bg-[#C0FF00]/10 flex items-center justify-center text-[#C0FF00]">
             <Sparkles className="w-3.5 h-3.5" />
           </div>
-          <span className="font-display font-bold uppercase italic text-xs tracking-wider text-white">
-            Exercise Catalog & Fuzzy Search
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-display font-bold uppercase italic text-xs tracking-wider text-white">
+              Exercise Catalog & Search
+            </span>
+            <span className="text-[10px] font-mono font-bold bg-[#1a1a1a] text-[#C0FF00] border border-[#333] px-1.5 py-0.2 rounded-full">
+              {ExerciseSearchEngine.count()} Available
+            </span>
+          </div>
         </div>
         <button
           type="button"
@@ -114,37 +120,62 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
       </div>
 
       {/* Results List */}
-      <div className="max-h-60 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
+      <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
         {searchResults.length > 0 ? (
-          searchResults.map((item) => (
-            <div
-              key={item.id}
-              onClick={() => handlePickCatalogItem(item)}
-              className="flex items-center justify-between p-2.5 rounded-xl bg-[#181818] hover:bg-[#202020] border border-[#262626] hover:border-[#C0FF00]/40 transition-all cursor-pointer group"
-            >
-              <div className="flex flex-col gap-0.5">
-                <div className="font-display font-bold text-xs text-white group-hover:text-[#C0FF00] transition-colors">
-                  {item.name}
-                </div>
-                <div className="flex items-center gap-2 text-[9px] font-mono text-gray-400">
-                  <span className="bg-[#111] px-1.5 py-0.5 rounded text-gray-300 border border-[#222]">
-                    {item.category}
-                  </span>
-                  <span>{item.muscles.slice(0, 2).join(', ')}</span>
-                  <span className="text-gray-500">• {item.equipment}</span>
-                </div>
-              </div>
+          searchResults.map((item) => {
+            const thumb = (item.images && item.images.length > 0)
+              ? item.images[0]
+              : getExerciseThumbnailSync(item.name, item.id);
 
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] font-mono text-gray-500 hidden sm:inline">
-                  {item.defaultSets}×{item.defaultRepMin}-{item.defaultRepMax}
-                </span>
-                <div className="w-6 h-6 rounded-lg bg-[#222] group-hover:bg-[#C0FF00] group-hover:text-black flex items-center justify-center text-gray-300 transition-colors">
-                  <Plus className="w-3.5 h-3.5" />
+            return (
+              <div
+                key={item.id}
+                onClick={() => handlePickCatalogItem(item)}
+                className="flex items-center justify-between p-2 rounded-xl bg-[#181818] hover:bg-[#202020] border border-[#262626] hover:border-[#C0FF00]/40 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  {/* Thumbnail Preview */}
+                  <div className="w-10 h-10 rounded-lg bg-[#111] border border-[#2a2a2a] overflow-hidden shrink-0 flex items-center justify-center">
+                    {thumb ? (
+                      <img
+                        src={thumb}
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <Dumbbell className="w-4 h-4 text-gray-500 group-hover:text-[#C0FF00] transition-colors" />
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                    <div className="font-display font-bold text-xs text-white group-hover:text-[#C0FF00] transition-colors truncate">
+                      {item.name}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[9px] font-mono text-gray-400 flex-wrap">
+                      <span className="bg-[#111] px-1.5 py-0.2 rounded text-gray-300 border border-[#222]">
+                        {item.category}
+                      </span>
+                      <span className="truncate">{item.muscles.slice(0, 2).join(', ')}</span>
+                      <span className="text-gray-500">• {item.equipment}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 ml-2">
+                  <span className="text-[9px] font-mono text-gray-500 hidden sm:inline">
+                    {item.defaultSets}×{item.defaultRepMin}-{item.defaultRepMax}
+                  </span>
+                  <div className="w-6 h-6 rounded-lg bg-[#222] group-hover:bg-[#C0FF00] group-hover:text-black flex items-center justify-center text-gray-300 transition-colors">
+                    <Plus className="w-3.5 h-3.5" />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div className="text-center py-5 space-y-2">
             <p className="text-xs text-gray-500 font-mono">No matching catalog exercises found.</p>
