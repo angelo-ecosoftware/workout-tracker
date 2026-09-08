@@ -236,14 +236,9 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
             <>
               {/* Modal Header */}
               <div className="flex items-center justify-between px-3.5 py-2.5 sm:px-4 sm:py-3 border-b border-[#222] bg-[#111]/95 backdrop-blur sticky top-0 z-10 shrink-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="font-display font-black uppercase italic tracking-tight text-white text-sm sm:text-base">
-                    Settings
-                  </h2>
-                  <span className="text-[10px] font-mono text-gray-400 bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#282828]">
-                    {isAdmin ? 'Admin' : isCoach ? 'Coach' : 'Athlete'}
-                  </span>
-                </div>
+                <h2 className="font-display font-black uppercase italic tracking-tight text-white text-sm sm:text-base">
+                  Settings
+                </h2>
                 <button
                   type="button"
                   onClick={onClose}
