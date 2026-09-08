@@ -166,6 +166,19 @@ const GymAppContent: React.FC = () => {
     };
   }, [user, activeTab]);
 
+  // Sync coach_personal_workout_mode when toggled in Settings or other windows
+  useEffect(() => {
+    const handleCoachModeChange = () => {
+      setCoachPersonalWorkoutMode(localStorage.getItem('coach_personal_workout_mode') === 'true');
+    };
+    window.addEventListener('coach_mode_changed', handleCoachModeChange);
+    window.addEventListener('storage', handleCoachModeChange);
+    return () => {
+      window.removeEventListener('coach_mode_changed', handleCoachModeChange);
+      window.removeEventListener('storage', handleCoachModeChange);
+    };
+  }, []);
+
   // Fetch coach invite metadata when pendingInviteCode is detected in URL
   useEffect(() => {
     if (pendingInviteCode && user) {
@@ -231,44 +244,6 @@ const GymAppContent: React.FC = () => {
         />
       )}
 
-      {/* Quick Trainer Mode Header Bar for Coaches */}
-      {isCoach && !inspectingClient && (
-        <div className="bg-[#111] border-b border-[#222] px-4 py-2 text-xs">
-          <div className="max-w-4xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className={`w-2 h-2 rounded-full ${isDedicatedCoachWorkspace ? 'bg-[#C0FF00]' : 'bg-gray-500'}`} />
-              <span className="font-mono text-gray-300">
-                Mode: <strong className={isDedicatedCoachWorkspace ? 'text-[#C0FF00]' : 'text-white'}>
-                  {isDedicatedCoachWorkspace ? 'Coach Command Center' : 'Personal Athlete Log Book'}
-                </strong>
-              </span>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                const newMode = !coachPersonalWorkoutMode;
-                setCoachPersonalWorkoutMode(newMode);
-                localStorage.setItem('coach_personal_workout_mode', String(newMode));
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-[#1a1a1a] hover:bg-[#252525] text-gray-300 hover:text-white border border-[#333] font-mono text-[11px] font-bold transition-all cursor-pointer"
-            >
-              {isDedicatedCoachWorkspace ? (
-                <>
-                  <Dumbbell className="w-3.5 h-3.5 text-[#C0FF00]" />
-                  <span>Switch to Personal Workouts</span>
-                </>
-              ) : (
-                <>
-                  <UserCheck className="w-3.5 h-3.5 text-[#C0FF00]" />
-                  <span>Switch to Coach Portal</span>
-                </>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
-
       <Header />
       
       <main className="max-w-4xl mx-auto px-4 py-8">
@@ -289,6 +264,7 @@ const GymAppContent: React.FC = () => {
             onSwitchToPersonalMode={() => {
               setCoachPersonalWorkoutMode(true);
               localStorage.setItem('coach_personal_workout_mode', 'true');
+              window.dispatchEvent(new Event('coach_mode_changed'));
             }}
           />
         ) : (

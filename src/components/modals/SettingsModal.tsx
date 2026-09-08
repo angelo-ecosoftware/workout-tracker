@@ -54,7 +54,9 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const { user, logout, switchAccount, isCoach, isAdmin, specialty } = useAuth();
   const { installPrompt, setInstallPrompt, isStandalone, isIOS, isMobile } = usePWA();
   const [currentPage, setCurrentPage] = useState<SettingsPage>('home');
-  const [settingsMode, setSettingsMode] = useState<'trainer' | 'personal'>(() => isCoach ? 'trainer' : 'personal');
+  const [isCoachPortalMode, setIsCoachPortalMode] = useState<boolean>(() => {
+    return localStorage.getItem('coach_personal_workout_mode') !== 'true';
+  });
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
@@ -83,6 +85,7 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   useEffect(() => {
     if (isOpen) {
       setCurrentPage('home');
+      setIsCoachPortalMode(localStorage.getItem('coach_personal_workout_mode') !== 'true');
     }
   }, [isOpen]);
 
@@ -253,95 +256,97 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
 
               {/* Home Navigation Body */}
               <div className="p-3 sm:p-4 flex flex-col gap-2.5 overflow-y-auto overscroll-contain flex-1">
-                {/* Mode Switcher inside Settings (Only for Coaches when not Admin) */}
+                {/* Active Workspace / Mode Toggler for Coaches */}
                 {!isAdmin && isCoach && (
-                  <div className="flex bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 font-mono text-xs mb-1">
-                    <button
-                      type="button"
-                      onClick={() => setSettingsMode('trainer')}
-                      className={`flex-1 py-1.5 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                        settingsMode === 'trainer'
-                          ? 'bg-[#C0FF00] text-black shadow-sm'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                    >
-                      <UserCheck className="w-3.5 h-3.5" />
-                      <span>Trainer Settings</span>
-                    </button>
+                  <div className="bg-[#161616] border border-[#2a2a2a] rounded-2xl p-3 space-y-2 mb-1">
+                    <div className="flex items-center justify-between">
+                      <div className="text-[10px] font-mono text-gray-400 uppercase font-bold tracking-wider">
+                        Active Workspace
+                      </div>
+                      <span className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase">
+                        {isCoachPortalMode ? 'Coach Command Center' : 'Personal Log Book'}
+                      </span>
+                    </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setSettingsMode('personal')}
-                      className={`flex-1 py-1.5 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                        settingsMode === 'personal'
-                          ? 'bg-[#C0FF00] text-black shadow-sm'
-                          : 'text-gray-400 hover:text-white'
-                      }`}
-                    >
-                      <Layers className="w-3.5 h-3.5" />
-                      <span>Personal Account</span>
-                    </button>
+                    <div className="flex bg-[#111] border border-[#262626] rounded-xl p-1 font-mono text-xs">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCoachPortalMode(true);
+                          localStorage.setItem('coach_personal_workout_mode', 'false');
+                          window.dispatchEvent(new Event('coach_mode_changed'));
+                        }}
+                        className={`flex-1 py-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          isCoachPortalMode
+                            ? 'bg-[#C0FF00] text-black shadow-sm'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        <UserCheck className="w-3.5 h-3.5" />
+                        <span>Coach Portal</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCoachPortalMode(false);
+                          localStorage.setItem('coach_personal_workout_mode', 'true');
+                          window.dispatchEvent(new Event('coach_mode_changed'));
+                        }}
+                        className={`flex-1 py-2 rounded-lg font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          !isCoachPortalMode
+                            ? 'bg-[#C0FF00] text-black shadow-sm'
+                            : 'text-gray-400 hover:text-white'
+                        }`}
+                      >
+                        <Dumbbell className="w-3.5 h-3.5" />
+                        <span>Personal Workouts</span>
+                      </button>
+                    </div>
                   </div>
                 )}
 
-                {/* Trainer Dedicated View Mode */}
-                {isCoach && settingsMode === 'trainer' ? (
-                  <div className="space-y-3">
-                    <CoachSettingsSection />
-                    <button
-                      type="button"
-                      onClick={() => setCurrentPage('training')}
-                      className="flex items-center justify-between gap-3 w-full p-3 bg-[#161616] hover:bg-[#1f1f1f] border border-[#262626] rounded-xl text-left transition-all"
-                    >
-                      <div className="font-bold text-xs text-white">Appearance & Theme</div>
-                      <ChevronRight className="w-4 h-4 text-gray-500" />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    {/* 1. TRAINING */}
-                    <SettingsNavRow
-                      icon={<Dumbbell className="w-4 h-4" />}
-                      title="Training"
-                      subtitle="Timer, routines, exercises, appearance"
-                      badge={`${restDurationSeconds}s`}
-                      onClick={() => setCurrentPage('training')}
-                    />
+                {/* 1. TRAINING */}
+                <SettingsNavRow
+                  icon={<Dumbbell className="w-4 h-4" />}
+                  title="Training"
+                  subtitle="Timer, routines, exercises, appearance"
+                  badge={`${restDurationSeconds}s`}
+                  onClick={() => setCurrentPage('training')}
+                />
 
-                    {/* 2. PRIVACY & SHARING */}
-                    <SettingsNavRow
-                      icon={<Shield className="w-4 h-4" />}
-                      title="Privacy & Sharing"
-                      subtitle="Profile, coaches, visibility"
-                      onClick={() => setCurrentPage('privacy')}
-                    />
+                {/* 2. PRIVACY & SHARING */}
+                <SettingsNavRow
+                  icon={<Shield className="w-4 h-4" />}
+                  title="Privacy & Sharing"
+                  subtitle="Profile, coaches, visibility"
+                  onClick={() => setCurrentPage('privacy')}
+                />
 
-                    {/* 3. DATA & APP */}
-                    <SettingsNavRow
-                      icon={<HardDrive className="w-4 h-4" />}
-                      title="Data & App"
-                      subtitle="Backup, export, offline access"
-                      badge={isStandalone ? 'Installed ✓' : undefined}
-                      onClick={() => setCurrentPage('data')}
-                    />
+                {/* 3. DATA & APP */}
+                <SettingsNavRow
+                  icon={<HardDrive className="w-4 h-4" />}
+                  title="Data & App"
+                  subtitle="Backup, export, offline access"
+                  badge={isStandalone ? 'Installed ✓' : undefined}
+                  onClick={() => setCurrentPage('data')}
+                />
 
-                    {/* 4. HELP */}
-                    <SettingsNavRow
-                      icon={<HelpCircle className="w-4 h-4" />}
-                      title="Help"
-                      subtitle="FAQ and getting started"
-                      onClick={() => setCurrentPage('help')}
-                    />
+                {/* 4. HELP */}
+                <SettingsNavRow
+                  icon={<HelpCircle className="w-4 h-4" />}
+                  title="Help"
+                  subtitle="FAQ and getting started"
+                  onClick={() => setCurrentPage('help')}
+                />
 
-                    {/* 5. ACCOUNT */}
-                    <SettingsNavRow
-                      icon={<User className="w-4 h-4" />}
-                      title="Account"
-                      subtitle={user.email || 'Email, session and account'}
-                      onClick={() => setCurrentPage('account')}
-                    />
-                  </>
-                )}
+                {/* 5. ACCOUNT */}
+                <SettingsNavRow
+                  icon={<User className="w-4 h-4" />}
+                  title="Account"
+                  subtitle={user.email || 'Email, session and account'}
+                  onClick={() => setCurrentPage('account')}
+                />
               </div>
             </>
           )}
@@ -500,8 +505,15 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                   <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-[#C0FF00]" />
                 </button>
 
-                {/* 2. Coach Mode / Trainer Permissions Button */}
-                {!isCoach && (
+                {/* 2. Coach Mode / Trainer Permissions */}
+                {isCoach ? (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="text-[11px] font-mono uppercase tracking-wider text-gray-400 font-bold px-1">
+                      Trainer Settings & Alerts
+                    </div>
+                    <CoachSettingsSection />
+                  </div>
+                ) : (
                   <button
                     type="button"
                     onClick={() => setIsCoachAccountOpen(true)}
