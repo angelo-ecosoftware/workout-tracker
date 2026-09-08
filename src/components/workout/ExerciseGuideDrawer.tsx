@@ -84,13 +84,52 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
   const equipment = details?.equipments?.[0] || fallbackAnatomy.equipment;
   const category = details?.bodyParts?.[0] || fallbackAnatomy.category;
 
+  // Clean raw exercise names (e.g. "Pull-ups / Lat Pulldown" or "Bench Press (barbell or dumbbell)")
+  // to concise search terms that mobile app search handlers can reliably ingest without truncation
+  const cleanSearchTerm = useMemo(() => {
+    if (!exerciseName) return 'exercise';
+    return exerciseName
+      .replace(/\(.*?\)/g, '')
+      .replace(/\[.*?\]/g, '')
+      .split('/')[0] // Take primary movement name if slashed
+      .replace(/[^a-zA-Z0-9\s-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }, [exerciseName]);
+
   const youtubeTutorialUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
-    exerciseName + ' proper form tutorial biomechanics'
+    cleanSearchTerm + ' proper form tutorial biomechanics'
   )}`;
 
-  const tiktokTutorialUrl = `https://www.tiktok.com/search?q=${encodeURIComponent(
-    exerciseName + ' form cues tutorial fitness'
+  // On mobile TikTok, opening tiktok.com/search?q= directly inside in-app webviews
+  // often drops the query parameter and shows blank recent searches.
+  // Using clean query terms and handling universal link fallbacks ensures direct execution.
+  const tiktokWebUrl = `https://www.tiktok.com/search?q=${encodeURIComponent(
+    cleanSearchTerm + ' form tutorial'
   )}`;
+
+  const handleOpenTikTok = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Check if user is on mobile
+    if (typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+      e.preventDefault();
+      const encodedQuery = encodeURIComponent(cleanSearchTerm + ' form tutorial');
+      // Native app deep-link schemes for TikTok on iOS & Android
+      const appSchemeUrl = `snssdk1233://search/result?keyword=${encodedQuery}`;
+      const tiktokAppUrl = `tiktok://search?keyword=${encodedQuery}`;
+
+      const fallbackTimer = setTimeout(() => {
+        window.open(tiktokWebUrl, '_blank', 'noopener,noreferrer');
+      }, 700);
+
+      try {
+        // Attempt opening app directly
+        window.location.href = tiktokAppUrl;
+      } catch {
+        clearTimeout(fallbackTimer);
+        window.open(tiktokWebUrl, '_blank', 'noopener,noreferrer');
+      }
+    }
+  };
 
   const instructionsList = useMemo(() => {
     if (details?.instructions && details.instructions.length > 0) {
@@ -318,7 +357,8 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
               </div>
 
               <a
-                href={tiktokTutorialUrl}
+                href={tiktokWebUrl}
+                onClick={handleOpenTikTok}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#1c1c1c] hover:bg-[#252525] border border-[#333] hover:border-cyan-400/50 text-white font-mono text-xs font-bold transition-all shrink-0 cursor-pointer shadow-sm"
