@@ -357,4 +357,36 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
 
     expect(result.current.successMsg).toContain('Workout successfully saved');
   });
+
+  it('supports skipping exercises: toggles skipped state and blocks submitting if all exercises skipped', async () => {
+    const { result } = renderHook(() => useWorkoutSession(mockUser));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    // Initial state: not skipped
+    expect(result.current.skippedExerciseIds.has('ex_bench')).toBe(false);
+
+    // Skip ex_bench
+    act(() => {
+      result.current.toggleSkipExercise('ex_bench');
+    });
+
+    expect(result.current.skippedExerciseIds.has('ex_bench')).toBe(true);
+
+    // Attempting to submit when all exercises are skipped triggers an error message
+    await act(async () => {
+      await result.current.handleLogWorkout();
+    });
+
+    expect(result.current.errorMsg).toContain('All exercises are skipped');
+
+    // Un-skip ex_bench
+    act(() => {
+      result.current.toggleSkipExercise('ex_bench');
+    });
+
+    expect(result.current.skippedExerciseIds.has('ex_bench')).toBe(false);
+  });
 });

@@ -67,6 +67,8 @@ export const WorkoutDayTracker: React.FC = () => {
     autoRestTimer,
     setAutoRestTimer,
     historySessions,
+    skippedExerciseIds,
+    toggleSkipExercise,
     handlePhotoSelect,
     handleRemovePhoto,
     saveDraftCheckpoint,
@@ -333,6 +335,7 @@ export const WorkoutDayTracker: React.FC = () => {
                     userProfile={userProfile}
                     inputs={inputs}
                     isExpanded={isExpanded}
+                    isSkipped={skippedExerciseIds.has(ex.id)}
                     advice={advice}
                     onToggleExpand={() => {
                       const nextId = isExpanded ? null : ex.id;
@@ -347,6 +350,7 @@ export const WorkoutDayTracker: React.FC = () => {
                         } catch {}
                       }
                     }}
+                    onToggleSkip={toggleSkipExercise}
                     onUpdateInput={updateInputValue}
                     onTextInput={handleTextChange}
                     onToggleCompleted={toggleSetCompleted}

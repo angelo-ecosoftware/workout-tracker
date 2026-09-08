@@ -35,6 +35,7 @@ export function useWorkoutSession(user: AuthUser | null) {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [celebrationSummary, setCelebrationSummary] = useState<WorkoutSummaryCelebration | null>(null);
   const [historySessions, setHistorySessions] = useState<{ id?: string; completedAt?: Date | null; startedAt?: Date; status?: string }[]>([]);
+  const [skippedExerciseIds, setSkippedExerciseIds] = useState<Set<string>>(new Set());
 
   // P1.3: Auto-start rest timer state when a set row is checked off
   const [autoRestTimer, setAutoRestTimer] = useState<{
@@ -207,7 +208,8 @@ export function useWorkoutSession(user: AuthUser | null) {
     curSleep?: number,
     curEnergy?: number,
     curNotes?: string,
-    curWeight?: string
+    curWeight?: string,
+    curSkippedIds?: string[]
   ) => {
     const key = getDraftKey(workoutId);
     if (!key) return;
@@ -220,6 +222,7 @@ export function useWorkoutSession(user: AuthUser | null) {
         energyScore: curEnergy ?? energyScore,
         notes: curNotes ?? sessionNotes,
         bodyWeightKg: curWeight ?? bodyWeightKg,
+        skippedExerciseIds: curSkippedIds ?? Array.from(skippedExerciseIds),
         savedAt: new Date().toISOString(),
       };
       localStorage.setItem(key, JSON.stringify(payload));
@@ -229,6 +232,28 @@ export function useWorkoutSession(user: AuthUser | null) {
     } catch (e) {
       console.warn('Could not save draft checkpoint to localStorage', e);
     }
+  };
+
+  const toggleSkipExercise = (exerciseId: string) => {
+    setSkippedExerciseIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(exerciseId)) {
+        next.delete(exerciseId);
+      } else {
+        next.add(exerciseId);
+      }
+      saveDraftCheckpoint(
+        inputs,
+        activeWorkout?.id,
+        sessionDate,
+        sleepHours,
+        energyScore,
+        sessionNotes,
+        bodyWeightKg,
+        Array.from(next)
+      );
+      return next;
+    });
   };
 
   const clearDraftCheckpoint = async (workoutId?: string) => {
@@ -337,12 +362,17 @@ export function useWorkoutSession(user: AuthUser | null) {
         setBodyWeightKg(String(cachedProfileWeight));
       }
 
+      setSkippedExerciseIds(new Set());
+
       const draftKey = getDraftKey(activeWorkout.id);
       if (draftKey) {
         try {
           const rawDraft = localStorage.getItem(draftKey);
           if (rawDraft) {
             const parsedDraft = JSON.parse(rawDraft);
+            if (parsedDraft.skippedExerciseIds && Array.isArray(parsedDraft.skippedExerciseIds)) {
+              setSkippedExerciseIds(new Set(parsedDraft.skippedExerciseIds));
+            }
             if (parsedDraft && parsedDraft.inputs && Object.keys(parsedDraft.inputs).length > 0) {
               setInputs(parsedDraft.inputs);
               if (parsedDraft.sessionDate) setSessionDate(parsedDraft.sessionDate);
@@ -632,6 +662,7 @@ export function useWorkoutSession(user: AuthUser | null) {
       const prsAchieved: ExercisePR[] = [];
 
       for (const ex of activeWorkout.exercises) {
+        if (skippedExerciseIds.has(ex.id)) continue;
         const exSets = finalSetsPayload.filter((s) => s.exerciseId === ex.id);
         const cachedEx = userProfile?.lastSetSummaryPerExercise?.[ex.id];
         const previous1RM = cachedEx
@@ -683,6 +714,7 @@ export function useWorkoutSession(user: AuthUser | null) {
 
       clearDraftCheckpoint(activeWorkout.id);
       setSessionNotes('');
+      setSkippedExerciseIds(new Set());
       setSelectedPhotos([]);
       photoPreviews.forEach((url) => URL.revokeObjectURL(url));
       setPhotoPreviews([]);
@@ -724,6 +756,10 @@ export function useWorkoutSession(user: AuthUser | null) {
       const warnings: string[] = [];
 
       for (const ex of activeWorkout.exercises) {
+        if (skippedExerciseIds.has(ex.id)) {
+          continue;
+        }
+
         const cachedEx = userProfile
           ? ProgressionEngine.evaluateProgression(ex.id, userProfile.lastSetSummaryPerExercise)
           : null;
@@ -813,6 +849,11 @@ export function useWorkoutSession(user: AuthUser | null) {
             });
           }
         }
+      }
+
+      if (finalSetsPayload.length === 0) {
+        setErrorMsg('All exercises are skipped. Please complete or un-skip at least one exercise to submit.');
+        return;
       }
 
       if (bodyWeightKg) {
@@ -947,6 +988,8 @@ export function useWorkoutSession(user: AuthUser | null) {
     autoRestTimer,
     setAutoRestTimer,
     historySessions,
+    skippedExerciseIds,
+    toggleSkipExercise,
     getProgressionAdvice,
     handleLogWorkout,
   };
