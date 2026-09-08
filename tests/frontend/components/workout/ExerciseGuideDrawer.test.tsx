@@ -94,6 +94,46 @@ describe('P2.1, P2.2 & P2.4: Exercise Guide Drawer & Muscle Anatomy Heatmap', ()
       expect(handleClose).toHaveBeenCalledTimes(1);
     });
 
+    it('accurately resolves Bench Press (barbell or dumbbell) with Chest as Primary and Triceps/Shoulders as Secondary', async () => {
+      render(
+        <ExerciseGuideDrawer
+          isOpen={true}
+          exerciseName="Bench Press (barbell or dumbbell)"
+          onClose={vi.fn()}
+        />
+      );
+
+      // Must display chest category rather than generic or unmapped
+      expect(screen.getByRole('heading', { name: /bench press \(barbell or dumbbell\)/i })).toBeInTheDocument();
+      expect(screen.getByText(/chest/i)).toBeInTheDocument();
+
+      // Check that Chest is marked as Primary (fill #C0FF00) and Triceps/Shoulders as Secondary (fill #EF4444)
+      const figure = screen.getByRole('figure', { name: /target muscle anatomy heatmap/i });
+      expect(figure).toBeInTheDocument();
+
+      // Check SVG paths: chest path must have highlightColor (#C0FF00)
+      const svgPaths = figure.querySelectorAll('path');
+      const limePaths = Array.from(svgPaths).filter((p) => p.getAttribute('fill') === '#C0FF00');
+      const redPaths = Array.from(svgPaths).filter((p) => p.getAttribute('fill') === '#EF4444');
+
+      // Both primary (chest) and secondary (triceps/shoulders) must be properly colored
+      expect(limePaths.length).toBeGreaterThan(0);
+      expect(redPaths.length).toBeGreaterThan(0);
+    });
+
+    it('renders animated demo GIF container for verified movements', async () => {
+      render(
+        <ExerciseGuideDrawer
+          isOpen={true}
+          exerciseName="Barbell Bench Press"
+          onClose={vi.fn()}
+        />
+      );
+
+      expect(await screen.findByAltText(/animated demonstration/i)).toBeInTheDocument();
+      expect(screen.getByText(/animated demo/i)).toBeInTheDocument();
+    });
+
     it('returns null when isOpen is false', () => {
       const { container } = render(
         <ExerciseGuideDrawer

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   X,
   ExternalLink,
@@ -11,9 +11,14 @@ import {
   Flame,
   Layers,
   ArrowRight,
+  Loader2,
 } from 'lucide-react';
 import { MuscleAnatomyHeatmap } from './anatomy/MuscleAnatomyHeatmap.tsx';
-import { WGER_EXERCISE_CATALOG } from '../../data/exerciseCatalog.ts';
+import {
+  getExerciseDetailsWithMedia,
+  inferAccurateAnatomy,
+  ExerciseApiDetails,
+} from '../../lib/exerciseApiService.ts';
 
 interface ExerciseGuideDrawerProps {
   isOpen: boolean;
@@ -27,20 +32,57 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
   onClose,
 }) => {
   const [activePhase, setActivePhase] = useState<'setup' | 'peak'>('setup');
+  const [details, setDetails] = useState<ExerciseApiDetails | null>(null);
+  const [loadingMedia, setLoadingMedia] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
-  const matchedCatalog = useMemo(() => {
-    if (!exerciseName) return null;
-    const clean = exerciseName.toLowerCase().trim();
-    return (
-      WGER_EXERCISE_CATALOG.find((e) => e.name.toLowerCase() === clean) ||
-      WGER_EXERCISE_CATALOG.find((e) => clean.includes(e.name.toLowerCase()) || e.name.toLowerCase().includes(clean)) ||
-      null
-    );
+  // Synchronous accurate anatomy fallback ensures 0ms latency on open
+  const fallbackAnatomy = useMemo(() => {
+    return inferAccurateAnatomy(exerciseName);
   }, [exerciseName]);
 
-  const primaryMuscles = matchedCatalog?.muscles || [exerciseName];
-  const equipment = matchedCatalog?.equipment || 'Free Weights / Machines';
-  const category = matchedCatalog?.category || 'Strength';
+  useEffect(() => {
+    if (!isOpen || !exerciseName) return;
+
+    let isSubscribed = true;
+    setLoadingMedia(true);
+    setImageError(false);
+
+    getExerciseDetailsWithMedia(exerciseName)
+      .then((data) => {
+        if (isSubscribed) {
+          setDetails(data);
+          setLoadingMedia(false);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load exercise details:', err);
+        if (isSubscribed) {
+          setLoadingMedia(false);
+        }
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [isOpen, exerciseName]);
+
+  const primaryMuscles = useMemo(() => {
+    if (details?.targetMuscles && details.targetMuscles.length > 0) {
+      return details.targetMuscles;
+    }
+    return fallbackAnatomy.primary;
+  }, [details, fallbackAnatomy]);
+
+  const secondaryMuscles = useMemo(() => {
+    if (details?.secondaryMuscles && details.secondaryMuscles.length > 0) {
+      return details.secondaryMuscles;
+    }
+    return fallbackAnatomy.secondary;
+  }, [details, fallbackAnatomy]);
+
+  const equipment = details?.equipments?.[0] || fallbackAnatomy.equipment;
+  const category = details?.bodyParts?.[0] || fallbackAnatomy.category;
 
   const youtubeTutorialUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
     exerciseName + ' proper form tutorial biomechanics'
@@ -51,17 +93,17 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
   )}`;
 
   const instructionsList = useMemo(() => {
-    if (matchedCatalog?.instructions && matchedCatalog.instructions.length > 0) {
-      return matchedCatalog.instructions;
+    if (details?.instructions && details.instructions.length > 0) {
+      return details.instructions;
     }
 
     return [
-      `Position equipment and adjust starting height to align with ${equipment}.`,
-      `Brace your core, set shoulders back and down, and maintain full foot or bench contact.`,
+      `Set up your position and align equipment with ${equipment}.`,
+      `Brace your core, lock your scapulae, and verify symmetric grip and stance.`,
       `Inhale on the controlled eccentric descent (2–3 seconds), maintaining consistent joint angles.`,
       `Exhale and explosively drive through your ${primaryMuscles[0] || 'target muscles'}, squeezing firmly at peak contraction.`,
     ];
-  }, [matchedCatalog, equipment, primaryMuscles]);
+  }, [details, equipment, primaryMuscles]);
 
   if (!isOpen) return null;
 
@@ -107,11 +149,28 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
 
         {/* Scrollable Content */}
         <div className="overflow-y-auto space-y-4 pt-3 pr-1 scrollbar-none">
-          {/* P2.2: Interactive Anatomical Heatmap */}
+          {/* Animated Demonstration GIF Container */}
+          {details?.gifUrl && !imageError && (
+            <div className="relative w-full rounded-2xl overflow-hidden border border-[#2a2a2a] bg-[#141414] shadow-lg flex items-center justify-center min-h-[160px] max-h-[220px]">
+              <img
+                src={details.gifUrl}
+                alt={`${exerciseName} animated demonstration`}
+                className="w-full h-full object-contain max-h-[200px]"
+                loading="lazy"
+                onError={() => setImageError(true)}
+              />
+              <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-[#333] text-[9px] font-mono text-[#C0FF00] font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                <Sparkles className="w-2.5 h-2.5" />
+                Animated Demo
+              </div>
+            </div>
+          )}
+
+          {/* Accurate Anatomical Heatmap */}
           <div>
             <MuscleAnatomyHeatmap
               primaryMuscles={primaryMuscles}
-              secondaryMuscles={['Core', 'Forearms']}
+              secondaryMuscles={secondaryMuscles}
             />
           </div>
 
