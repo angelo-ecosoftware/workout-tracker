@@ -103,8 +103,8 @@ describe('P2.1, P2.2 & P2.4: Exercise Guide Drawer & Muscle Anatomy Heatmap', ()
         />
       );
 
-      // Must display chest category rather than generic or unmapped
-      expect(screen.getByRole('heading', { name: /bench press \(barbell or dumbbell\)/i })).toBeInTheDocument();
+      // Must normalize compound name to single exercise Barbell Bench Press and display chest category
+      expect(screen.getByRole('heading', { name: /barbell bench press/i })).toBeInTheDocument();
       expect(screen.getByText(/chest/i)).toBeInTheDocument();
 
       // Check that Chest is marked as Primary (fill #C0FF00) and Triceps/Shoulders as Secondary (fill #EF4444)

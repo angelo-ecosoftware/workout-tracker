@@ -19,6 +19,7 @@ import {
   inferAccurateAnatomy,
   ExerciseApiDetails,
 } from '../../lib/exerciseApiService.ts';
+import { formatSingleExerciseName } from '../../lib/exerciseSearch.ts';
 
 interface ExerciseGuideDrawerProps {
   isOpen: boolean;
@@ -36,19 +37,24 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
   const [loadingMedia, setLoadingMedia] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  // Synchronous accurate anatomy fallback ensures 0ms latency on open
-  const fallbackAnatomy = useMemo(() => {
-    return inferAccurateAnatomy(exerciseName);
+  // Guarantee strictly single-exercise format without compound alternatives
+  const singleExerciseName = useMemo(() => {
+    return formatSingleExerciseName(exerciseName);
   }, [exerciseName]);
 
+  // Synchronous accurate anatomy fallback ensures 0ms latency on open
+  const fallbackAnatomy = useMemo(() => {
+    return inferAccurateAnatomy(singleExerciseName);
+  }, [singleExerciseName]);
+
   useEffect(() => {
-    if (!isOpen || !exerciseName) return;
+    if (!isOpen || !singleExerciseName) return;
 
     let isSubscribed = true;
     setLoadingMedia(true);
     setImageError(false);
 
-    getExerciseDetailsWithMedia(exerciseName)
+    getExerciseDetailsWithMedia(singleExerciseName)
       .then((data) => {
         if (isSubscribed) {
           setDetails(data);
@@ -65,7 +71,7 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
     return () => {
       isSubscribed = false;
     };
-  }, [isOpen, exerciseName]);
+  }, [isOpen, singleExerciseName]);
 
   const primaryMuscles = useMemo(() => {
     if (details?.targetMuscles && details.targetMuscles.length > 0) {
@@ -87,15 +93,15 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
   // Clean raw exercise names (e.g. "Pull-ups / Lat Pulldown" or "Bench Press (barbell or dumbbell)")
   // to concise search terms that mobile app search handlers can reliably ingest without truncation
   const cleanSearchTerm = useMemo(() => {
-    if (!exerciseName) return 'exercise';
-    return exerciseName
+    if (!singleExerciseName) return 'exercise';
+    return singleExerciseName
       .replace(/\(.*?\)/g, '')
       .replace(/\[.*?\]/g, '')
       .split('/')[0] // Take primary movement name if slashed
       .replace(/[^a-zA-Z0-9\s-]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-  }, [exerciseName]);
+  }, [singleExerciseName]);
 
   const youtubeTutorialUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
     cleanSearchTerm + ' proper form tutorial biomechanics'
@@ -172,7 +178,7 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
               id="exercise-guide-title"
               className="text-lg sm:text-xl font-display font-black text-white uppercase tracking-tight truncate"
             >
-              {exerciseName}
+              {singleExerciseName}
             </h3>
           </div>
 
@@ -193,7 +199,7 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
             <div className="relative w-full rounded-2xl overflow-hidden border border-[#2a2a2a] bg-[#141414] shadow-lg flex items-center justify-center min-h-[160px] max-h-[220px]">
               <img
                 src={details.gifUrl}
-                alt={`${exerciseName} animated demonstration`}
+                alt={`${singleExerciseName} animated demonstration`}
                 className="w-full h-full object-contain max-h-[200px]"
                 loading="lazy"
                 onError={() => setImageError(true)}

@@ -102,10 +102,10 @@ CREATE POLICY "Users and authorized coaches can view body logs"
     auth.uid()::text = user_id::text
     OR EXISTS (
       SELECT 1 FROM public.coach_athlete_links cal
-      JOIN public.user_privacy_settings ups ON ups.user_id = body_logs.user_id
-      WHERE cal.athlete_id = body_logs.user_id
+      JOIN public.user_privacy_settings ups ON ups.user_id::text = body_logs.user_id::text
+      WHERE cal.athlete_id::text = body_logs.user_id::text
         AND cal.coach_id = auth.uid()
-        AND cal.status = 'active'
+        AND cal.status = 'accepted'
         AND ups.share_biometrics = true
     )
   );

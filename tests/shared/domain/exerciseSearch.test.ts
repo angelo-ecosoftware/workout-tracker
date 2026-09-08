@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { ExerciseSearchEngine } from '../../../src/lib/exerciseSearch.ts';
+import {
+  ExerciseSearchEngine,
+  formatSingleExerciseName,
+  isCompoundExerciseName,
+} from '../../../src/lib/exerciseSearch.ts';
 
 describe('ExerciseSearchEngine (wger dataset + Fuse.js fuzzy search)', () => {
   it('should find "Bench Press" when user types typo "brenk pres"', () => {
@@ -50,5 +54,40 @@ describe('ExerciseSearchEngine (wger dataset + Fuse.js fuzzy search)', () => {
     expect(categories).toContain('Back');
     expect(categories).toContain('Legs');
     expect(categories).toContain('Shoulders');
+  });
+});
+
+describe('formatSingleExerciseName - 1 Exercise is 1 Exercise Taxonomy', () => {
+  it('converts legacy compound names with "or" or "/" into canonical single exercises', () => {
+    expect(formatSingleExerciseName('Bench Press (barbell or dumbbell)')).toBe('Barbell Bench Press');
+    expect(formatSingleExerciseName('Pull-ups / Lat Pulldown')).toBe('Pull-ups');
+    expect(formatSingleExerciseName('Seated Cable Row / Dumbbell Row')).toBe('Seated Cable Row');
+    expect(formatSingleExerciseName('Triceps Pushdown or Dips')).toBe('Triceps Pushdown');
+    expect(formatSingleExerciseName('Back Squat or Goblet Squat')).toBe('Barbell Back Squat');
+    expect(formatSingleExerciseName('Leg Curl (machine or Nordic)')).toBe('Lying Leg Curl');
+    expect(formatSingleExerciseName('Chest-Supported Row or Rear-Delt Fly')).toBe('Chest-Supported Row');
+    expect(formatSingleExerciseName('Deadlift or Romanian Deadlift')).toBe('Barbell Deadlift');
+    expect(formatSingleExerciseName('Front Squat or Leg Press')).toBe('Front Squat');
+  });
+
+  it('strips generic multi-exercise "or" or "/" phrasing from custom inputs', () => {
+    expect(formatSingleExerciseName('Custom Movement A or Movement B')).toBe('Custom Movement A');
+    expect(formatSingleExerciseName('Pushups / Bench Press')).toBe('Pushups');
+    expect(formatSingleExerciseName('Bicep Curls (dumbbell or cable)')).toBe('Bicep Curls');
+  });
+
+  it('leaves already single exercises untouched', () => {
+    expect(formatSingleExerciseName('Barbell Bench Press')).toBe('Barbell Bench Press');
+    expect(formatSingleExerciseName('Incline Dumbbell Press')).toBe('Incline Dumbbell Press');
+    expect(formatSingleExerciseName('Pull-ups')).toBe('Pull-ups');
+    expect(formatSingleExerciseName('Push-ups')).toBe('Push-ups');
+  });
+
+  it('detects compound exercise names accurately', () => {
+    expect(isCompoundExerciseName('Bench Press (barbell or dumbbell)')).toBe(true);
+    expect(isCompoundExerciseName('Pull-ups / Lat Pulldown')).toBe(true);
+    expect(isCompoundExerciseName('Squat or Lunge')).toBe(true);
+    expect(isCompoundExerciseName('Barbell Bench Press')).toBe(false);
+    expect(isCompoundExerciseName('Push-ups')).toBe(false);
   });
 });

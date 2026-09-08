@@ -4,6 +4,7 @@ import { Exercise, UserProfile } from '../../../models.ts';
 import { WgerExerciseInfo } from '../WgerExerciseInfo.tsx';
 import { ExerciseSetRow } from './ExerciseSetRow.tsx';
 import { ExerciseGuideDrawer } from '../ExerciseGuideDrawer.tsx';
+import { formatSingleExerciseName } from '../../../lib/exerciseSearch.ts';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -52,6 +53,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 }) => {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const cachedEx = userProfile?.lastSetSummaryPerExercise?.[exercise.id];
+  const displayName = formatSingleExerciseName(exercise.name);
 
   return (
     <div
@@ -91,7 +93,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     : 'text-gray-300 hover:text-[#C0FF00]'
                 }`}
               >
-                {exercise.name}
+                {displayName}
               </h4>
               <span
                 role="button"
@@ -106,8 +108,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     setIsGuideOpen(true);
                   }
                 }}
-                title={`View guide & muscle anatomy for ${exercise.name}`}
-                aria-label={`View guide & muscle anatomy for ${exercise.name}`}
+                title={`View guide & muscle anatomy for ${displayName}`}
+                aria-label={`View guide & muscle anatomy for ${displayName}`}
                 className="p-1 rounded-md text-gray-400 hover:text-[#C0FF00] hover:bg-[#1a1a1a] transition-colors cursor-pointer shrink-0 mt-0.5"
               >
                 <Info className="w-3.5 h-3.5" />
@@ -153,7 +155,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 onToggleSkip && onToggleSkip(exercise.id);
               }}
               title={isSkipped ? 'Restore exercise to current session' : "Didn't do this exercise? Skip for this session"}
-              aria-label={isSkipped ? `Restore ${exercise.name}` : `Skip ${exercise.name}`}
+              aria-label={isSkipped ? `Restore ${displayName}` : `Skip ${displayName}`}
               className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
                 isSkipped
                   ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40 hover:bg-amber-500/25'
@@ -195,7 +197,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
       {isExpanded && !isSkipped && (
         <>
-          <WgerExerciseInfo exerciseName={exercise.name} />
+          <WgerExerciseInfo exerciseName={displayName} />
 
           {/* Coach Advice (Keep weight) */}
           {advice.action === 'keep' && cachedEx && (
@@ -290,7 +292,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       {/* P2.1 & P2.2 & P2.4: Minimalist Exercise Guide Drawer */}
       <ExerciseGuideDrawer
         isOpen={isGuideOpen}
-        exerciseName={exercise.name}
+        exerciseName={displayName}
         onClose={() => setIsGuideOpen(false)}
       />
     </div>

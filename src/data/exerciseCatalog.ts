@@ -74,7 +74,7 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
   },
   {
     id: 'wger_dips_chest',
-    name: 'Dips (Chest / Triceps)',
+    name: 'Chest Dips',
     category: 'Chest',
     muscles: ['Lower Pectoralis', 'Triceps brachii', 'Anterior deltoid'],
     equipment: 'Bodyweight / Parallel Bars',
@@ -232,7 +232,7 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
   },
   {
     id: 'wger_rear_delt_fly',
-    name: 'Rear Delt Flyes (Machine or Dumbbell)',
+    name: 'Rear Delt Flyes',
     category: 'Shoulders',
     muscles: ['Posterior deltoid', 'Rhomboids', 'Trapezius', 'Rear Delts'],
     equipment: 'Dumbbells / Machine',
@@ -311,7 +311,7 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
   },
   {
     id: 'wger_leg_curl',
-    name: 'Leg Curl (Lying or Seated)',
+    name: 'Lying Leg Curl',
     category: 'Legs',
     muscles: ['Hamstrings', 'Biceps femoris'],
     equipment: 'Machine',
@@ -458,7 +458,7 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
   },
   {
     id: 'wger_hanging_leg_raises',
-    name: 'Hanging Leg / Knee Raises',
+    name: 'Hanging Knee Raises',
     category: 'Core',
     muscles: ['Iliopsoas', 'Rectus abdominis (Lower Abs)', 'Obliques', 'Abs'],
     equipment: 'Pull-up Bar',

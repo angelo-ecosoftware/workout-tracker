@@ -8,6 +8,7 @@ import { ConfirmModal } from '../ui/ConfirmModal.tsx';
 import { RoutineDaySelector } from './RoutineDaySelector.tsx';
 import { RoutineExerciseItem } from './RoutineExerciseItem.tsx';
 import { SavedRoutinesLibraryModal } from './SavedRoutinesLibraryModal.tsx';
+import { formatSingleExerciseName } from '../../lib/exerciseSearch.ts';
 
 interface RoutineEditorModalProps {
   isOpen: boolean;
@@ -90,7 +91,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
     const newExId = pickedEx.id || `ex_${Date.now()}`;
     const newEx: Exercise = {
       id: newExId,
-      name: pickedEx.name || 'New Exercise',
+      name: formatSingleExerciseName(pickedEx.name || 'New Exercise'),
       type: pickedEx.type || 'strength',
       targetSets: pickedEx.targetSets || 3,
       targetRepMin: pickedEx.targetRepMin || 8,
@@ -162,7 +163,14 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
     setIsSaving(true);
     setStatusMsg(null);
     try {
-      await onSaveWorkouts(workouts);
+      const sanitizedWorkouts = workouts.map(w => ({
+        ...w,
+        exercises: w.exercises.map(e => ({
+          ...e,
+          name: formatSingleExerciseName(e.name),
+        })),
+      }));
+      await onSaveWorkouts(sanitizedWorkouts);
       setStatusMsg({ type: 'success', text: 'Routines and exercises updated successfully!' });
       setTimeout(() => {
         onClose();

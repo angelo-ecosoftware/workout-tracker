@@ -1,4 +1,5 @@
 import { WGER_EXERCISE_CATALOG, type CatalogExercise } from '../data/exerciseCatalog.ts';
+import { formatSingleExerciseName } from './exerciseSearch.ts';
 
 export interface ExerciseApiDetails {
   exerciseId?: string;
@@ -87,7 +88,7 @@ export const VERIFIED_EXERCISE_MEDIA_MAP: Record<
   },
   overhead_press: {
     exerciseId: 'jjUPrze',
-    canonicalName: 'Overhead Press / Military Press',
+    canonicalName: 'Overhead Press',
     gifUrl: 'https://static.exercisedb.dev/media/jjUPrze.gif',
     primaryMuscles: ['Shoulders', 'Anterior deltoid', 'Lateral deltoid'],
     secondaryMuscles: ['Triceps', 'Upper Chest', 'Traps'],
@@ -160,10 +161,12 @@ export const VERIFIED_EXERCISE_MEDIA_MAP: Record<
 /**
  * Cleans user-entered exercise names by stripping parenthetical notes,
  * special characters, and formatting anomalies (e.g. "Bench Press (barbell or dumbbell)" -> "bench press").
+ * Normalizes multi-movement/compound sentences ("or", "/") to a single distinct exercise.
  */
 export function cleanExerciseName(rawName: string): string {
   if (!rawName) return '';
-  return rawName
+  const single = formatSingleExerciseName(rawName);
+  return single
     .replace(/\(.*?\)/g, '')
     .replace(/\[.*?\]/g, '')
     .replace(/[^a-zA-Z0-9\s-]/g, ' ')

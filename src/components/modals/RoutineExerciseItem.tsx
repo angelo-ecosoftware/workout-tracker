@@ -1,6 +1,7 @@
 import React from 'react';
 import { Exercise, ExerciseType } from '../../models.ts';
-import { ChevronUp, ChevronDown, Edit3, Trash2 } from 'lucide-react';
+import { ChevronUp, ChevronDown, Edit3, Trash2, AlertCircle } from 'lucide-react';
+import { formatSingleExerciseName, isCompoundExerciseName } from '../../lib/exerciseSearch.ts';
 
 interface RoutineExerciseItemProps {
   exercise: Exercise;
@@ -23,6 +24,8 @@ export const RoutineExerciseItem: React.FC<RoutineExerciseItemProps> = ({
   onUpdate,
   onDelete,
 }) => {
+  const hasCompoundWarning = isCompoundExerciseName(exercise.name);
+
   return (
     <div className="bg-[#111111] border border-[#222222] rounded-xl p-3 space-y-2.5 transition-all">
       <div className="flex items-center justify-between gap-2">
@@ -31,15 +34,29 @@ export const RoutineExerciseItem: React.FC<RoutineExerciseItemProps> = ({
             {index + 1}
           </span>
           {isEditing ? (
-            <input
-              type="text"
-              value={exercise.name}
-              onChange={(e) => onUpdate({ name: e.target.value })}
-              className="w-full bg-[#181818] border border-[#383838] focus:border-[#C0FF00] rounded-lg px-2.5 py-1 text-xs font-bold text-white focus:outline-none"
-            />
+            <div className="flex-1 min-w-0">
+              <input
+                type="text"
+                value={exercise.name}
+                onChange={(e) => onUpdate({ name: e.target.value })}
+                onBlur={() => {
+                  if (hasCompoundWarning) {
+                    onUpdate({ name: formatSingleExerciseName(exercise.name) });
+                  }
+                }}
+                placeholder="Single exercise name..."
+                className="w-full bg-[#181818] border border-[#383838] focus:border-[#C0FF00] rounded-lg px-2.5 py-1 text-xs font-bold text-white focus:outline-none"
+              />
+              {hasCompoundWarning && (
+                <div className="flex items-center gap-1 mt-1 text-[10px] font-mono text-amber-400">
+                  <AlertCircle className="w-3 h-3 shrink-0" />
+                  <span>1 exercise is 1 exercise. Please avoid &apos;or&apos; or &apos;/&apos;.</span>
+                </div>
+              )}
+            </div>
           ) : (
             <div className="truncate font-display font-bold text-xs text-white">
-              {exercise.name}
+              {formatSingleExerciseName(exercise.name)}
             </div>
           )}
         </div>
