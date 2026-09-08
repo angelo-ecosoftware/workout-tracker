@@ -1,7 +1,6 @@
--- Migration: GDPR Article 17 ("Right to be Forgotten") Permanent Cascade Purge Function
--- Specification: Phase 6 Enterprise Security, ENISA & EU Compliance Dossier (P6.1)
--- Allows an authenticated user to permanently delete their entire account and all associated
--- personal and special-category health data in a single atomic transaction.
+-- Migration: Fix column names in public.purge_user_account_gdpr
+-- user_peer_shares uses owner_id and grantee_id
+-- missing_product_reports uses user_id
 
 CREATE OR REPLACE FUNCTION public.purge_user_account_gdpr(target_user_id UUID)
 RETURNS JSONB
@@ -154,7 +153,7 @@ BEGIN
 
   WITH deleted AS (
     DELETE FROM public.workout_set_coach_feedback
-    WHERE coach_id::text = target_user_id::text
+    WHERE coach_id::text = target_user_id::text OR athlete_id::text = target_user_id::text
     RETURNING id
   )
   SELECT count(*) INTO del_feedback FROM deleted;
@@ -166,7 +165,7 @@ BEGIN
   )
   SELECT count(*) INTO del_coach_links FROM deleted;
 
-  -- Privacy settings & peer shares
+  -- Privacy settings & peer shares (uses owner_id and grantee_id)
   WITH deleted AS (
     DELETE FROM public.user_peer_shares
     WHERE owner_id::text = target_user_id::text OR grantee_id::text = target_user_id::text
@@ -241,5 +240,4 @@ BEGIN
 END;
 $$;
 
--- Grant execution to authenticated users
 GRANT EXECUTE ON FUNCTION public.purge_user_account_gdpr(UUID) TO authenticated;
