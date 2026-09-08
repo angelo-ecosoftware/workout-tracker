@@ -51,7 +51,6 @@ export const WorkoutDayTracker: React.FC = () => {
     cameraInputRef,
     sessionDate,
     setSessionDate,
-    lastAutoSavedTime,
     isAssistedMode,
     setIsAssistedMode,
     restDurationSeconds,
@@ -185,7 +184,6 @@ export const WorkoutDayTracker: React.FC = () => {
             <div className="space-y-4">
               <RecoveryAndReadinessCard
                 sessionDate={sessionDate}
-                lastAutoSavedTime={lastAutoSavedTime}
                 onSessionDateChange={(val) => {
                   setSessionDate(val);
                   saveDraftCheckpoint(

@@ -18,7 +18,6 @@ interface RecoveryAndReadinessCardProps {
   onPhotoSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
   cameraInputRef: RefObject<HTMLInputElement | null>;
   fileInputRef: RefObject<HTMLInputElement | null>;
-  lastAutoSavedTime?: string | null;
 }
 
 export const RecoveryAndReadinessCard: React.FC<RecoveryAndReadinessCardProps> = ({
@@ -38,7 +37,6 @@ export const RecoveryAndReadinessCard: React.FC<RecoveryAndReadinessCardProps> =
   onPhotoSelect,
   cameraInputRef,
   fileInputRef,
-  lastAutoSavedTime,
 }) => {
   // Collapsed by default; persist user toggle state in localStorage
   const [isExpanded, setIsExpandedState] = useState<boolean>(() => {
@@ -71,16 +69,10 @@ export const RecoveryAndReadinessCard: React.FC<RecoveryAndReadinessCardProps> =
           className="flex items-center justify-between sm:justify-start gap-3 cursor-pointer group flex-1 select-none text-left"
         >
           <div>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
               <h3 className="font-display font-black text-sm tracking-tight text-white uppercase group-hover:text-[#C0FF00] transition-colors">
                 Recovery & Readiness
               </h3>
-              {lastAutoSavedTime && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold bg-[#C0FF00]/10 text-[#C0FF00] border border-[#C0FF00]/20">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#C0FF00] animate-pulse"></span>
-                  Auto-saved ({lastAutoSavedTime})
-                </span>
-              )}
               <span className="p-1 rounded-lg bg-[#1a1a1a] border border-[#333] text-gray-400 group-hover:text-[#C0FF00] transition-colors">
                 {isExpanded ? (
                   <ChevronUp className="w-3.5 h-3.5" />
@@ -221,7 +213,7 @@ export const RecoveryAndReadinessCard: React.FC<RecoveryAndReadinessCardProps> =
             />
           </div>
 
-          {/* Bodyweight for Session / Day (Auto-filled from previous, editable) */}
+          {/* Bodyweight for Session / Day */}
           <div className="pt-3 border-t border-[#222]">
             <div className="bg-[#141414] border border-[#282828] hover:border-[#383838] transition-colors rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               <div className="flex items-center gap-2.5">
@@ -229,11 +221,8 @@ export const RecoveryAndReadinessCard: React.FC<RecoveryAndReadinessCardProps> =
                   <Scale className="w-4 h-4" />
                 </div>
                 <div>
-                  <label htmlFor="bodyweight-kg-input" className="block text-[11px] font-mono font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                    Today's Bodyweight
-                    <span className="text-[9px] font-sans font-normal text-[#C0FF00] bg-[#C0FF00]/10 px-1.5 py-0.2 rounded border border-[#C0FF00]/20">
-                      auto-filled
-                    </span>
+                  <label htmlFor="bodyweight-kg-input" className="block text-[11px] font-mono font-bold text-white uppercase tracking-wider">
+                    Today&apos;s Bodyweight
                   </label>
                   <p className="text-[10px] text-gray-400 font-sans mt-0.5">
                     Updates your daily weight & BMI progression log for {sessionDate}.
