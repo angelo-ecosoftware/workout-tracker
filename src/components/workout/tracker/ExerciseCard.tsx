@@ -293,6 +293,9 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       <ExerciseGuideDrawer
         isOpen={isGuideOpen}
         exerciseName={displayName}
+        exerciseId={exercise.id}
+        userId={userProfile?.userId}
+        initialCustomCues={exercise.customCues}
         onClose={() => setIsGuideOpen(false)}
       />
     </div>

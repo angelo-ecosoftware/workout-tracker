@@ -145,5 +145,36 @@ describe('P2.1, P2.2 & P2.4: Exercise Guide Drawer & Muscle Anatomy Heatmap', ()
 
       expect(container.firstChild).toBeNull();
     });
+
+    it('renders custom cues and allows toggling the custom form editor', async () => {
+      render(
+        <ExerciseGuideDrawer
+          isOpen={true}
+          exerciseName="Bulgarian Split Squat"
+          exerciseId="ex-bss-1"
+          userId="user-123"
+          initialCustomCues={{
+            setup: 'Elevate back foot on bench, square hips forward',
+            peak: 'Drive through front heel, pause 1s at top',
+            cues: ['Keep torso slightly inclined', 'Knee stays in line with midfoot'],
+          }}
+          onClose={vi.fn()}
+        />
+      );
+
+      // Verify custom setup cue is rendered in motion phase frame
+      expect(screen.getByText(/elevate back foot on bench, square hips forward/i)).toBeInTheDocument();
+
+      // Verify custom bullet cue is rendered
+      expect(screen.getByText(/keep torso slightly inclined/i)).toBeInTheDocument();
+
+      // Open the custom cue editor
+      const editBtn = screen.getByRole('button', { name: /customize motion phases & form cues/i });
+      expect(editBtn).toBeInTheDocument();
+      fireEvent.click(editBtn);
+
+      expect(screen.getByText(/customize form & motion/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/https:\/\/example.com/i)).toBeInTheDocument();
+    });
   });
 });

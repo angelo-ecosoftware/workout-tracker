@@ -824,6 +824,7 @@ export interface DbExerciseRow {
   target_rep_min?: number | null;
   target_rep_max?: number | null;
   is_custom?: boolean | null;
+  custom_cues?: any | null;
   created_at?: string | null;
   updated_at?: string | null;
 }

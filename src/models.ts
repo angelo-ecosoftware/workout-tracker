@@ -70,6 +70,12 @@ export interface Workout {
   exercises?: Exercise[];
 }
 
+export interface CustomExerciseCues {
+  setup?: string;
+  peak?: string;
+  cues?: string[];
+}
+
 export interface Exercise {
   id: string;
   name: string;
@@ -77,6 +83,7 @@ export interface Exercise {
   targetSets: number;
   targetRepMin: number;
   targetRepMax: number;
+  customCues?: CustomExerciseCues;
 }
 
 export interface Session {

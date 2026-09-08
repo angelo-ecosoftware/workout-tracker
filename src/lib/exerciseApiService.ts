@@ -156,6 +156,94 @@ export const VERIFIED_EXERCISE_MEDIA_MAP: Record<
     equipment: 'Cable Machine',
     category: 'Arms',
   },
+  bulgarian_split_squat: {
+    exerciseId: 'gGNQmVt',
+    canonicalName: 'Bulgarian Split Squat',
+    gifUrl: 'https://static.exercisedb.dev/media/gGNQmVt.gif',
+    primaryMuscles: ['Quads', 'Quadriceps', 'Glutes'],
+    secondaryMuscles: ['Hamstrings', 'Calves', 'Core'],
+    instructions: [
+      'Stand 2–3 feet in front of a flat bench. Place top of rear foot flat on the bench.',
+      'Hold dumbbells at sides or barbell across upper back with chest upright.',
+      'Descend straight down by flexing front knee and hip until front thigh is parallel to floor.',
+      'Drive forcefully through your front heel to stand tall, keeping pelvis squared.',
+    ],
+    equipment: 'Dumbbells / Bench',
+    category: 'Legs',
+  },
+  seated_cable_row: {
+    exerciseId: 'A3P4O0R',
+    canonicalName: 'Seated Cable Row',
+    gifUrl: 'https://static.exercisedb.dev/media/A3P4O0R.gif',
+    primaryMuscles: ['Lats', 'Latissimus dorsi', 'Rhomboids', 'Upper Back'],
+    secondaryMuscles: ['Biceps', 'Forearms', 'Rear Delts', 'Traps'],
+    instructions: [
+      'Sit upright on low row station with feet braced firmly on footrests and knees softly bent.',
+      'Grip handle, pull shoulders down and back, and extend your torso perpendicular to floor.',
+      'Drive elbows straight back toward your waist, squeezing shoulder blades together tightly.',
+      'Slowly release the weight forward for a 2–3 second eccentric stretch under full control.',
+    ],
+    equipment: 'Cable Machine',
+    category: 'Back',
+  },
+  plank: {
+    exerciseId: 'CosupLu',
+    canonicalName: 'Plank',
+    gifUrl: 'https://static.exercisedb.dev/media/CosupLu.gif',
+    primaryMuscles: ['Abs', 'Rectus abdominis', 'Transverse abdominis'],
+    secondaryMuscles: ['Obliques', 'Glutes', 'Shoulders'],
+    instructions: [
+      'Lie face down and prop yourself up onto your forearms and toes.',
+      'Align elbows directly under shoulders, with forearms parallel.',
+      'Squeeze glutes, draw navel inward to brace core, forming a rigid straight line from heels to head.',
+      'Breathe steadily without letting your lower back sag or your hips pike upward.',
+    ],
+    equipment: 'Bodyweight',
+    category: 'Core',
+  },
+  romanian_deadlift: {
+    exerciseId: 'wQ2c4XD',
+    canonicalName: 'Romanian Deadlift',
+    gifUrl: 'https://static.exercisedb.dev/media/wQ2c4XD.gif',
+    primaryMuscles: ['Hamstrings', 'Glutes'],
+    secondaryMuscles: ['Lower Back', 'Erector spinae', 'Forearms'],
+    instructions: [
+      'Stand hip-width holding barbell or dumbbells in front of thighs with slight knee unlock.',
+      'Hinge at hips by pushing butt backward while keeping spine flat and bar close to legs.',
+      'Lower bar just below knees until a deep stretch is felt through hamstrings.',
+      'Drive hips forward to return to standing lockout by powerfully contracting glutes.',
+    ],
+    equipment: 'Barbell / Dumbbells',
+    category: 'Legs',
+  },
+  lateral_raises: {
+    exerciseId: 'AQ0mC4Y',
+    canonicalName: 'Lateral Raises',
+    gifUrl: 'https://static.exercisedb.dev/media/AQ0mC4Y.gif',
+    primaryMuscles: ['Shoulders', 'Lateral deltoid'],
+    secondaryMuscles: ['Anterior deltoid', 'Traps'],
+    instructions: [
+      'Stand upright holding dumbbells at sides with a slight forward lean and soft elbows.',
+      'Raise weights outward and slightly forward in the scapular plane until arms reach shoulder height.',
+      'Pause for a half-second at the top with pinkies slightly elevated, then lower smoothly.',
+    ],
+    equipment: 'Dumbbells',
+    category: 'Shoulders',
+  },
+  hammer_curls: {
+    exerciseId: '2NpxjC1',
+    canonicalName: 'Hammer Curls',
+    gifUrl: 'https://static.exercisedb.dev/media/2NpxjC1.gif',
+    primaryMuscles: ['Biceps', 'Brachialis', 'Forearms'],
+    secondaryMuscles: ['Brachioradialis'],
+    instructions: [
+      'Stand tall with dumbbells held at sides using a neutral palms-inward grip.',
+      'Keep elbows pinned at sides, curl weights toward shoulders contracting brachialis.',
+      'Squeeze hard at peak flexion, then lower under a strict 2–3 second tempo.',
+    ],
+    equipment: 'Dumbbells',
+    category: 'Arms',
+  },
 };
 
 /**
@@ -371,10 +459,41 @@ export async function getExerciseDetailsWithMedia(exerciseName: string): Promise
   const clean = cleanExerciseName(exerciseName);
   const anatomy = inferAccurateAnatomy(exerciseName);
 
-  // 1. Check Verified High-Fidelity Pre-seeded Dictionary
+  // 1. Check Verified High-Fidelity Pre-seeded Dictionary with strict exact / word-boundary matching
+  // First pass: exact token match
   for (const [key, verified] of Object.entries(VERIFIED_EXERCISE_MEDIA_MAP)) {
     const token = key.replace(/_/g, ' ');
-    if (clean === token || clean.includes(token)) {
+    if (clean === token || clean === verified.canonicalName.toLowerCase()) {
+      return {
+        exerciseId: verified.exerciseId,
+        name: verified.canonicalName,
+        gifUrl: verified.gifUrl,
+        targetMuscles: verified.primaryMuscles,
+        secondaryMuscles: verified.secondaryMuscles,
+        instructions: verified.instructions,
+        equipments: [verified.equipment],
+        bodyParts: [verified.category],
+      };
+    }
+  }
+
+  // Second pass: multi-word phrase matching with word boundaries (preventing "squat" from matching "bulgarian split squat")
+  for (const [key, verified] of Object.entries(VERIFIED_EXERCISE_MEDIA_MAP)) {
+    const token = key.replace(/_/g, ' ');
+    // Only allow substring matching if token is multi-word OR matches whole word boundaries
+    const isMultiWord = token.includes(' ');
+    const wordBoundaryRegex = new RegExp(`\\b${token}\\b`, 'i');
+    if ((isMultiWord && clean.includes(token)) || wordBoundaryRegex.test(clean)) {
+      // Disallow broad single-word hijack (e.g., 'squat' must not hijack 'split squat' or 'bulgarian')
+      if (token === 'squat' && (clean.includes('split') || clean.includes('bulgarian') || clean.includes('front'))) {
+        continue;
+      }
+      if (token === 'deadlift' && clean.includes('romanian')) {
+        continue;
+      }
+      if (token === 'plank' && clean.includes('side')) {
+        continue;
+      }
       return {
         exerciseId: verified.exerciseId,
         name: verified.canonicalName,
@@ -403,6 +522,7 @@ export async function getExerciseDetailsWithMedia(exerciseName: string): Promise
   }
 
   // 3. Online Fetch from ExerciseDB Open API (https://oss.exercisedb.dev)
+  // Enforces strict relevance: rejects completely unrelated exercise matches (e.g. calf raise machine for seated cable row)
   if (typeof fetch !== 'undefined') {
     try {
       const apiUrl = `https://oss.exercisedb.dev/api/v1/exercises?name=${encodeURIComponent(clean)}&limit=10`;
@@ -412,11 +532,15 @@ export async function getExerciseDetailsWithMedia(exerciseName: string): Promise
         const results = json.data as any[];
 
         if (Array.isArray(results) && results.length > 0) {
-          // Find closest match
+          // Find closest match with strict relevance checking
+          const cleanTokens = clean.split(' ').filter(Boolean);
           const best =
             results.find((r) => cleanExerciseName(r.name) === clean) ||
-            results.find((r) => r.name?.toLowerCase().includes(clean) || clean.includes(r.name?.toLowerCase())) ||
-            results[0];
+            results.find((r) => {
+              const rClean = cleanExerciseName(r.name);
+              // Must contain all significant query tokens or vice versa
+              return cleanTokens.every((t) => rClean.includes(t));
+            });
 
           if (best) {
             const apiDetails: ExerciseApiDetails = {

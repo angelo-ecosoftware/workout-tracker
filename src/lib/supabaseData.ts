@@ -136,13 +136,14 @@ export async function fetchWorkoutsData(userId?: string) {
     let { data: exercisesRaw, error: exError } = await exQuery;
     if (exError) console.warn('Error fetching exercises:', exError);
 
-    exercisesList = ((exercisesRaw as DbExerciseRow[]) || []).map((e) => ({
+    exercisesList = ((exercisesRaw as (DbExerciseRow & { custom_cues?: any })[]) || []).map((e) => ({
       id: String(e.id),
       name: e.name,
       type: (e.type === 'timed' ? 'timed' : 'strength') as 'strength' | 'timed',
       targetSets: e.target_sets ?? 3,
       targetRepMin: e.target_rep_min ?? 8,
       targetRepMax: e.target_rep_max ?? 12,
+      customCues: e.custom_cues || undefined,
     }));
   } catch (e) {
     console.warn('Error fetching exercises from supabase:', e);
@@ -1338,6 +1339,7 @@ export async function saveWorkoutsAndExercises(
         target_rep_min: ex.targetRepMin ?? 8,
         target_rep_max: ex.targetRepMax ?? 12,
         user_id: userId,
+        custom_cues: ex.customCues || null,
       });
 
       junctionRows.push({
