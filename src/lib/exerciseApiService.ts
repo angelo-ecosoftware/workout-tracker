@@ -244,6 +244,186 @@ export const VERIFIED_EXERCISE_MEDIA_MAP: Record<
     equipment: 'Dumbbells',
     category: 'Arms',
   },
+  chin_ups: {
+    exerciseId: '7OeHptV',
+    canonicalName: 'Chin-ups',
+    gifUrl: 'https://static.exercisedb.dev/media/7OeHptV.gif',
+    primaryMuscles: ['Lats', 'Biceps', 'Upper Back'],
+    secondaryMuscles: ['Forearms', 'Rhomboids'],
+    instructions: [
+      'Hang from bar with hands shoulder-width apart, palms facing toward you (supinated grip).',
+      'Pull your chest toward the bar by driving your elbows down and back.',
+      'Clear the bar with your chin, hold momentarily, and lower down under full control.',
+    ],
+    equipment: 'Pull-up Bar',
+    category: 'Back',
+  },
+  push_ups: {
+    exerciseId: '0br45wL',
+    canonicalName: 'Push-ups',
+    gifUrl: 'https://static.exercisedb.dev/media/0br45wL.gif',
+    primaryMuscles: ['Chest', 'Pectoralis major'],
+    secondaryMuscles: ['Triceps', 'Anterior deltoid', 'Core'],
+    instructions: [
+      'Place hands slightly wider than shoulder-width on floor with body in a rigid plank.',
+      'Lower chest towards floor until elbows form a 90-degree angle, keeping core braced.',
+      'Press through palms to lockout without letting lower back sag.',
+    ],
+    equipment: 'Bodyweight',
+    category: 'Chest',
+  },
+  calf_raises: {
+    exerciseId: '6HmFgmx',
+    canonicalName: 'Standing Calf Raises',
+    gifUrl: 'https://static.exercisedb.dev/media/6HmFgmx.gif',
+    primaryMuscles: ['Calves', 'Gastrocnemius'],
+    secondaryMuscles: ['Soleus'],
+    instructions: [
+      'Stand with balls of feet on an elevated block or step with heels hanging off.',
+      'Lower heels into a deep calf stretch, then rise onto toes as high as possible.',
+      'Hold contraction at the peak for 1 second before lowering slowly.',
+    ],
+    equipment: 'Calf Machine / Dumbbells',
+    category: 'Legs',
+  },
+  lying_leg_curl: {
+    exerciseId: '17lJ1kr',
+    canonicalName: 'Lying Leg Curl',
+    gifUrl: 'https://static.exercisedb.dev/media/17lJ1kr.gif',
+    primaryMuscles: ['Hamstrings', 'Biceps femoris'],
+    secondaryMuscles: ['Calves'],
+    instructions: [
+      'Lie face down on machine with roller pad adjusted just below calves.',
+      'Grip handles and curl legs upward toward glutes under control.',
+      'Hold the contraction at the top, then lower back to the starting stretch.',
+    ],
+    equipment: 'Leg Curl Machine',
+    category: 'Legs',
+  },
+  hanging_knee_raises: {
+    exerciseId: '03lzqwk',
+    canonicalName: 'Hanging Knee Raises',
+    gifUrl: 'https://static.exercisedb.dev/media/03lzqwk.gif',
+    primaryMuscles: ['Abs', 'Rectus abdominis', 'Hip Flexors'],
+    secondaryMuscles: ['Obliques', 'Forearms'],
+    instructions: [
+      'Hang from pull-up bar with arms fully extended and core engaged.',
+      'Raise knees up toward chest by curling your pelvis upward.',
+      'Pause at parallel or above, then lower slowly without swinging.',
+    ],
+    equipment: 'Pull-up Bar',
+    category: 'Core',
+  },
+  incline_dumbbell_press: {
+    exerciseId: 'PG1kcIb',
+    canonicalName: 'Incline Dumbbell Press',
+    gifUrl: 'https://static.exercisedb.dev/media/PG1kcIb.gif',
+    primaryMuscles: ['Chest', 'Upper Chest', 'Pectoralis major'],
+    secondaryMuscles: ['Triceps', 'Shoulders'],
+    instructions: [
+      'Set bench to 30–45 degrees. Hold dumbbells at shoulder height with palms forward.',
+      'Press dumbbells upward together in an arch until arms extend over upper chest.',
+      'Lower under control until elbows are slightly below chest level.',
+    ],
+    equipment: 'Dumbbells / Incline Bench',
+    category: 'Chest',
+  },
+  dumbbell_shoulder_press: {
+    exerciseId: '5vfAI0I',
+    canonicalName: 'Dumbbell Shoulder Press',
+    gifUrl: 'https://static.exercisedb.dev/media/5vfAI0I.gif',
+    primaryMuscles: ['Shoulders', 'Anterior deltoid', 'Lateral deltoid'],
+    secondaryMuscles: ['Triceps', 'Upper Chest'],
+    instructions: [
+      'Sit on an upright bench holding dumbbells at shoulder level with palms facing forward.',
+      'Press weights overhead smoothly until arms are extended without touching at top.',
+      'Lower dumbbells back to ear level under control.',
+    ],
+    equipment: 'Dumbbells / Bench',
+    category: 'Shoulders',
+  },
+  front_squat: {
+    exerciseId: 'DB0n8AG',
+    canonicalName: 'Front Squat',
+    gifUrl: 'https://static.exercisedb.dev/media/DB0n8AG.gif',
+    primaryMuscles: ['Quads', 'Quadriceps'],
+    secondaryMuscles: ['Glutes', 'Core', 'Upper Back'],
+    instructions: [
+      'Rack barbell across anterior deltoids and clavicles with elbows driven high.',
+      'Keep chest tall and descend into a deep squat by bending knees and hips simultaneously.',
+      'Drive out of the hole through the midfoot while keeping elbows elevated.',
+    ],
+    equipment: 'Barbell',
+    category: 'Legs',
+  },
+  walking_lunges: {
+    exerciseId: 'gGNQmVt',
+    canonicalName: 'Walking Lunges',
+    gifUrl: 'https://static.exercisedb.dev/media/gGNQmVt.gif',
+    primaryMuscles: ['Quads', 'Glutes'],
+    secondaryMuscles: ['Hamstrings', 'Calves'],
+    instructions: [
+      'Step forward with one leg and lower hips until both knees are bent at roughly 90 degrees.',
+      'Keep torso upright and drive through front heel to step into the next stride.',
+      'Alternate legs continuously with steady pacing.',
+    ],
+    equipment: 'Dumbbells / Bodyweight',
+    category: 'Legs',
+  },
+  leg_extensions: {
+    exerciseId: '17lJ1kr',
+    canonicalName: 'Leg Extensions',
+    gifUrl: 'https://static.exercisedb.dev/media/17lJ1kr.gif',
+    primaryMuscles: ['Quads', 'Quadriceps'],
+    secondaryMuscles: [],
+    instructions: [
+      'Sit on machine with pad resting against lower shins just above ankles.',
+      'Extend legs forward until knees are fully extended, squeezing quads hard.',
+      'Lower weight under a 2-second eccentric control to starting position.',
+    ],
+    equipment: 'Leg Extension Machine',
+    category: 'Legs',
+  },
+  chest_supported_row: {
+    exerciseId: 'A3P4O0R',
+    canonicalName: 'Chest-Supported Row',
+    gifUrl: 'https://static.exercisedb.dev/media/A3P4O0R.gif',
+    primaryMuscles: ['Back', 'Rhomboids', 'Lats'],
+    secondaryMuscles: ['Biceps', 'Rear Delts'],
+    instructions: [
+      'Lie chest-down on an incline bench holding dumbbells or grip machine handles.',
+      'Retract scapulae and pull weights up towards ribs, driving elbows backward.',
+      'Squeeze shoulder blades firmly at the top, then lower with control.',
+    ],
+    equipment: 'Incline Bench / Dumbbells',
+    category: 'Back',
+  },
+  stretching: {
+    exerciseId: 'CosupLu',
+    canonicalName: 'Stretching',
+    gifUrl: 'https://static.exercisedb.dev/media/CosupLu.gif',
+    primaryMuscles: ['Full Body', 'Mobility'],
+    secondaryMuscles: ['Core'],
+    instructions: [
+      'Perform steady static and dynamic joint mobility stretches.',
+      'Hold positions for 20–30 seconds with calm diaphragmatic breathing.',
+    ],
+    equipment: 'Mat / Bodyweight',
+    category: 'Full Body',
+  },
+  conditioning: {
+    exerciseId: '0V2YQjW',
+    canonicalName: 'Conditioning Block',
+    gifUrl: 'https://static.exercisedb.dev/media/0V2YQjW.gif',
+    primaryMuscles: ['Cardiovascular System', 'Full Body'],
+    secondaryMuscles: ['Core'],
+    instructions: [
+      'Maintain an elevated heart rate with steady intervals or metabolic circuits.',
+      'Focus on controlled respiration and steady pacing throughout the duration.',
+    ],
+    equipment: 'Bodyweight / Jump Rope / Rower',
+    category: 'Full Body',
+  },
 };
 
 /**
@@ -257,7 +437,8 @@ export function cleanExerciseName(rawName: string): string {
   return single
     .replace(/\(.*?\)/g, '')
     .replace(/\[.*?\]/g, '')
-    .replace(/[^a-zA-Z0-9\s-]/g, ' ')
+    .replace(/-/g, ' ')
+    .replace(/[^a-zA-Z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .toLowerCase();
@@ -587,6 +768,14 @@ export async function getExerciseDetailsWithMedia(exerciseName: string): Promise
   };
 }
 
+function stemToken(token: string): string {
+  const w = token.toLowerCase();
+  if (w.endsWith('ies')) return w.slice(0, -3) + 'y';
+  if (w.endsWith('es') && !w.endsWith('ses')) return w.slice(0, -2);
+  if (w.endsWith('s') && !w.endsWith('ss')) return w.slice(0, -1);
+  return w;
+}
+
 /**
  * Synchronous thumbnail resolver for instant, zero-latency exercise GIF display.
  * Checks local storage custom overrides, verified canonical dictionary, and cached entries.
@@ -601,7 +790,7 @@ export function getExerciseThumbnailSync(exerciseName: string, exerciseId?: stri
 
   const clean = cleanExerciseName(exerciseName);
 
-  // Exact match pass
+  // 1. Exact match pass against verified GIFs
   for (const [key, verified] of Object.entries(VERIFIED_EXERCISE_MEDIA_MAP)) {
     const token = key.replace(/_/g, ' ');
     if (clean === token || clean === verified.canonicalName.toLowerCase()) {
@@ -609,26 +798,29 @@ export function getExerciseThumbnailSync(exerciseName: string, exerciseId?: stri
     }
   }
 
-  // Word-boundary pass
+  // 2. Token / word-boundary pass with plural/singular stem tolerance
+  const cleanTokens = clean.split(' ').map(stemToken).filter(Boolean);
+
   for (const [key, verified] of Object.entries(VERIFIED_EXERCISE_MEDIA_MAP)) {
-    const token = key.replace(/_/g, ' ');
-    const isMultiWord = token.includes(' ');
-    const wordBoundaryRegex = new RegExp(`\\b${token}\\b`, 'i');
-    if ((isMultiWord && clean.includes(token)) || wordBoundaryRegex.test(clean)) {
-      if (token === 'squat' && (clean.includes('split') || clean.includes('bulgarian') || clean.includes('front'))) {
+    const keyTokens = key.split('_').map(stemToken).filter(Boolean);
+    const isSubset = keyTokens.every((kt) => cleanTokens.includes(kt));
+
+    if (isSubset) {
+      // Guard against inappropriate cross-exercise hijack
+      if (key === 'squat' && (clean.includes('split') || clean.includes('bulgarian') || clean.includes('front'))) {
         continue;
       }
-      if (token === 'deadlift' && clean.includes('romanian')) {
+      if (key === 'deadlift' && clean.includes('romanian')) {
         continue;
       }
-      if (token === 'plank' && clean.includes('side')) {
+      if (key === 'plank' && clean.includes('side')) {
         continue;
       }
       return verified.gifUrl;
     }
   }
 
-  // Cache pass
+  // 3. Cache pass
   if (typeof localStorage !== 'undefined') {
     try {
       const cacheKey = `exercise_db_cache_${clean.replace(/\s+/g, '_')}`;
@@ -640,11 +832,15 @@ export function getExerciseThumbnailSync(exerciseName: string, exerciseId?: stri
     } catch {}
   }
 
-  // Master Catalog photo sequence pass (from 876 open exercise library)
+  // 4. Master Catalog photo sequence pass (from 876 open exercise library)
+  // Exact name or bidirectional token match
   const masterMatch = MASTER_EXERCISE_CATALOG.find((e) => {
     const eClean = cleanExerciseName(e.name);
-    return eClean === clean || clean.includes(eClean) || eClean.includes(clean);
+    if (eClean === clean) return true;
+    const eTokens = eClean.split(' ').map(stemToken).filter(Boolean);
+    return cleanTokens.every((ct) => eTokens.includes(ct)) || eTokens.every((et) => cleanTokens.includes(et));
   });
+
   if (masterMatch?.images && masterMatch.images.length > 0) {
     return masterMatch.images[0];
   }
