@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   X,
   ExternalLink,
@@ -12,6 +12,9 @@ import {
   Layers,
   ArrowRight,
   Loader2,
+  Edit3,
+  Save,
+  Check,
 } from 'lucide-react';
 import { MuscleAnatomyHeatmap } from './anatomy/MuscleAnatomyHeatmap.tsx';
 import {
@@ -22,7 +25,6 @@ import {
 import { formatSingleExerciseName } from '../../lib/exerciseSearch.ts';
 import { CustomExerciseCues } from '../../models.ts';
 import { saveExerciseCustomCues } from '../../lib/exerciseCustomCuesService.ts';
-import { Edit3, Save } from 'lucide-react';
 
 interface ExerciseGuideDrawerProps {
   isOpen: boolean;
@@ -53,6 +55,10 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
   const [isSavingCues, setIsSavingCues] = useState(false);
   const [cueSaveMsg, setCueSaveMsg] = useState<string | null>(null);
 
+  // Section anchor refs for auto-scroll into view when toggling edit mode
+  const motionCardRef = useRef<HTMLDivElement>(null);
+  const bioCuesCardRef = useRef<HTMLDivElement>(null);
+
   // Load custom GIF from local storage strictly per user device
   useEffect(() => {
     if (exerciseId && typeof localStorage !== 'undefined') {
@@ -79,6 +85,45 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
     return inferAccurateAnatomy(singleExerciseName);
   }, [singleExerciseName]);
 
+  const primaryMuscles = useMemo(() => {
+    if (details?.targetMuscles && details.targetMuscles.length > 0) {
+      return details.targetMuscles;
+    }
+    return fallbackAnatomy.primary;
+  }, [details, fallbackAnatomy]);
+
+  const defaultSetupCue =
+    'Lock scapulae in place, engage your core, and lower the load under complete control for 2–3 seconds without letting joints collapse.';
+  const defaultPeakCue = `Drive forcefully through your ${primaryMuscles[0] || 'primary muscles'}, pause for 1 second at maximum muscle shortening, and avoid hyperextension.`;
+  const defaultBioCues = [
+    'Set the Base: Brace your core, lock the scapulae, and verify symmetric grip/stance before moving the load.',
+    'Controlled Eccentric: Lower the weight in a smooth 2–3 second tempo to maximize muscle tension and joint longevity.',
+    'Explosive Concentric: Drive through the primary target muscles without hyperextending or bouncing out of the hole.',
+  ];
+
+  const handleToggleEdit = (targetSection?: 'motion' | 'biocues') => {
+    if (!isEditingCues) {
+      // Pre-fill existing defaults into customCues if empty so athlete directly modifies what is already there
+      setCustomCues(prev => ({
+        setup: prev.setup ?? defaultSetupCue,
+        peak: prev.peak ?? defaultPeakCue,
+        cues: prev.cues && prev.cues.length > 0 ? prev.cues : defaultBioCues,
+      }));
+      setIsEditingCues(true);
+
+      // Smooth scroll the targeted card into view so the user immediately sees the form spring into place
+      setTimeout(() => {
+        if (targetSection === 'biocues' && bioCuesCardRef.current) {
+          bioCuesCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        } else if (motionCardRef.current) {
+          motionCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 50);
+    } else {
+      setIsEditingCues(false);
+    }
+  };
+
   useEffect(() => {
     if (!isOpen || !singleExerciseName) return;
 
@@ -104,13 +149,6 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
       isSubscribed = false;
     };
   }, [isOpen, singleExerciseName]);
-
-  const primaryMuscles = useMemo(() => {
-    if (details?.targetMuscles && details.targetMuscles.length > 0) {
-      return details.targetMuscles;
-    }
-    return fallbackAnatomy.primary;
-  }, [details, fallbackAnatomy]);
 
   const secondaryMuscles = useMemo(() => {
     if (details?.secondaryMuscles && details.secondaryMuscles.length > 0) {
@@ -253,7 +291,7 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
-              onClick={() => setIsEditingCues(!isEditingCues)}
+              onClick={() => handleToggleEdit('motion')}
               title="Customize motion phases & form cues"
               aria-label="Customize motion phases & form cues"
               className={`p-2 rounded-xl border transition-colors cursor-pointer ${
@@ -276,121 +314,43 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto space-y-4 pt-3 pr-1 scrollbar-none">
-          {/* Custom Cues & Local GIF Editor Panel */}
-          {isEditingCues && (
-            <div className="bg-[#161616] border border-[#C0FF00]/40 rounded-2xl p-4 space-y-3 animate-in fade-in duration-150">
-              <div className="flex items-center justify-between border-b border-[#252525] pb-2">
-                <div className="flex items-center gap-1.5 text-xs font-mono font-bold uppercase tracking-wider text-[#C0FF00]">
-                  <Edit3 className="w-3.5 h-3.5" />
-                  <span>Customize Form & Motion</span>
-                </div>
-                {cueSaveMsg && (
-                  <span className="text-[10px] font-mono font-bold text-[#C0FF00] animate-pulse">
-                    {cueSaveMsg}
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-2.5 text-xs">
-                <div>
-                  <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1">
-                    Setup Phase Cue
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={customCues.setup || ''}
-                    onChange={(e) => setCustomCues(prev => ({ ...prev, setup: e.target.value }))}
-                    placeholder="e.g. Back foot on bench, hips squared, chest high..."
-                    className="w-full bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-xl p-2 text-xs text-white outline-none resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1">
-                    Peak Squeeze / Contraction Cue
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={customCues.peak || ''}
-                    onChange={(e) => setCustomCues(prev => ({ ...prev, peak: e.target.value }))}
-                    placeholder="e.g. Drive through front heel, pause 1s at top without hyperextending..."
-                    className="w-full bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-xl p-2 text-xs text-white outline-none resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1">
-                    Biomechanical Form Cues (1 per line)
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={(customCues.cues || []).join('\n')}
-                    onChange={(e) =>
-                      setCustomCues(prev => ({
-                        ...prev,
-                        cues: e.target.value.split('\n').filter(line => line.trim().length > 0),
-                      }))
-                    }
-                    placeholder="Brace core before descent&#10;Keep knee tracking over second toe"
-                    className="w-full bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-xl p-2 text-xs text-white outline-none resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-mono text-gray-400 uppercase tracking-wider mb-1">
-                    Custom GIF Demonstration URL (Stored on this device only)
-                  </label>
-                  <input
-                    type="url"
-                    value={customGifUrl}
-                    onChange={(e) => setCustomGifUrl(e.target.value)}
-                    placeholder="https://example.com/demo.gif"
-                    className="w-full bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-xl px-3 py-1.5 text-xs text-white outline-none"
-                  />
-                  <span className="text-[9px] font-mono text-gray-500 mt-0.5 block">
-                    Safe local override — does not pollute remote database.
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-end gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingCues(false)}
-                    className="px-3 py-1.5 rounded-lg border border-[#333] text-gray-400 hover:text-white font-mono text-xs cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSaveCustomCues}
-                    disabled={isSavingCues}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#C0FF00] hover:bg-[#a6dc00] text-black font-display font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md disabled:opacity-50"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    <span>{isSavingCues ? 'Saving...' : 'Save Cues'}</span>
-                  </button>
+        <div className="overflow-y-auto space-y-4 pt-3 pr-1 scrollbar-none flex-1">
+          {/* Animated Demonstration GIF Container & Inline GIF Override */}
+          <div className="space-y-2">
+            {effectiveGifUrl && !imageError && (
+              <div className="relative w-full rounded-2xl overflow-hidden border border-[#2a2a2a] bg-[#141414] shadow-lg flex items-center justify-center min-h-[160px] max-h-[220px]">
+                <img
+                  src={effectiveGifUrl}
+                  alt={`${singleExerciseName} animated demonstration`}
+                  className="w-full h-full object-contain max-h-[200px]"
+                  loading="lazy"
+                  onError={() => setImageError(true)}
+                />
+                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-[#333] text-[9px] font-mono text-[#C0FF00] font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                  <Sparkles className="w-2.5 h-2.5" />
+                  {customGifUrl ? 'Custom Demo' : 'Animated Demo'}
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Animated Demonstration GIF Container */}
-          {effectiveGifUrl && !imageError && (
-            <div className="relative w-full rounded-2xl overflow-hidden border border-[#2a2a2a] bg-[#141414] shadow-lg flex items-center justify-center min-h-[160px] max-h-[220px]">
-              <img
-                src={effectiveGifUrl}
-                alt={`${singleExerciseName} animated demonstration`}
-                className="w-full h-full object-contain max-h-[200px]"
-                loading="lazy"
-                onError={() => setImageError(true)}
-              />
-              <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md border border-[#333] text-[9px] font-mono text-[#C0FF00] font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm">
-                <Sparkles className="w-2.5 h-2.5" />
-                {customGifUrl ? 'Custom Demo' : 'Animated Demo'}
+            {isEditingCues && (
+              <div className="bg-[#141414] border border-[#282828] rounded-xl p-3 space-y-1.5">
+                <label className="block text-[10px] font-mono text-[#C0FF00] font-bold uppercase tracking-wider">
+                  Custom Demo GIF URL (Stored on this device only)
+                </label>
+                <input
+                  type="url"
+                  value={customGifUrl}
+                  onChange={(e) => setCustomGifUrl(e.target.value)}
+                  placeholder="https://example.com/demo.gif"
+                  className="w-full bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-lg px-2.5 py-1 text-xs text-white outline-none"
+                />
+                <span className="text-[9px] font-mono text-gray-500 block">
+                  Safe local override — does not pollute remote database.
+                </span>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Accurate Anatomical Heatmap */}
           <div>
@@ -400,101 +360,183 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
             />
           </div>
 
-          {/* Dual-Phase Movement Execution Frame */}
-          <div className="bg-[#141414] border border-[#222222] rounded-2xl p-4 space-y-3">
+          {/* Dual-Phase Movement Execution Frame - IN-PLACE EDITABLE */}
+          <div
+            ref={motionCardRef}
+            className={`rounded-2xl p-4 space-y-3 transition-all ${
+              isEditingCues
+                ? 'bg-[#151515] border-2 border-[#C0FF00]/50 shadow-[0_0_15px_rgba(192,255,0,0.08)]'
+                : 'bg-[#141414] border border-[#222222]'
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-mono font-bold uppercase tracking-wider text-white">
                 <Sparkles className="w-4 h-4 text-[#C0FF00]" />
                 <span>Motion & Form Phases</span>
+                {isEditingCues && (
+                  <span className="text-[9px] text-[#C0FF00] bg-[#C0FF00]/15 border border-[#C0FF00]/30 px-1.5 py-0.5 rounded font-mono font-bold">
+                    EDITING
+                  </span>
+                )}
               </div>
-              <div className="flex items-center gap-1 bg-[#1a1a1a] p-1 rounded-xl border border-[#262626]">
-                <button
-                  type="button"
-                  onClick={() => setActivePhase('setup')}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                    activePhase === 'setup'
-                      ? 'bg-[#C0FF00] text-black shadow-sm'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  1. Setup
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setActivePhase('peak')}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
-                    activePhase === 'peak'
-                      ? 'bg-[#C0FF00] text-black shadow-sm'
-                      : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  2. Peak Squeeze
-                </button>
-              </div>
+
+              {!isEditingCues ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 bg-[#1a1a1a] p-1 rounded-xl border border-[#262626]">
+                    <button
+                      type="button"
+                      onClick={() => setActivePhase('setup')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                        activePhase === 'setup'
+                          ? 'bg-[#C0FF00] text-black shadow-sm'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      1. Setup
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActivePhase('peak')}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase transition-all cursor-pointer ${
+                        activePhase === 'peak'
+                          ? 'bg-[#C0FF00] text-black shadow-sm'
+                          : 'text-gray-400 hover:text-white'
+                      }`}
+                    >
+                      2. Peak Squeeze
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleEdit('motion')}
+                    title="Edit motion phases"
+                    aria-label="Edit motion phases"
+                    className="p-1.5 rounded-lg bg-[#1c1c1c] hover:bg-[#252525] border border-[#333] text-gray-400 hover:text-[#C0FF00] transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : null}
             </div>
 
-            <div className="bg-[#181818] border border-[#262626] rounded-xl p-3 text-xs font-sans">
-              {activePhase === 'setup' ? (
-                <div className="space-y-1">
-                  <span className="font-mono text-[10px] font-bold text-[#C0FF00] uppercase tracking-wider block">
-                    Starting Position & Eccentric Phase
-                  </span>
-                  <p className="text-gray-300">
-                    {customCues.setup?.trim() ||
-                      'Lock scapulae in place, engage your core, and lower the load under complete control for 2–3 seconds without letting joints collapse.'}
-                  </p>
+            {isEditingCues ? (
+              <div className="space-y-3 pt-1">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono text-[10px] font-bold text-[#C0FF00] uppercase tracking-wider">
+                      Phase 1: Starting Position & Eccentric Phase
+                    </span>
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={customCues.setup ?? ''}
+                    onChange={(e) => setCustomCues(prev => ({ ...prev, setup: e.target.value }))}
+                    placeholder="Describe foot placement, grip, and eccentric control..."
+                    className="w-full bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-xl p-2.5 text-xs text-white outline-none resize-none font-sans"
+                  />
                 </div>
-              ) : (
-                <div className="space-y-1">
-                  <span className="font-mono text-[10px] font-bold text-[#C0FF00] uppercase tracking-wider block">
-                    Concentric Lockout & Peak Contraction
-                  </span>
-                  <p className="text-gray-300">
-                    {customCues.peak?.trim() ||
-                      `Drive forcefully through your ${primaryMuscles[0] || 'primary muscles'}, pause for 1 second at maximum muscle shortening, and avoid hyperextension.`}
-                  </p>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-mono text-[10px] font-bold text-[#C0FF00] uppercase tracking-wider">
+                      Phase 2: Concentric Lockout & Peak Contraction
+                    </span>
+                  </div>
+                  <textarea
+                    rows={2}
+                    value={customCues.peak ?? ''}
+                    onChange={(e) => setCustomCues(prev => ({ ...prev, peak: e.target.value }))}
+                    placeholder="Describe drive direction, pause time, and peak squeeze..."
+                    className="w-full bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-xl p-2.5 text-xs text-white outline-none resize-none font-sans"
+                  />
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              <div className="bg-[#181818] border border-[#262626] rounded-xl p-3 text-xs font-sans">
+                {activePhase === 'setup' ? (
+                  <div className="space-y-1">
+                    <span className="font-mono text-[10px] font-bold text-[#C0FF00] uppercase tracking-wider block">
+                      Starting Position & Eccentric Phase
+                    </span>
+                    <p className="text-gray-300">
+                      {customCues.setup?.trim() || defaultSetupCue}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <span className="font-mono text-[10px] font-bold text-[#C0FF00] uppercase tracking-wider block">
+                      Concentric Lockout & Peak Contraction
+                    </span>
+                    <p className="text-gray-300">
+                      {customCues.peak?.trim() || defaultPeakCue}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Form Cues & Biomechanical Technique Steps */}
-          <div className="bg-[#141414] border border-[#222222] rounded-2xl p-4 space-y-3">
-            <div className="flex items-center gap-1.5 text-xs font-mono font-bold uppercase tracking-wider text-[#C0FF00]">
-              <ShieldCheck className="w-4 h-4" />
-              <span>Biomechanical Form Cues</span>
+          {/* Form Cues & Biomechanical Technique Steps - IN-PLACE EDITABLE */}
+          <div
+            ref={bioCuesCardRef}
+            className={`rounded-2xl p-4 space-y-3 transition-all ${
+              isEditingCues
+                ? 'bg-[#151515] border-2 border-[#C0FF00]/50 shadow-[0_0_15px_rgba(192,255,0,0.08)]'
+                : 'bg-[#141414] border border-[#222222]'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-mono font-bold uppercase tracking-wider text-[#C0FF00]">
+                <ShieldCheck className="w-4 h-4" />
+                <span>Biomechanical Form Cues</span>
+                {isEditingCues && (
+                  <span className="text-[9px] text-[#C0FF00] bg-[#C0FF00]/15 border border-[#C0FF00]/30 px-1.5 py-0.5 rounded font-mono font-bold">
+                    EDITING
+                  </span>
+                )}
+              </div>
+
+              {!isEditingCues && (
+                <button
+                  type="button"
+                  onClick={() => handleToggleEdit('biocues')}
+                  title="Edit biomechanical cues"
+                  aria-label="Edit biomechanical cues"
+                  className="p-1.5 rounded-lg bg-[#1c1c1c] hover:bg-[#252525] border border-[#333] text-gray-400 hover:text-[#C0FF00] transition-colors cursor-pointer"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
-            <ul className="space-y-2.5 text-xs font-sans text-gray-300">
-              {customCues.cues && customCues.cues.length > 0 ? (
-                customCues.cues.map((cue, idx) => (
+
+            {isEditingCues ? (
+              <div className="space-y-2 pt-1">
+                <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider block">
+                  Key Technique & Safety Rules (1 per line)
+                </span>
+                <textarea
+                  rows={4}
+                  value={(customCues.cues && customCues.cues.length > 0 ? customCues.cues : defaultBioCues).join('\n')}
+                  onChange={(e) =>
+                    setCustomCues(prev => ({
+                      ...prev,
+                      cues: e.target.value.split('\n').filter(line => line.trim().length > 0),
+                    }))
+                  }
+                  placeholder="Add bullet points here..."
+                  className="w-full bg-[#111] border border-[#333] focus:border-[#C0FF00] rounded-xl p-2.5 text-xs text-white outline-none resize-none font-sans"
+                />
+              </div>
+            ) : (
+              <ul className="space-y-2.5 text-xs font-sans text-gray-300">
+                {(customCues.cues && customCues.cues.length > 0 ? customCues.cues : defaultBioCues).map((cue, idx) => (
                   <li key={idx} className="flex items-start gap-2">
                     <CheckCircle2 className="w-3.5 h-3.5 text-[#C0FF00] shrink-0 mt-0.5" />
                     <span>{cue}</span>
                   </li>
-                ))
-              ) : (
-                <>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#C0FF00] shrink-0 mt-0.5" />
-                    <span>
-                      <strong>Set the Base:</strong> Brace your core, lock the scapulae, and verify symmetric grip/stance before moving the load.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#C0FF00] shrink-0 mt-0.5" />
-                    <span>
-                      <strong>Controlled Eccentric:</strong> Lower the weight in a smooth 2–3 second tempo to maximize muscle tension and joint longevity.
-                    </span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-[#C0FF00] shrink-0 mt-0.5" />
-                    <span>
-                      <strong>Explosive Concentric:</strong> Drive through the primary target muscles without hyperextending or bouncing out of the hole.
-                    </span>
-                  </li>
-                </>
-              )}
-            </ul>
+                ))}
+              </ul>
+            )}
 
             {/* Numbered Setup Instructions */}
             <div className="pt-2 border-t border-[#202020] space-y-1.5">
@@ -570,15 +612,40 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
           </div>
         </div>
 
-        {/* Done / Close Drawer Button */}
-        <div className="pt-3 border-t border-[#202020] mt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full py-3 px-4 rounded-xl bg-[#1c1c1c] hover:bg-[#242424] border border-[#333] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer text-center"
-          >
-            Close Guide
-          </button>
+        {/* Edit Mode Sticky Action Bar OR Standard Close Button */}
+        <div className="pt-3 border-t border-[#202020] mt-2 shrink-0">
+          {isEditingCues ? (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsEditingCues(false)}
+                className="w-1/3 py-3 px-3 rounded-xl bg-[#1c1c1c] hover:bg-[#242424] border border-[#333] text-gray-300 font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer text-center"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveCustomCues}
+                disabled={isSavingCues}
+                className="w-2/3 py-3 px-4 rounded-xl bg-[#C0FF00] hover:bg-[#a6dc00] text-black font-display font-black text-xs uppercase tracking-wider transition-all cursor-pointer shadow-lg flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isSavingCues ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-black" />
+                ) : (
+                  <Check className="w-4 h-4 stroke-[3] text-black" />
+                )}
+                <span>{isSavingCues ? 'Saving Cues...' : 'Save Changes'}</span>
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-3 px-4 rounded-xl bg-[#1c1c1c] hover:bg-[#242424] border border-[#333] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer text-center"
+            >
+              Close Guide
+            </button>
+          )}
         </div>
       </div>
     </div>

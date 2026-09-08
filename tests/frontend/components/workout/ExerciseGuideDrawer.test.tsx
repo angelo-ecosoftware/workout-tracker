@@ -146,7 +146,7 @@ describe('P2.1, P2.2 & P2.4: Exercise Guide Drawer & Muscle Anatomy Heatmap', ()
       expect(container.firstChild).toBeNull();
     });
 
-    it('renders custom cues and allows toggling the custom form editor', async () => {
+    it('renders custom cues and allows toggling in-place card editing', async () => {
       render(
         <ExerciseGuideDrawer
           isOpen={true}
@@ -168,13 +168,23 @@ describe('P2.1, P2.2 & P2.4: Exercise Guide Drawer & Muscle Anatomy Heatmap', ()
       // Verify custom bullet cue is rendered
       expect(screen.getByText(/keep torso slightly inclined/i)).toBeInTheDocument();
 
-      // Open the custom cue editor
-      const editBtn = screen.getByRole('button', { name: /customize motion phases & form cues/i });
-      expect(editBtn).toBeInTheDocument();
-      fireEvent.click(editBtn);
+      // Verify section edit button exists for motion phases and biomechanical cues
+      const editMotionBtn = screen.getByRole('button', { name: /edit motion phases/i });
+      expect(editMotionBtn).toBeInTheDocument();
+      const editBioBtn = screen.getByRole('button', { name: /edit biomechanical cues/i });
+      expect(editBioBtn).toBeInTheDocument();
 
-      expect(screen.getByText(/customize form & motion/i)).toBeInTheDocument();
+      // Click edit on motion phases
+      fireEvent.click(editMotionBtn);
+
+      // Verify cards transform in place with textareas pre-filled with content
+      expect(screen.getByDisplayValue(/elevate back foot on bench, square hips forward/i)).toBeInTheDocument();
+      expect(screen.getByDisplayValue(/drive through front heel, pause 1s at top/i)).toBeInTheDocument();
       expect(screen.getByPlaceholderText(/https:\/\/example.com/i)).toBeInTheDocument();
+
+      // Verify sticky bottom action bar with Save Changes and Cancel buttons appears
+      expect(screen.getByRole('button', { name: /save changes/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
     });
   });
 });
