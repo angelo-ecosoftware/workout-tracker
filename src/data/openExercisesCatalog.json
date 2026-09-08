@@ -9469,7 +9469,10 @@
       "Complete the prescribed number of circles in one direction, then repeat the same number in the opposite direction.",
       "Move slowly and keep your head, hips and lower back still. If your lower back arches or the bell drifts far from your head, use a lighter weight."
     ],
-    "images": []
+    "images": [
+      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Kettlebell_Seated_Press/0.jpg",
+      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Kettlebell_Seated_Press/1.jpg"
+    ]
   },
   {
     "id": "cat_ex_kettlebell_halo_with_overhead_extension",
@@ -9495,7 +9498,10 @@
       "Continue the circle past the opposite ear and back down to the starting position in front of your chest to complete one repetition.",
       "Alternate the direction of the circle on each repetition. Keep your head, hips and lower back still throughout; if your lower back arches or you cannot reach the overhead position without leaning back, use a lighter weight or perform the halo and the extension as separate exercises."
     ],
-    "images": []
+    "images": [
+      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Kettlebell_Pass_Between_The_Legs/0.jpg",
+      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Kettlebell_Pass_Between_The_Legs/1.jpg"
+    ]
   },
   {
     "id": "cat_ex_kettlebell_hang_clean",
@@ -9569,7 +9575,10 @@
       "Extend your elbows to press the kettlebell back to the starting position, keeping your upper arms still throughout.",
       "Keep your ribcage down and avoid arching your lower back as you extend."
     ],
-    "images": []
+    "images": [
+      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Rope_Overhead_Triceps_Extension/0.jpg",
+      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Rope_Overhead_Triceps_Extension/1.jpg"
+    ]
   },
   {
     "id": "cat_ex_kettlebell_pass_between_the_legs",

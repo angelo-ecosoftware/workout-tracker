@@ -71,7 +71,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'strength',
     defaultSets: 3,
     defaultRepMin: 12,
-    defaultRepMax: 15
+    defaultRepMax: 15,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Flat_Bench_Cable_Flyes/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Flat_Bench_Cable_Flyes/1.jpg'
+    ]
   },
   {
     id: 'wger_dips_chest',
@@ -82,7 +86,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'strength',
     defaultSets: 3,
     defaultRepMin: 8,
-    defaultRepMax: 12
+    defaultRepMax: 12,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dips_-_Chest_Version/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dips_-_Chest_Version/1.jpg'
+    ]
   },
   {
     id: 'wger_pushups',
@@ -150,7 +158,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'strength',
     defaultSets: 4,
     defaultRepMin: 8,
-    defaultRepMax: 10
+    defaultRepMax: 10,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent_Over_Barbell_Row/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent_Over_Barbell_Row/1.jpg'
+    ]
   },
   {
     id: 'wger_seated_cable_row',
@@ -172,7 +184,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'strength',
     defaultSets: 3,
     defaultRepMin: 8,
-    defaultRepMax: 12
+    defaultRepMax: 12,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Arm_Dumbbell_Row/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Arm_Dumbbell_Row/1.jpg'
+    ]
   },
 
   // SHOULDERS
@@ -229,7 +245,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'strength',
     defaultSets: 4,
     defaultRepMin: 12,
-    defaultRepMax: 15
+    defaultRepMax: 15,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Face_Pull/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Face_Pull/1.jpg'
+    ]
   },
   {
     id: 'wger_rear_delt_fly',
@@ -240,7 +260,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'strength',
     defaultSets: 3,
     defaultRepMin: 12,
-    defaultRepMax: 20
+    defaultRepMax: 20,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Rear_Delt_Fly/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Rear_Delt_Fly/1.jpg'
+    ]
   },
 
   // LEGS
@@ -308,7 +332,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'strength',
     defaultSets: 3,
     defaultRepMin: 10,
-    defaultRepMax: 15
+    defaultRepMax: 15,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Press/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Press/1.jpg'
+    ]
   },
   {
     id: 'wger_leg_curl',
@@ -387,7 +415,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'strength',
     defaultSets: 3,
     defaultRepMin: 10,
-    defaultRepMax: 12
+    defaultRepMax: 12,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Alternate_Incline_Dumbbell_Curl/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Alternate_Incline_Dumbbell_Curl/1.jpg'
+    ]
   },
   {
     id: 'wger_preacher_curl',
@@ -398,7 +430,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'strength',
     defaultSets: 3,
     defaultRepMin: 10,
-    defaultRepMax: 12
+    defaultRepMax: 12,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Preacher_Curl/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Preacher_Curl/1.jpg'
+    ]
   },
   {
     id: 'wger_triceps_pushdown_cable',
@@ -420,7 +456,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'strength',
     defaultSets: 3,
     defaultRepMin: 10,
-    defaultRepMax: 15
+    defaultRepMax: 15,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Rope_Overhead_Triceps_Extension/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Rope_Overhead_Triceps_Extension/1.jpg'
+    ]
   },
   {
     id: 'wger_skull_crushers',
@@ -431,7 +471,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'strength',
     defaultSets: 3,
     defaultRepMin: 8,
-    defaultRepMax: 12
+    defaultRepMax: 12,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Band_Skull_Crusher/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Band_Skull_Crusher/1.jpg'
+    ]
   },
 
   // CORE / ABS
@@ -455,7 +499,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'strength',
     defaultSets: 3,
     defaultRepMin: 8,
-    defaultRepMax: 15
+    defaultRepMax: 15,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Ab_Rollout/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Ab_Rollout/1.jpg'
+    ]
   },
   {
     id: 'wger_hanging_leg_raises',
@@ -477,7 +525,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'strength',
     defaultSets: 3,
     defaultRepMin: 12,
-    defaultRepMax: 15
+    defaultRepMax: 15,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Cable_Wood_Chop/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Standing_Cable_Wood_Chop/1.jpg'
+    ]
   },
 
   // CARDIO & CONDITIONING
@@ -501,7 +553,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'timed',
     defaultSets: 3,
     defaultRepMin: 60,
-    defaultRepMax: 120
+    defaultRepMax: 120,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Battling_Ropes/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Battling_Ropes/1.jpg'
+    ]
   },
   {
     id: 'wger_rowing_machine',
@@ -512,7 +568,11 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     type: 'timed',
     defaultSets: 3,
     defaultRepMin: 300,
-    defaultRepMax: 600
+    defaultRepMax: 600,
+    images: [
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ab_Crunch_Machine/0.jpg',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Ab_Crunch_Machine/1.jpg'
+    ]
   }
 ];
 
