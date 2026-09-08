@@ -13,6 +13,8 @@ import { useWorkoutSession } from "./tracker/useWorkoutSession.ts";
 import { ConfirmModal } from "../ui/ConfirmModal.tsx";
 import { WorkoutCompletionModal } from "./tracker/WorkoutCompletionModal.tsx";
 import { RestTimerDrawer } from "./tracker/RestTimerDrawer.tsx";
+import { ActiveWorkoutHeaderBar } from "./tracker/ActiveWorkoutHeaderBar.tsx";
+import { FinishWorkoutModal } from "./tracker/FinishWorkoutModal.tsx";
 
 export const WorkoutDayTracker: React.FC = () => {
   const { user } = useAuth();
@@ -51,6 +53,15 @@ export const WorkoutDayTracker: React.FC = () => {
     sessionDate,
     setSessionDate,
     inputs,
+    isSessionActive,
+    elapsedSeconds,
+    isFinishModalOpen,
+    setIsFinishModalOpen,
+    totalTargetSets,
+    completedSetsCount,
+    completedExercisesCount,
+    handleStartWorkout,
+    handleCancelSession,
     toggleSetCompleted,
     unrealisticWarningConfig,
     setUnrealisticWarningConfig,
@@ -170,6 +181,20 @@ export const WorkoutDayTracker: React.FC = () => {
 
       {activeWorkout && (
         <div className="space-y-6">
+          {/* Section 1: Active Workout Overview & Start Timer Header */}
+          <ActiveWorkoutHeaderBar
+            workoutName={activeWorkout.name}
+            workoutOrder={activeWorkout.order}
+            exerciseCount={activeWorkout.exercises.length}
+            totalSets={totalTargetSets}
+            completedSetsCount={completedSetsCount}
+            isSessionActive={isSessionActive}
+            elapsedSeconds={elapsedSeconds}
+            onStartWorkout={handleStartWorkout}
+            onFinishWorkout={() => setIsFinishModalOpen(true)}
+            onCancelSession={handleCancelSession}
+          />
+
           {/* Section 2: Recovery Metrics Header block */}
           <div className="space-y-4">
             <RecoveryAndReadinessCard
@@ -290,7 +315,40 @@ export const WorkoutDayTracker: React.FC = () => {
             successMsg={successMsg}
             loggingWorkout={loggingWorkout}
             isUploadingPhotos={isUploadingPhotos}
-            onSubmit={handleLogWorkout}
+            onSubmit={() => setIsFinishModalOpen(true)}
+          />
+
+          {/* Fitness Online Style: Finish Workout Summary Modal */}
+          <FinishWorkoutModal
+            isOpen={isFinishModalOpen}
+            onClose={() => setIsFinishModalOpen(false)}
+            workoutName={activeWorkout.name}
+            workoutOrder={activeWorkout.order}
+            elapsedSeconds={elapsedSeconds}
+            completedSetsCount={completedSetsCount}
+            totalSets={totalTargetSets}
+            completedExercisesCount={completedExercisesCount}
+            totalExercisesCount={activeWorkout.exercises.length}
+            sessionDate={sessionDate}
+            onSessionDateChange={setSessionDate}
+            sleepHours={sleepHours}
+            onSleepHoursChange={setSleepHours}
+            energyScore={energyScore}
+            onEnergyScoreChange={setEnergyScore}
+            bodyWeightKg={bodyWeightKg}
+            onBodyWeightKgChange={setBodyWeightKg}
+            sessionNotes={sessionNotes}
+            onSessionNotesChange={setSessionNotes}
+            selectedPhotos={selectedPhotos}
+            photoPreviews={photoPreviews}
+            onRemovePhoto={handleRemovePhoto}
+            onPhotoSelect={handlePhotoSelect}
+            cameraInputRef={cameraInputRef}
+            fileInputRef={fileInputRef}
+            loggingWorkout={loggingWorkout}
+            isUploadingPhotos={isUploadingPhotos}
+            errorMsg={errorMsg}
+            onConfirmSave={handleLogWorkout}
           />
 
           {/* Outlier / Unrealistic Value Confirmation Guard */}

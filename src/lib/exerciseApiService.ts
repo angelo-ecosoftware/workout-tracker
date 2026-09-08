@@ -586,3 +586,60 @@ export async function getExerciseDetailsWithMedia(exerciseName: string): Promise
     bodyParts: [anatomy.category],
   };
 }
+
+/**
+ * Synchronous thumbnail resolver for instant, zero-latency exercise GIF display.
+ * Checks local storage custom overrides, verified canonical dictionary, and cached entries.
+ */
+export function getExerciseThumbnailSync(exerciseName: string, exerciseId?: string): string | null {
+  if (typeof localStorage !== 'undefined' && exerciseId) {
+    try {
+      const custom = localStorage.getItem(`custom_exercise_gif_${exerciseId}`);
+      if (custom && custom.trim()) return custom.trim();
+    } catch {}
+  }
+
+  const clean = cleanExerciseName(exerciseName);
+
+  // Exact match pass
+  for (const [key, verified] of Object.entries(VERIFIED_EXERCISE_MEDIA_MAP)) {
+    const token = key.replace(/_/g, ' ');
+    if (clean === token || clean === verified.canonicalName.toLowerCase()) {
+      return verified.gifUrl;
+    }
+  }
+
+  // Word-boundary pass
+  for (const [key, verified] of Object.entries(VERIFIED_EXERCISE_MEDIA_MAP)) {
+    const token = key.replace(/_/g, ' ');
+    const isMultiWord = token.includes(' ');
+    const wordBoundaryRegex = new RegExp(`\\b${token}\\b`, 'i');
+    if ((isMultiWord && clean.includes(token)) || wordBoundaryRegex.test(clean)) {
+      if (token === 'squat' && (clean.includes('split') || clean.includes('bulgarian') || clean.includes('front'))) {
+        continue;
+      }
+      if (token === 'deadlift' && clean.includes('romanian')) {
+        continue;
+      }
+      if (token === 'plank' && clean.includes('side')) {
+        continue;
+      }
+      return verified.gifUrl;
+    }
+  }
+
+  // Cache pass
+  if (typeof localStorage !== 'undefined') {
+    try {
+      const cacheKey = `exercise_db_cache_${clean.replace(/\s+/g, '_')}`;
+      const cachedRaw = localStorage.getItem(cacheKey);
+      if (cachedRaw) {
+        const parsed = JSON.parse(cachedRaw);
+        if (parsed?.gifUrl) return parsed.gifUrl;
+      }
+    } catch {}
+  }
+
+  return null;
+}
+

@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Zap, Dumbbell, Clock, Info, Ban } from 'lucide-react';
 import { Exercise, UserProfile } from '../../../models.ts';
 import { WgerExerciseInfo } from '../WgerExerciseInfo.tsx';
 import { ExerciseSetRow } from './ExerciseSetRow.tsx';
 import { ExerciseGuideDrawer } from '../ExerciseGuideDrawer.tsx';
 import { formatSingleExerciseName } from '../../../lib/exerciseSearch.ts';
+import {
+  getExerciseThumbnailSync,
+  getExerciseDetailsWithMedia,
+} from '../../../lib/exerciseApiService.ts';
 
 interface ExerciseCardProps {
   exercise: Exercise;
@@ -52,6 +56,32 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onToggleCompleted,
 }) => {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [gifUrl, setGifUrl] = useState<string | null>(() =>
+    getExerciseThumbnailSync(exercise.name, exercise.id)
+  );
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const initial = getExerciseThumbnailSync(exercise.name, exercise.id);
+    if (initial) {
+      setGifUrl(initial);
+      setImgError(false);
+      return;
+    }
+    getExerciseDetailsWithMedia(exercise.name)
+      .then((res) => {
+        if (isMounted && res?.gifUrl) {
+          setGifUrl(res.gifUrl);
+          setImgError(false);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, [exercise.name, exercise.id]);
+
   const cachedEx = userProfile?.lastSetSummaryPerExercise?.[exercise.id];
   const displayName = formatSingleExerciseName(exercise.name);
 
@@ -82,20 +112,10 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         aria-expanded={isExpanded}
       >
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-              <h4
-                className={`font-display font-black text-base tracking-tight uppercase transition-colors ${
-                  isSkipped
-                    ? 'text-gray-500 line-through'
-                    : isExpanded
-                    ? 'text-white'
-                    : 'text-gray-300 hover:text-[#C0FF00]'
-                }`}
-              >
-                {displayName}
-              </h4>
-              <span
+          <div className="flex items-start justify-between gap-2.5">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              {/* Exercise Demonstration Animated GIF Thumbnail on the Left of Title */}
+              <div
                 role="button"
                 tabIndex={0}
                 onClick={(e) => {
@@ -108,15 +128,98 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     setIsGuideOpen(true);
                   }
                 }}
-                title={`View guide & muscle anatomy for ${displayName}`}
-                aria-label={`View guide & muscle anatomy for ${displayName}`}
-                className="p-1 rounded-md text-gray-400 hover:text-[#C0FF00] hover:bg-[#1a1a1a] transition-colors cursor-pointer shrink-0 mt-0.5"
+                title={`Open form guide for ${displayName}`}
+                aria-label={`Open form guide for ${displayName}`}
+                className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-[#161616] border border-[#2a2a2a] hover:border-[#C0FF00]/60 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer transition-all shadow-md group/thumb"
               >
-                <Info className="w-3.5 h-3.5" />
-              </span>
+                {gifUrl && !imgError ? (
+                  <img
+                    src={gifUrl}
+                    alt={displayName}
+                    className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform"
+                    onError={() => setImgError(true)}
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-[#181818] text-gray-500 group-hover/thumb:text-[#C0FF00] transition-colors">
+                    <Dumbbell className="w-5 h-5" />
+                  </div>
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                  <h4
+                    className={`font-display font-black text-base tracking-tight uppercase transition-colors ${
+                      isSkipped
+                        ? 'text-gray-500 line-through'
+                        : isExpanded
+                        ? 'text-white'
+                        : 'text-gray-300 hover:text-[#C0FF00]'
+                    }`}
+                  >
+                    {displayName}
+                  </h4>
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsGuideOpen(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.stopPropagation();
+                        setIsGuideOpen(true);
+                      }
+                    }}
+                    title={`View guide & muscle anatomy for ${displayName}`}
+                    aria-label={`View guide & muscle anatomy for ${displayName}`}
+                    className="p-1 rounded-md text-gray-400 hover:text-[#C0FF00] hover:bg-[#1a1a1a] transition-colors cursor-pointer shrink-0 mt-0.5"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+
+                {/* Subline: Target volume */}
+                <p className="font-sans text-[11px] text-gray-400 uppercase tracking-wider font-semibold mt-1">
+                  {isSkipped ? (
+                    <span className="text-amber-400/90 font-mono text-[10px] font-bold">
+                      ⊘ Skipped for this session • No sets will be logged
+                    </span>
+                  ) : (
+                    <>
+                      Target Volume:{' '}
+                      <span className="text-[#C0FF00] font-mono">
+                        {exercise.targetSets} sets × {exercise.targetRepMin}-{exercise.targetRepMax}{' '}
+                        {exercise.type === 'timed' ? 'seconds' : 'reps'}
+                      </span>
+                    </>
+                  )}
+                </p>
+              </div>
             </div>
 
-            <div className="shrink-0 self-start ml-2">
+            <div className="flex items-center gap-2 shrink-0 self-start ml-2">
+              {/* Slim Minimal Smart "Skip / Didn't Do" Button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleSkip && onToggleSkip(exercise.id);
+                }}
+                title={isSkipped ? 'Restore exercise to current session' : "Didn't do this exercise? Skip for this session"}
+                aria-label={isSkipped ? `Restore ${displayName}` : `Skip ${displayName}`}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
+                  isSkipped
+                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40 hover:bg-amber-500/25'
+                    : 'bg-[#181818] hover:bg-neutral-800 text-gray-400 hover:text-white border border-[#2a2a2a]'
+                }`}
+              >
+                <Ban className="w-3 h-3" />
+                <span>{isSkipped ? 'Skipped (Undo)' : 'Skip'}</span>
+              </button>
+
               {isExpanded ? (
                 <div className="p-2 sm:p-1.5 text-[#C0FF00] bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
                   <ChevronUp className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
@@ -127,44 +230,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Subline: Target volume on the left, Skip button cleanly on the right */}
-          <div className="flex items-center justify-between gap-2 mt-2 flex-wrap">
-            <p className="font-sans text-[11px] text-gray-400 uppercase tracking-wider font-semibold">
-              {isSkipped ? (
-                <span className="text-amber-400/90 font-mono text-[10px] font-bold">
-                  ⊘ Skipped for this session • No sets will be logged
-                </span>
-              ) : (
-                <>
-                  Target Volume:{' '}
-                  <span className="text-[#C0FF00] font-mono">
-                    {exercise.targetSets} sets × {exercise.targetRepMin}-{exercise.targetRepMax}{' '}
-                    {exercise.type === 'timed' ? 'seconds' : 'reps'}
-                  </span>
-                </>
-              )}
-            </p>
-
-            {/* Slim Minimal Smart "Skip / Didn't Do" Button */}
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleSkip && onToggleSkip(exercise.id);
-              }}
-              title={isSkipped ? 'Restore exercise to current session' : "Didn't do this exercise? Skip for this session"}
-              aria-label={isSkipped ? `Restore ${displayName}` : `Skip ${displayName}`}
-              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all cursor-pointer shrink-0 ${
-                isSkipped
-                  ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40 hover:bg-amber-500/25'
-                  : 'bg-[#181818] hover:bg-neutral-800 text-gray-400 hover:text-white border border-[#2a2a2a]'
-              }`}
-            >
-              <Ban className="w-3 h-3" />
-              <span>{isSkipped ? 'Skipped (Undo)' : 'Skip'}</span>
-            </button>
           </div>
         </div>
 

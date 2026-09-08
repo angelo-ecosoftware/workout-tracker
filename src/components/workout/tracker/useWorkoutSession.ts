@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { AuthUser } from '../../../context/AuthContext.tsx';
 import { Workout, Exercise, UserProfile } from '../../../models.ts';
 import {
@@ -70,6 +70,79 @@ export function useWorkoutSession(user: AuthUser | null) {
     const val = localStorage.getItem('setting_rest_duration_seconds');
     return val ? parseInt(val, 10) : 5;
   });
+
+  // Active Workout Session State (Fitness Online hybrid start & timer model)
+  const [isSessionActive, setIsSessionActive] = useState<boolean>(false);
+  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+  const [isFinishModalOpen, setIsFinishModalOpen] = useState<boolean>(false);
+
+  // Load session timer state when activeWorkout changes
+  useEffect(() => {
+    if (!activeWorkout) {
+      setIsSessionActive(false);
+      setSessionStartTime(null);
+      setElapsedSeconds(0);
+      return;
+    }
+
+    try {
+      const activeStored = localStorage.getItem(`workout_session_active_${activeWorkout.id}`);
+      const startTimeStored = localStorage.getItem(`workout_session_start_time_${activeWorkout.id}`);
+
+      if (activeStored === 'true' && startTimeStored) {
+        const startMs = parseInt(startTimeStored, 10);
+        if (!isNaN(startMs) && startMs > 0) {
+          setIsSessionActive(true);
+          setSessionStartTime(startMs);
+          setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
+          return;
+        }
+      }
+    } catch {}
+
+    setIsSessionActive(false);
+    setSessionStartTime(null);
+    setElapsedSeconds(0);
+  }, [activeWorkout?.id]);
+
+  // Wall-clock resilient elapsed timer ticker
+  useEffect(() => {
+    if (!isSessionActive || !sessionStartTime) {
+      return;
+    }
+
+    const tick = () => {
+      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - sessionStartTime) / 1000)));
+    };
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, [isSessionActive, sessionStartTime]);
+
+  const handleStartWorkout = () => {
+    if (!activeWorkout) return;
+    const now = Date.now();
+    setIsSessionActive(true);
+    setSessionStartTime(now);
+    setElapsedSeconds(0);
+    try {
+      localStorage.setItem(`workout_session_active_${activeWorkout.id}`, 'true');
+      localStorage.setItem(`workout_session_start_time_${activeWorkout.id}`, String(now));
+    } catch {}
+  };
+
+  const handleCancelSession = () => {
+    if (!activeWorkout) return;
+    setIsSessionActive(false);
+    setSessionStartTime(null);
+    setElapsedSeconds(0);
+    try {
+      localStorage.removeItem(`workout_session_active_${activeWorkout.id}`);
+      localStorage.removeItem(`workout_session_start_time_${activeWorkout.id}`);
+    } catch {}
+  };
 
   // Sync settings when modified from SettingsModal
   useEffect(() => {
@@ -587,7 +660,9 @@ export function useWorkoutSession(user: AuthUser | null) {
 
     try {
       let completedAtDate: Date | undefined;
-      const sessionStartedAtDate: Date | undefined = undefined;
+      const sessionStartedAtDate: Date | undefined = sessionStartTime
+        ? new Date(sessionStartTime)
+        : undefined;
 
       if (sessionDate) {
         const baseTime = new Date();
@@ -707,6 +782,17 @@ export function useWorkoutSession(user: AuthUser | null) {
       setSelectedPhotos([]);
       photoPreviews.forEach((url) => URL.revokeObjectURL(url));
       setPhotoPreviews([]);
+
+      if (activeWorkout) {
+        setIsSessionActive(false);
+        setSessionStartTime(null);
+        setElapsedSeconds(0);
+        try {
+          localStorage.removeItem(`workout_session_active_${activeWorkout.id}`);
+          localStorage.removeItem(`workout_session_start_time_${activeWorkout.id}`);
+        } catch {}
+      }
+      setIsFinishModalOpen(false);
 
       // Trigger Celebration Modal
       setCelebrationSummary(celebrationData);
@@ -911,6 +997,35 @@ export function useWorkoutSession(user: AuthUser | null) {
     });
   };
 
+  const totalTargetSets = useMemo(() => {
+    if (!activeWorkout) return 0;
+    return activeWorkout.exercises.reduce((sum, ex) => {
+      if (skippedExerciseIds.has(ex.id)) return sum;
+      return sum + (ex.targetSets || 3);
+    }, 0);
+  }, [activeWorkout, skippedExerciseIds]);
+
+  const completedSetsCount = useMemo(() => {
+    if (!activeWorkout) return 0;
+    return Object.entries(inputs).filter(([, val]) => val?.completed).length;
+  }, [activeWorkout, inputs]);
+
+  const completedExercisesCount = useMemo(() => {
+    if (!activeWorkout) return 0;
+    return activeWorkout.exercises.filter((ex) => {
+      if (skippedExerciseIds.has(ex.id)) return true;
+      const target = ex.targetSets || 3;
+      let allDone = true;
+      for (let i = 1; i <= target; i++) {
+        if (!inputs[`${ex.id}-${i}`]?.completed) {
+          allDone = false;
+          break;
+        }
+      }
+      return allDone;
+    }).length;
+  }, [activeWorkout, inputs, skippedExerciseIds]);
+
   return {
     workouts,
     setWorkouts,
@@ -949,6 +1064,17 @@ export function useWorkoutSession(user: AuthUser | null) {
     restDurationSeconds,
     setRestDurationSeconds,
     inputs,
+    isSessionActive,
+    setIsSessionActive,
+    sessionStartTime,
+    elapsedSeconds,
+    isFinishModalOpen,
+    setIsFinishModalOpen,
+    totalTargetSets,
+    completedSetsCount,
+    completedExercisesCount,
+    handleStartWorkout,
+    handleCancelSession,
     handlePhotoSelect,
     handleRemovePhoto,
     saveDraftCheckpoint,

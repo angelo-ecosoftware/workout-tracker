@@ -180,8 +180,13 @@ describe('WorkoutDayTracker Component', () => {
     await user.type(notesInput, 'Crushed incline press today');
     expect(notesInput).toHaveValue('Crushed incline press today');
 
-    // Click submit workout button and verify submission pipeline dispatch
+    // Click submit workout button to open Finish Workout modal
     await user.click(submitBtn);
+
+    // Confirm in the Finish Workout modal
+    const saveAndCompleteBtn = await screen.findByRole('button', { name: /save & complete session/i });
+    expect(saveAndCompleteBtn).toBeInTheDocument();
+    await user.click(saveAndCompleteBtn);
 
     await waitFor(() => {
       expect(SupabaseData.logSessionCompletion).toHaveBeenCalledTimes(1);
