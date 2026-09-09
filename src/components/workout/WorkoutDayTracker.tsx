@@ -177,6 +177,7 @@ export const WorkoutDayTracker: React.FC = () => {
           setActiveWorkout(w);
           setErrorMsg(null);
         }}
+        onOpenRoutineEditor={() => setIsRoutineEditorOpen(true)}
       />
 
       {activeWorkout && (
@@ -379,6 +380,22 @@ export const WorkoutDayTracker: React.FC = () => {
             onClose={() => setAutoRestTimer((prev) => ({ ...prev, isOpen: false }))}
           />
         </div>
+      )}
+
+      {/* Routine Editor Modal (opens when clicking Edit on routine selector) */}
+      {user && (
+        <RoutineEditorModal
+          isOpen={isRoutineEditorOpen}
+          onClose={() => setIsRoutineEditorOpen(false)}
+          userId={user.uid}
+          workouts={workouts}
+          onSaveWorkouts={async (updatedWorkouts) => {
+            await saveWorkoutsAndExercises(user.uid, updatedWorkouts);
+            setWorkouts(updatedWorkouts);
+            setIsRoutineEditorOpen(false);
+            await loadWorkflowState();
+          }}
+        />
       )}
     </div>
   );

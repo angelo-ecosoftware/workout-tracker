@@ -369,35 +369,6 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                     Programs
                   </div>
 
-                  {/* Edit Routines & Exercises Button */}
-                  <button
-                    type="button"
-                    onClick={handleOpenRoutineEditor}
-                    disabled={loadingWorkouts}
-                    className="flex items-center justify-between gap-3 w-full p-3 bg-[#161616] hover:bg-[#1f1f1f] border border-[#262626] hover:border-[#383838] rounded-xl text-left transition-all group cursor-pointer min-h-[48px]"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className="w-7 h-7 rounded-lg bg-[#C0FF00]/10 border border-[#C0FF00]/20 flex items-center justify-center text-[#C0FF00] shrink-0">
-                        {loadingWorkouts ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <Layers className="w-3.5 h-3.5" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="font-bold text-xs sm:text-sm text-white truncate">
-                          Edit Routines & Exercises
-                        </div>
-                        <div className="text-[11px] text-gray-500 truncate">
-                          Customize days, exercises & targets
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-[10px] font-mono font-bold text-[#C0FF00] uppercase tracking-wider shrink-0 bg-[#C0FF00]/10 border border-[#C0FF00]/20 px-2 py-0.5 rounded">
-                      Configure
-                    </div>
-                  </button>
-
                   {/* Saved Routines Library Button */}
                   <button
                     type="button"

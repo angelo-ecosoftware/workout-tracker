@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Workout, Exercise } from '../../../models.ts';
-import { Flame } from 'lucide-react';
+import { Flame, Edit3 } from 'lucide-react';
 import { SessionEngine } from '../../../engine.ts';
 
 interface RoutineSplitSelectorProps {
@@ -10,6 +10,7 @@ interface RoutineSplitSelectorProps {
   lastSessionDay: number | null;
   sessions?: Array<{ completedAt?: Date | string | null; startedAt?: Date | string | null; status?: string }>;
   onSelectWorkout: (workout: Workout & { exercises: Exercise[] }) => void;
+  onOpenRoutineEditor?: () => void;
 }
 
 export const RoutineSplitSelector: React.FC<RoutineSplitSelectorProps> = ({
@@ -19,6 +20,7 @@ export const RoutineSplitSelector: React.FC<RoutineSplitSelectorProps> = ({
   lastSessionDay,
   sessions,
   onSelectWorkout,
+  onOpenRoutineEditor,
 }) => {
   const streakStatus = useMemo(
     () => SessionEngine.calculateRoutineStreak(sessions),
@@ -124,22 +126,36 @@ export const RoutineSplitSelector: React.FC<RoutineSplitSelectorProps> = ({
               </span>
             )}
           </div>
-          <span className="flex items-center gap-1.5 text-[#C0FF00] font-bold font-mono">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#C0FF00] inline-block animate-pulse"></span>
-            SUGGESTED:{' '}
-            {workouts.find((w) => w.order === suggestedDay)?.name.split(' (')[0] || `Day ${suggestedDay}`}
-          </span>
+          {onOpenRoutineEditor && (
+            <button
+              type="button"
+              onClick={onOpenRoutineEditor}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#161616] hover:bg-[#202020] border border-[#2a2a2a] hover:border-[#C0FF00]/50 text-gray-300 hover:text-white font-mono text-[11px] font-bold transition-all cursor-pointer shadow-sm group"
+              title="Edit routines & exercises"
+              aria-label="Edit routines & exercises"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-[#C0FF00] group-hover:scale-110 transition-transform" />
+              <span>Edit</span>
+            </button>
+          )}
         </div>
       ) : (
-        <div className="mt-4 text-[10px] text-gray-500 font-sans flex items-center justify-between border-t border-[#222] pt-3">
+        <div className="mt-4 text-[10px] text-gray-500 font-sans flex items-center justify-between border-t border-[#222] pt-3 flex-wrap gap-2">
           <span className="font-mono text-gray-400">
             CURRENT SPLIT PROGRESSION
           </span>
-          <span className="flex items-center gap-1.5 text-[#C0FF00] font-bold font-mono">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#C0FF00] inline-block animate-pulse"></span>
-            SUGGESTED:{' '}
-            {workouts.find((w) => w.order === suggestedDay)?.name.split(' (')[0] || `Day ${suggestedDay}`}
-          </span>
+          {onOpenRoutineEditor && (
+            <button
+              type="button"
+              onClick={onOpenRoutineEditor}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#161616] hover:bg-[#202020] border border-[#2a2a2a] hover:border-[#C0FF00]/50 text-gray-300 hover:text-white font-mono text-[11px] font-bold transition-all cursor-pointer shadow-sm group"
+              title="Edit routines & exercises"
+              aria-label="Edit routines & exercises"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-[#C0FF00] group-hover:scale-110 transition-transform" />
+              <span>Edit</span>
+            </button>
+          )}
         </div>
       )}
     </div>

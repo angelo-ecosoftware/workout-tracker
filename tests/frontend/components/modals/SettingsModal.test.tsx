@@ -92,7 +92,7 @@ describe('SettingsModal Component (Dynamic Behavioral Suite)', () => {
     expect(screen.getByText(/theme & appearance/i)).toBeInTheDocument();
     expect(screen.getByText(/rest interval timer/i)).toBeInTheDocument();
     expect(screen.queryByText(/assisted workout/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/edit routines & exercises/i)).toBeInTheDocument();
+    expect(screen.getByText(/saved routines library/i)).toBeInTheDocument();
 
     // Click back button to return to Settings home
     const backBtn = screen.getByRole('button', { name: /back to settings menu/i });
