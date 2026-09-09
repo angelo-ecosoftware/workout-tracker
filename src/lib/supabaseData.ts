@@ -1407,16 +1407,39 @@ import { WGER_EXERCISE_CATALOG, CatalogExercise } from '../data/exerciseCatalog.
 import { registerCatalogThumbnails } from './exerciseApiService.ts';
 import { ExerciseSearchEngine } from './exerciseSearch.ts';
 
-let cachedCatalogExercises: CatalogExercise[] | null = null;
+const CATALOG_STORAGE_KEY = 'kinisia_catalog_exercises_v1';
+
+let cachedCatalogExercises: CatalogExercise[] | null = (() => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(CATALOG_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 50) {
+        return parsed as CatalogExercise[];
+      }
+    }
+  } catch {}
+  return null;
+})();
+
+if (cachedCatalogExercises && cachedCatalogExercises.length > 50) {
+  try {
+    ExerciseSearchEngine.setCatalog(cachedCatalogExercises);
+  } catch {}
+}
 
 /**
  * Fetches all 1,500+ animated GIF exercises directly from the Supabase PostgreSQL database (public.exercises).
  * Uses chunked range pagination to bypass Supabase's default 1,000 row cap.
- * Falls back to pre-cached core exercises if offline.
+ * Automatically persists full catalog to localStorage so the installed mobile app has 100% of all exercises offline.
  */
 export async function fetchAllCatalogExercises(): Promise<CatalogExercise[]> {
   if (cachedCatalogExercises && cachedCatalogExercises.length > 50) {
-    return cachedCatalogExercises;
+    // Return instantly from memory / persistent storage, while allowing silent background refresh if online
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      return cachedCatalogExercises;
+    }
   }
 
   try {
@@ -1487,13 +1510,23 @@ export async function fetchAllCatalogExercises(): Promise<CatalogExercise[]> {
 
       cachedCatalogExercises = mapped;
       ExerciseSearchEngine.setCatalog(mapped);
+
+      // Persist full catalog locally so standalone installed PWA has all exercises instantly offline
+      try {
+        localStorage.setItem(CATALOG_STORAGE_KEY, JSON.stringify(mapped));
+      } catch (storageErr) {
+        console.warn('Could not persist catalog to localStorage:', storageErr);
+      }
+
       return mapped;
     }
   } catch (err) {
     console.warn('Error querying exercises table:', err);
   }
 
-  return WGER_EXERCISE_CATALOG;
+  return cachedCatalogExercises && cachedCatalogExercises.length > 0
+    ? cachedCatalogExercises
+    : WGER_EXERCISE_CATALOG;
 }
 
 // Re-export roles, coaching, privacy, and routine library APIs

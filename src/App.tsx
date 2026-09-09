@@ -15,6 +15,7 @@ import { CoachViewAsBanner } from './components/coach/CoachViewAsBanner.tsx';
 import { CoachInviteAcceptModal } from './components/modals/CoachInviteAcceptModal.tsx';
 import { LandingPage } from './components/landing/LandingPage.tsx';
 import { fetchInviteByCode } from './lib/db/roles.ts';
+import { fetchAllCatalogExercises } from './lib/supabaseData.ts';
 import { CoachAthleteLink } from './models.ts';
 import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
 import { isGoogleAuthUrl, sanitizeAuthenticatedSession } from './utils/authUrl.ts';
@@ -111,6 +112,11 @@ const GymAppContent: React.FC = () => {
     } catch {}
     setShowLoginModal(isLoginRoute());
   };
+
+  // Eagerly prefetch the full exercise catalog so installed mobile PWA has all exercises cached offline
+  useEffect(() => {
+    fetchAllCatalogExercises().catch(() => {});
+  }, []);
 
   // Automatically default admins to 'admin' tab if no specific tab was requested
   useEffect(() => {
