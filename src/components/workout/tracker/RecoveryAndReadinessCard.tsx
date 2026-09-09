@@ -87,15 +87,15 @@ export const RecoveryAndReadinessCard: React.FC<RecoveryAndReadinessCardProps> =
           </div>
 
           {!isExpanded && (
-            <div className="flex items-center gap-2 text-[10px] font-mono text-gray-400 ml-auto">
-              <span className="bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#262626]">
+            <div className="flex items-center gap-1.5 text-[9px] font-mono text-gray-400 ml-auto">
+              <span className="bg-[#181818] px-1.5 py-0.5 rounded border border-[#262626]">
                 💤 {sleepHours}h
               </span>
-              <span className="bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#262626]">
+              <span className="bg-[#181818] px-1.5 py-0.5 rounded border border-[#262626]">
                 ⚡ {energyScore}/10
               </span>
               {bodyWeightKg && (
-                <span className="bg-[#1a1a1a] px-2 py-0.5 rounded border border-[#262626]">
+                <span className="bg-[#181818] px-1.5 py-0.5 rounded border border-[#262626]">
                   ⚖️ {bodyWeightKg}kg
                 </span>
               )}

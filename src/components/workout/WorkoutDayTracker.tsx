@@ -181,21 +181,7 @@ export const WorkoutDayTracker: React.FC = () => {
 
       {activeWorkout && (
         <div className="space-y-6">
-          {/* Section 1: Active Workout Overview & Start Timer Header */}
-          <ActiveWorkoutHeaderBar
-            workoutName={activeWorkout.name}
-            workoutOrder={activeWorkout.order}
-            exerciseCount={activeWorkout.exercises.length}
-            totalSets={totalTargetSets}
-            completedSetsCount={completedSetsCount}
-            isSessionActive={isSessionActive}
-            elapsedSeconds={elapsedSeconds}
-            onStartWorkout={handleStartWorkout}
-            onFinishWorkout={() => setIsFinishModalOpen(true)}
-            onCancelSession={handleCancelSession}
-          />
-
-          {/* Section 2: Recovery Metrics Header block */}
+          {/* Section 1: Recovery Metrics Header block (Placed on Top) */}
           <div className="space-y-4">
             <RecoveryAndReadinessCard
               sessionDate={sessionDate}
@@ -271,6 +257,20 @@ export const WorkoutDayTracker: React.FC = () => {
               fileInputRef={fileInputRef}
             />
           </div>
+
+          {/* Section 2: Active Workout Overview & Start Timer Header */}
+          <ActiveWorkoutHeaderBar
+            workoutName={activeWorkout.name}
+            workoutOrder={activeWorkout.order}
+            exerciseCount={activeWorkout.exercises.length}
+            totalSets={totalTargetSets}
+            completedSetsCount={completedSetsCount}
+            isSessionActive={isSessionActive}
+            elapsedSeconds={elapsedSeconds}
+            onStartWorkout={handleStartWorkout}
+            onFinishWorkout={() => setIsFinishModalOpen(true)}
+            onCancelSession={handleCancelSession}
+          />
 
           {/* Section 3: Exercises List */}
           <div className="space-y-5">

@@ -190,7 +190,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   ) : (
                     <>
                       Target Volume:{' '}
-                      <span className="text-[#C0FF00] font-mono">
+                      <span className="text-white font-mono font-bold">
                         {exercise.targetSets} sets × {exercise.targetRepMin}-{exercise.targetRepMax}{' '}
                         {exercise.type === 'timed' ? 'seconds' : 'reps'}
                       </span>
