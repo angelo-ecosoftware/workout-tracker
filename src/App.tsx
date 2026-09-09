@@ -13,6 +13,7 @@ import { CoachPortalView } from './components/coach/CoachPortalView.tsx';
 import { AdminPortalView } from './components/admin/AdminPortalView.tsx';
 import { CoachViewAsBanner } from './components/coach/CoachViewAsBanner.tsx';
 import { CoachInviteAcceptModal } from './components/modals/CoachInviteAcceptModal.tsx';
+import { LandingPage } from './components/landing/LandingPage.tsx';
 import { fetchInviteByCode } from './lib/db/roles.ts';
 import { CoachAthleteLink } from './models.ts';
 import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
@@ -84,6 +85,20 @@ const GymAppContent: React.FC = () => {
   const [inspectingClient, setInspectingClient] = useState<{ athleteId: string; athleteName: string } | null>(null);
   const [coachPersonalWorkoutMode, setCoachPersonalWorkoutMode] = useState<boolean>(() => {
     return localStorage.getItem('coach_personal_workout_mode') === 'true';
+  });
+
+  // Determines whether to show the landing page vs direct login screen
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const hash = window.location.hash.toLowerCase();
+    const search = window.location.search.toLowerCase();
+    const pathname = window.location.pathname.toLowerCase();
+    return (
+      hash.includes('login') ||
+      hash.includes('admin') ||
+      pathname.includes('/admin') ||
+      search.includes('login')
+    );
   });
 
   // Automatically default admins to 'admin' tab if no specific tab was requested
@@ -214,7 +229,34 @@ const GymAppContent: React.FC = () => {
   }
 
   if (!user) {
-    return <LoginScreen />;
+    if (showLoginModal) {
+      return (
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => {
+              setShowLoginModal(false);
+              if (window.location.hash.includes('login')) {
+                window.history.pushState(null, '', window.location.pathname);
+              }
+            }}
+            className="fixed top-4 left-4 z-50 px-3 py-1.5 rounded-xl bg-[#141414] hover:bg-[#202020] border border-[#2a2a2a] text-xs font-mono text-gray-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
+          >
+            &larr; Back to Home
+          </button>
+          <LoginScreen />
+        </div>
+      );
+    }
+    return (
+      <LandingPage
+        onStartNow={() => setShowLoginModal(true)}
+        onOpenAdminLogin={() => {
+          window.location.hash = '#admin';
+          setShowLoginModal(true);
+        }}
+      />
+    );
   }
 
   // Pure Admin Experience: Strip all athlete and coaching modules
