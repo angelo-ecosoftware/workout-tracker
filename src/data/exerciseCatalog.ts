@@ -339,6 +339,28 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     ]
   },
   {
+    id: 'wger_seated_leg_press',
+    name: 'Seated Leg Press',
+    category: 'Legs',
+    muscles: ['Quadriceps', 'Gluteus maximus', 'Hamstrings', 'Quads'],
+    equipment: 'Machine / Cable',
+    type: 'strength',
+    defaultSets: 3,
+    defaultRepMin: 10,
+    defaultRepMax: 15,
+    images: [
+      'https://static.exercisedb.dev/media/2Qh2J1e.gif',
+      'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Leg_Press/0.jpg'
+    ],
+    instructions: [
+      'Sit comfortably on the machine with your back and head supported firmly against the padded seat.',
+      'Place your feet shoulder-width apart flat on the footplate in the middle or slightly high for glute/quad emphasis.',
+      'Disengage the safety levers and unlock your knees slightly without letting them bow inward.',
+      'Lower the weight platform under complete control by bending your knees to approximately 90 degrees.',
+      'Drive powerfully through your heels and mid-foot to press the platform back to starting position without locking out knees abruptly.'
+    ]
+  },
+  {
     id: 'wger_leg_curl',
     name: 'Lying Leg Curl',
     category: 'Legs',
