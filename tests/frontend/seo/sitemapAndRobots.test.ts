@@ -139,5 +139,15 @@ describe('SEO: Sitemap & Robots Generators', () => {
       expect(regex.test('/login')).toBe(true);
       expect(regex.test('/dashboard')).toBe(true);
     });
+
+    it('verifies vite.config.ts configures workbox navigateFallbackDenylist for sitemap and robots', () => {
+      const viteConfigPath = path.resolve(process.cwd(), 'vite.config.ts');
+      expect(fs.existsSync(viteConfigPath)).toBe(true);
+      const content = fs.readFileSync(viteConfigPath, 'utf-8');
+
+      expect(content).toContain('navigateFallbackDenylist');
+      expect(content).toContain('/^\\/sitemap\\.xml$/');
+      expect(content).toContain('/^\\/robots\\.txt$/');
+    });
   });
 });

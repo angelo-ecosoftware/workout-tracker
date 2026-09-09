@@ -37,6 +37,31 @@
     <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <script>
+      // If a cached PWA Service Worker mistakenly intercepted sitemap.xml or robots.txt navigation,
+      // unregister it, clear caches, and reload so the browser directly receives the raw server XML / plain text response.
+      (function() {
+        var path = window.location.pathname;
+        if (path === '/sitemap.xml' || path === '/robots.txt') {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              if (regs.length > 0) {
+                Promise.all(regs.map(function(r) { return r.unregister(); })).then(function() {
+                  if ('caches' in window) {
+                    caches.keys().then(function(keys) {
+                      Promise.all(keys.map(function(k) { return caches.delete(k); })).then(function() {
+                        window.location.reload();
+                      });
+                    });
+                  } else {
+                    window.location.reload();
+                  }
+                });
+              }
+            });
+          }
+        }
+      })();
+
       // Capture beforeinstallprompt before React loads so it is never missed
       window.deferredInstallPrompt = null;
       window.addEventListener('beforeinstallprompt', function(e) {
