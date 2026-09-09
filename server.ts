@@ -132,15 +132,27 @@ async function startServer() {
         return res.status(500).json({ error: "Missing Supabase configuration" });
       }
       const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
-      const { data, error } = await supabaseClient
-        .from("exercises")
-        .select("id, name, type, target_sets, target_rep_min, target_rep_max, category, image_url, is_custom")
-        .order("name", { ascending: true });
+      const allExercises: any[] = [];
+      let from = 0;
+      const pageSize = 1000;
 
-      if (error) {
-        return res.status(500).json({ error: error.message });
+      while (true) {
+        const { data, error } = await supabaseClient
+          .from("exercises")
+          .select("id, name, type, target_sets, target_rep_min, target_rep_max, category, image_url, is_custom")
+          .order("name", { ascending: true })
+          .range(from, from + pageSize - 1);
+
+        if (error) {
+          return res.status(500).json({ error: error.message });
+        }
+        if (!data || data.length === 0) break;
+        allExercises.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
       }
-      return res.status(200).json({ success: true, count: data?.length || 0, exercises: data || [] });
+
+      return res.status(200).json({ success: true, count: allExercises.length, exercises: allExercises });
     } catch (err: any) {
       return res.status(500).json({ error: err.message || "Failed to fetch exercises" });
     }

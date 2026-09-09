@@ -18,12 +18,11 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [visibleCount, setVisibleCount] = useState(50);
   const [dbLoadedCount, setDbLoadedCount] = useState<number>(() => ExerciseSearchEngine.count());
   const [isLoadingDb, setIsLoadingDb] = useState(false);
   const [detailExercise, setDetailExercise] = useState<{ id: string; name: string } | null>(null);
 
-  // Fetch full 900+ exercise catalog from Supabase PostgreSQL database
+  // Fetch full 1,500+ animated GIF exercise catalog from Supabase PostgreSQL database
   useEffect(() => {
     let isMounted = true;
     setIsLoadingDb(true);
@@ -47,7 +46,7 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
 
   const categories = useMemo(() => ExerciseSearchEngine.getCategories(), [dbLoadedCount]);
 
-  // Return ALL matching results without any rigid 20-item cap
+  // Return ALL matching results without any slicing or artificial caps
   const allSearchResults = useMemo(() => {
     return ExerciseSearchEngine.search({
       query: searchTerm,
@@ -55,25 +54,6 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
       limit: null,
     });
   }, [searchTerm, selectedCategory, dbLoadedCount]);
-
-  // Reset scroll window whenever search query or category filter changes
-  useEffect(() => {
-    setVisibleCount(50);
-  }, [searchTerm, selectedCategory]);
-
-  // Infinite scroll slice for smooth 60fps rendering up to all 909+ exercises
-  const visibleResults = useMemo(() => {
-    return allSearchResults.slice(0, visibleCount);
-  }, [allSearchResults, visibleCount]);
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-    if (scrollTop + clientHeight >= scrollHeight - 120) {
-      if (visibleCount < allSearchResults.length) {
-        setVisibleCount((prev) => Math.min(allSearchResults.length, prev + 50));
-      }
-    }
-  };
 
   const handlePickCatalogItem = (item: CatalogExercise) => {
     onSelectExercise({
@@ -112,10 +92,7 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
             </span>
             <span className="text-[10px] font-mono font-bold bg-[#1a1a1a] text-[#C0FF00] border border-[#333] px-2 py-0.5 rounded-full flex items-center gap-1.5">
               {isLoadingDb && <Loader2 className="w-3 h-3 animate-spin text-[#C0FF00]" />}
-              <span>
-                Showing {visibleResults.length} of {allSearchResults.length} exercises
-                {allSearchResults.length > 50 ? ' (Live from Database)' : ''}
-              </span>
+              <span>{allSearchResults.length} exercises (100% Animated GIFs)</span>
             </span>
           </div>
         </div>
@@ -171,100 +148,75 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
         })}
       </div>
 
-      {/* Results List */}
-      <div
-        onScroll={handleScroll}
-        className="max-h-[380px] sm:max-h-[440px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin"
-      >
-        {visibleResults.length > 0 ? (
-          <>
-            {visibleResults.map((item) => {
-              const thumb = (item.images && item.images.length > 0)
-                ? item.images[0]
-                : getExerciseThumbnailSync(item.name, item.id);
+      {/* Results List - displays ALL exercises continuously without truncation */}
+      <div className="max-h-[420px] sm:max-h-[480px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
+        {allSearchResults.length > 0 ? (
+          allSearchResults.map((item) => {
+            const thumb = (item.images && item.images.length > 0)
+              ? item.images[0]
+              : getExerciseThumbnailSync(item.name, item.id);
 
-              return (
-                <div
-                  key={item.id}
-                  onClick={() => handlePickCatalogItem(item)}
-                  className="flex items-center justify-between p-2 rounded-xl bg-[#181818] hover:bg-[#202020] border border-[#262626] hover:border-[#C0FF00]/40 transition-all cursor-pointer group"
-                >
-                  <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                    {/* Thumbnail Preview */}
-                    <div className="w-10 h-10 rounded-lg bg-[#111] border border-[#2a2a2a] overflow-hidden shrink-0 flex items-center justify-center">
-                      {thumb ? (
-                        <img
-                          src={thumb}
-                          alt={item.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                          loading="lazy"
-                          onError={(e) => {
-                            (e.target as HTMLElement).style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <Dumbbell className="w-4 h-4 text-gray-500 group-hover:text-[#C0FF00] transition-colors" />
-                      )}
-                    </div>
-
-                    <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-                      <div className="font-display font-bold text-xs text-white group-hover:text-[#C0FF00] transition-colors truncate">
-                        {item.name}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-[9px] font-mono text-gray-400 flex-wrap">
-                        <span className="bg-[#111] px-1.5 py-0.2 rounded text-gray-300 border border-[#222]">
-                          {item.category}
-                        </span>
-                        <span className="truncate">{item.muscles.slice(0, 2).join(', ')}</span>
-                        <span className="text-gray-500">• {item.equipment}</span>
-                      </div>
-                    </div>
+            return (
+              <div
+                key={item.id}
+                onClick={() => handlePickCatalogItem(item)}
+                className="flex items-center justify-between p-2 rounded-xl bg-[#181818] hover:bg-[#202020] border border-[#262626] hover:border-[#C0FF00]/40 transition-all cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  {/* Thumbnail Preview */}
+                  <div className="w-10 h-10 rounded-lg bg-[#111] border border-[#2a2a2a] overflow-hidden shrink-0 flex items-center justify-center">
+                    {thumb ? (
+                      <img
+                        src={thumb}
+                        alt={item.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        loading="lazy"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <Dumbbell className="w-4 h-4 text-gray-500 group-hover:text-[#C0FF00] transition-colors" />
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                    <span className="text-[9px] font-mono text-gray-500 hidden sm:inline mr-1">
-                      {item.defaultSets}×{item.defaultRepMin}-{item.defaultRepMax}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDetailExercise({ id: item.id, name: item.name });
-                      }}
-                      className="p-1.5 rounded-lg bg-[#222] hover:bg-[#333] hover:text-[#C0FF00] text-gray-400 transition-colors cursor-pointer"
-                      title={`View guide & form cues for ${item.name}`}
-                      aria-label={`View guide & form cues for ${item.name}`}
-                    >
-                      <Info className="w-3.5 h-3.5" />
-                    </button>
-                    <div className="w-6 h-6 rounded-lg bg-[#222] group-hover:bg-[#C0FF00] group-hover:text-black flex items-center justify-center text-gray-300 transition-colors">
-                      <Plus className="w-3.5 h-3.5" />
+                  <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                    <div className="font-display font-bold text-xs text-white group-hover:text-[#C0FF00] transition-colors truncate">
+                      {item.name}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[9px] font-mono text-gray-400 flex-wrap">
+                      <span className="bg-[#111] px-1.5 py-0.2 rounded text-gray-300 border border-[#222]">
+                        {item.category}
+                      </span>
+                      <span className="truncate">{item.muscles.slice(0, 2).join(', ')}</span>
+                      <span className="text-gray-500">• {item.equipment}</span>
                     </div>
                   </div>
                 </div>
-              );
-            })}
 
-            {/* Pagination / Load All Footer */}
-            {visibleCount < allSearchResults.length && (
-              <div className="py-2.5 flex items-center justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setVisibleCount((prev) => Math.min(allSearchResults.length, prev + 50))}
-                  className="px-3 py-1.5 rounded-lg bg-[#202020] hover:bg-[#282828] border border-[#333] text-gray-300 hover:text-white font-mono text-[10px] font-bold cursor-pointer transition-colors"
-                >
-                  Load Next 50 ({allSearchResults.length - visibleCount} more)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVisibleCount(allSearchResults.length)}
-                  className="px-3 py-1.5 rounded-lg bg-[#C0FF00]/10 hover:bg-[#C0FF00]/20 border border-[#C0FF00]/30 text-[#C0FF00] font-mono text-[10px] font-bold cursor-pointer transition-colors"
-                >
-                  Show All {allSearchResults.length}
-                </button>
+                <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                  <span className="text-[9px] font-mono text-gray-500 hidden sm:inline mr-1">
+                    {item.defaultSets}×{item.defaultRepMin}-{item.defaultRepMax}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDetailExercise({ id: item.id, name: item.name });
+                    }}
+                    className="p-1.5 rounded-lg bg-[#222] hover:bg-[#333] hover:text-[#C0FF00] text-gray-400 transition-colors cursor-pointer"
+                    title={`View guide & form cues for ${item.name}`}
+                    aria-label={`View guide & form cues for ${item.name}`}
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                  </button>
+                  <div className="w-6 h-6 rounded-lg bg-[#222] group-hover:bg-[#C0FF00] group-hover:text-black flex items-center justify-center text-gray-300 transition-colors">
+                    <Plus className="w-3.5 h-3.5" />
+                  </div>
+                </div>
               </div>
-            )}
-          </>
+            );
+          })
         ) : (
           <div className="text-center py-5 space-y-2">
             <p className="text-xs text-gray-500 font-mono">No matching catalog exercises found.</p>

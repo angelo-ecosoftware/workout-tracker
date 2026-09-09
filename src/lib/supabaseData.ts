@@ -1410,7 +1410,8 @@ import { ExerciseSearchEngine } from './exerciseSearch.ts';
 let cachedCatalogExercises: CatalogExercise[] | null = null;
 
 /**
- * Fetches all 900+ exercises directly from the Supabase PostgreSQL database (public.exercises).
+ * Fetches all 1,500+ animated GIF exercises directly from the Supabase PostgreSQL database (public.exercises).
+ * Uses chunked range pagination to bypass Supabase's default 1,000 row cap.
  * Falls back to pre-cached core exercises if offline.
  */
 export async function fetchAllCatalogExercises(): Promise<CatalogExercise[]> {
@@ -1419,19 +1420,32 @@ export async function fetchAllCatalogExercises(): Promise<CatalogExercise[]> {
   }
 
   try {
-    const { data, error } = await supabase
-      .from('exercises')
-      .select('id, name, type, target_sets, target_rep_min, target_rep_max, category, image_url, is_custom')
-      .order('name', { ascending: true });
+    const allRows: any[] = [];
+    const pageSize = 1000;
+    let from = 0;
 
-    if (error) {
-      console.warn('Could not fetch catalog exercises from Supabase:', error);
-      return WGER_EXERCISE_CATALOG;
+    while (true) {
+      const { data, error } = await supabase
+        .from('exercises')
+        .select('id, name, type, target_sets, target_rep_min, target_rep_max, category, image_url, is_custom')
+        .order('name', { ascending: true })
+        .range(from, from + pageSize - 1);
+
+      if (error) {
+        console.warn('Could not fetch catalog exercises from Supabase:', error);
+        break;
+      }
+
+      if (!data || data.length === 0) break;
+      allRows.push(...data);
+
+      if (data.length < pageSize) break;
+      from += pageSize;
     }
 
-    if (data && data.length > 0) {
+    if (allRows.length > 0) {
       // Register thumbnail URLs into runtime lookup
-      registerCatalogThumbnails(data);
+      registerCatalogThumbnails(allRows);
 
       const seen = new Set<string>();
       const mapped: CatalogExercise[] = [];
@@ -1441,7 +1455,7 @@ export async function fetchAllCatalogExercises(): Promise<CatalogExercise[]> {
         wgerMap.set(w.name.toLowerCase().trim(), w);
       }
 
-      for (const row of data) {
+      for (const row of allRows) {
         const key = row.name.toLowerCase().trim();
         if (seen.has(key)) continue;
         seen.add(key);
