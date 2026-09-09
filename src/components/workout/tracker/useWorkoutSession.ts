@@ -905,7 +905,18 @@ export function useWorkoutSession(user: AuthUser | null) {
               }
             : { weight: '20', reps: '10', durationSeconds: '', difficulty: '' };
 
-          const inputValues = inputs[key] || defaultInput;
+          const rawInputValues = inputs[key] || defaultInput;
+          // In sequential set mode, if item/set is not checked it should be put on 0 (kg/reps or sec)
+          const isSetChecked = Boolean(rawInputValues.completed);
+          const inputValues =
+            isSequentialSetMode && !isSetChecked
+              ? {
+                  ...rawInputValues,
+                  weight: '0',
+                  reps: '0',
+                  durationSeconds: '0',
+                }
+              : rawInputValues;
 
           if (isTimed) {
             let secNum = parseInt(inputValues.durationSeconds || '', 10);
@@ -954,7 +965,7 @@ export function useWorkoutSession(user: AuthUser | null) {
               warnings.push(`${ex.name} (Set ${i}): Rep count is empty or non-numeric (will record as 0 reps).`);
             } else if (repsNum > 100) {
               warnings.push(`${ex.name} (Set ${i}): Rep count (${repsNum} reps) is unusually high (>100 reps).`);
-            } else if (repsNum <= 0) {
+            } else if (repsNum <= 0 && isSetChecked) {
               warnings.push(`${ex.name} (Set ${i}): Rep count is 0.`);
             }
 
@@ -1035,9 +1046,21 @@ export function useWorkoutSession(user: AuthUser | null) {
         ...prev,
         [key]: {
           ...current,
-          completed: isNowCompleted,
-          completedAt: isNowCompleted ? nowIso : undefined,
-          startedAt: effectiveStartedAt,
+          // If set is unchecked, both values (weight/reps for strength or durationSeconds for timed) are put to '0'
+          ...(isNowCompleted
+            ? {
+                completed: true,
+                completedAt: nowIso,
+                startedAt: effectiveStartedAt,
+              }
+            : {
+                completed: false,
+                completedAt: undefined,
+                startedAt: undefined,
+                weight: '0',
+                reps: '0',
+                durationSeconds: '0',
+              }),
         },
       };
 

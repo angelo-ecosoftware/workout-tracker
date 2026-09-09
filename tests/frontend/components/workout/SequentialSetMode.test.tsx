@@ -182,4 +182,35 @@ describe('Sequential Set Mode & Motivational Praise Feature', () => {
       expect(screen.getByText(/cable flyes/i)).toBeInTheDocument();
     });
   });
+
+  it('3. Sets weight, reps, and seconds to 0 when a set is unchecked or left unchecked', async () => {
+    const user = userEvent.setup();
+    render(<WorkoutDayTracker />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('switch', { name: /set\(s\) mode/i })).toBeInTheDocument();
+    });
+
+    // Expand first exercise using its title text
+    const ex1Title = await screen.findByText(/incline dumbbell press/i);
+    await user.click(ex1Title);
+
+    // Check set 1
+    const checkSet1Btn = await screen.findByRole('checkbox', { name: /mark set 1 complete/i });
+    await user.click(checkSet1Btn);
+
+    // Now uncheck set 1
+    const uncheckSet1Btn = await screen.findByRole('checkbox', { name: /mark set 1 incomplete/i });
+    await user.click(uncheckSet1Btn);
+
+    // Assert weight and reps inputs for set 1 are set to 0
+    const setLabel = await screen.findByText(/set 1/i);
+    const setRow = setLabel.closest('div[class*="rounded-xl"]');
+    const rowInputs = setRow!.querySelectorAll('input[type="text"]');
+    const weightInput = rowInputs[0] as HTMLInputElement;
+    const repsInput = rowInputs[1] as HTMLInputElement;
+
+    expect(weightInput.value).toBe('0');
+    expect(repsInput.value).toBe('0');
+  });
 });
