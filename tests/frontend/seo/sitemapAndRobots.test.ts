@@ -108,5 +108,36 @@ describe('SEO: Sitemap & Robots Generators', () => {
       expect(content).toContain('Disallow: /dashboard/*');
       expect(content).toContain('Sitemap: https://kinisia.nl/sitemap.xml');
     });
+
+    it('verifies vercel.json preserves XML and robots without rewriting to index.html', () => {
+      const vercelPath = path.resolve(process.cwd(), 'vercel.json');
+      expect(fs.existsSync(vercelPath)).toBe(true);
+      const config = JSON.parse(fs.readFileSync(vercelPath, 'utf-8'));
+
+      // Check headers
+      const sitemapHeader = config.headers?.find((h: any) => h.source === '/sitemap.xml');
+      expect(sitemapHeader).toBeDefined();
+      const sitemapCt = sitemapHeader.headers.find((header: any) => header.key === 'Content-Type');
+      expect(sitemapCt.value).toContain('application/xml');
+
+      const robotsHeader = config.headers?.find((h: any) => h.source === '/robots.txt');
+      expect(robotsHeader).toBeDefined();
+      const robotsCt = robotsHeader.headers.find((header: any) => header.key === 'Content-Type');
+      expect(robotsCt.value).toContain('text/plain');
+
+      // Check rewrites regex: must not match .xml or .txt
+      const spaRewrite = config.rewrites?.find((r: any) => r.destination === '/index.html');
+      expect(spaRewrite).toBeDefined();
+      const regex = new RegExp(`^${spaRewrite.source}$`);
+
+      // File extensions must NOT be rewritten to index.html
+      expect(regex.test('/sitemap.xml')).toBe(false);
+      expect(regex.test('/robots.txt')).toBe(false);
+      expect(regex.test('/manifest.webmanifest')).toBe(false);
+
+      // SPA routes must be rewritten to index.html
+      expect(regex.test('/login')).toBe(true);
+      expect(regex.test('/dashboard')).toBe(true);
+    });
   });
 });

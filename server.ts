@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
 import { createClient } from "@supabase/supabase-js";
@@ -168,6 +169,35 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
+
+    app.get("/sitemap.xml", (_req, res) => {
+      res.setHeader("Content-Type", "application/xml; charset=utf-8");
+      const candidates = [
+        path.join(distPath, "sitemap.xml"),
+        path.join(process.cwd(), "public", "sitemap.xml"),
+      ];
+      for (const filePath of candidates) {
+        if (fs.existsSync(filePath)) {
+          return res.sendFile(filePath);
+        }
+      }
+      return res.status(404).send("Not found");
+    });
+
+    app.get("/robots.txt", (_req, res) => {
+      res.setHeader("Content-Type", "text/plain; charset=utf-8");
+      const candidates = [
+        path.join(distPath, "robots.txt"),
+        path.join(process.cwd(), "public", "robots.txt"),
+      ];
+      for (const filePath of candidates) {
+        if (fs.existsSync(filePath)) {
+          return res.sendFile(filePath);
+        }
+      }
+      return res.status(404).send("Not found");
+    });
+
     // SPA catch-all for React frontend routers
     app.get("*", (_req, res) => {
       res.sendFile(path.join(distPath, "index.html"));
