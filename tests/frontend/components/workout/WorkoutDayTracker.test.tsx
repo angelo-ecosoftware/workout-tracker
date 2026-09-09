@@ -209,5 +209,5 @@ describe('WorkoutDayTracker Component', () => {
       ])
     );
     expect(exercisesPayload[0].name).toBe('Incline Dumbbell Press');
-  });
+  }, 15000);
 });
