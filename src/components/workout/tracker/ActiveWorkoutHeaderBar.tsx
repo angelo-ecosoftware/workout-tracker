@@ -127,7 +127,7 @@ export const ActiveWorkoutHeaderBar: React.FC<ActiveWorkoutHeaderBarProps> = ({
               onClick={onCancelSession}
               title="Reset workout timer"
               aria-label="Reset workout timer"
-              className="p-2 text-gray-400 hover:text-red-400 bg-[#1c1c1c] hover:bg-red-950/30 border border-[#2a2a2a] rounded-xl transition-colors cursor-pointer hidden sm:flex items-center justify-center"
+              className="p-2 sm:p-2.5 text-gray-400 hover:text-red-400 bg-[#1c1c1c] hover:bg-red-950/30 border border-[#2a2a2a] rounded-xl transition-colors cursor-pointer flex items-center justify-center"
             >
               <RotateCcw className="w-4 h-4" />
             </button>

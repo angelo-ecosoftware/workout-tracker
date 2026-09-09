@@ -1,11 +1,13 @@
 import React from 'react';
-import { Dumbbell, Loader2, CheckCircle2, ArrowRight, BookOpen } from 'lucide-react';
+import { Dumbbell, Loader2, CheckCircle2, ArrowRight, BookOpen, Play } from 'lucide-react';
 
 interface WorkoutSubmitButtonProps {
   errorMsg: string | null;
   successMsg: string | null;
   loggingWorkout: boolean;
   isUploadingPhotos: boolean;
+  isSessionActive: boolean;
+  onStartWorkout: () => void;
   onSubmit: () => void;
 }
 
@@ -14,6 +16,8 @@ export const WorkoutSubmitButton: React.FC<WorkoutSubmitButtonProps> = ({
   successMsg,
   loggingWorkout,
   isUploadingPhotos,
+  isSessionActive,
+  onStartWorkout,
   onSubmit,
 }) => {
   return (
@@ -44,19 +48,30 @@ export const WorkoutSubmitButton: React.FC<WorkoutSubmitButtonProps> = ({
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={onSubmit}
-        disabled={loggingWorkout || isUploadingPhotos}
-        className="w-full flex items-center justify-center gap-2.5 py-4 bg-white hover:bg-gray-100 disabled:bg-[#1a1a1a] disabled:text-gray-600 disabled:border-[#222] text-black rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-200 shadow-[0_0_25px_rgba(255,255,255,0.06)] cursor-pointer"
-      >
-        {loggingWorkout || isUploadingPhotos ? (
-          <Loader2 className="w-4 h-4 animate-spin text-black" />
-        ) : (
-          <Dumbbell className="w-4.5 h-4.5 fill-black" />
-        )}
-        {isUploadingPhotos ? 'UPLOADING PHOTOS...' : 'SUBMIT WORKOUT'}
-      </button>
+      {!isSessionActive ? (
+        <button
+          type="button"
+          onClick={onStartWorkout}
+          className="w-full flex items-center justify-center gap-2.5 py-4 bg-[#C0FF00] hover:bg-[#b0f000] text-black rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-200 shadow-[0_0_25px_rgba(192,255,0,0.25)] hover:shadow-[0_0_35px_rgba(192,255,0,0.4)] cursor-pointer active:scale-98"
+        >
+          <Play className="w-4.5 h-4.5 fill-black text-black" />
+          <span>START WORKOUT</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onSubmit}
+          disabled={loggingWorkout || isUploadingPhotos}
+          className="w-full flex items-center justify-center gap-2.5 py-4 bg-white hover:bg-gray-100 disabled:bg-[#1a1a1a] disabled:text-gray-600 disabled:border-[#222] text-black rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-200 shadow-[0_0_25px_rgba(255,255,255,0.06)] cursor-pointer active:scale-98"
+        >
+          {loggingWorkout || isUploadingPhotos ? (
+            <Loader2 className="w-4 h-4 animate-spin text-black" />
+          ) : (
+            <Dumbbell className="w-4.5 h-4.5 fill-black" />
+          )}
+          <span>{isUploadingPhotos ? 'UPLOADING PHOTOS...' : 'SUBMIT WORKOUT'}</span>
+        </button>
+      )}
     </div>
   );
 };

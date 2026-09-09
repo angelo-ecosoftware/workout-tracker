@@ -167,7 +167,16 @@ describe('WorkoutDayTracker Component', () => {
     await user.type(repsInput, '10');
     expect(repsInput).toHaveValue('10');
 
-    const submitBtn = screen.getByRole('button', { name: /submit workout/i });
+    // Before starting workout, cannot submit - only START WORKOUT is available
+    expect(screen.queryByRole('button', { name: /submit workout/i })).not.toBeInTheDocument();
+    const startBtns = screen.getAllByRole('button', { name: /start workout/i });
+    expect(startBtns.length).toBeGreaterThan(0);
+
+    // Start the workout session
+    await user.click(startBtns[0]);
+
+    // Now workout is started: submit button is active and accessible
+    const submitBtn = await screen.findByRole('button', { name: /submit workout/i });
     expect(submitBtn).toBeInTheDocument();
 
     // Expand Recovery & Readiness card to type session notes (collapsed by default)

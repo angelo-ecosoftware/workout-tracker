@@ -811,6 +811,11 @@ export function useWorkoutSession(user: AuthUser | null) {
   const handleLogWorkout = async () => {
     if (!activeWorkout) return;
 
+    if (!isSessionActive) {
+      setErrorMsg('Please start the workout before submitting.');
+      return;
+    }
+
     setErrorMsg(null);
     setSuccessMsg(null);
 

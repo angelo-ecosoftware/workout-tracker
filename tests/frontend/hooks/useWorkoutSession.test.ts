@@ -173,6 +173,58 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
     expect(result.current.activeWorkout?.name).toBe('Leg Day Hypertrophy');
   });
 
+  it('blocks handleLogWorkout when the session has not been started', async () => {
+    const { result } = renderHook(() => useWorkoutSession(mockUser));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.isSessionActive).toBe(false);
+
+    await act(async () => {
+      await result.current.handleLogWorkout();
+    });
+
+    expect(result.current.errorMsg).toContain('start the workout before submitting');
+    expect(result.current.successMsg).toBeNull();
+  });
+
+  it('handles vice versa lifecycle: start activates session, cancel reverts to unstarted, submit completes session', async () => {
+    const { result } = renderHook(() => useWorkoutSession(mockUser));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    // 1. Initial state: not started, cannot submit
+    expect(result.current.isSessionActive).toBe(false);
+
+    // 2. Start workout: becomes active
+    act(() => {
+      result.current.handleStartWorkout();
+    });
+    expect(result.current.isSessionActive).toBe(true);
+
+    // 3. Vice versa: cancel reverts to unstarted
+    act(() => {
+      result.current.handleCancelSession();
+    });
+    expect(result.current.isSessionActive).toBe(false);
+
+    // 4. Start again and submit: finishes session and resets to unstarted
+    act(() => {
+      result.current.handleStartWorkout();
+    });
+    expect(result.current.isSessionActive).toBe(true);
+
+    await act(async () => {
+      await result.current.handleLogWorkout();
+    });
+    expect(result.current.isSessionActive).toBe(false);
+    expect(result.current.successMsg).toContain('Workout successfully saved');
+  });
+
   it('dispatches handleLogWorkout and resets session form state', async () => {
     const { result } = renderHook(() => useWorkoutSession(mockUser));
 
@@ -181,6 +233,7 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
     });
 
     act(() => {
+      result.current.handleStartWorkout();
       result.current.setSessionNotes('Solid workout session completed.');
     });
 
@@ -190,6 +243,7 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
 
     expect(result.current.successMsg).toContain('Workout successfully saved');
     expect(result.current.sessionNotes).toBe('');
+    expect(result.current.isSessionActive).toBe(false);
   });
 
   it('strictly isolates drafts per workout routine and prevents cross-day leakage', async () => {
@@ -335,6 +389,11 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
       expect(result.current.loading).toBe(false);
     });
 
+    // Start workout
+    act(() => {
+      result.current.handleStartWorkout();
+    });
+
     // Enter unrealistic weight (500kg)
     act(() => {
       result.current.handleTextChange('ex_bench-1', 'weight', '500');
@@ -363,6 +422,11 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
 
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
+    });
+
+    // Start workout
+    act(() => {
+      result.current.handleStartWorkout();
     });
 
     // Initial state: not skipped
