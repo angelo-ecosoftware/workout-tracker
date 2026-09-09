@@ -203,7 +203,7 @@ export async function lookupBarcodeProduct(barcode: string, currentUserId?: stri
       const offUrl = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(variantCode)}.json`;
       const response = await fetch(offUrl, {
         headers: {
-          'User-Agent': 'WorkoutTrackerPWA/1.0 (Personal Fitness & Nutrition App)',
+          'User-Agent': 'KinisiaPWA/1.0 (Personal Fitness & Nutrition App)',
         },
       });
 

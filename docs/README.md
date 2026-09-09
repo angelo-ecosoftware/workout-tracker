@@ -1,6 +1,6 @@
 # Documentation Index
 
-Welcome to the Workout Tracker documentation directory. All documentation has been organized into domain-specific categories below.
+Welcome to the Kinisia documentation directory. All documentation has been organized into domain-specific categories below.
 
 ---
 

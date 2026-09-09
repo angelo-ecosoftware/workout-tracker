@@ -127,7 +127,7 @@ describe('AdminPortalView (Command Center)', () => {
     await user.click(permTabBtn);
 
     expect(screen.getByText(/Role-Based Access Control \(RBAC\) Page Matrix/i)).toBeInTheDocument();
-    expect(screen.getByText('Daily Workout Tracker')).toBeInTheDocument();
+    expect(screen.getByText('Kinisia Tracker')).toBeInTheDocument();
     expect(screen.getByText('Admin Command Center')).toBeInTheDocument();
   });
 

@@ -1,6 +1,6 @@
-# Workout Tracker — Complete User Manual & Coaching Guide (`USER_MANUAL.md`)
+# Kinisia — Complete User Manual & Coaching Guide (`USER_MANUAL.md`)
 
-Welcome to the **Workout Tracker** user manual. This guide explains how **Athletes** and **Coaches** interact, how the **Mutual Connection Handshake** works, how coaches supervise clients, and how all core features function.
+Welcome to the **Kinisia** user manual. This guide explains how **Athletes** and **Coaches** interact, how the **Mutual Connection Handshake** works, how coaches supervise clients, and how all core features function.
 
 ---
 

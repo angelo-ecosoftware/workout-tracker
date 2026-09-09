@@ -47,7 +47,7 @@ export function generateComplianceDossier(): ComplianceDossierData {
   return {
     generatedAt: timestamp,
     platform: {
-      name: 'Workout Tracker (EU Health-Tech Progressive Web App)',
+      name: 'Kinisia (EU Health-Tech Progressive Web App)',
       version: '2.4.0',
       environment: 'Client-Side PWA + Supabase BaaS + Express Companion Proxy',
       repository: 'angelo-ecosoftware/workout-tracker',

@@ -82,7 +82,7 @@ export const Header: React.FC = () => {
             </div>
             <div>
               <h1 className="font-display font-black italic text-base tracking-tight text-white leading-none uppercase flex items-center gap-1.5">
-                <span>WORKOUT</span> <span className="text-[#C0FF00]">TRACKER</span>
+                <span>KINISIA</span>
                 {isAdmin && (
                   <span className="ml-1 text-[9px] font-mono font-black bg-purple-500/20 text-purple-300 border border-purple-500/40 px-1.5 py-0.5 rounded not-italic">
                     ADMIN

@@ -175,7 +175,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[Personal Gym Tracker Engine] Active. Listening on http://localhost:${PORT}`);
+    console.log(`[Kinisia Engine] Active. Listening on http://localhost:${PORT}`);
   });
 }
 

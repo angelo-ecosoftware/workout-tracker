@@ -60,7 +60,7 @@ describe('Header Component (Dynamic Behavioral Suite)', () => {
       </ThemeProvider>
     );
 
-    expect(screen.getByRole('heading', { name: /workout tracker/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /kinisia/i })).toBeInTheDocument();
     expect(screen.getByText(/CHAMPION ATHLETE/i)).toBeInTheDocument();
   });
 

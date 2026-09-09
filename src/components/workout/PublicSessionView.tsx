@@ -79,7 +79,7 @@ export const PublicSessionView: React.FC<PublicSessionViewProps> = ({ sessionId,
             onClick={handleStartApp}
             className="w-full mt-4 bg-[#C0FF00] text-black font-mono font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider hover:bg-[#b0f000] transition-colors flex items-center justify-center gap-2"
           >
-            Go to Workout Tracker <ArrowRight className="w-4 h-4" />
+            Go to Kinisia <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       </div>

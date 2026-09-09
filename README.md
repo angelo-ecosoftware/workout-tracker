@@ -1,4 +1,4 @@
-# Personal Workout Tracker & Coaching Platform
+# Kinisia — Minimal Personal Split Tracker & Coaching Platform
 
 A minimal, lightning-fast personal workout split tracker, dietary logger, and coach management application built with React 19, TypeScript, Tailwind CSS v4, and Supabase.
 

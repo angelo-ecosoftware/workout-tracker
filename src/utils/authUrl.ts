@@ -2,7 +2,7 @@
  * Authentication & OAuth Navigation Sanitizer
  * 
  * Intercepts back-navigation to Google sign-in/account chooser URLs and stale OAuth parameters,
- * ensuring logged-in users are immediately redirected back into the active workout tracker view.
+ * ensuring logged-in users are immediately redirected back into the active Kinisia view.
  */
 
 /**

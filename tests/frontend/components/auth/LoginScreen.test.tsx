@@ -40,7 +40,7 @@ describe('LoginScreen Component (Dynamic Behavioral Suite)', () => {
   it('renders application branding, title, and sign in button', () => {
     render(<LoginScreen />);
 
-    expect(screen.getByRole('heading', { name: /workout tracker/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /kinisia/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
   });
 

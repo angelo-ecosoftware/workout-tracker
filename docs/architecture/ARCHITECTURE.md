@@ -1,6 +1,6 @@
-# Workout Tracker Architecture & Component Structure
+# Kinisia Architecture & Component Structure
 
-This document defines the modular domain-driven and reusable component folder structure for the Workout Tracker application.
+This document defines the modular domain-driven and reusable component folder structure for the Kinisia application.
 
 ---
 

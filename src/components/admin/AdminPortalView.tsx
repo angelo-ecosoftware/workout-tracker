@@ -481,7 +481,7 @@ export const AdminPortalView: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-[#1e1e1e] text-xs font-mono">
                 <tr>
-                  <td className="py-3 px-3 font-bold text-white">Daily Workout Tracker</td>
+                  <td className="py-3 px-3 font-bold text-white">Kinisia Tracker</td>
                   <td className="py-3 px-3 text-gray-400">/#tracker</td>
                   <td className="py-3 px-3 text-center text-emerald-400 font-bold"><Check className="w-4 h-4 mx-auto stroke-[3]" /></td>
                   <td className="py-3 px-3 text-center text-emerald-400 font-bold"><Check className="w-4 h-4 mx-auto stroke-[3]" /></td>

@@ -171,7 +171,7 @@ export const LoginScreen: React.FC = () => {
           </div>
           
           <h1 className="font-display text-3xl font-black italic tracking-tighter text-white mb-2 uppercase">
-            Workout <span className="text-[#C0FF00]">Tracker</span>
+            KINISIA
           </h1>
           
           <p className="font-sans text-xs text-gray-300 max-w-xs mb-8 uppercase tracking-widest font-semibold leading-relaxed">

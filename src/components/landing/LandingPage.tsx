@@ -125,11 +125,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartNow, onOpenAdmi
           />
 
           <div className="relative max-w-4xl mx-auto space-y-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#161616] border border-[#2a2a2a] text-[11px] font-mono text-[#C0FF00] font-bold">
-              <span className="w-2 h-2 rounded-full bg-[#C0FF00] animate-pulse" aria-hidden="true" />
-              <span>KINISIA • PROGRESSIVE OVERLOAD SYSTEM</span>
-            </div>
-
             <h1
               id="hero-heading"
               className="text-4xl sm:text-6xl md:text-7xl font-display font-black tracking-tight text-white uppercase leading-[1.05]"
@@ -426,7 +421,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartNow, onOpenAdmi
           <div className="flex items-center gap-2">
             <span className="font-display font-bold text-white uppercase">KINISIA</span>
             <span>&bull;</span>
-            <span>&copy; {new Date().getFullYear()} Minimal Gym Tracker</span>
+            <span>&copy; {new Date().getFullYear()} Kinisia</span>
           </div>
 
           <div className="flex items-center gap-4">
@@ -439,7 +434,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartNow, onOpenAdmi
             </button>
             <span>&bull;</span>
             <a href="https://kinisia.nl/#tracker" className="hover:text-white underline">
-              Tracker App
+              Open App
             </a>
           </div>
         </div>
