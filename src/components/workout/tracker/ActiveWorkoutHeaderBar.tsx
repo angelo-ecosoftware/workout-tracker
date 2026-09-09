@@ -10,7 +10,7 @@ interface ActiveWorkoutHeaderBarProps {
   isSessionActive: boolean;
   elapsedSeconds: number;
   onStartWorkout: () => void;
-  onFinishWorkout: () => void;
+  onFinishWorkout?: () => void;
   onCancelSession?: () => void;
 }
 
@@ -77,7 +77,8 @@ export const ActiveWorkoutHeaderBar: React.FC<ActiveWorkoutHeaderBarProps> = ({
         <button
           type="button"
           onClick={onStartWorkout}
-          className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-[#C0FF00] hover:bg-[#b0f000] text-black font-display font-black text-xs uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(192,255,0,0.25)] hover:shadow-[0_0_30px_rgba(192,255,0,0.4)] cursor-pointer active:scale-98 shrink-0"
+          aria-label={`Start workout Day ${workoutOrder}: ${workoutName}`}
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 min-h-[48px] rounded-2xl bg-[#C0FF00] hover:bg-[#b0f000] text-black font-display font-black text-xs uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(192,255,0,0.25)] hover:shadow-[0_0_30px_rgba(192,255,0,0.4)] cursor-pointer active:scale-98 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C0FF00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212]"
         >
           <Play className="w-4 h-4 fill-black text-black" />
           <span>Start Workout</span>
@@ -91,7 +92,7 @@ export const ActiveWorkoutHeaderBar: React.FC<ActiveWorkoutHeaderBarProps> = ({
       <div className="flex items-center justify-between gap-3">
         {/* Left: Active session pulsating indicator */}
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="relative flex h-3 w-3 shrink-0">
+          <span className="relative flex h-3 w-3 shrink-0" aria-hidden="true">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#C0FF00] opacity-75" />
             <span className="relative inline-flex rounded-full h-3 w-3 bg-[#C0FF00]" />
           </span>
@@ -109,7 +110,11 @@ export const ActiveWorkoutHeaderBar: React.FC<ActiveWorkoutHeaderBarProps> = ({
 
             {/* Live Monospace Elapsed Stopwatch */}
             <div className="flex items-baseline gap-2">
-              <span className="font-mono text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-[0_0_10px_rgba(255,255,255,0.15)]">
+              <span
+                className="font-mono text-xl sm:text-2xl font-black text-white tracking-tight drop-shadow-[0_0_10px_rgba(255,255,255,0.15)]"
+                aria-live="polite"
+                aria-label={`Elapsed time: ${formatTimer(elapsedSeconds)}`}
+              >
                 {formatTimer(elapsedSeconds)}
               </span>
               <span className="text-[10px] font-mono text-gray-400">
@@ -119,33 +124,28 @@ export const ActiveWorkoutHeaderBar: React.FC<ActiveWorkoutHeaderBarProps> = ({
           </div>
         </div>
 
-        {/* Right: Actions */}
-        <div className="flex items-center gap-2 shrink-0">
-          {onCancelSession && (
-            <button
-              type="button"
-              onClick={onCancelSession}
-              title="Reset workout timer"
-              aria-label="Reset workout timer"
-              className="p-2 sm:p-2.5 text-gray-400 hover:text-red-400 bg-[#1c1c1c] hover:bg-red-950/30 border border-[#2a2a2a] rounded-xl transition-colors cursor-pointer flex items-center justify-center"
-            >
-              <RotateCcw className="w-4 h-4" />
-            </button>
-          )}
-
+        {/* Right: Actions (Reset timer & revert session to unstarted) */}
+        {onCancelSession && (
           <button
             type="button"
-            onClick={onFinishWorkout}
-            className="inline-flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-white hover:bg-gray-100 text-black font-display font-black text-xs uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(255,255,255,0.15)] cursor-pointer active:scale-98"
+            onClick={onCancelSession}
+            title="Reset workout timer"
+            aria-label="Reset workout timer"
+            className="p-2.5 text-gray-400 hover:text-red-400 bg-[#1c1c1c] hover:bg-red-950/30 border border-[#2a2a2a] rounded-xl transition-colors cursor-pointer flex items-center justify-center min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 shrink-0"
           >
-            <CheckCircle2 className="w-4 h-4 text-black" />
-            <span>Finish Workout</span>
+            <RotateCcw className="w-4 h-4" />
           </button>
-        </div>
+        )}
       </div>
 
       {/* Mini Progress Bar */}
-      <div className="w-full bg-[#202020] h-1.5 rounded-full overflow-hidden">
+      <div
+        className="w-full bg-[#202020] h-1.5 rounded-full overflow-hidden"
+        role="progressbar"
+        aria-valuenow={progressPercent}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
         <div
           className="bg-[#C0FF00] h-full rounded-full transition-all duration-300 ease-out shadow-[0_0_8px_rgba(192,255,0,0.6)]"
           style={{ width: `${progressPercent}%` }}

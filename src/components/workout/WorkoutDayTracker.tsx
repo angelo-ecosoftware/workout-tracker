@@ -317,14 +317,7 @@ export const WorkoutDayTracker: React.FC = () => {
             loggingWorkout={loggingWorkout}
             isUploadingPhotos={isUploadingPhotos}
             isSessionActive={isSessionActive}
-            onStartWorkout={handleStartWorkout}
-            onSubmit={() => {
-              if (!isSessionActive) {
-                handleStartWorkout();
-                return;
-              }
-              setIsFinishModalOpen(true);
-            }}
+            onSubmit={() => setIsFinishModalOpen(true)}
           />
 
           {/* Fitness Online Style: Finish Workout Summary Modal */}

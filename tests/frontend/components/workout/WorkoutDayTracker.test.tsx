@@ -167,17 +167,24 @@ describe('WorkoutDayTracker Component', () => {
     await user.type(repsInput, '10');
     expect(repsInput).toHaveValue('10');
 
-    // Before starting workout, cannot submit - only START WORKOUT is available
-    expect(screen.queryByRole('button', { name: /submit workout/i })).not.toBeInTheDocument();
+    // Exactly 1 START WORKOUT button exists on the screen (in the header card)
     const startBtns = screen.getAllByRole('button', { name: /start workout/i });
-    expect(startBtns.length).toBeGreaterThan(0);
+    expect(startBtns).toHaveLength(1);
 
-    // Start the workout session
+    // Exactly 1 SUBMIT WORKOUT button exists on the screen (at the bottom) and is disabled before start
+    const submitBtns = screen.getAllByRole('button', { name: /submit workout/i });
+    expect(submitBtns).toHaveLength(1);
+    expect(submitBtns[0]).toBeDisabled();
+
+    // Start the workout session using the single Start Workout button
     await user.click(startBtns[0]);
 
-    // Now workout is started: submit button is active and accessible
-    const submitBtn = await screen.findByRole('button', { name: /submit workout/i });
-    expect(submitBtn).toBeInTheDocument();
+    // Now workout is started: the single submit button becomes enabled and accessible
+    expect(submitBtns[0]).toBeEnabled();
+
+    // Ensure no duplicate submit/finish button was created in the header
+    expect(screen.getAllByRole('button', { name: /submit workout/i })).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: /finish workout/i })).not.toBeInTheDocument();
 
     // Expand Recovery & Readiness card to type session notes (collapsed by default)
     const recoveryHeader = screen.getByText(/recovery & readiness/i);
@@ -189,8 +196,8 @@ describe('WorkoutDayTracker Component', () => {
     await user.type(notesInput, 'Crushed incline press today');
     expect(notesInput).toHaveValue('Crushed incline press today');
 
-    // Click submit workout button to open Finish Workout modal
-    await user.click(submitBtn);
+    // Click the single submit workout button to open Finish Workout modal
+    await user.click(submitBtns[0]);
 
     // Confirm in the Finish Workout modal
     const saveAndCompleteBtn = await screen.findByRole('button', { name: /save & complete session/i });
