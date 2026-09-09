@@ -135,7 +135,7 @@ describe('Sequential Set Mode & Motivational Praise Feature', () => {
     expect(localStorage.getItem('setting_sequential_set_mode')).toBe('true');
   });
 
-  it('2. Shows only Set 1 when sequential mode is enabled, reveals Set 2 on completion, and shows motivational praise toast', async () => {
+  it('2. Shows only Exercise 1 and Set 1 when sequential mode is enabled; Set 1 disappears when checked and Set 2 appears; then advances to next exercise', async () => {
     const user = userEvent.setup();
     render(<WorkoutDayTracker />);
 
@@ -146,11 +146,11 @@ describe('Sequential Set Mode & Motivational Praise Feature', () => {
     const setToggle = screen.getByRole('switch', { name: /set\(s\) mode/i });
     await user.click(setToggle);
 
-    // Expand the first exercise card
-    const ex1Header = screen.getByText(/incline dumbbell press/i);
-    await user.click(ex1Header);
+    // Only Exercise 1 should be visible initially in sequential mode
+    expect(screen.getByText(/incline dumbbell press/i)).toBeInTheDocument();
+    expect(screen.queryByText(/cable flyes/i)).not.toBeInTheDocument();
 
-    // Only Set 1 should be visible initially in sequential mode
+    // Only Set 1 should be visible (Set 2 should not exist yet)
     expect(screen.getByText(/set 1/i)).toBeInTheDocument();
     expect(screen.queryByText(/set 2/i)).not.toBeInTheDocument();
 
@@ -162,14 +162,24 @@ describe('Sequential Set Mode & Motivational Praise Feature', () => {
     const checkSet1Btn = screen.getByRole('checkbox', { name: /mark set 1 complete/i });
     await user.click(checkSet1Btn);
 
-    // Now Set 2 should be revealed
+    // Set 1 row has disappeared, only Set 2 row is shown in the active exercise
     await waitFor(() => {
-      expect(screen.getByText(/set 2/i)).toBeInTheDocument();
+      expect(screen.getByRole('checkbox', { name: /mark set 2 complete/i })).toBeInTheDocument();
     });
+    expect(screen.queryByRole('checkbox', { name: /mark set 1 incomplete/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: /mark set 1 complete/i })).not.toBeInTheDocument();
 
-    // A motivational toast popup is displayed
+    // A motivational praise toast popup is displayed
     const toast = screen.getByRole('status');
     expect(toast).toBeInTheDocument();
     expect(toast).toHaveTextContent(/incline dumbbell press • set 1 complete/i);
+
+    // Complete Set 2 of Exercise 1 -> Exercise 1 finishes and Exercise 2 appears
+    const checkSet2Btn = screen.getByRole('checkbox', { name: /mark set 2 complete/i });
+    await user.click(checkSet2Btn);
+
+    await waitFor(() => {
+      expect(screen.getByText(/cable flyes/i)).toBeInTheDocument();
+    });
   });
 });

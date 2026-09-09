@@ -282,40 +282,60 @@ export const WorkoutDayTracker: React.FC = () => {
 
           {/* Section 3: Exercises List */}
           <div className="space-y-5">
-            {activeWorkout.exercises.map((ex: Exercise) => {
-              const advice = getProgressionAdvice(ex);
-              const isExpanded = expandedExerciseId === ex.id;
+            {(() => {
+              // In sequential set mode, only show 1 exercise: the current active exercise in order
+              let exercisesToDisplay = activeWorkout.exercises;
+              if (isSequentialSetMode) {
+                // Find first non-skipped exercise that has at least one uncompleted set
+                const activeEx = activeWorkout.exercises.find((ex) => {
+                  if (skippedExerciseIds.has(ex.id)) return false;
+                  for (let i = 1; i <= (ex.targetSets || 3); i++) {
+                    if (!inputs[`${ex.id}-${i}`]?.completed) return true;
+                  }
+                  return false;
+                });
 
-              return (
-                <ExerciseCard
-                  key={ex.id}
-                  exercise={ex}
-                  userProfile={userProfile}
-                  inputs={inputs}
-                  isExpanded={isExpanded}
-                  isSkipped={skippedExerciseIds.has(ex.id)}
-                  isSequentialSetMode={isSequentialSetMode}
-                  advice={advice}
-                  onToggleExpand={() => {
-                    const nextId = isExpanded ? null : ex.id;
-                    setExpandedExerciseId(nextId);
-                    if (user && activeWorkout) {
-                      try {
-                        if (nextId) {
-                          localStorage.setItem(`workout_expanded_ex_${user.uid}_${activeWorkout.id}`, nextId);
-                        } else {
-                          localStorage.removeItem(`workout_expanded_ex_${user.uid}_${activeWorkout.id}`);
-                        }
-                      } catch {}
-                    }
-                  }}
-                  onToggleSkip={toggleSkipExercise}
-                  onUpdateInput={updateInputValue}
-                  onTextInput={handleTextChange}
-                  onToggleCompleted={toggleSetCompleted}
-                />
-              );
-            })}
+                // If all exercises are completed, show the last non-skipped exercise so the user can review
+                const fallbackEx = activeWorkout.exercises.filter((ex) => !skippedExerciseIds.has(ex.id)).slice(-1)[0] || activeWorkout.exercises[0];
+                exercisesToDisplay = activeEx ? [activeEx] : (fallbackEx ? [fallbackEx] : activeWorkout.exercises);
+              }
+
+              return exercisesToDisplay.map((ex: Exercise) => {
+                const advice = getProgressionAdvice(ex);
+                // In sequential set mode, the single active exercise is always expanded
+                const isExpanded = isSequentialSetMode ? true : expandedExerciseId === ex.id;
+
+                return (
+                  <ExerciseCard
+                    key={ex.id}
+                    exercise={ex}
+                    userProfile={userProfile}
+                    inputs={inputs}
+                    isExpanded={isExpanded}
+                    isSkipped={skippedExerciseIds.has(ex.id)}
+                    isSequentialSetMode={isSequentialSetMode}
+                    advice={advice}
+                    onToggleExpand={() => {
+                      const nextId = isExpanded ? null : ex.id;
+                      setExpandedExerciseId(nextId);
+                      if (user && activeWorkout) {
+                        try {
+                          if (nextId) {
+                            localStorage.setItem(`workout_expanded_ex_${user.uid}_${activeWorkout.id}`, nextId);
+                          } else {
+                            localStorage.removeItem(`workout_expanded_ex_${user.uid}_${activeWorkout.id}`);
+                          }
+                        } catch {}
+                      }
+                    }}
+                    onToggleSkip={toggleSkipExercise}
+                    onUpdateInput={updateInputValue}
+                    onTextInput={handleTextChange}
+                    onToggleCompleted={toggleSetCompleted}
+                  />
+                );
+              });
+            })()}
           </div>
 
           {/* Direct log submit button */}

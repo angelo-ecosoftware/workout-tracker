@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { Sparkles, Trophy, Zap, Flame, Award } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Sparkles } from 'lucide-react';
 
 export const MOTIVATIONAL_PRAISES = [
   "Good job!",
@@ -32,12 +32,29 @@ export const SetPraiseToast: React.FC<SetPraiseToastProps> = ({
   setNumber,
   onDismiss,
 }) => {
+  const [isFadingOut, setIsFadingOut] = useState(false);
+
   useEffect(() => {
-    if (!message) return;
-    const timer = setTimeout(() => {
+    if (!message) {
+      setIsFadingOut(false);
+      return;
+    }
+
+    setIsFadingOut(false);
+
+    // After 4.5 seconds start fade out, at 5.0 seconds dismiss completely
+    const fadeTimer = setTimeout(() => {
+      setIsFadingOut(true);
+    }, 4500);
+
+    const dismissTimer = setTimeout(() => {
       onDismiss();
-    }, 2800);
-    return () => clearTimeout(timer);
+    }, 5000);
+
+    return () => {
+      clearTimeout(fadeTimer);
+      clearTimeout(dismissTimer);
+    };
   }, [message, onDismiss]);
 
   if (!message) return null;
@@ -46,7 +63,9 @@ export const SetPraiseToast: React.FC<SetPraiseToastProps> = ({
     <div
       role="status"
       aria-live="polite"
-      className="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm pointer-events-none animate-in fade-in zoom-in-95 duration-200"
+      className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-sm pointer-events-none transition-all duration-500 ease-in-out ${
+        isFadingOut ? 'opacity-0 -translate-y-2' : 'opacity-100 translate-y-0 animate-in fade-in zoom-in-95 duration-200'
+      }`}
     >
       <div className="bg-[#121212]/95 backdrop-blur-xl border border-[#C0FF00]/60 rounded-2xl p-3.5 shadow-[0_10px_35px_rgba(192,255,0,0.25)] flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-[#C0FF00] text-black flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(192,255,0,0.4)]">

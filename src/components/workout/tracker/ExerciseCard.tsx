@@ -326,17 +326,24 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 }
               }
 
-              // In sequential set mode, determine which sets should be visible:
-              // Only reveal up to the current active (first uncompleted) set.
-              // If all sets are completed, show all completed sets so the user sees their finished work.
-              const visibleSetsCount = isSequentialSetMode
-                ? firstUncompletedIndex === -1
-                  ? exercise.targetSets
-                  : firstUncompletedIndex
-                : exercise.targetSets;
+              // In sequential set mode: show strictly 1 singular set at a time.
+              // If set 1 is done, set 1 disappears and only set 2 is shown.
+              // If all sets are done, show the last set (completed) as finished state.
+              const setsToRender: number[] = [];
+              if (isSequentialSetMode) {
+                if (firstUncompletedIndex !== -1) {
+                  setsToRender.push(firstUncompletedIndex);
+                } else {
+                  // All sets completed for this exercise
+                  setsToRender.push(exercise.targetSets);
+                }
+              } else {
+                for (let i = 1; i <= exercise.targetSets; i++) {
+                  setsToRender.push(i);
+                }
+              }
 
-              return Array.from({ length: visibleSetsCount }).map((_, index) => {
-                const setNum = index + 1;
+              return setsToRender.map((setNum) => {
                 const inputKey = `${exercise.id}-${setNum}`;
                 const values = inputs[inputKey] || {
                   weight: '20',
