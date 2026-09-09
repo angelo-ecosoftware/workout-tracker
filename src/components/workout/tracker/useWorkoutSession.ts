@@ -18,6 +18,7 @@ import {
   clearDraftPhotosFromStorage,
 } from '../../../utils/draftPhotoStorage.ts';
 import { WorkoutSummaryCelebration, ExercisePR } from './WorkoutCompletionModal.tsx';
+import { getRandomPraise } from './SetPraiseToast.tsx';
 
 export function useWorkoutSession(user: AuthUser | null) {
   const [workouts, setWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
@@ -70,6 +71,31 @@ export function useWorkoutSession(user: AuthUser | null) {
     const val = localStorage.getItem('setting_rest_duration_seconds');
     return val ? parseInt(val, 10) : 5;
   });
+
+  // Sequential Set Mode (Guided 1 set at a time)
+  const [isSequentialSetMode, setIsSequentialSetMode] = useState<boolean>(() => {
+    const val = localStorage.getItem('setting_sequential_set_mode');
+    return val ? val === 'true' : false;
+  });
+
+  // Motivational Praise Popup Toast for set completions
+  const [setPraiseToast, setSetPraiseToast] = useState<{
+    message: string | null;
+    exerciseName?: string;
+    setNumber?: number;
+  }>({
+    message: null,
+  });
+
+  const toggleSequentialSetMode = () => {
+    setIsSequentialSetMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('setting_sequential_set_mode', String(next));
+      } catch {}
+      return next;
+    });
+  };
 
   // Active Workout Session State (Fitness Online hybrid start & timer model)
   const [isSessionActive, setIsSessionActive] = useState<boolean>(false);
@@ -131,6 +157,28 @@ export function useWorkoutSession(user: AuthUser | null) {
       localStorage.setItem(`workout_session_active_${activeWorkout.id}`, 'true');
       localStorage.setItem(`workout_session_start_time_${activeWorkout.id}`, String(now));
     } catch {}
+
+    // Track start timestamp on the first uncompleted set of the first non-skipped exercise
+    const firstActiveExercise = activeWorkout.exercises.find((ex) => !skippedExerciseIds.has(ex.id));
+    if (firstActiveExercise) {
+      setExpandedExerciseId(firstActiveExercise.id);
+      const firstSetKey = `${firstActiveExercise.id}-1`;
+      setInputs((prev) => {
+        const cur = prev[firstSetKey] || { weight: '20', reps: '10', durationSeconds: '30', difficulty: '7' };
+        if (!cur.startedAt) {
+          const updated = {
+            ...prev,
+            [firstSetKey]: {
+              ...cur,
+              startedAt: new Date(now).toISOString(),
+            },
+          };
+          saveDraftCheckpoint(updated);
+          return updated;
+        }
+        return prev;
+      });
+    }
   };
 
   const handleCancelSession = () => {
@@ -215,6 +263,8 @@ export function useWorkoutSession(user: AuthUser | null) {
         difficulty?: string;
         completed?: boolean;
         completedAt?: string;
+        startedAt?: string;
+        restSeconds?: number;
       }
     >
   >({});
@@ -883,6 +933,8 @@ export function useWorkoutSession(user: AuthUser | null) {
               reps: null,
               durationSeconds: secNum,
               difficulty: diffNum,
+              startedAt: inputValues.startedAt ? new Date(inputValues.startedAt) : null,
+              completedAt: inputValues.completedAt ? new Date(inputValues.completedAt) : null,
             });
           } else {
             let weightNum = parseFloat(inputValues.weight || '');
@@ -917,6 +969,8 @@ export function useWorkoutSession(user: AuthUser | null) {
               reps: repsNum,
               durationSeconds: null,
               difficulty: null,
+              startedAt: inputValues.startedAt ? new Date(inputValues.startedAt) : null,
+              completedAt: inputValues.completedAt ? new Date(inputValues.completedAt) : null,
             });
           }
         }
@@ -953,31 +1007,87 @@ export function useWorkoutSession(user: AuthUser | null) {
   };
 
   const toggleSetCompleted = (key: string) => {
+    const nowDate = new Date();
+    const nowIso = nowDate.toISOString();
+
     setInputs((prev) => {
       const current = prev[key] || { weight: '20', reps: '10', durationSeconds: '30', difficulty: '7' };
       const isNowCompleted = !current.completed;
       const nowTime = isNowCompleted
-        ? new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        ? nowDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         : undefined;
+
+      const lastDashIdx = key.lastIndexOf('-');
+      const currentExId = lastDashIdx !== -1 ? key.substring(0, lastDashIdx) : key;
+      const currentSetNum = lastDashIdx !== -1 ? parseInt(key.substring(lastDashIdx + 1), 10) : 1;
+
+      // Determine startedAt if not already tracked
+      let effectiveStartedAt = current.startedAt;
+      if (isNowCompleted && !effectiveStartedAt) {
+        if (sessionStartTime) {
+          effectiveStartedAt = new Date(sessionStartTime).toISOString();
+        } else {
+          effectiveStartedAt = nowIso;
+        }
+      }
 
       const updated = {
         ...prev,
         [key]: {
           ...current,
           completed: isNowCompleted,
-          completedAt: nowTime,
+          completedAt: isNowCompleted ? nowIso : undefined,
+          startedAt: effectiveStartedAt,
         },
       };
+
+      // If completed and in sequential mode or active session, prepare next set's start time and handle auto-advance
+      if (isNowCompleted && activeWorkout) {
+        const targetExercise = activeWorkout.exercises.find((e) => e.id === currentExId);
+        const targetSets = targetExercise?.targetSets || 3;
+
+        let nextKey: string | null = null;
+        let nextExId: string | null = null;
+
+        if (currentSetNum < targetSets) {
+          nextKey = `${currentExId}-${currentSetNum + 1}`;
+          nextExId = currentExId;
+        } else {
+          // Current exercise sets all finished! Advance to next non-skipped exercise
+          const exIndex = activeWorkout.exercises.findIndex((e) => e.id === currentExId);
+          for (let i = exIndex + 1; i < activeWorkout.exercises.length; i++) {
+            const nextCandidate = activeWorkout.exercises[i];
+            if (!skippedExerciseIds.has(nextCandidate.id)) {
+              nextExId = nextCandidate.id;
+              nextKey = `${nextCandidate.id}-1`;
+              break;
+            }
+          }
+        }
+
+        if (nextKey) {
+          const nextSetVal = updated[nextKey] || { weight: '20', reps: '10', durationSeconds: '30', difficulty: '7' };
+          updated[nextKey] = {
+            ...nextSetVal,
+            startedAt: nowIso,
+          };
+        }
+
+        if (isSequentialSetMode && nextExId) {
+          setExpandedExerciseId(nextExId);
+          if (user && activeWorkout) {
+            try {
+              localStorage.setItem(`workout_expanded_ex_${user.uid}_${activeWorkout.id}`, nextExId);
+            } catch {}
+          }
+        }
+      }
 
       saveDraftCheckpoint(updated);
 
       // P1.3: Trigger rest timer auto-start and haptic vibration when set is checked off
       if (isNowCompleted && activeWorkout) {
-        // Extract exerciseId and setNumber from key (e.g. "ex-1-2" -> exerciseId: "ex-1", setNum: 2)
-        const lastDashIdx = key.lastIndexOf('-');
-        const exId = lastDashIdx !== -1 ? key.substring(0, lastDashIdx) : key;
-        const setNum = lastDashIdx !== -1 ? parseInt(key.substring(lastDashIdx + 1), 10) : 1;
-        const targetExercise = activeWorkout.exercises.find((e) => e.id === exId);
+        const targetExercise = activeWorkout.exercises.find((e) => e.id === currentExId);
 
         // Light haptic pulse confirming checkoff
         if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -986,12 +1096,21 @@ export function useWorkoutSession(user: AuthUser | null) {
           } catch {}
         }
 
+        // Trigger smart motivational praise toast if sequential set mode is enabled
+        if (isSequentialSetMode) {
+          setSetPraiseToast({
+            message: getRandomPraise(),
+            exerciseName: targetExercise?.name,
+            setNumber: currentSetNum,
+          });
+        }
+
         const configuredRest = restDurationSeconds > 0 ? restDurationSeconds : 90;
         setAutoRestTimer({
           isOpen: true,
           durationSeconds: configuredRest,
           exerciseName: targetExercise?.name || '',
-          setNumber: setNum,
+          setNumber: currentSetNum,
         });
       } else if (!isNowCompleted) {
         // Dismiss rest timer if set was unchecked
@@ -1068,6 +1187,10 @@ export function useWorkoutSession(user: AuthUser | null) {
     lastAutoSavedTime,
     restDurationSeconds,
     setRestDurationSeconds,
+    isSequentialSetMode,
+    toggleSequentialSetMode,
+    setPraiseToast,
+    setSetPraiseToast,
     inputs,
     isSessionActive,
     setIsSessionActive,

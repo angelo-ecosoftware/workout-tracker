@@ -1,5 +1,5 @@
 import React from 'react';
-import { Play, CheckCircle2, Clock, Dumbbell, Flame, RotateCcw } from 'lucide-react';
+import { Play, CheckCircle2, Clock, Dumbbell, Flame, RotateCcw, ListFilter } from 'lucide-react';
 
 interface ActiveWorkoutHeaderBarProps {
   workoutName: string;
@@ -9,6 +9,8 @@ interface ActiveWorkoutHeaderBarProps {
   completedSetsCount: number;
   isSessionActive: boolean;
   elapsedSeconds: number;
+  isSequentialSetMode?: boolean;
+  onToggleSequentialSetMode?: () => void;
   onStartWorkout: () => void;
   onFinishWorkout?: () => void;
   onCancelSession?: () => void;
@@ -34,6 +36,8 @@ export const ActiveWorkoutHeaderBar: React.FC<ActiveWorkoutHeaderBarProps> = ({
   completedSetsCount,
   isSessionActive,
   elapsedSeconds,
+  isSequentialSetMode = false,
+  onToggleSequentialSetMode,
   onStartWorkout,
   onFinishWorkout,
   onCancelSession,
@@ -74,15 +78,54 @@ export const ActiveWorkoutHeaderBar: React.FC<ActiveWorkoutHeaderBarProps> = ({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onStartWorkout}
-          aria-label={`Start workout Day ${workoutOrder}: ${workoutName}`}
-          className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 min-h-[48px] rounded-2xl bg-[#C0FF00] hover:bg-[#b0f000] text-black font-display font-black text-xs uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(192,255,0,0.25)] hover:shadow-[0_0_30px_rgba(192,255,0,0.4)] cursor-pointer active:scale-98 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C0FF00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212]"
-        >
-          <Play className="w-4 h-4 fill-black text-black" />
-          <span>Start Workout</span>
-        </button>
+        <div className="flex items-center gap-3 self-stretch sm:self-auto shrink-0">
+          {/* Toggle for Set(s) Tracked Mode in the Red Marked Zone */}
+          {onToggleSequentialSetMode && (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isSequentialSetMode}
+              aria-label="Set(s) Mode"
+              onClick={onToggleSequentialSetMode}
+              title={isSequentialSetMode ? "Set(s) Mode: Active (Focus on 1 set at a time)" : "Set(s) Mode: Inactive (Show all sets)"}
+              className={`inline-flex items-center gap-2 px-3 py-2.5 rounded-2xl border transition-all cursor-pointer select-none ${
+                isSequentialSetMode
+                  ? 'bg-[#1a1a1a] border-[#C0FF00]/60 text-white shadow-[0_0_15px_rgba(192,255,0,0.15)]'
+                  : 'bg-[#141414] border-[#2a2a2a] text-gray-400 hover:text-gray-200 hover:border-[#383838]'
+              }`}
+            >
+              <div className="flex flex-col text-left">
+                <span className="text-[9px] font-mono uppercase tracking-wider text-gray-400">
+                  Set(s)
+                </span>
+                <span className={`text-[11px] font-mono font-bold uppercase ${isSequentialSetMode ? 'text-[#C0FF00]' : 'text-gray-300'}`}>
+                  {isSequentialSetMode ? 'Set: On' : 'Set: All'}
+                </span>
+              </div>
+              <div
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                  isSequentialSetMode ? 'bg-[#C0FF00]' : 'bg-[#2a2a2a]'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-black shadow ring-0 transition duration-200 ease-in-out ${
+                    isSequentialSetMode ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                />
+              </div>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={onStartWorkout}
+            aria-label={`Start workout Day ${workoutOrder}: ${workoutName}`}
+            className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2.5 px-6 py-3.5 min-h-[48px] rounded-2xl bg-[#C0FF00] hover:bg-[#b0f000] text-black font-display font-black text-xs uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(192,255,0,0.25)] hover:shadow-[0_0_30px_rgba(192,255,0,0.4)] cursor-pointer active:scale-98 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C0FF00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212]"
+          >
+            <Play className="w-4 h-4 fill-black text-black" />
+            <span>Start Workout</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -125,17 +168,50 @@ export const ActiveWorkoutHeaderBar: React.FC<ActiveWorkoutHeaderBarProps> = ({
         </div>
 
         {/* Right: Actions (Reset timer & revert session to unstarted) */}
-        {onCancelSession && (
-          <button
-            type="button"
-            onClick={onCancelSession}
-            title="Reset workout timer"
-            aria-label="Reset workout timer"
-            className="p-2.5 text-gray-400 hover:text-red-400 bg-[#1c1c1c] hover:bg-red-950/30 border border-[#2a2a2a] rounded-xl transition-colors cursor-pointer flex items-center justify-center min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 shrink-0"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-        )}
+        <div className="flex items-center gap-2 shrink-0">
+          {onToggleSequentialSetMode && (
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isSequentialSetMode}
+              aria-label="Set(s) Mode"
+              onClick={onToggleSequentialSetMode}
+              title={isSequentialSetMode ? "Set(s) Mode: Active (Focus on 1 set at a time)" : "Set(s) Mode: Inactive (Show all sets)"}
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border transition-all cursor-pointer select-none ${
+                isSequentialSetMode
+                  ? 'bg-[#1a1a1a] border-[#C0FF00]/60 text-white'
+                  : 'bg-[#181818] border-[#2a2a2a] text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              <span className={`text-[10px] font-mono font-bold uppercase ${isSequentialSetMode ? 'text-[#C0FF00]' : 'text-gray-400'}`}>
+                {isSequentialSetMode ? 'Set: On' : 'Set: All'}
+              </span>
+              <div
+                className={`relative inline-flex h-4 w-7 shrink-0 rounded-full border border-transparent transition-colors duration-200 ${
+                  isSequentialSetMode ? 'bg-[#C0FF00]' : 'bg-[#2a2a2a]'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-black shadow transition duration-200 ${
+                    isSequentialSetMode ? 'translate-x-3' : 'translate-x-0'
+                  }`}
+                />
+              </div>
+            </button>
+          )}
+
+          {onCancelSession && (
+            <button
+              type="button"
+              onClick={onCancelSession}
+              title="Reset workout timer"
+              aria-label="Reset workout timer"
+              className="p-2.5 text-gray-400 hover:text-red-400 bg-[#1c1c1c] hover:bg-red-950/30 border border-[#2a2a2a] rounded-xl transition-colors cursor-pointer flex items-center justify-center min-h-[44px] min-w-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 shrink-0"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Mini Progress Bar */}

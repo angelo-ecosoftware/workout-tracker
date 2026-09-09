@@ -26,6 +26,7 @@ interface ExerciseCardProps {
   >;
   isExpanded: boolean;
   isSkipped?: boolean;
+  isSequentialSetMode?: boolean;
   advice: { action: 'increase' | 'keep' | 'deload'; details: string };
   onToggleExpand: () => void;
   onToggleSkip?: (exerciseId: string) => void;
@@ -48,6 +49,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
   inputs,
   isExpanded,
   isSkipped = false,
+  isSequentialSetMode = false,
   advice,
   onToggleExpand,
   onToggleSkip,
@@ -324,7 +326,16 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 }
               }
 
-              return Array.from({ length: exercise.targetSets }).map((_, index) => {
+              // In sequential set mode, determine which sets should be visible:
+              // Only reveal up to the current active (first uncompleted) set.
+              // If all sets are completed, show all completed sets so the user sees their finished work.
+              const visibleSetsCount = isSequentialSetMode
+                ? firstUncompletedIndex === -1
+                  ? exercise.targetSets
+                  : firstUncompletedIndex
+                : exercise.targetSets;
+
+              return Array.from({ length: visibleSetsCount }).map((_, index) => {
                 const setNum = index + 1;
                 const inputKey = `${exercise.id}-${setNum}`;
                 const values = inputs[inputKey] || {

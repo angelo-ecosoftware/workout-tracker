@@ -15,6 +15,7 @@ import { WorkoutCompletionModal } from "./tracker/WorkoutCompletionModal.tsx";
 import { RestTimerDrawer } from "./tracker/RestTimerDrawer.tsx";
 import { ActiveWorkoutHeaderBar } from "./tracker/ActiveWorkoutHeaderBar.tsx";
 import { FinishWorkoutModal } from "./tracker/FinishWorkoutModal.tsx";
+import { SetPraiseToast } from "./tracker/SetPraiseToast.tsx";
 
 export const WorkoutDayTracker: React.FC = () => {
   const { user } = useAuth();
@@ -55,6 +56,10 @@ export const WorkoutDayTracker: React.FC = () => {
     inputs,
     isSessionActive,
     elapsedSeconds,
+    isSequentialSetMode,
+    toggleSequentialSetMode,
+    setPraiseToast,
+    setSetPraiseToast,
     isFinishModalOpen,
     setIsFinishModalOpen,
     totalTargetSets,
@@ -268,6 +273,8 @@ export const WorkoutDayTracker: React.FC = () => {
             completedSetsCount={completedSetsCount}
             isSessionActive={isSessionActive}
             elapsedSeconds={elapsedSeconds}
+            isSequentialSetMode={isSequentialSetMode}
+            onToggleSequentialSetMode={toggleSequentialSetMode}
             onStartWorkout={handleStartWorkout}
             onFinishWorkout={() => setIsFinishModalOpen(true)}
             onCancelSession={handleCancelSession}
@@ -287,6 +294,7 @@ export const WorkoutDayTracker: React.FC = () => {
                   inputs={inputs}
                   isExpanded={isExpanded}
                   isSkipped={skippedExerciseIds.has(ex.id)}
+                  isSequentialSetMode={isSequentialSetMode}
                   advice={advice}
                   onToggleExpand={() => {
                     const nextId = isExpanded ? null : ex.id;
@@ -379,6 +387,14 @@ export const WorkoutDayTracker: React.FC = () => {
             exerciseName={autoRestTimer.exerciseName}
             setNumber={autoRestTimer.setNumber}
             onClose={() => setAutoRestTimer((prev) => ({ ...prev, isOpen: false }))}
+          />
+
+          {/* Motivational Praise Toast on Set Completion */}
+          <SetPraiseToast
+            message={setPraiseToast.message}
+            exerciseName={setPraiseToast.exerciseName}
+            setNumber={setPraiseToast.setNumber}
+            onDismiss={() => setSetPraiseToast({ message: null })}
           />
         </div>
       )}
