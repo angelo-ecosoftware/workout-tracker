@@ -10,6 +10,7 @@ import { RoutineExerciseItem } from './RoutineExerciseItem.tsx';
 import { SavedRoutinesLibraryModal } from './SavedRoutinesLibraryModal.tsx';
 import { formatSingleExerciseName } from '../../lib/exerciseSearch.ts';
 import { SuccessModal } from '../ui/SuccessModal.tsx';
+import { ExerciseGuideDrawer } from '../workout/ExerciseGuideDrawer.tsx';
 
 interface RoutineEditorModalProps {
   isOpen: boolean;
@@ -36,6 +37,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [detailExercise, setDetailExercise] = useState<{ id: string; name: string } | null>(null);
 
   const [workoutToDeleteIndex, setWorkoutToDeleteIndex] = useState<number | null>(null);
 
@@ -311,6 +313,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                         onMove={(dir) => handleMoveExercise(exIdx, dir)}
                         onUpdate={(updates) => handleUpdateExercise(ex.id, updates)}
                         onDelete={() => handleDeleteExercise(ex.id)}
+                        onViewDetails={() => setDetailExercise({ id: ex.id, name: ex.name })}
                       />
                     ))}
                   </div>
@@ -394,6 +397,17 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
         title="Routines Saved!"
         message="Your split routines and exercises have been updated successfully."
       />
+
+      {/* Exercise Detail Guide Drawer */}
+      {detailExercise && (
+        <ExerciseGuideDrawer
+          isOpen={true}
+          exerciseName={detailExercise.name}
+          exerciseId={detailExercise.id}
+          userId={userId}
+          onClose={() => setDetailExercise(null)}
+        />
+      )}
     </div>
   );
 };

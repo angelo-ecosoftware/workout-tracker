@@ -1,6 +1,6 @@
 import React from 'react';
 import { Exercise, ExerciseType } from '../../models.ts';
-import { ChevronUp, ChevronDown, Edit3, Trash2, AlertCircle } from 'lucide-react';
+import { ChevronUp, ChevronDown, Edit3, Trash2, AlertCircle, Info } from 'lucide-react';
 import { formatSingleExerciseName, isCompoundExerciseName } from '../../lib/exerciseSearch.ts';
 
 interface RoutineExerciseItemProps {
@@ -12,6 +12,7 @@ interface RoutineExerciseItemProps {
   onMove: (direction: 'up' | 'down') => void;
   onUpdate: (updates: Partial<Exercise>) => void;
   onDelete: () => void;
+  onViewDetails?: () => void;
 }
 
 export const RoutineExerciseItem: React.FC<RoutineExerciseItemProps> = ({
@@ -23,6 +24,7 @@ export const RoutineExerciseItem: React.FC<RoutineExerciseItemProps> = ({
   onMove,
   onUpdate,
   onDelete,
+  onViewDetails,
 }) => {
   const hasCompoundWarning = isCompoundExerciseName(exercise.name);
 
@@ -55,13 +57,37 @@ export const RoutineExerciseItem: React.FC<RoutineExerciseItemProps> = ({
               )}
             </div>
           ) : (
-            <div className="truncate font-display font-bold text-xs text-white">
-              {formatSingleExerciseName(exercise.name)}
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+              <div className="truncate font-display font-bold text-xs text-white">
+                {formatSingleExerciseName(exercise.name)}
+              </div>
+              {onViewDetails && (
+                <button
+                  type="button"
+                  onClick={onViewDetails}
+                  className="p-1 hover:bg-[#222] text-gray-400 hover:text-[#C0FF00] rounded cursor-pointer shrink-0 transition-colors"
+                  title={`View details & form guide for ${exercise.name}`}
+                  aria-label={`View details & form guide for ${exercise.name}`}
+                >
+                  <Info className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           )}
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
+          {onViewDetails && isEditing && (
+            <button
+              type="button"
+              onClick={onViewDetails}
+              className="p-1 hover:bg-[#222] text-gray-400 hover:text-[#C0FF00] rounded cursor-pointer"
+              title="View exercise guide"
+              aria-label="View exercise guide"
+            >
+              <Info className="w-3.5 h-3.5" />
+            </button>
+          )}
           <button
             type="button"
             disabled={index === 0}

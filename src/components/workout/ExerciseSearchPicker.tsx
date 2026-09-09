@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Plus, Check, Dumbbell, Sparkles, X, Tag, Loader2 } from 'lucide-react';
+import { Search, Plus, Check, Dumbbell, Sparkles, X, Tag, Loader2, Info } from 'lucide-react';
 import { ExerciseSearchEngine } from '../../lib/exerciseSearch.ts';
 import { CatalogExercise } from '../../data/exerciseCatalog.ts';
 import { Exercise } from '../../models.ts';
 import { getExerciseThumbnailSync } from '../../lib/exerciseApiService.ts';
 import { fetchAllCatalogExercises } from '../../lib/supabaseData.ts';
+import { ExerciseGuideDrawer } from './ExerciseGuideDrawer.tsx';
 
 interface ExerciseSearchPickerProps {
   onSelectExercise: (exercise: Partial<Exercise>) => void;
@@ -20,6 +21,7 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
   const [visibleCount, setVisibleCount] = useState(50);
   const [dbLoadedCount, setDbLoadedCount] = useState<number>(() => ExerciseSearchEngine.count());
   const [isLoadingDb, setIsLoadingDb] = useState(false);
+  const [detailExercise, setDetailExercise] = useState<{ id: string; name: string } | null>(null);
 
   // Fetch full 900+ exercise catalog from Supabase PostgreSQL database
   useEffect(() => {
@@ -219,10 +221,22 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 shrink-0 ml-2">
-                    <span className="text-[9px] font-mono text-gray-500 hidden sm:inline">
+                  <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                    <span className="text-[9px] font-mono text-gray-500 hidden sm:inline mr-1">
                       {item.defaultSets}×{item.defaultRepMin}-{item.defaultRepMax}
                     </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDetailExercise({ id: item.id, name: item.name });
+                      }}
+                      className="p-1.5 rounded-lg bg-[#222] hover:bg-[#333] hover:text-[#C0FF00] text-gray-400 transition-colors cursor-pointer"
+                      title={`View guide & form cues for ${item.name}`}
+                      aria-label={`View guide & form cues for ${item.name}`}
+                    >
+                      <Info className="w-3.5 h-3.5" />
+                    </button>
                     <div className="w-6 h-6 rounded-lg bg-[#222] group-hover:bg-[#C0FF00] group-hover:text-black flex items-center justify-center text-gray-300 transition-colors">
                       <Plus className="w-3.5 h-3.5" />
                     </div>
@@ -279,6 +293,16 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
             <Plus className="w-3 h-3" /> Add "{searchTerm}" as custom exercise
           </button>
         </div>
+      )}
+
+      {/* Exercise Detail Guide Drawer */}
+      {detailExercise && (
+        <ExerciseGuideDrawer
+          isOpen={true}
+          exerciseName={detailExercise.name}
+          exerciseId={detailExercise.id}
+          onClose={() => setDetailExercise(null)}
+        />
       )}
     </div>
   );
