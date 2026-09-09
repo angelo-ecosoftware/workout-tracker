@@ -2,6 +2,7 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import dotenv from "dotenv";
+import { createClient } from "@supabase/supabase-js";
 import { scrapeProductFromUrl } from "./api/scraperRegistry.js";
 import { resolveAlbertHeijnBarcode } from "./api/barcode-lookup.js";
 import groceryListHandler from "./api/grocery-list.js";
@@ -121,6 +122,29 @@ async function startServer() {
   };
 
   app.all("/api/block-ip", handleBlockIp);
+
+  // API 7: Master Exercises Catalog Database Proxy
+  app.get("/api/exercises", async (_req, res) => {
+    try {
+      const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
+      const supabaseAnonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
+      if (!supabaseUrl || !supabaseAnonKey) {
+        return res.status(500).json({ error: "Missing Supabase configuration" });
+      }
+      const supabaseClient = createClient(supabaseUrl, supabaseAnonKey);
+      const { data, error } = await supabaseClient
+        .from("exercises")
+        .select("id, name, type, target_sets, target_rep_min, target_rep_max, category, image_url, is_custom")
+        .order("name", { ascending: true });
+
+      if (error) {
+        return res.status(500).json({ error: error.message });
+      }
+      return res.status(200).json({ success: true, count: data?.length || 0, exercises: data || [] });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || "Failed to fetch exercises" });
+    }
+  });
 
   // Vite static middleware mount path routing
   if (process.env.NODE_ENV !== "production") {

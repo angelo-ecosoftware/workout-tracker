@@ -768,6 +768,26 @@ export async function getExerciseDetailsWithMedia(exerciseName: string): Promise
   };
 }
 
+const dynamicCatalogMap = new Map<string, string>();
+
+/**
+ * Registers exercise thumbnail image URLs into the runtime media lookup map.
+ * Called when catalog exercises are loaded from Supabase or server API.
+ */
+export function registerCatalogThumbnails(
+  exercises: Array<{ name: string; id?: string; image_url?: string | null; images?: string[] }>
+): void {
+  for (const ex of exercises) {
+    const img = ex.image_url || ex.images?.[0];
+    if (img) {
+      dynamicCatalogMap.set(cleanExerciseName(ex.name), img);
+      if (ex.id) {
+        dynamicCatalogMap.set(ex.id, img);
+      }
+    }
+  }
+}
+
 function stemToken(token: string): string {
   const w = token.toLowerCase();
   if (w.endsWith('ies')) return w.slice(0, -3) + 'y';
@@ -778,7 +798,7 @@ function stemToken(token: string): string {
 
 /**
  * Synchronous thumbnail resolver for instant, zero-latency exercise GIF display.
- * Checks local storage custom overrides, verified canonical dictionary, and cached entries.
+ * Checks local storage custom overrides, verified canonical dictionary, dynamic database map, and cached entries.
  */
 export function getExerciseThumbnailSync(exerciseName: string, exerciseId?: string): string | null {
   if (typeof localStorage !== 'undefined' && exerciseId) {
@@ -788,9 +808,17 @@ export function getExerciseThumbnailSync(exerciseName: string, exerciseId?: stri
     } catch {}
   }
 
-  const clean = cleanExerciseName(exerciseName);
+  // 1. Dynamic database catalog map pass
+  if (exerciseId && dynamicCatalogMap.has(exerciseId)) {
+    return dynamicCatalogMap.get(exerciseId)!;
+  }
 
-  // 1. Exact match pass against verified GIFs
+  const clean = cleanExerciseName(exerciseName);
+  if (dynamicCatalogMap.has(clean)) {
+    return dynamicCatalogMap.get(clean)!;
+  }
+
+  // 2. Exact match pass against verified GIFs
   for (const [key, verified] of Object.entries(VERIFIED_EXERCISE_MEDIA_MAP)) {
     const token = key.replace(/_/g, ' ');
     if (clean === token || clean === verified.canonicalName.toLowerCase()) {
@@ -798,7 +826,7 @@ export function getExerciseThumbnailSync(exerciseName: string, exerciseId?: stri
     }
   }
 
-  // 2. Token / word-boundary pass with plural/singular stem tolerance
+  // 3. Token / word-boundary pass with plural/singular stem tolerance
   const cleanTokens = clean.split(' ').map(stemToken).filter(Boolean);
 
   for (const [key, verified] of Object.entries(VERIFIED_EXERCISE_MEDIA_MAP)) {
@@ -820,7 +848,7 @@ export function getExerciseThumbnailSync(exerciseName: string, exerciseId?: stri
     }
   }
 
-  // 3. Cache pass
+  // 4. Cache pass
   if (typeof localStorage !== 'undefined') {
     try {
       const cacheKey = `exercise_db_cache_${clean.replace(/\s+/g, '_')}`;
@@ -832,8 +860,7 @@ export function getExerciseThumbnailSync(exerciseName: string, exerciseId?: stri
     } catch {}
   }
 
-  // 4. Master Catalog photo sequence pass (from 876 open exercise library)
-  // Exact name or bidirectional token match
+  // 5. Master Catalog photo sequence pass (cached foundation exercises)
   const masterMatch = MASTER_EXERCISE_CATALOG.find((e) => {
     const eClean = cleanExerciseName(e.name);
     if (eClean === clean) return true;

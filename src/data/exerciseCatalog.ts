@@ -576,32 +576,12 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
   }
 ];
 
-import openExercisesJson from './openExercisesCatalog.json';
-
 /**
- * Complete Master Catalog combining:
- * 1. Verified core gym compound & isolation movements with custom biomechanical cues.
- * 2. 876 comprehensive open-source strength, dumbbell, machine, and calisthenics exercises with demonstration photo sequences.
+ * Core Verified Master Catalog:
+ * Contains the 44 high-fidelity compound and isolation foundation movements
+ * pre-cached locally for instant offline rendering and zero-latency startup.
+ * The remaining 900+ exercises are loaded dynamically from Supabase PostgreSQL (public.exercises)
+ * to keep the client application lightweight.
  */
-export const MASTER_EXERCISE_CATALOG: CatalogExercise[] = (() => {
-  const seenNames = new Set<string>();
-  const combined: CatalogExercise[] = [];
-
-  // Add verified WGER catalog first
-  for (const ex of WGER_EXERCISE_CATALOG) {
-    seenNames.add(ex.name.toLowerCase().trim());
-    combined.push(ex);
-  }
-
-  // Add open exercises catalog without duplicate names
-  for (const item of openExercisesJson as CatalogExercise[]) {
-    const key = item.name.toLowerCase().trim();
-    if (!seenNames.has(key)) {
-      seenNames.add(key);
-      combined.push(item);
-    }
-  }
-
-  return combined;
-})();
+export const MASTER_EXERCISE_CATALOG: CatalogExercise[] = WGER_EXERCISE_CATALOG;
 

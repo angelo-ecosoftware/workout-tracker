@@ -1400,6 +1400,88 @@ export async function saveWorkoutsAndExercises(
   }
 }
 
+// ---------------------------------------------------------------------------
+// Master Exercise Catalog Database Query Service
+// ---------------------------------------------------------------------------
+import { WGER_EXERCISE_CATALOG, CatalogExercise } from '../data/exerciseCatalog.ts';
+import { registerCatalogThumbnails } from './exerciseApiService.ts';
+import { ExerciseSearchEngine } from './exerciseSearch.ts';
+
+let cachedCatalogExercises: CatalogExercise[] | null = null;
+
+/**
+ * Fetches all 900+ exercises directly from the Supabase PostgreSQL database (public.exercises).
+ * Falls back to pre-cached core exercises if offline.
+ */
+export async function fetchAllCatalogExercises(): Promise<CatalogExercise[]> {
+  if (cachedCatalogExercises && cachedCatalogExercises.length > 50) {
+    return cachedCatalogExercises;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('exercises')
+      .select('id, name, type, target_sets, target_rep_min, target_rep_max, category, image_url, is_custom')
+      .order('name', { ascending: true });
+
+    if (error) {
+      console.warn('Could not fetch catalog exercises from Supabase:', error);
+      return WGER_EXERCISE_CATALOG;
+    }
+
+    if (data && data.length > 0) {
+      // Register thumbnail URLs into runtime lookup
+      registerCatalogThumbnails(data);
+
+      const seen = new Set<string>();
+      const mapped: CatalogExercise[] = [];
+
+      const wgerMap = new Map<string, CatalogExercise>();
+      for (const w of WGER_EXERCISE_CATALOG) {
+        wgerMap.set(w.name.toLowerCase().trim(), w);
+      }
+
+      for (const row of data) {
+        const key = row.name.toLowerCase().trim();
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const base = wgerMap.get(key);
+        if (base) {
+          mapped.push({
+            ...base,
+            id: String(row.id),
+            category: (row.category as any) || base.category,
+            images: row.image_url ? [row.image_url] : base.images,
+          });
+        } else {
+          const category = (row.category as any) || 'Full Body';
+          mapped.push({
+            id: String(row.id),
+            name: row.name,
+            category: category,
+            muscles: [category],
+            equipment: 'Free Weights / Machine',
+            type: (row.type === 'timed' ? 'timed' : 'strength') as 'strength' | 'timed',
+            defaultSets: row.target_sets ?? 3,
+            defaultRepMin: row.target_rep_min ?? 8,
+            defaultRepMax: row.target_rep_max ?? 12,
+            images: row.image_url ? [row.image_url] : undefined,
+          });
+        }
+      }
+
+      cachedCatalogExercises = mapped;
+      ExerciseSearchEngine.setCatalog(mapped);
+      return mapped;
+    }
+  } catch (err) {
+    console.warn('Error querying exercises table:', err);
+  }
+
+  return WGER_EXERCISE_CATALOG;
+}
+
 // Re-export roles, coaching, privacy, and routine library APIs
 export * from './db/roles.ts';
 

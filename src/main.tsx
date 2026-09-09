@@ -8,14 +8,15 @@ import { initAudioUnlock } from './utils/sound.ts';
 // Prepare Web Audio context on first user tap/click
 initAudioUnlock();
 
-// Register service worker for PWA installability
-registerSW({
+// Register service worker with auto-update reload so code updates are never trapped behind old cache
+const updateSW = registerSW({
   immediate: true,
   onNeedRefresh() {
-    console.log('New PWA update available.');
+    console.log('[PWA] New version detected, auto-activating...');
+    updateSW(true);
   },
   onOfflineReady() {
-    console.log('App ready to work offline.');
+    console.log('[PWA] App ready to work offline.');
   },
 });
 

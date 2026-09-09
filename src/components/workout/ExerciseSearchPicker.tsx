@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Plus, Check, Dumbbell, Sparkles, X, Tag } from 'lucide-react';
+import { Search, Plus, Check, Dumbbell, Sparkles, X, Tag, Loader2 } from 'lucide-react';
 import { ExerciseSearchEngine } from '../../lib/exerciseSearch.ts';
 import { CatalogExercise } from '../../data/exerciseCatalog.ts';
 import { Exercise } from '../../models.ts';
 import { getExerciseThumbnailSync } from '../../lib/exerciseApiService.ts';
+import { fetchAllCatalogExercises } from '../../lib/supabaseData.ts';
 
 interface ExerciseSearchPickerProps {
   onSelectExercise: (exercise: Partial<Exercise>) => void;
@@ -17,8 +18,32 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [visibleCount, setVisibleCount] = useState(50);
+  const [dbLoadedCount, setDbLoadedCount] = useState<number>(() => ExerciseSearchEngine.count());
+  const [isLoadingDb, setIsLoadingDb] = useState(false);
 
-  const categories = useMemo(() => ExerciseSearchEngine.getCategories(), []);
+  // Fetch full 900+ exercise catalog from Supabase PostgreSQL database
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoadingDb(true);
+    fetchAllCatalogExercises()
+      .then((items) => {
+        if (isMounted && items && items.length > 0) {
+          setDbLoadedCount(items.length);
+        }
+      })
+      .catch((err) => {
+        console.warn('Could not load database exercises:', err);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingDb(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const categories = useMemo(() => ExerciseSearchEngine.getCategories(), [dbLoadedCount]);
 
   // Return ALL matching results without any rigid 20-item cap
   const allSearchResults = useMemo(() => {
@@ -27,7 +52,7 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
       category: selectedCategory === 'All' ? null : selectedCategory,
       limit: null,
     });
-  }, [searchTerm, selectedCategory]);
+  }, [searchTerm, selectedCategory, dbLoadedCount]);
 
   // Reset scroll window whenever search query or category filter changes
   useEffect(() => {
@@ -83,8 +108,12 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
             <span className="font-display font-bold uppercase italic text-xs tracking-wider text-white">
               Exercise Catalog & Search
             </span>
-            <span className="text-[10px] font-mono font-bold bg-[#1a1a1a] text-[#C0FF00] border border-[#333] px-2 py-0.5 rounded-full">
-              Showing {visibleResults.length} of {allSearchResults.length} exercises
+            <span className="text-[10px] font-mono font-bold bg-[#1a1a1a] text-[#C0FF00] border border-[#333] px-2 py-0.5 rounded-full flex items-center gap-1.5">
+              {isLoadingDb && <Loader2 className="w-3 h-3 animate-spin text-[#C0FF00]" />}
+              <span>
+                Showing {visibleResults.length} of {allSearchResults.length} exercises
+                {allSearchResults.length > 50 ? ' (Live from Database)' : ''}
+              </span>
             </span>
           </div>
         </div>

@@ -7,7 +7,7 @@ export interface ExerciseSearchParams {
   limit?: number | null;
 }
 
-// Instantiate and configure Fuse.js for high-recall fuzzy matching over the 900+ exercise dataset
+// Instantiate and configure Fuse.js for high-recall fuzzy matching over the exercise dataset
 const fuseOptions = {
   keys: [
     { name: 'name', weight: 0.55 },
@@ -23,9 +23,20 @@ const fuseOptions = {
   useExtendedSearch: true
 };
 
-const exerciseIndex = new Fuse(MASTER_EXERCISE_CATALOG, fuseOptions);
+let currentCatalog: CatalogExercise[] = [...MASTER_EXERCISE_CATALOG];
+let exerciseIndex = new Fuse(currentCatalog, fuseOptions);
 
 export const ExerciseSearchEngine = {
+  /**
+   * Updates the in-memory catalog (e.g. after fetching all 942+ exercises from Supabase)
+   */
+  setCatalog(newCatalog: CatalogExercise[]): void {
+    if (Array.isArray(newCatalog) && newCatalog.length > 0) {
+      currentCatalog = newCatalog;
+      exerciseIndex = new Fuse(currentCatalog, fuseOptions);
+    }
+  },
+
   /**
    * Search exercises with typo tolerance, muscle group matching, and category filtering.
    * If limit is null or undefined, returns ALL matching exercises.
@@ -36,14 +47,14 @@ export const ExerciseSearchEngine = {
 
     // 1. If query is empty and category is specified, return all items in that category
     if (!cleanQuery && category && category !== 'All') {
-      const filtered = MASTER_EXERCISE_CATALOG
+      const filtered = currentCatalog
         .filter(ex => ex.category.toLowerCase() === category.toLowerCase());
       return limit ? filtered.slice(0, limit) : filtered;
     }
 
     // 2. If both query and category are empty, return all exercises
     if (!cleanQuery) {
-      return limit ? MASTER_EXERCISE_CATALOG.slice(0, limit) : MASTER_EXERCISE_CATALOG;
+      return limit ? currentCatalog.slice(0, limit) : currentCatalog;
     }
 
     // 3. Perform fuzzy search
@@ -63,7 +74,7 @@ export const ExerciseSearchEngine = {
    */
   getCategories(): string[] {
     const set = new Set<string>();
-    MASTER_EXERCISE_CATALOG.forEach(ex => set.add(ex.category));
+    currentCatalog.forEach(ex => set.add(ex.category));
     return ['All', ...Array.from(set)];
   },
 
@@ -71,14 +82,14 @@ export const ExerciseSearchEngine = {
    * Get all exercises in catalog
    */
   getAll(): CatalogExercise[] {
-    return MASTER_EXERCISE_CATALOG;
+    return currentCatalog;
   },
 
   /**
    * Total exercises available
    */
   count(): number {
-    return MASTER_EXERCISE_CATALOG.length;
+    return currentCatalog.length;
   }
 };
 
