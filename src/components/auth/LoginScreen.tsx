@@ -259,8 +259,8 @@ export const LoginScreen: React.FC = () => {
                 onClick={() => {
                   setShowAdminLogin(false);
                   setErrorMsg(null);
-                  if (window.location.hash.includes('admin')) {
-                    window.history.replaceState(null, '', window.location.pathname);
+                  if (window.location.hash.includes('admin') || window.location.pathname.includes('/admin')) {
+                    window.history.replaceState(null, '', '/login');
                   }
                 }}
                 className="w-full text-center text-[11px] font-mono text-gray-400 hover:text-white transition-colors cursor-pointer pt-1"

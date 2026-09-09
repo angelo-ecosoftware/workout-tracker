@@ -21,35 +21,12 @@ import {
 } from 'lucide-react';
 
 interface LandingPageProps {
+  onSignIn: () => void;
   onStartNow: () => void;
   onOpenAdminLogin: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onStartNow, onOpenAdminLogin }) => {
-  const { loginWithGoogle } = useAuth();
-  const [isSigningIn, setIsSigningIn] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
-
-  const handleGoogleSignIn = async () => {
-    setIsSigningIn(true);
-    setAuthError(null);
-    try {
-      await loginWithGoogle();
-    } catch (err: unknown) {
-      if (
-        typeof err === 'object' &&
-        err !== null &&
-        'code' in err &&
-        (err as { code: unknown }).code === 'auth/popup-closed-by-user'
-      ) {
-        setAuthError(null);
-      } else {
-        setAuthError(err instanceof Error ? err.message : 'Sign-in error. Please try again.');
-      }
-    } finally {
-      setIsSigningIn(false);
-    }
-  };
+export const LandingPage: React.FC<LandingPageProps> = ({ onSignIn, onStartNow, onOpenAdminLogin }) => {
 
   return (
     <div className="min-h-screen bg-[#050505] text-[#f3f4f6] font-sans selection:bg-[#C0FF00] selection:text-black">
@@ -96,11 +73,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartNow, onOpenAdmi
             </a>
             <button
               type="button"
-              onClick={handleGoogleSignIn}
-              disabled={isSigningIn}
+              onClick={onSignIn}
               className="px-4 py-2 rounded-xl bg-[#C0FF00] hover:bg-[#b0f000] text-black font-display font-black text-xs uppercase tracking-wider transition-all duration-200 shadow-[0_0_15px_rgba(192,255,0,0.25)] cursor-pointer active:scale-95 flex items-center gap-1.5"
             >
-              <span>{isSigningIn ? 'Connecting...' : 'Sign In'}</span>
+              <span>Sign In</span>
               <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           </nav>
@@ -141,32 +117,21 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartNow, onOpenAdmi
               and enterprise-grade EU privacy standards.
             </p>
 
-            {/* Error Announcement if auth fails */}
-            {authError && (
-              <div
-                role="alert"
-                className="max-w-md mx-auto p-3 rounded-xl bg-red-950/50 border border-red-900/60 text-red-300 text-xs font-mono text-left"
-              >
-                <strong className="font-bold text-red-400">Authentication Error:</strong> {authError}
-              </div>
-            )}
-
             {/* CTA BUTTONS */}
             <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
               <button
                 type="button"
-                onClick={handleGoogleSignIn}
-                disabled={isSigningIn}
+                onClick={onStartNow}
                 className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-[#C0FF00] hover:bg-[#b0f000] text-black font-display font-black text-sm uppercase tracking-wider transition-all duration-200 shadow-[0_0_30px_rgba(192,255,0,0.35)] hover:shadow-[0_0_40px_rgba(192,255,0,0.5)] cursor-pointer active:scale-95 flex items-center justify-center gap-2.5"
               >
                 <Zap className="w-4 h-4 fill-black text-black" aria-hidden="true" />
-                <span>{isSigningIn ? 'Connecting with Google...' : 'START NOW — FREE'}</span>
+                <span>START NOW — SIGN IN</span>
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </button>
 
               <button
                 type="button"
-                onClick={onStartNow}
+                onClick={onSignIn}
                 className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-[#141414] hover:bg-[#1f1f1f] border border-[#2a2a2a] text-white font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer"
               >
                 Sign In Options &rarr;
@@ -402,12 +367,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartNow, onOpenAdmi
             <div className="pt-2">
               <button
                 type="button"
-                onClick={handleGoogleSignIn}
-                disabled={isSigningIn}
+                onClick={onSignIn}
                 className="px-8 py-4 rounded-2xl bg-[#C0FF00] hover:bg-[#b0f000] text-black font-display font-black text-sm uppercase tracking-wider transition-all duration-200 shadow-[0_0_30px_rgba(192,255,0,0.35)] cursor-pointer active:scale-95 inline-flex items-center gap-2.5"
               >
                 <Zap className="w-4 h-4 fill-black text-black" aria-hidden="true" />
-                <span>{isSigningIn ? 'Connecting...' : 'GET STARTED WITH GOOGLE'}</span>
+                <span>GET STARTED — SIGN IN</span>
                 <ArrowRight className="w-4 h-4" aria-hidden="true" />
               </button>
             </div>
@@ -427,15 +391,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartNow, onOpenAdmi
           <div className="flex items-center gap-4">
             <button
               type="button"
-              onClick={onOpenAdminLogin}
+              onClick={onSignIn}
               className="hover:text-white underline cursor-pointer"
             >
-              Admin Sign-In
+              Sign In
             </button>
-            <span>&bull;</span>
-            <a href="https://kinisia.nl/#tracker" className="hover:text-white underline">
-              Open App
-            </a>
           </div>
         </div>
       </footer>

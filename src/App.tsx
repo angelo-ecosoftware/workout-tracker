@@ -87,19 +87,30 @@ const GymAppContent: React.FC = () => {
     return localStorage.getItem('coach_personal_workout_mode') === 'true';
   });
 
-  // Determines whether to show the landing page vs direct login screen
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(() => {
+  const isLoginRoute = () => {
     if (typeof window === 'undefined') return false;
     const hash = window.location.hash.toLowerCase();
     const search = window.location.search.toLowerCase();
     const pathname = window.location.pathname.toLowerCase();
     return (
+      pathname.includes('/login') ||
+      pathname.includes('/signin') ||
+      pathname.includes('/admin') ||
       hash.includes('login') ||
       hash.includes('admin') ||
-      pathname.includes('/admin') ||
       search.includes('login')
     );
-  });
+  };
+
+  // Determines whether to show the landing page vs direct login screen
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(() => isLoginRoute());
+
+  const navigateToRoute = (path: string) => {
+    try {
+      window.history.pushState(null, '', path);
+    } catch {}
+    setShowLoginModal(isLoginRoute());
+  };
 
   // Automatically default admins to 'admin' tab if no specific tab was requested
   useEffect(() => {
@@ -141,10 +152,13 @@ const GymAppContent: React.FC = () => {
       setPublicSessionId(getPublicSessionIdFromUrl());
       setPendingInviteCode(getCoachInviteCodeFromUrl());
       const hash = window.location.hash.toLowerCase();
+      const pathname = window.location.pathname.toLowerCase();
+
+      setShowLoginModal(isLoginRoute());
 
       // If user is authenticated and navigating back, trap history so it stays in app instead of Google signin
       if (user) {
-        if (!hash || hash === '#' || hash === '#/' || hash.includes('login') || isGoogleAuthUrl()) {
+        if (!hash || hash === '#' || hash === '#/' || hash.includes('login') || pathname.includes('/login') || isGoogleAuthUrl()) {
           const fallbackTab = (localStorage.getItem('workout_tracker_active_tab') as TabType) || 'tracker';
           setActiveTabState(fallbackTab);
           sanitizeAuthenticatedSession(`#${fallbackTab}`);
@@ -155,12 +169,12 @@ const GymAppContent: React.FC = () => {
         }
       }
 
-      if (hash.includes('admin')) setActiveTabState('admin');
-      else if (hash.includes('coach') || hash.includes('roster')) setActiveTabState('coach');
-      else if (hash.includes('history') || hash.includes('logbook')) setActiveTabState('history');
-      else if (hash.includes('insights')) setActiveTabState('insights');
-      else if (hash.includes('dietary')) setActiveTabState('dietary');
-      else if (hash.includes('tracker')) setActiveTabState('tracker');
+      if (pathname.includes('/admin') || hash.includes('admin')) setActiveTabState('admin');
+      else if (pathname.includes('/coach') || hash.includes('coach') || hash.includes('roster')) setActiveTabState('coach');
+      else if (pathname.includes('/history') || hash.includes('history') || hash.includes('logbook')) setActiveTabState('history');
+      else if (pathname.includes('/insights') || hash.includes('insights')) setActiveTabState('insights');
+      else if (pathname.includes('/dietary') || hash.includes('dietary')) setActiveTabState('dietary');
+      else if (pathname.includes('/tracker') || hash.includes('tracker')) setActiveTabState('tracker');
     };
 
     const handleCustomTabSwitch: EventListener = (e: Event) => {
@@ -235,10 +249,7 @@ const GymAppContent: React.FC = () => {
           <button
             type="button"
             onClick={() => {
-              setShowLoginModal(false);
-              if (window.location.hash.includes('login')) {
-                window.history.pushState(null, '', window.location.pathname);
-              }
+              navigateToRoute('/');
             }}
             className="fixed top-4 left-4 z-50 px-3 py-1.5 rounded-xl bg-[#141414] hover:bg-[#202020] border border-[#2a2a2a] text-xs font-mono text-gray-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
           >
@@ -250,11 +261,9 @@ const GymAppContent: React.FC = () => {
     }
     return (
       <LandingPage
-        onStartNow={() => setShowLoginModal(true)}
-        onOpenAdminLogin={() => {
-          window.location.hash = '#admin';
-          setShowLoginModal(true);
-        }}
+        onSignIn={() => navigateToRoute('/login')}
+        onStartNow={() => navigateToRoute('/login')}
+        onOpenAdminLogin={() => navigateToRoute('/admin')}
       />
     );
   }
