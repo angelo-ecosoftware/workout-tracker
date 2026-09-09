@@ -1,0 +1,30 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: Googlebot
+Allow: /
+Allow: /login
+Disallow: /dashboard/*
+Disallow: /app/*
+Disallow: /tracker/*
+Disallow: /history/*
+Disallow: /insights/*
+Disallow: /dietary/*
+Disallow: /coach/*
+Disallow: /admin/*
+Disallow: /settings/*
+Disallow: /api/*
+
+User-agent: *
+Allow: /
+Allow: /login
+Disallow: /dashboard/*
+Disallow: /app/*
+Disallow: /tracker/*
+Disallow: /history/*
+Disallow: /insights/*
+Disallow: /dietary/*
+Disallow: /coach/*
+Disallow: /admin/*
+Disallow: /settings/*
+Disallow: /api/*
+
+Sitemap: https://kinisia.nl/sitemap.xml
