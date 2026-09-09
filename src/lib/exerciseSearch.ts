@@ -4,7 +4,7 @@ import { MASTER_EXERCISE_CATALOG, CatalogExercise } from '../data/exerciseCatalo
 export interface ExerciseSearchParams {
   query: string;
   category?: string | null;
-  limit?: number;
+  limit?: number | null;
 }
 
 // Instantiate and configure Fuse.js for high-recall fuzzy matching over the 900+ exercise dataset
@@ -28,21 +28,22 @@ const exerciseIndex = new Fuse(MASTER_EXERCISE_CATALOG, fuseOptions);
 export const ExerciseSearchEngine = {
   /**
    * Search exercises with typo tolerance, muscle group matching, and category filtering.
+   * If limit is null or undefined, returns ALL matching exercises.
    */
   search(params: ExerciseSearchParams): CatalogExercise[] {
-    const { query = '', category = null, limit = 20 } = params;
+    const { query = '', category = null, limit = null } = params;
     const cleanQuery = query.trim();
 
     // 1. If query is empty and category is specified, return all items in that category
     if (!cleanQuery && category && category !== 'All') {
-      return MASTER_EXERCISE_CATALOG
-        .filter(ex => ex.category.toLowerCase() === category.toLowerCase())
-        .slice(0, limit);
+      const filtered = MASTER_EXERCISE_CATALOG
+        .filter(ex => ex.category.toLowerCase() === category.toLowerCase());
+      return limit ? filtered.slice(0, limit) : filtered;
     }
 
-    // 2. If both query and category are empty, return top standard exercises
+    // 2. If both query and category are empty, return all exercises
     if (!cleanQuery) {
-      return MASTER_EXERCISE_CATALOG.slice(0, limit);
+      return limit ? MASTER_EXERCISE_CATALOG.slice(0, limit) : MASTER_EXERCISE_CATALOG;
     }
 
     // 3. Perform fuzzy search
@@ -53,7 +54,8 @@ export const ExerciseSearchEngine = {
       results = results.filter(r => r.item.category.toLowerCase() === category.toLowerCase());
     }
 
-    return results.slice(0, limit).map(r => r.item);
+    const mapped = results.map(r => r.item);
+    return limit ? mapped.slice(0, limit) : mapped;
   },
 
   /**
