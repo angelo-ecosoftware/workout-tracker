@@ -579,6 +579,47 @@ export const WGER_EXERCISE_CATALOG: CatalogExercise[] = [
     images: [
       'https://static.exercisedb.dev/media/vpQaQkH.gif'
     ]
+  },
+  {
+    id: 'wger_treadmill',
+    name: 'Treadmill',
+    category: 'Cardio',
+    muscles: ['Cardiovascular System', 'Full Body', 'Legs', 'Calves'],
+    equipment: 'Treadmill',
+    type: 'timed',
+    defaultSets: 1,
+    defaultRepMin: 900,
+    defaultRepMax: 1800,
+    images: [
+      'https://static.exercisedb.dev/media/rjiM4L3.gif'
+    ],
+    instructions: [
+      'Step onto the treadmill deck and straddle the belt before starting the machine.',
+      'Select your desired speed and incline on the console, beginning with an easy warm-up pace.',
+      'Maintain an upright posture with shoulders back, eyes forward, and a relaxed arm swing.',
+      'Land with light mid-foot strikes and breathe in a steady rhythm throughout the session.',
+      'Gradually reduce speed to a cool-down walk before bringing the treadmill to a complete stop.'
+    ]
+  },
+  {
+    id: 'wger_treadmill_running',
+    name: 'Treadmill Running',
+    category: 'Cardio',
+    muscles: ['Cardiovascular System', 'Quadriceps', 'Hamstrings', 'Calves'],
+    equipment: 'Treadmill',
+    type: 'timed',
+    defaultSets: 1,
+    defaultRepMin: 1200,
+    defaultRepMax: 2400,
+    images: [
+      'https://static.exercisedb.dev/media/rjiM4L3.gif'
+    ],
+    instructions: [
+      'Warm up with 2–3 minutes of brisk walking before ramping up the belt speed to your running pace.',
+      'Maintain an upright posture with a slight natural forward lean from the ankles.',
+      'Keep strides quick, soft, and directly under your center of mass without overstriding.',
+      'Cool down with 2 minutes of walking before stepping off the treadmill.'
+    ]
   }
 ];
 

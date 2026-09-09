@@ -454,6 +454,37 @@ export const VERIFIED_EXERCISE_MEDIA_MAP: Record<
     equipment: 'Bodyweight / Jump Rope / Rower',
     category: 'Full Body',
   },
+  treadmill: {
+    exerciseId: 'rjiM4L3',
+    canonicalName: 'Treadmill',
+    gifUrl: 'https://static.exercisedb.dev/media/rjiM4L3.gif',
+    primaryMuscles: ['Cardiovascular System', 'Full Body', 'Legs'],
+    secondaryMuscles: ['Calves', 'Quadriceps', 'Hamstrings', 'Glutes'],
+    instructions: [
+      'Step onto the treadmill deck and straddle the belt before starting the machine.',
+      'Select your desired speed and incline on the console, beginning with an easy warm-up pace.',
+      'Maintain an upright posture with shoulders back, eyes forward, and a relaxed arm swing.',
+      'Land with light mid-foot strikes and breathe in a steady rhythm throughout the session.',
+      'Gradually reduce speed to a cool-down walk before bringing the treadmill to a complete stop.',
+    ],
+    equipment: 'Treadmill',
+    category: 'Cardio',
+  },
+  treadmill_running: {
+    exerciseId: 'rjiM4L3',
+    canonicalName: 'Treadmill Running',
+    gifUrl: 'https://static.exercisedb.dev/media/rjiM4L3.gif',
+    primaryMuscles: ['Cardiovascular System', 'Quadriceps', 'Hamstrings', 'Calves'],
+    secondaryMuscles: ['Glutes', 'Core'],
+    instructions: [
+      'Warm up with 2–3 minutes of brisk walking before ramping up the belt speed to your running pace.',
+      'Maintain an upright posture with a slight natural forward lean from the ankles.',
+      'Keep strides quick, soft, and directly under your center of mass without overstriding.',
+      'Cool down with 2 minutes of walking before stepping off the treadmill.',
+    ],
+    equipment: 'Treadmill',
+    category: 'Cardio',
+  },
 };
 
 /**
