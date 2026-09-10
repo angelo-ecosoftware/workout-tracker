@@ -1803,4 +1803,3 @@ VERIFICATION
 ```
 
 If those four things cannot be established, the work is not ready to be declared complete.
-    
