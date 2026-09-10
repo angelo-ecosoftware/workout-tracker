@@ -1,27 +1,29 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { PWAProvider } from './context/PWAContext.tsx';
 import { ThemeProvider } from './context/ThemeContext.tsx';
-import { LoginScreen } from './components/auth/LoginScreen.tsx';
 import { Header } from './components/ui/Header.tsx';
-import { WorkoutDayTracker } from './components/workout/WorkoutDayTracker.tsx';
-import { WorkoutHistory } from './components/workout/WorkoutHistory.tsx';
-import { InsightsView } from './components/insights/InsightsView.tsx';
-import { DietaryView } from './components/dietary/DietaryView.tsx';
-import { PublicSessionView } from './components/workout/PublicSessionView.tsx';
-import { CoachPortalView } from './components/coach/CoachPortalView.tsx';
-import { AdminPortalView } from './components/admin/AdminPortalView.tsx';
 import { CoachViewAsBanner } from './components/coach/CoachViewAsBanner.tsx';
 import { CoachInviteAcceptModal } from './components/modals/CoachInviteAcceptModal.tsx';
-import { LandingPage } from './components/landing/LandingPage.tsx';
 import { fetchInviteByCode } from './lib/db/roles.ts';
 import { fetchAllCatalogExercises } from './lib/supabaseData.ts';
 import { CoachAthleteLink } from './models.ts';
 import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
 import { isGoogleAuthUrl, sanitizeAuthenticatedSession } from './utils/authUrl.ts';
-import { Loader2, UserCheck, Dumbbell } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
-// Extract public session ID from query param (?session=xxx or ?share=xxx) or hash (#/share/xxx or #/session/xxx)
+// LAZY LOADED COMPONENTS: Downloaded only when rendered
+const WorkoutDayTracker = lazy(() => import('./components/workout/WorkoutDayTracker.tsx').then(m => ({ default: m.WorkoutDayTracker })));
+const WorkoutHistory = lazy(() => import('./components/workout/WorkoutHistory.tsx').then(m => ({ default: m.WorkoutHistory })));
+const InsightsView = lazy(() => import('./components/insights/InsightsView.tsx').then(m => ({ default: m.InsightsView })));
+const DietaryView = lazy(() => import('./components/dietary/DietaryView.tsx').then(m => ({ default: m.DietaryView })));
+const PublicSessionView = lazy(() => import('./components/workout/PublicSessionView.tsx').then(m => ({ default: m.PublicSessionView })));
+const CoachPortalView = lazy(() => import('./components/coach/CoachPortalView.tsx').then(m => ({ default: m.CoachPortalView })));
+const AdminPortalView = lazy(() => import('./components/admin/AdminPortalView.tsx').then(m => ({ default: m.AdminPortalView })));
+const LandingPage = lazy(() => import('./components/landing/LandingPage.tsx').then(m => ({ default: m.LandingPage })));
+const LoginScreen = lazy(() => import('./components/auth/LoginScreen.tsx').then(m => ({ default: m.LoginScreen })));
+
+// Helper functions for URL parsing
 function getPublicSessionIdFromUrl(): string | null {
   try {
     const urlParams = new URLSearchParams(window.location.search);
@@ -37,7 +39,6 @@ function getPublicSessionIdFromUrl(): string | null {
   return null;
 }
 
-// Extract coach invite code from query param (?coach_invite=xxx or ?invite=xxx)
 function getCoachInviteCodeFromUrl(): string | null {
   try {
     const urlParams = new URLSearchParams(window.location.search);
@@ -103,7 +104,6 @@ const GymAppContent: React.FC = () => {
     );
   };
 
-  // Determines whether to show the landing page vs direct login screen
   const [showLoginModal, setShowLoginModal] = useState<boolean>(() => isLoginRoute());
 
   const navigateToRoute = (path: string) => {
@@ -113,12 +113,24 @@ const GymAppContent: React.FC = () => {
     setShowLoginModal(isLoginRoute());
   };
 
-  // Eagerly prefetch the full exercise catalog so installed mobile PWA has all exercises cached offline
+  // Deferred prefetch: wait until user is authenticated and main thread is idle
   useEffect(() => {
-    fetchAllCatalogExercises().catch(() => {});
-  }, []);
+    if (!user) return;
 
-  // Automatically default admins to 'admin' tab if no specific tab was requested
+    if ('requestIdleCallback' in window) {
+      const handle = window.requestIdleCallback(() => {
+        fetchAllCatalogExercises().catch(() => {});
+      });
+      return () => window.cancelIdleCallback(handle);
+    } else {
+      const timer = setTimeout(() => {
+        fetchAllCatalogExercises().catch(() => {});
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
+
+  // Default admins to admin tab
   useEffect(() => {
     if (isAdmin && (!window.location.hash || window.location.hash === '#' || window.location.hash === '#tracker')) {
       const storedTab = localStorage.getItem('workout_tracker_active_tab');
@@ -141,16 +153,10 @@ const GymAppContent: React.FC = () => {
   };
 
   useEffect(() => {
-    // Prevent back-swipe from ever exiting to the login screen or Google sign-in when authenticated
     if (user) {
       try {
         const currentHash = window.location.hash || '#tracker';
         sanitizeAuthenticatedSession(currentHash);
-
-        // Trap back-navigation so users cannot be pushed back to Google signin or OAuth pages
-        for (let i = 1; i <= 5; i++) {
-          window.history.pushState({ appState: 'barrier', index: i, tab: activeTab }, '', `${window.location.pathname}#${activeTab}`);
-        }
       } catch {}
     }
 
@@ -162,15 +168,11 @@ const GymAppContent: React.FC = () => {
 
       setShowLoginModal(isLoginRoute());
 
-      // If user is authenticated and navigating back, trap history so it stays in app instead of Google signin
       if (user) {
         if (!hash || hash === '#' || hash === '#/' || hash.includes('login') || pathname.includes('/login') || isGoogleAuthUrl()) {
           const fallbackTab = (localStorage.getItem('workout_tracker_active_tab') as TabType) || 'tracker';
           setActiveTabState(fallbackTab);
           sanitizeAuthenticatedSession(`#${fallbackTab}`);
-          for (let i = 1; i <= 3; i++) {
-            window.history.pushState({ appState: 'barrier', index: i, tab: fallbackTab }, '', `${window.location.pathname}#${fallbackTab}`);
-          }
           return;
         }
       }
@@ -201,7 +203,6 @@ const GymAppContent: React.FC = () => {
     };
   }, [user, activeTab]);
 
-  // Sync coach_personal_workout_mode when toggled in Settings or other windows
   useEffect(() => {
     const handleCoachModeChange = () => {
       setCoachPersonalWorkoutMode(localStorage.getItem('coach_personal_workout_mode') === 'true');
@@ -214,7 +215,6 @@ const GymAppContent: React.FC = () => {
     };
   }, []);
 
-  // Fetch coach invite metadata when pendingInviteCode is detected in URL
   useEffect(() => {
     if (pendingInviteCode && user) {
       fetchInviteByCode(pendingInviteCode).then((invite) => {
@@ -225,17 +225,26 @@ const GymAppContent: React.FC = () => {
     }
   }, [pendingInviteCode, user]);
 
-  // If a public workout session is requested, show public read-only card directly without forcing login
+  const loadingSpinner = (
+    <div className="flex flex-col items-center justify-center py-12 gap-3">
+      <Loader2 className="w-8 h-8 animate-spin text-[#C0FF00]" />
+      <span className="font-sans text-xs text-gray-400 uppercase tracking-widest font-semibold">
+        Loading...
+      </span>
+    </div>
+  );
+
   if (publicSessionId) {
     return (
-      <PublicSessionView
-        sessionId={publicSessionId}
-        onGoToApp={() => {
-          // Clear URL parameter and reset state
-          window.history.pushState({}, '', window.location.pathname);
-          setPublicSessionId(null);
-        }}
-      />
+      <Suspense fallback={loadingSpinner}>
+        <PublicSessionView
+          sessionId={publicSessionId}
+          onGoToApp={() => {
+            window.history.pushState({}, '', window.location.pathname);
+            setPublicSessionId(null);
+          }}
+        />
+      </Suspense>
     );
   }
 
@@ -243,7 +252,9 @@ const GymAppContent: React.FC = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#050505] gap-3">
         <Loader2 className="w-8 h-8 animate-spin text-[#C0FF00]" />
-        <span className="font-sans text-xs text-gray-400 uppercase tracking-widest font-semibold">Authenticating with server...</span>
+        <span className="font-sans text-xs text-gray-400 uppercase tracking-widest font-semibold">
+          Authenticating with server...
+        </span>
       </div>
     );
   }
@@ -251,42 +262,44 @@ const GymAppContent: React.FC = () => {
   if (!user) {
     if (showLoginModal) {
       return (
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => {
-              navigateToRoute('/');
-            }}
-            className="fixed top-4 left-4 z-50 px-3 py-1.5 rounded-xl bg-[#141414] hover:bg-[#202020] border border-[#2a2a2a] text-xs font-mono text-gray-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
-          >
-            &larr; Back to Home
-          </button>
-          <LoginScreen />
-        </div>
+        <Suspense fallback={loadingSpinner}>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => navigateToRoute('/')}
+              className="fixed top-4 left-4 z-50 px-3 py-1.5 rounded-xl bg-[#141414] hover:bg-[#202020] border border-[#2a2a2a] text-xs font-mono text-gray-300 hover:text-white transition-colors cursor-pointer flex items-center gap-1.5 shadow-md"
+            >
+              &larr; Back to Home
+            </button>
+            <LoginScreen />
+          </div>
+        </Suspense>
       );
     }
     return (
-      <LandingPage
-        onSignIn={() => navigateToRoute('/login')}
-        onStartNow={() => navigateToRoute('/login')}
-        onOpenAdminLogin={() => navigateToRoute('/admin')}
-      />
+      <Suspense fallback={loadingSpinner}>
+        <LandingPage
+          onSignIn={() => navigateToRoute('/login')}
+          onStartNow={() => navigateToRoute('/login')}
+          onOpenAdminLogin={() => navigateToRoute('/admin')}
+        />
+      </Suspense>
     );
   }
 
-  // Pure Admin Experience: Strip all athlete and coaching modules
   if (isAdmin) {
     return (
       <div className="min-h-screen bg-[#050505] text-[#f3f4f6] pb-16">
         <Header />
         <main className="max-w-7xl mx-auto px-4 py-8">
-          <AdminPortalView />
+          <Suspense fallback={loadingSpinner}>
+            <AdminPortalView />
+          </Suspense>
         </main>
       </div>
     );
   }
 
-  // Coach Workspace vs Personal Athlete Mode toggle
   const isDedicatedCoachWorkspace = isCoach && !coachPersonalWorkoutMode && !inspectingClient;
 
   return (
@@ -302,101 +315,94 @@ const GymAppContent: React.FC = () => {
       )}
 
       <Header />
-      
-      <main className="max-w-4xl mx-auto px-4 py-8">
-        {/* If in Dedicated Coach Portal Mode, show Coach Management Command Center */}
-        {isDedicatedCoachWorkspace ? (
-          <CoachPortalView
-            coachId={user.uid}
-            coachName={user.displayName}
-            specialty={specialty || 'strength'}
-            onInspectClient={(athleteId, athleteName) => {
-              setInspectingClient({ athleteId, athleteName });
-              setActiveTab('history');
-            }}
-            onPrescribeNutrition={(athleteId, athleteName) => {
-              setInspectingClient({ athleteId, athleteName });
-              setActiveTab('dietary');
-            }}
-            onSwitchToPersonalMode={() => {
-              setCoachPersonalWorkoutMode(true);
-              localStorage.setItem('coach_personal_workout_mode', 'true');
-              window.dispatchEvent(new Event('coach_mode_changed'));
-            }}
-          />
-        ) : (
-          /* Athlete & Client-Inspection Navigation Tabs */
-          <>
-            <div className="flex bg-[#111] border border-[#222] rounded-full p-1 w-full max-w-xl mx-auto mb-8 font-sans flex-wrap gap-1">
-              {!inspectingClient && (
-                <button 
-                  onClick={() => setActiveTab('tracker')}
-                  className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-                    activeTab === 'tracker' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Today's Session
-                </button>
-              )}
-              <button 
-                onClick={() => setActiveTab('history')}
-                className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-                  activeTab === 'history' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Log Book
-              </button>
-              <button 
-                onClick={() => setActiveTab('insights')}
-                className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-                  activeTab === 'insights' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Insights
-              </button>
-              <button 
-                onClick={() => setActiveTab('dietary')}
-                className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-                  activeTab === 'dietary' ? 'bg-[#00ade6] text-black shadow-md' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                Dietary
-              </button>
-              {isAdmin && !inspectingClient && (
-                <button 
-                  onClick={() => setActiveTab('admin')}
-                  className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-                    activeTab === 'admin' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-purple-400 hover:text-purple-300'
-                  }`}
-                >
-                  Admin
-                </button>
-              )}
-            </div>
 
-            <div>
-              {!inspectingClient && activeTab === 'tracker' && <WorkoutDayTracker />}
-              {activeTab === 'history' && (
-                <WorkoutHistory
-                  targetUserId={inspectingClient?.athleteId}
-                  isReadOnlyClientMode={Boolean(inspectingClient)}
-                />
-              )}
-              {activeTab === 'insights' && (
-                <InsightsView userId={inspectingClient?.athleteId} />
-              )}
-              {activeTab === 'dietary' && (
-                <DietaryView userId={inspectingClient?.athleteId} />
-              )}
-              {isAdmin && activeTab === 'admin' && (
-                <AdminPortalView />
-              )}
-            </div>
-          </>
-        )}
+      <main className="max-w-4xl mx-auto px-4 py-8">
+        <Suspense fallback={loadingSpinner}>
+          {isDedicatedCoachWorkspace ? (
+            <CoachPortalView
+              coachId={user.uid}
+              coachName={user.displayName}
+              specialty={specialty || 'strength'}
+              onInspectClient={(athleteId, athleteName) => {
+                setInspectingClient({ athleteId, athleteName });
+                setActiveTab('history');
+              }}
+              onPrescribeNutrition={(athleteId, athleteName) => {
+                setInspectingClient({ athleteId, athleteName });
+                setActiveTab('dietary');
+              }}
+              onSwitchToPersonalMode={() => {
+                setCoachPersonalWorkoutMode(true);
+                localStorage.setItem('coach_personal_workout_mode', 'true');
+                window.dispatchEvent(new Event('coach_mode_changed'));
+              }}
+            />
+          ) : (
+            <>
+              <div className="flex bg-[#111] border border-[#222] rounded-full p-1 w-full max-w-xl mx-auto mb-8 font-sans flex-wrap gap-1">
+                {!inspectingClient && (
+                  <button
+                    onClick={() => setActiveTab('tracker')}
+                    className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                      activeTab === 'tracker' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Today's Session
+                  </button>
+                )}
+                <button
+                  onClick={() => setActiveTab('history')}
+                  className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                    activeTab === 'history' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Log Book
+                </button>
+                <button
+                  onClick={() => setActiveTab('insights')}
+                  className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                    activeTab === 'insights' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Insights
+                </button>
+                <button
+                  onClick={() => setActiveTab('dietary')}
+                  className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                    activeTab === 'dietary' ? 'bg-[#00ade6] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Dietary
+                </button>
+                {isAdmin && !inspectingClient && (
+                  <button
+                    onClick={() => setActiveTab('admin')}
+                    className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                      activeTab === 'admin' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-purple-400 hover:text-purple-300'
+                    }`}
+                  >
+                    Admin
+                  </button>
+                )}
+              </div>
+
+              <div>
+                {!inspectingClient && activeTab === 'tracker' && <WorkoutDayTracker />}
+                {activeTab === 'history' && (
+                  <WorkoutHistory
+                    targetUserId={inspectingClient?.athleteId}
+                    isReadOnlyClientMode={Boolean(inspectingClient)}
+                  />
+                )}
+                {activeTab === 'insights' && <InsightsView userId={inspectingClient?.athleteId} />}
+                {activeTab === 'dietary' && <DietaryView userId={inspectingClient?.athleteId} />}
+                {isAdmin && activeTab === 'admin' && <AdminPortalView />}
+              </div>
+            </>
+          )}
+        </Suspense>
       </main>
 
-      {/* Coach Invitation Acceptance Modal (Triggered automatically when opening ?coach_invite=xxx) */}
       {pendingInviteCode && user && (
         <CoachInviteAcceptModal
           isOpen={Boolean(pendingInviteCode)}
