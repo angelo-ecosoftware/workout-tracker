@@ -26,17 +26,11 @@ import {
   sanitizeWorkoutInputValue,
   WorkoutSessionInputs,
 } from './workoutSessionCalculations.ts';
-import {
-  createWorkoutDraftPayload,
-  getSelectedWorkoutKey,
-  getWorkoutDraftKey,
-  getWorkoutSessionTimerKey,
-  parseWorkoutDraft,
-} from './workoutSessionDraft.ts';
+import { createWorkoutDraftPayload, getWorkoutDraftKey } from './workoutSessionDraft.ts';
 
 export function useWorkoutSession(user: AuthUser | null) {
   const [workouts, setWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
-  const [activeWorkout, setActiveWorkoutState] = useState<(Workout & { exercises: Exercise[] }) | null>(null);
+  const [activeWorkout, setActiveWorkout] = useState<(Workout & { exercises: Exercise[] }) | null>(null);
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [lastSessionDay, setLastSessionDay] = useState<number | null>(null);
@@ -116,23 +110,6 @@ export function useWorkoutSession(user: AuthUser | null) {
   const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState<boolean>(false);
-  const hydrationGenerationRef = useRef(0);
-  const currentUserIdRef = useRef<string | null>(user?.uid ?? null);
-  currentUserIdRef.current = user?.uid ?? null;
-
-  const setActiveWorkout = (workout: (Workout & { exercises: Exercise[] }) | null) => {
-    setActiveWorkoutState(workout);
-    if (!workout || !user?.uid) return;
-
-    const selectedWorkoutKey = getSelectedWorkoutKey(user.uid);
-    if (!selectedWorkoutKey) return;
-    try {
-      localStorage.setItem(selectedWorkoutKey, workout.id);
-    } catch {}
-  };
-
-  const getTimerKey = (workoutId: string, kind: 'active' | 'start_time') =>
-    getWorkoutSessionTimerKey(user?.uid, workoutId, kind);
 
   // Load session timer state when activeWorkout changes
   useEffect(() => {
@@ -144,10 +121,8 @@ export function useWorkoutSession(user: AuthUser | null) {
     }
 
     try {
-      const activeKey = getTimerKey(activeWorkout.id, 'active');
-      const startTimeKey = getTimerKey(activeWorkout.id, 'start_time');
-      const activeStored = activeKey ? localStorage.getItem(activeKey) : null;
-      const startTimeStored = startTimeKey ? localStorage.getItem(startTimeKey) : null;
+      const activeStored = localStorage.getItem(`workout_session_active_${activeWorkout.id}`);
+      const startTimeStored = localStorage.getItem(`workout_session_start_time_${activeWorkout.id}`);
 
       if (activeStored === 'true' && startTimeStored) {
         const startMs = parseInt(startTimeStored, 10);
@@ -163,7 +138,7 @@ export function useWorkoutSession(user: AuthUser | null) {
     setIsSessionActive(false);
     setSessionStartTime(null);
     setElapsedSeconds(0);
-  }, [activeWorkout?.id, user?.uid]);
+  }, [activeWorkout?.id]);
 
   // Wall-clock resilient elapsed timer ticker
   useEffect(() => {
@@ -187,12 +162,8 @@ export function useWorkoutSession(user: AuthUser | null) {
     setSessionStartTime(now);
     setElapsedSeconds(0);
     try {
-      const activeKey = getTimerKey(activeWorkout.id, 'active');
-      const startTimeKey = getTimerKey(activeWorkout.id, 'start_time');
-      if (activeKey && startTimeKey) {
-        localStorage.setItem(activeKey, 'true');
-        localStorage.setItem(startTimeKey, String(now));
-      }
+      localStorage.setItem(`workout_session_active_${activeWorkout.id}`, 'true');
+      localStorage.setItem(`workout_session_start_time_${activeWorkout.id}`, String(now));
     } catch {}
 
     // Track start timestamp on the first uncompleted set of the first non-skipped exercise
@@ -224,10 +195,8 @@ export function useWorkoutSession(user: AuthUser | null) {
     setSessionStartTime(null);
     setElapsedSeconds(0);
     try {
-      const activeKey = getTimerKey(activeWorkout.id, 'active');
-      const startTimeKey = getTimerKey(activeWorkout.id, 'start_time');
-      if (activeKey) localStorage.removeItem(activeKey);
-      if (startTimeKey) localStorage.removeItem(startTimeKey);
+      localStorage.removeItem(`workout_session_active_${activeWorkout.id}`);
+      localStorage.removeItem(`workout_session_start_time_${activeWorkout.id}`);
     } catch {}
   };
 
@@ -409,12 +378,6 @@ export function useWorkoutSession(user: AuthUser | null) {
   };
 
   const loadWorkflowState = async () => {
-    const hydrationGeneration = ++hydrationGenerationRef.current;
-    const hydrationUserId = user?.uid ?? null;
-    const isCurrentHydration = () =>
-      hydrationGenerationRef.current === hydrationGeneration &&
-      currentUserIdRef.current === hydrationUserId;
-
     try {
       setLoading(true);
       setErrorMsg(null);
@@ -428,8 +391,6 @@ export function useWorkoutSession(user: AuthUser | null) {
         getUserProgressState(user.uid),
         fetchWorkoutHistory(user.uid).catch(() => []),
       ]);
-
-      if (!isCurrentHydration()) return;
 
       const progressState = userProgress.profile;
       setWorkouts(wData.combinedWorkouts);
@@ -458,48 +419,20 @@ export function useWorkoutSession(user: AuthUser | null) {
         setLastSessionDay(null);
       }
 
-      let selectedWorkoutId: string | null = null;
-      try {
-        const selectedWorkoutKey = getSelectedWorkoutKey(user.uid);
-        selectedWorkoutId = selectedWorkoutKey ? localStorage.getItem(selectedWorkoutKey) : null;
-      } catch {}
-
-      const selectedWorkout = selectedWorkoutId
-        ? wData.combinedWorkouts.find((workout) => workout.id === selectedWorkoutId)
-        : undefined;
-      if (!selectedWorkout && selectedWorkoutId) {
-        try {
-          const selectedWorkoutKey = getSelectedWorkoutKey(user.uid);
-          if (selectedWorkoutKey) localStorage.removeItem(selectedWorkoutKey);
-        } catch {}
-      }
-
       const targetW =
-        selectedWorkout ||
-        wData.combinedWorkouts.find((w) => w.order === computedNextDay) ||
-        wData.combinedWorkouts[0];
-      setActiveWorkoutState(targetW || null);
+        wData.combinedWorkouts.find((w) => w.order === computedNextDay) || wData.combinedWorkouts[0];
+      setActiveWorkout(targetW || null);
     } catch (err: unknown) {
-      if (!isCurrentHydration()) return;
       console.error('loadWorkflowState ERROR:', err);
       setErrorMsg(`Failed to synchronize active workout progression. ERROR: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
-      if (isCurrentHydration()) {
-        setLoading(false);
-      }
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    ++hydrationGenerationRef.current;
     if (user) {
       loadWorkflowState();
-    } else {
-      setWorkouts([]);
-      setActiveWorkoutState(null);
-      setUserProfile(null);
-      setHistorySessions([]);
-      setLoading(false);
     }
   }, [user]);
 
@@ -541,11 +474,11 @@ export function useWorkoutSession(user: AuthUser | null) {
         try {
           const rawDraft = localStorage.getItem(draftKey);
           if (rawDraft) {
-            const parsedDraft = parseWorkoutDraft(rawDraft);
-            if (parsedDraft?.skippedExerciseIds && Array.isArray(parsedDraft.skippedExerciseIds)) {
+            const parsedDraft = JSON.parse(rawDraft);
+            if (parsedDraft.skippedExerciseIds && Array.isArray(parsedDraft.skippedExerciseIds)) {
               setSkippedExerciseIds(new Set(parsedDraft.skippedExerciseIds));
             }
-            if (parsedDraft?.inputs && Object.keys(parsedDraft.inputs).length > 0) {
+            if (parsedDraft && parsedDraft.inputs && Object.keys(parsedDraft.inputs).length > 0) {
               setInputs(parsedDraft.inputs);
               if (parsedDraft.sessionDate) setSessionDate(parsedDraft.sessionDate);
               if (parsedDraft.sleepHours != null) setSleepHours(parsedDraft.sleepHours);
@@ -790,10 +723,8 @@ export function useWorkoutSession(user: AuthUser | null) {
         setSessionStartTime(null);
         setElapsedSeconds(0);
         try {
-          const activeKey = getTimerKey(activeWorkout.id, 'active');
-          const startTimeKey = getTimerKey(activeWorkout.id, 'start_time');
-          if (activeKey) localStorage.removeItem(activeKey);
-          if (startTimeKey) localStorage.removeItem(startTimeKey);
+          localStorage.removeItem(`workout_session_active_${activeWorkout.id}`);
+          localStorage.removeItem(`workout_session_start_time_${activeWorkout.id}`);
         } catch {}
       }
       setIsFinishModalOpen(false);
