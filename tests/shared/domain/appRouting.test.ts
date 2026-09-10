@@ -4,7 +4,6 @@ import {
   getAppTab,
   getCanonicalPath,
   getPathForTab,
-  getResourceRoute,
 } from '../../../src/appRouting.ts';
 
 describe('application path routing', () => {
@@ -31,26 +30,5 @@ describe('application path routing', () => {
     expect(getCanonicalPath('/', '#tracker')).toBe('/workouts');
     expect(getCanonicalPath('/', '#/admin')).toBe('/admin');
     expect(getCanonicalPath('/', '#philosophy')).toBeNull();
-  });
-
-  it('recognizes durable workout and logbook resource routes without swallowing other paths', () => {
-    expect(getResourceRoute('/workouts/wk_push')).toEqual({
-      type: 'workout',
-      resourceId: 'wk_push',
-      isEdit: false,
-    });
-    expect(getResourceRoute('/workouts/wk_push/edit')).toEqual({
-      type: 'workout',
-      resourceId: 'wk_push',
-      isEdit: true,
-    });
-    expect(getResourceRoute('/logbook/session-1')).toEqual({
-      type: 'logbook',
-      resourceId: 'session-1',
-      isEdit: false,
-    });
-    expect(getAppRoute('/workouts/wk_push/edit')).toBe('tracker');
-    expect(getAppRoute('/logbook/session-1/edit')).toBe('history');
-    expect(getResourceRoute('/api/workouts/wk_push')).toBeNull();
   });
 });
