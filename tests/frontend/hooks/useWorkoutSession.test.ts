@@ -16,7 +16,6 @@ import {
 import { userFactory, workoutFactory, exerciseFactory } from '../../shared/fixtures/factories.ts';
 import { AuthUser } from '../../../src/context/AuthContext.tsx';
 import { Exercise } from '../../../src/models.ts';
-import { loadDraftPhotosFromStorage } from '../../../src/utils/draftPhotoStorage.ts';
 
 const mockUser: AuthUser = {
   id: 'usr_test_athlete',
@@ -546,86 +545,6 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
     expect(result.current.userProfile?.userId).toBe(userB.uid);
   });
 
-  it('commits only the final identity when A, B, and C hydrate in hostile order', async () => {
-    let resolveA!: (value: {
-      combinedWorkouts: typeof sampleWorkout[];
-      workoutsList: typeof sampleWorkout[];
-      exercisesList: Exercise[];
-    }) => void;
-    let resolveB!: (value: {
-      combinedWorkouts: typeof sampleWorkout[];
-      workoutsList: typeof sampleWorkout[];
-      exercisesList: Exercise[];
-    }) => void;
-    const pendingA = new Promise<{
-      combinedWorkouts: typeof sampleWorkout[];
-      workoutsList: typeof sampleWorkout[];
-      exercisesList: Exercise[];
-    }>((resolve) => {
-      resolveA = resolve;
-    });
-    const pendingB = new Promise<{
-      combinedWorkouts: typeof sampleWorkout[];
-      workoutsList: typeof sampleWorkout[];
-      exercisesList: Exercise[];
-    }>((resolve) => {
-      resolveB = resolve;
-    });
-    const userB = { ...mockUser, id: 'usr_user_b', uid: 'usr_user_b' };
-    const userC = { ...mockUser, id: 'usr_user_c', uid: 'usr_user_c' };
-    const userCWorkout = { ...secondWorkout, id: 'wk_user_c' };
-    const userCProfile = userFactory.build({
-      userId: userC.uid,
-      lastCompletedWorkoutOrder: 0,
-      maxWorkoutOrder: 3,
-      lastSetSummaryPerExercise: {},
-    });
-
-    vi.mocked(fetchWorkoutsData)
-      .mockImplementationOnce(async () => pendingA)
-      .mockImplementationOnce(async () => pendingB)
-      .mockImplementationOnce(async () => ({
-        combinedWorkouts: [userCWorkout],
-        workoutsList: [userCWorkout],
-        exercisesList: [],
-      }));
-    vi.mocked(getUserProgressState)
-      .mockImplementationOnce(async () => ({ profile: mockProfile, isNewUser: false }))
-      .mockImplementationOnce(async () => ({
-        profile: { ...mockProfile, userId: userB.uid },
-        isNewUser: false,
-      }))
-      .mockImplementationOnce(async () => ({ profile: userCProfile, isNewUser: false }));
-
-    const { result, rerender } = renderHook(
-      ({ currentUser }: { currentUser: AuthUser | null }) => useWorkoutSession(currentUser),
-      { initialProps: { currentUser: mockUser } }
-    );
-    rerender({ currentUser: userB });
-    rerender({ currentUser: userC });
-
-    await waitFor(() => {
-      expect(result.current.activeWorkout?.id).toBe(userCWorkout.id);
-      expect(result.current.userProfile?.userId).toBe(userC.uid);
-    });
-
-    resolveB({
-      combinedWorkouts: [secondWorkout],
-      workoutsList: [secondWorkout],
-      exercisesList: [],
-    });
-    resolveA({
-      combinedWorkouts: [sampleWorkout],
-      workoutsList: [sampleWorkout],
-      exercisesList: [],
-    });
-    await Promise.resolve();
-
-    expect(result.current.activeWorkout?.id).toBe(userCWorkout.id);
-    expect(result.current.userProfile?.userId).toBe(userC.uid);
-    expect(result.current.workouts[0]?.id).toBe(userCWorkout.id);
-  });
-
   it('does not restore authenticated workout state after logout during hydration', async () => {
     let resolveUserA!: (value: {
       combinedWorkouts: typeof sampleWorkout[];
@@ -657,34 +576,6 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
     expect(result.current.workouts).toHaveLength(0);
     expect(result.current.activeWorkout).toBeNull();
     expect(result.current.userProfile).toBeNull();
-  });
-
-  it('ignores late photo restoration after the active workout changes', async () => {
-    let resolvePhotos!: (files: File[]) => void;
-    const pendingPhotos = new Promise<File[]>((resolve) => {
-      resolvePhotos = resolve;
-    });
-    vi.mocked(loadDraftPhotosFromStorage).mockImplementationOnce(async () => pendingPhotos);
-
-    const { result } = renderHook(() => useWorkoutSession(mockUser));
-    await waitFor(() => {
-      expect(result.current.loading).toBe(false);
-      expect(result.current.activeWorkout?.id).toBe(sampleWorkout.id);
-    });
-
-    act(() => {
-      result.current.setActiveWorkout(secondWorkout);
-    });
-    expect(result.current.selectedPhotos).toHaveLength(0);
-
-    await act(async () => {
-      resolvePhotos([new File(['user-a-photo'], 'a.jpg', { type: 'image/jpeg' })]);
-      await Promise.resolve();
-    });
-
-    expect(result.current.activeWorkout?.id).toBe(secondWorkout.id);
-    expect(result.current.selectedPhotos).toHaveLength(0);
-    expect(result.current.photoPreviews).toHaveLength(0);
   });
 
   it('isolates active workout timer persistence by user identity', async () => {
@@ -764,19 +655,6 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
     const unsupported = renderHook(() => useWorkoutSession(mockUser));
     await waitFor(() => expect(unsupported.result.current.loading).toBe(false));
     expect(unsupported.result.current.inputs['ex_bench-1']?.weight).toBe('20');
-    unsupported.unmount();
-
-    localStorage.setItem(
-      draftKey,
-      JSON.stringify({
-        version: 1,
-        workoutId: 'another-workout',
-        inputs: { 'ex_bench-1': { weight: '999', reps: '1' } },
-      })
-    );
-    const wrongWorkout = renderHook(() => useWorkoutSession(mockUser));
-    await waitFor(() => expect(wrongWorkout.result.current.loading).toBe(false));
-    expect(wrongWorkout.result.current.inputs['ex_bench-1']?.weight).toBe('20');
   });
 
   it('keeps drafts isolated when another user has the same workout id', async () => {

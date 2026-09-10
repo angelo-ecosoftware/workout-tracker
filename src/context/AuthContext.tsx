@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase.ts';
 import { User, Session } from '@supabase/supabase-js';
 import { AppRole, CoachSpecialty, UserRoleInfo } from '../models.ts';
@@ -52,28 +52,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [roleInfo, setRoleInfo] = useState<UserRoleInfo | null>(null);
-  const currentUserIdRef = useRef<string | null>(null);
-  const roleRequestGenerationRef = useRef(0);
-  const authRequestGenerationRef = useRef(0);
 
   const loadRoleForUser = useCallback(async (userId: string) => {
-    const requestGeneration = ++roleRequestGenerationRef.current;
     try {
       const info = await fetchUserRole(userId);
-      if (
-        currentUserIdRef.current !== userId ||
-        roleRequestGenerationRef.current !== requestGeneration
-      ) {
-        return;
-      }
       setRoleInfo(info);
     } catch (e) {
-      if (
-        currentUserIdRef.current !== userId ||
-        roleRequestGenerationRef.current !== requestGeneration
-      ) {
-        return;
-      }
       console.warn('Failed to load user role:', e);
       setRoleInfo({
         userId,
@@ -87,11 +71,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
-    const sessionRequestGeneration = ++authRequestGenerationRef.current;
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (authRequestGenerationRef.current !== sessionRequestGeneration) return;
       const mapped = mapSupabaseUser(session?.user ?? null);
-      currentUserIdRef.current = mapped?.uid ?? null;
       setUser(mapped);
       setToken(session?.access_token ?? null);
       if (mapped?.uid) {
@@ -104,9 +85,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session: Session | null) => {
-      ++authRequestGenerationRef.current;
       const mapped = mapSupabaseUser(session?.user ?? null);
-      currentUserIdRef.current = mapped?.uid ?? null;
       setUser(mapped);
       setToken(session?.access_token ?? null);
       if (mapped?.uid) {
@@ -132,9 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const requestCoachRole = async (specialty: CoachSpecialty = 'strength') => {
     if (!user?.uid) return;
-    const requestUserId = user.uid;
-    const updated = await submitCoachRequest(requestUserId, specialty);
-    if (currentUserIdRef.current !== requestUserId) return;
+    const updated = await submitCoachRequest(user.uid, specialty);
     setRoleInfo(updated);
   };
 
@@ -168,7 +145,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       if (error) throw error;
       const mapped = mapSupabaseUser(data?.user ?? null);
-      currentUserIdRef.current = mapped?.uid ?? null;
       setUser(mapped);
       setToken(data?.session?.access_token ?? null);
       if (mapped?.uid) {
@@ -186,9 +162,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       await supabase.auth.signOut();
-      ++authRequestGenerationRef.current;
-      ++roleRequestGenerationRef.current;
-      currentUserIdRef.current = null;
       setUser(null);
       setToken(null);
       setRoleInfo(null);
@@ -214,9 +187,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       await supabase.auth.signOut();
-      ++authRequestGenerationRef.current;
-      ++roleRequestGenerationRef.current;
-      currentUserIdRef.current = null;
       setUser(null);
       setToken(null);
       setRoleInfo(null);

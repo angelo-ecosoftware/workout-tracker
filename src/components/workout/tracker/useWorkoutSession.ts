@@ -82,22 +82,14 @@ export function useWorkoutSession(user: AuthUser | null) {
 
   // Rest Timer settings
   const [restDurationSeconds, setRestDurationSeconds] = useState<number>(() => {
-    try {
-      const val = localStorage.getItem('setting_rest_duration_seconds');
-      return val ? parseInt(val, 10) : 5;
-    } catch {
-      return 5;
-    }
+    const val = localStorage.getItem('setting_rest_duration_seconds');
+    return val ? parseInt(val, 10) : 5;
   });
 
   // Sequential Set Mode (Guided 1 set at a time)
   const [isSequentialSetMode, setIsSequentialSetMode] = useState<boolean>(() => {
-    try {
-      const val = localStorage.getItem('setting_sequential_set_mode');
-      return val ? val === 'true' : false;
-    } catch {
-      return false;
-    }
+    const val = localStorage.getItem('setting_sequential_set_mode');
+    return val ? val === 'true' : false;
   });
 
   // Motivational Praise Popup Toast for set completions
@@ -126,10 +118,7 @@ export function useWorkoutSession(user: AuthUser | null) {
   const [isFinishModalOpen, setIsFinishModalOpen] = useState<boolean>(false);
   const hydrationGenerationRef = useRef(0);
   const currentUserIdRef = useRef<string | null>(user?.uid ?? null);
-  const activeWorkoutIdRef = useRef<string | null>(activeWorkout?.id ?? null);
-  const photoOperationGenerationRef = useRef(0);
   currentUserIdRef.current = user?.uid ?? null;
-  activeWorkoutIdRef.current = activeWorkout?.id ?? null;
 
   const setActiveWorkout = (workout: (Workout & { exercises: Exercise[] }) | null) => {
     setActiveWorkoutState(workout);
@@ -144,15 +133,6 @@ export function useWorkoutSession(user: AuthUser | null) {
 
   const getTimerKey = (workoutId: string, kind: 'active' | 'start_time') =>
     getWorkoutSessionTimerKey(user?.uid, workoutId, kind);
-
-  const clearPhotoState = () => {
-    photoOperationGenerationRef.current += 1;
-    setSelectedPhotos([]);
-    setPhotoPreviews((prev) => {
-      prev.forEach((url) => URL.revokeObjectURL(url));
-      return [];
-    });
-  };
 
   // Load session timer state when activeWorkout changes
   useEffect(() => {
@@ -254,10 +234,8 @@ export function useWorkoutSession(user: AuthUser | null) {
   // Sync settings when modified from SettingsModal
   useEffect(() => {
     const handleSettingsUpdate = () => {
-      try {
-        const restVal = localStorage.getItem('setting_rest_duration_seconds');
-        if (restVal) setRestDurationSeconds(parseInt(restVal, 10));
-      } catch {}
+      const restVal = localStorage.getItem('setting_rest_duration_seconds');
+      if (restVal) setRestDurationSeconds(parseInt(restVal, 10));
     };
 
     window.addEventListener('workout_settings_updated', handleSettingsUpdate);
@@ -330,27 +308,16 @@ export function useWorkoutSession(user: AuthUser | null) {
       return;
     }
 
-    const photoUserId = user?.uid;
-    const photoWorkoutId = activeWorkout?.id;
-    const operationGeneration = ++photoOperationGenerationRef.current;
     const newRawFiles = files.slice(0, remainingSlots);
     const newFiles = await Promise.all(newRawFiles.map((f) => compressWorkoutImage(f)));
-    if (
-      photoOperationGenerationRef.current !== operationGeneration ||
-      currentUserIdRef.current !== photoUserId ||
-      activeWorkoutIdRef.current !== photoWorkoutId
-    ) {
-      return;
-    }
-
     const updatedFiles = [...selectedPhotos, ...newFiles];
     setSelectedPhotos(updatedFiles);
 
     const newPreviews = newFiles.map((f) => URL.createObjectURL(f));
     setPhotoPreviews((prev) => [...prev, ...newPreviews]);
 
-    if (photoUserId && photoWorkoutId) {
-      await saveDraftPhotosToStorage(photoUserId, photoWorkoutId, updatedFiles);
+    if (user && activeWorkout) {
+      await saveDraftPhotosToStorage(user.uid, activeWorkout.id, updatedFiles);
     }
 
     if (e.target) e.target.value = '';
@@ -526,10 +493,8 @@ export function useWorkoutSession(user: AuthUser | null) {
   useEffect(() => {
     ++hydrationGenerationRef.current;
     if (user) {
-      clearPhotoState();
       loadWorkflowState();
     } else {
-      clearPhotoState();
       setWorkouts([]);
       setActiveWorkoutState(null);
       setUserProfile(null);
@@ -553,21 +518,7 @@ export function useWorkoutSession(user: AuthUser | null) {
       setExpandedExerciseId(null);
     }
 
-    const photoUserId = user.uid;
-    const photoWorkoutId = activeWorkout.id;
-    const operationGeneration = ++photoOperationGenerationRef.current;
-    let cancelled = false;
-
-    loadDraftPhotosFromStorage(photoUserId, photoWorkoutId).then((restoredFiles) => {
-      if (
-        cancelled ||
-        photoOperationGenerationRef.current !== operationGeneration ||
-        currentUserIdRef.current !== photoUserId ||
-        activeWorkoutIdRef.current !== photoWorkoutId
-      ) {
-        return;
-      }
-
+    loadDraftPhotosFromStorage(user.uid, activeWorkout.id).then((restoredFiles) => {
       if (restoredFiles && restoredFiles.length > 0) {
         setSelectedPhotos(restoredFiles);
         setPhotoPreviews((prev) => {
@@ -586,42 +537,34 @@ export function useWorkoutSession(user: AuthUser | null) {
       setSkippedExerciseIds(new Set());
 
       const draftKey = getDraftKey(activeWorkout.id);
-      let restoredDraft = false;
       if (draftKey) {
         try {
           const rawDraft = localStorage.getItem(draftKey);
           if (rawDraft) {
             const parsedDraft = parseWorkoutDraft(rawDraft);
-            const matchingDraft =
-              parsedDraft &&
-              (!parsedDraft.workoutId || parsedDraft.workoutId === activeWorkout.id)
-                ? parsedDraft
-                : null;
-            if (matchingDraft?.skippedExerciseIds && Array.isArray(matchingDraft.skippedExerciseIds)) {
-              setSkippedExerciseIds(new Set(matchingDraft.skippedExerciseIds));
+            if (parsedDraft?.skippedExerciseIds && Array.isArray(parsedDraft.skippedExerciseIds)) {
+              setSkippedExerciseIds(new Set(parsedDraft.skippedExerciseIds));
             }
-            if (matchingDraft?.inputs && Object.keys(matchingDraft.inputs).length > 0) {
-              setInputs(matchingDraft.inputs);
-              restoredDraft = true;
-              if (matchingDraft.sessionDate) setSessionDate(matchingDraft.sessionDate);
-              if (matchingDraft.sleepHours != null) setSleepHours(matchingDraft.sleepHours);
-              if (matchingDraft.energyScore != null) setEnergyScore(matchingDraft.energyScore);
-              if (matchingDraft.notes != null) setSessionNotes(matchingDraft.notes);
-              if (matchingDraft.bodyWeightKg != null) setBodyWeightKg(String(matchingDraft.bodyWeightKg));
-              if (matchingDraft.savedAt) {
-                const dateObj = new Date(matchingDraft.savedAt);
+            if (parsedDraft?.inputs && Object.keys(parsedDraft.inputs).length > 0) {
+              setInputs(parsedDraft.inputs);
+              if (parsedDraft.sessionDate) setSessionDate(parsedDraft.sessionDate);
+              if (parsedDraft.sleepHours != null) setSleepHours(parsedDraft.sleepHours);
+              if (parsedDraft.energyScore != null) setEnergyScore(parsedDraft.energyScore);
+              if (parsedDraft.notes != null) setSessionNotes(parsedDraft.notes);
+              if (parsedDraft.bodyWeightKg != null) setBodyWeightKg(String(parsedDraft.bodyWeightKg));
+              if (parsedDraft.savedAt) {
+                const dateObj = new Date(parsedDraft.savedAt);
                 setLastAutoSavedTime(
                   dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                 );
               }
+              return;
             }
           }
         } catch (e) {
           console.warn('Failed to parse draft from localStorage', e);
         }
       }
-
-      if (restoredDraft) return;
 
       const newInputs: Record<
         string,
@@ -669,9 +612,6 @@ export function useWorkoutSession(user: AuthUser | null) {
     };
 
     prepopulateInputs();
-    return () => {
-      cancelled = true;
-    };
   }, [activeWorkout, userProfile]);
 
   const updateInputValue = (
