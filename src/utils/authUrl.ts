@@ -1,5 +1,3 @@
-import { getAppRoute } from '../appRouting.ts';
-
 /**
  * Authentication & OAuth Navigation Sanitizer
  * 
@@ -24,13 +22,6 @@ export function isGoogleAuthUrl(urlStr?: string): boolean {
     lower.includes('accounts.google.com/o/oauth2') ||
     lower.includes('prompt=select_account')
   );
-}
-
-export function getAuthenticatedRoutePath(): string | undefined {
-  if (typeof window === 'undefined') return undefined;
-  const path = window.location.pathname;
-  if (path && path !== '/' && getAppRoute(path, window.location.hash) !== 'home') return path;
-  return undefined;
 }
 
 /**

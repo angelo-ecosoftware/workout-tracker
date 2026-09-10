@@ -1,6 +1,5 @@
-// @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getAuthenticatedRoutePath, isGoogleAuthUrl, sanitizeAuthenticatedSession } from '../../../src/utils/authUrl.ts';
+import { isGoogleAuthUrl, sanitizeAuthenticatedSession } from '../../../src/utils/authUrl.ts';
 
 describe('Google Auth URL Detection & Session Redirection', () => {
   const originalLocation = window.location;
@@ -41,16 +40,5 @@ describe('Google Auth URL Detection & Session Redirection', () => {
       '',
       '/workouts'
     );
-  });
-
-  it('preserves an explicit durable route during auth hydration', () => {
-    window.history.replaceState({}, '', '/logbook/b35d1df4-beaf-4bfc-be44-23f9810e521a');
-    expect(getAuthenticatedRoutePath()).toBe('/logbook/b35d1df4-beaf-4bfc-be44-23f9810e521a');
-
-    window.history.replaceState({}, '', '/workouts/workout-a/edit');
-    expect(getAuthenticatedRoutePath()).toBe('/workouts/workout-a/edit');
-
-    window.history.replaceState({}, '', '/');
-    expect(getAuthenticatedRoutePath()).toBeUndefined();
   });
 });

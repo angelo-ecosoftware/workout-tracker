@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase.ts';
 import { User, Session } from '@supabase/supabase-js';
 import { AppRole, CoachSpecialty, UserRoleInfo } from '../models.ts';
 import { fetchUserRole, requestCoachRole as submitCoachRequest } from '../lib/db/roles.ts';
-import { getAuthenticatedRoutePath, sanitizeAuthenticatedSession } from '../utils/authUrl.ts';
+import { sanitizeAuthenticatedSession } from '../utils/authUrl.ts';
 
 export interface AuthUser {
   id: string;
@@ -96,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(session?.access_token ?? null);
       if (mapped?.uid) {
         loadRoleForUser(mapped.uid);
-        sanitizeAuthenticatedSession(getAuthenticatedRoutePath());
+        sanitizeAuthenticatedSession();
       } else {
         setRoleInfo(null);
       }
@@ -112,7 +112,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (mapped?.uid) {
         loadRoleForUser(mapped.uid);
         // Sanitize window.history so OAuth tokens and login redirects are replaced, preventing back-swipe to login
-        sanitizeAuthenticatedSession(getAuthenticatedRoutePath());
+        sanitizeAuthenticatedSession();
       } else {
         setRoleInfo(null);
       }
