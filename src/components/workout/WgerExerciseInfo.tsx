@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { ChevronRight, Eye } from 'lucide-react';
 
 const WGER_EXACT_MATCHES: Record<string, number> = {
@@ -8,16 +8,18 @@ const WGER_EXACT_MATCHES: Record<string, number> = {
   "Plank": 1911,
 };
 
-export const WgerExerciseInfo: React.FC<{ exerciseName: string }> = ({ exerciseName }) => {
+const NO_DESC_FALLBACK = "No detailed description available for this exercise.";
+
+export const WgerExerciseInfo: React.FC<{ exerciseName: string }> = React.memo(({ exerciseName }) => {
   const [description, setDescription] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
 
-  const fetchDescription = async () => {
-    // Check local storage cache first to eliminate unnecessary network hits
+  const fetchDescription = useCallback(async () => {
     const cacheKey = `wger_desc_${exerciseName.toLowerCase()}`;
     const cached = localStorage.getItem(cacheKey);
+    
     if (cached) {
       setDescription(cached);
       setHasFetched(true);
@@ -25,6 +27,8 @@ export const WgerExerciseInfo: React.FC<{ exerciseName: string }> = ({ exerciseN
     }
 
     setLoading(true);
+    let resultDesc = NO_DESC_FALLBACK;
+
     try {
       let exerciseId = WGER_EXACT_MATCHES[exerciseName];
 
@@ -35,7 +39,7 @@ export const WgerExerciseInfo: React.FC<{ exerciseName: string }> = ({ exerciseN
           );
           if (searchRes.ok) {
             const searchData = await searchRes.json();
-            if (searchData.results && searchData.results.length > 0) {
+            if (searchData.results?.length > 0) {
               const exactMatch = (searchData.results as { id: number; name?: string }[]).find(
                 (r) => r.name?.toLowerCase() === exerciseName?.toLowerCase()
               );
@@ -57,26 +61,22 @@ export const WgerExerciseInfo: React.FC<{ exerciseName: string }> = ({ exerciseN
           const englishTranslation = translations.find((t) => t.language === 2);
           const anyTranslation = translations[0];
 
-          const resultDesc =
+          resultDesc =
             englishTranslation?.description ||
             anyTranslation?.description ||
-            "No detailed description available for this exercise.";
-
-          setDescription(resultDesc);
-          localStorage.setItem(cacheKey, resultDesc);
-        } else {
-          setDescription("No detailed description available for this exercise.");
+            NO_DESC_FALLBACK;
         }
-      } else {
-        setDescription("No detailed description available for this exercise.");
       }
     } catch (e) {
-      setDescription("No detailed description available for this exercise.");
+      resultDesc = NO_DESC_FALLBACK;
     } finally {
+      // Cache both positive and negative results to avoid redundant external network hits
+      localStorage.setItem(cacheKey, resultDesc);
+      setDescription(resultDesc);
       setLoading(false);
       setHasFetched(true);
     }
-  };
+  }, [exerciseName]);
 
   const handleToggle = () => {
     if (!isOpen && !hasFetched) {
@@ -116,4 +116,4 @@ export const WgerExerciseInfo: React.FC<{ exerciseName: string }> = ({ exerciseN
       )}
     </div>
   );
-};
+});
