@@ -9,8 +9,7 @@ Welcome to the Kinisia documentation directory. All documentation has been organ
 ```text
 docs/
 ├── architecture/                   # 🏗️ System & Feature Architecture
-│   ├── ARCHITECTURE.md            # Current ownership and application architecture
-│   ├── PERFORMANCE_SECURITY_AUDIT.md # Batch 8 loading, performance & security audit
+│   ├── ARCHITECTURE.md            # Directory hierarchy & domain-driven layout
 │   └── BARCODE_RESOLUTION_ARCHITECTURE.md # Multi-tier barcode & PLU resolution pipeline
 │
 ├── database/                       # 🗄️ Database & Schemas
@@ -37,7 +36,6 @@ docs/
 ## 🔗 Quick Navigation
 
 - **System Architecture**: [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md)
-- **Performance & Security Audit**: [docs/architecture/PERFORMANCE_SECURITY_AUDIT.md](docs/architecture/PERFORMANCE_SECURITY_AUDIT.md)
 - **Barcode & Nutrition Pipeline**: [docs/architecture/BARCODE_RESOLUTION_ARCHITECTURE.md](docs/architecture/BARCODE_RESOLUTION_ARCHITECTURE.md)
 - **Database ERD**: [docs/database/ERD.md](docs/database/ERD.md)
 - **Testing Structure**: [docs/testing/TESTING_STRUCTURE.md](docs/testing/TESTING_STRUCTURE.md)
