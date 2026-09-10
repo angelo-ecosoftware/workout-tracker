@@ -31,7 +31,11 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.storage.supabase.co; font-src 'self' data:; frame-ancestors 'none'; object-src 'none'; base-uri 'self';"
+          "value": "default-src 'self'; script-src 'self' 'sha256-RInP0eI+qj5i15D5/LThxPAtg2P2gJ2+1R3JkX7b0+U='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.storage.supabase.co; font-src 'self' data:; frame-ancestors 'none'; object-src 'none'; base-uri 'self';"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
         },
         {
           "key": "X-Frame-Options",
@@ -47,12 +51,11 @@
         },
         {
           "key": "Permissions-Policy",
-          "value": "camera=(), microphone=(), geolocation=()"
+          "value": "camera=(self), microphone=(self), geolocation=(self), publickey-credentials-get=(self)"
         }
       ]
     }
   ],
-
   "rewrites": [
     {
       "source": "/api/(.*)",

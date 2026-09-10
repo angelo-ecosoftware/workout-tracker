@@ -1,13 +1,13 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
   return {
     plugins: [
-      react(), 
+      react(),
       tailwindcss(),
       VitePWA({
         registerType: 'autoUpdate',
@@ -15,9 +15,9 @@ export default defineConfig(() => {
         includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'],
         manifest: {
           id: '/',
-          name: 'Kinisia',
+          name: 'Kinisia — Track & Go Workout Tracker',
           short_name: 'Kinisia',
-          description: 'Minimalist, high-performance progressive overload logbook',
+          description: 'Zero-fluff, high-performance progressive overload workout logbook and gym tracker.',
           start_url: '/',
           scope: '/',
           display: 'standalone',
@@ -56,13 +56,9 @@ export default defineConfig(() => {
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
           navigateFallback: '/index.html',
-          navigateFallbackDenylist: [
-            /^\/api\//,
-            /^\/sitemap\.xml$/,
-            /^\/robots\.txt$/,
-            /\.[a-zA-Z0-9]+$/,
-          ],
-          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB to allow master exercise catalog precaching
+          // Prevent Service Worker from hijacking SEO crawler endpoints
+          navigateFallbackDenylist: [/^\/sitemap\.xml$/, /^\/robots\.txt$/],
+          globIgnores: ['**/sitemap.xml', '**/robots.txt']
         }
       })
     ],
@@ -77,11 +73,6 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
-    },
-    test: {
-      globals: true,
-      environment: 'jsdom',
-      setupFiles: ['./tests/setup/frontend.setup.ts'],
     },
   };
 });
