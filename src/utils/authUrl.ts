@@ -28,7 +28,7 @@ export function isGoogleAuthUrl(urlStr?: string): boolean {
  * Sanitizes window.history for authenticated users, cleaning OAuth tokens, PKCE codes,
  * and replacing history states to prevent backward navigation into Google sign-in pages.
  */
-export function sanitizeAuthenticatedSession(targetHash = '#tracker'): void {
+export function sanitizeAuthenticatedSession(targetPath = '/workouts'): void {
   if (typeof window === 'undefined' || !window.history) return;
 
   try {
@@ -52,23 +52,22 @@ export function sanitizeAuthenticatedSession(targetHash = '#tracker'): void {
       url.searchParams.delete(p);
     }
 
-    let cleanHash = targetHash || window.location.hash || '#tracker';
-    if (
-      cleanHash.includes('access_token') ||
-      cleanHash.includes('refresh_token') ||
-      cleanHash.includes('code=') ||
-      cleanHash.includes('error=')
-    ) {
-      cleanHash = '#tracker';
+    let cleanPath = targetPath || window.location.pathname || '/workouts';
+    if (!cleanPath.startsWith('/')) {
+      cleanPath = `/${cleanPath.replace(/^#\/?/, '')}`;
     }
-
-    if (!cleanHash.startsWith('#')) {
-      cleanHash = `#${cleanHash}`;
+    if (
+      cleanPath.includes('access_token') ||
+      cleanPath.includes('refresh_token') ||
+      cleanPath.includes('code=') ||
+      cleanPath.includes('error=')
+    ) {
+      cleanPath = '/workouts';
     }
 
     const cleanQuery = url.searchParams.toString();
     const cleanSearch = cleanQuery ? `?${cleanQuery}` : '';
-    const cleanUrl = `${url.pathname}${cleanSearch}${cleanHash}`;
+    const cleanUrl = `${cleanPath}${cleanSearch}`;
 
     window.history.replaceState({ appState: 'authenticated' }, '', cleanUrl);
   } catch (e) {

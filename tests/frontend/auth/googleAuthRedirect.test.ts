@@ -23,7 +23,7 @@ describe('Google Auth URL Detection & Session Redirection', () => {
     expect(isGoogleAuthUrl('https://workout-tracker.vercel.app/#tracker')).toBe(false);
   });
 
-  it('2. Sanitizes URL to /#tracker and replaces history state for authenticated user', () => {
+  it('2. Sanitizes URL to /workouts and replaces history state for authenticated user', () => {
     const replaceStateSpy = vi.spyOn(window.history, 'replaceState');
     const mockLocation = new URL(
       'https://workout-tracker.vercel.app/?code=sample-oauth-code&state=oauth-state#access_token=token123'
@@ -33,12 +33,12 @@ describe('Google Auth URL Detection & Session Redirection', () => {
       value: mockLocation,
     });
 
-    sanitizeAuthenticatedSession('#tracker');
+    sanitizeAuthenticatedSession('/workouts');
 
     expect(replaceStateSpy).toHaveBeenCalledWith(
       { appState: 'authenticated' },
       '',
-      '/#tracker'
+      '/workouts'
     );
   });
 });

@@ -4,13 +4,18 @@ import { PWAProvider } from './context/PWAContext.tsx';
 import { ThemeProvider } from './context/ThemeContext.tsx';
 import { Header } from './components/ui/Header.tsx';
 import { CoachViewAsBanner } from './components/coach/CoachViewAsBanner.tsx';
-import { CoachInviteAcceptModal } from './components/modals/CoachInviteAcceptModal.tsx';
 import { fetchInviteByCode } from './lib/db/roles.ts';
-import { fetchAllCatalogExercises } from './lib/supabaseData.ts';
 import { CoachAthleteLink } from './models.ts';
 import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
 import { isGoogleAuthUrl, sanitizeAuthenticatedSession } from './utils/authUrl.ts';
 import { Loader2 } from 'lucide-react';
+import {
+  getAppRoute,
+  getAppTab,
+  getCanonicalPath,
+  getPathForTab,
+  AppTab,
+} from './appRouting.ts';
 
 // LAZY LOADED COMPONENTS: Downloaded only when rendered
 const WorkoutDayTracker = lazy(() => import('./components/workout/WorkoutDayTracker.tsx').then(m => ({ default: m.WorkoutDayTracker })));
@@ -22,6 +27,7 @@ const CoachPortalView = lazy(() => import('./components/coach/CoachPortalView.ts
 const AdminPortalView = lazy(() => import('./components/admin/AdminPortalView.tsx').then(m => ({ default: m.AdminPortalView })));
 const LandingPage = lazy(() => import('./components/landing/LandingPage.tsx').then(m => ({ default: m.LandingPage })));
 const LoginScreen = lazy(() => import('./components/auth/LoginScreen.tsx').then(m => ({ default: m.LoginScreen })));
+const CoachInviteAcceptModal = lazy(() => import('./components/modals/CoachInviteAcceptModal.tsx').then(m => ({ default: m.CoachInviteAcceptModal })));
 
 // Helper functions for URL parsing
 function getPublicSessionIdFromUrl(): string | null {
@@ -54,17 +60,14 @@ function getCoachInviteCodeFromUrl(): string | null {
   return null;
 }
 
-type TabType = 'tracker' | 'history' | 'insights' | 'dietary' | 'coach' | 'admin';
+type TabType = AppTab;
 
 function getInitialTab(): TabType {
   try {
-    const hash = (typeof window !== 'undefined' ? window.location.hash : '').toLowerCase();
-    if (hash.includes('admin')) return 'admin';
-    if (hash.includes('coach') || hash.includes('roster')) return 'coach';
-    if (hash.includes('history') || hash.includes('logbook')) return 'history';
-    if (hash.includes('insights')) return 'insights';
-    if (hash.includes('dietary')) return 'dietary';
-    if (hash.includes('tracker') || hash.includes('session')) return 'tracker';
+    const pathTab = typeof window !== 'undefined'
+      ? getAppTab(window.location.pathname, window.location.hash)
+      : null;
+    if (pathTab) return pathTab;
 
     if (typeof localStorage !== 'undefined') {
       const stored = localStorage.getItem('workout_tracker_active_tab') as TabType;
@@ -91,17 +94,8 @@ const GymAppContent: React.FC = () => {
 
   const isLoginRoute = () => {
     if (typeof window === 'undefined') return false;
-    const hash = window.location.hash.toLowerCase();
-    const search = window.location.search.toLowerCase();
-    const pathname = window.location.pathname.toLowerCase();
-    return (
-      pathname.includes('/login') ||
-      pathname.includes('/signin') ||
-      pathname.includes('/admin') ||
-      hash.includes('login') ||
-      hash.includes('admin') ||
-      search.includes('login')
-    );
+    const route = getAppRoute(window.location.pathname, window.location.hash);
+    return route === 'login' || route === 'admin';
   };
 
   const [showLoginModal, setShowLoginModal] = useState<boolean>(() => isLoginRoute());
@@ -110,29 +104,15 @@ const GymAppContent: React.FC = () => {
     try {
       window.history.pushState(null, '', path);
     } catch {}
+    const tab = getAppTab(window.location.pathname, '');
+    if (tab) setActiveTabState(tab);
     setShowLoginModal(isLoginRoute());
   };
 
-  // Deferred prefetch: wait until user is authenticated and main thread is idle
-  useEffect(() => {
-    if (!user) return;
-
-    if ('requestIdleCallback' in window) {
-      const handle = window.requestIdleCallback(() => {
-        fetchAllCatalogExercises().catch(() => {});
-      });
-      return () => window.cancelIdleCallback(handle);
-    } else {
-      const timer = setTimeout(() => {
-        fetchAllCatalogExercises().catch(() => {});
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [user]);
-
   // Default admins to admin tab
   useEffect(() => {
-    if (isAdmin && (!window.location.hash || window.location.hash === '#' || window.location.hash === '#tracker')) {
+    const route = getAppRoute(window.location.pathname, window.location.hash);
+    if (isAdmin && (route === 'home' || route === 'tracker')) {
       const storedTab = localStorage.getItem('workout_tracker_active_tab');
       if (!storedTab || storedTab === 'tracker') {
         setActiveTab('admin');
@@ -144,8 +124,9 @@ const GymAppContent: React.FC = () => {
     setActiveTabState(tab);
     try {
       localStorage.setItem('workout_tracker_active_tab', tab);
-      if (window.location.hash !== `#${tab}`) {
-        window.history.replaceState(null, '', `#${tab}`);
+      const path = getPathForTab(tab);
+      if (window.location.pathname !== path || window.location.hash) {
+        window.history.replaceState(null, '', path);
       }
     } catch {
       // ignore
@@ -153,10 +134,14 @@ const GymAppContent: React.FC = () => {
   };
 
   useEffect(() => {
+    const legacyPath = getCanonicalPath(window.location.pathname, window.location.hash);
+    if (legacyPath) {
+      window.history.replaceState(null, '', `${legacyPath}${window.location.search}`);
+    }
+
     if (user) {
       try {
-        const currentHash = window.location.hash || '#tracker';
-        sanitizeAuthenticatedSession(currentHash);
+        sanitizeAuthenticatedSession(getPathForTab(getInitialTab()));
       } catch {}
     }
 
@@ -167,22 +152,18 @@ const GymAppContent: React.FC = () => {
       const pathname = window.location.pathname.toLowerCase();
 
       setShowLoginModal(isLoginRoute());
+      const currentTab = getAppTab(pathname, hash);
 
       if (user) {
-        if (!hash || hash === '#' || hash === '#/' || hash.includes('login') || pathname.includes('/login') || isGoogleAuthUrl()) {
+        if (!currentTab || getAppRoute(pathname, hash) === 'login' || isGoogleAuthUrl()) {
           const fallbackTab = (localStorage.getItem('workout_tracker_active_tab') as TabType) || 'tracker';
           setActiveTabState(fallbackTab);
-          sanitizeAuthenticatedSession(`#${fallbackTab}`);
+          sanitizeAuthenticatedSession(getPathForTab(fallbackTab));
           return;
         }
       }
 
-      if (pathname.includes('/admin') || hash.includes('admin')) setActiveTabState('admin');
-      else if (pathname.includes('/coach') || hash.includes('coach') || hash.includes('roster')) setActiveTabState('coach');
-      else if (pathname.includes('/history') || hash.includes('history') || hash.includes('logbook')) setActiveTabState('history');
-      else if (pathname.includes('/insights') || hash.includes('insights')) setActiveTabState('insights');
-      else if (pathname.includes('/dietary') || hash.includes('dietary')) setActiveTabState('dietary');
-      else if (pathname.includes('/tracker') || hash.includes('tracker')) setActiveTabState('tracker');
+      if (currentTab) setActiveTabState(currentTab);
     };
 
     const handleCustomTabSwitch: EventListener = (e: Event) => {
