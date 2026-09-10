@@ -3,27 +3,74 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Kinisia — Minimal Progressive Overload</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <title>Kinisia — Track & Go Progressive Overload App</title>
     <meta
       name="description"
-      content="Kinisia is a minimal, zero-fluff workout logbook and progressive overload split tracker for athletes. 1,500+ animated GIF form guides, automated rest timers, and certified GDPR Article 9/17 privacy."
+      content="Kinisia is the zero-fluff, Track & Go progressive overload workout tracker. Log sets instantly, reference 1,500+ exercise GIFs, and get back to your workout."
     />
-    <meta name="keywords" content="kinisia, gym logbook, progressive overload, strength training, workout routines, exercise GIFs, fitness app, GDPR compliant workout app" />
+    <meta name="keywords" content="kinisia, track and go, progressive overload tracker, workout logbook, strength training app, exercise GIFs, minimal gym app" />
     <meta name="author" content="Kinisia" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="https://kinisia.nl/" />
 
-    <!-- Open Graph / Facebook / WhatsApp -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "name": "Kinisia",
+          "url": "https://kinisia.nl/",
+          "applicationCategory": "HealthApplication",
+          "operatingSystem": "All",
+          "description": "Zero-fluff Track & Go progressive overload workout logbook and gym tracker web application.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "EUR"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "name": "Kinisia",
+          "alternateName": ["Kinisia App", "Kinisia Track & Go"],
+          "url": "https://kinisia.nl/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": "https://kinisia.nl/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Login",
+              "item": "https://kinisia.nl/login"
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://kinisia.nl/" />
-    <meta property="og:title" content="Kinisia — Minimal Progressive Overload" />
-    <meta property="og:description" content="No fluff. Log sets & leave. 1,500+ animated form GIFs, progressive overload benchmarking, and enterprise EU privacy." />
+    <meta property="og:title" content="Kinisia — Track & Go Workout Tracker" />
+    <meta property="og:description" content="Track & Go. Log sets instantly, master form with 1,500+ GIFs, and track progressive overload without the fluff." />
     <meta property="og:image" content="https://kinisia.nl/icon-512.png" />
 
-    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://kinisia.nl/" />
-    <meta name="twitter:title" content="Kinisia — Minimal Progressive Overload" />
-    <meta name="twitter:description" content="No fluff. Log sets & leave. 1,500+ animated form GIFs, progressive overload benchmarking, and enterprise EU privacy." />
+    <meta name="twitter:title" content="Kinisia — Track & Go Workout Tracker" />
+    <meta name="twitter:description" content="Track & Go. Log sets instantly, master form with 1,500+ GIFs, and track progressive overload without the fluff." />
     <meta name="twitter:image" content="https://kinisia.nl/icon-512.png" />
 
     <meta name="theme-color" content="#000000" />
@@ -32,48 +79,19 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Kinisia" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <link rel="shortcut icon" href="/icon-192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <script>
-      // If a cached PWA Service Worker mistakenly intercepted sitemap.xml or robots.txt navigation,
-      // unregister it, clear caches, and reload so the browser directly receives the raw server XML / plain text response.
-      (function() {
-        var path = window.location.pathname;
-        if (path === '/sitemap.xml' || path === '/robots.txt') {
-          if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-              if (regs.length > 0) {
-                Promise.all(regs.map(function(r) { return r.unregister(); })).then(function() {
-                  if ('caches' in window) {
-                    caches.keys().then(function(keys) {
-                      Promise.all(keys.map(function(k) { return caches.delete(k); })).then(function() {
-                        window.location.reload();
-                      });
-                    });
-                  } else {
-                    window.location.reload();
-                  }
-                });
-              }
-            });
-          }
-        }
-      })();
 
-      // Capture beforeinstallprompt before React loads so it is never missed
+    <script>
       window.deferredInstallPrompt = null;
       window.addEventListener('beforeinstallprompt', function(e) {
         e.preventDefault();
         window.deferredInstallPrompt = e;
         window.dispatchEvent(new Event('deferredpromptready'));
       });
-      window.addEventListener('error', function(e) {
-        if (e.message === 'Script error.' || e.message === 'Script error') {
-          e.stopImmediatePropagation();
-        }
-      }, true);
     </script>
   </head>
   <body>
@@ -81,4 +99,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
