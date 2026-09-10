@@ -1,4 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
+
+function getSupabaseClient() {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+  return url && key ? createClient(url, key) : null;
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -21,22 +28,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const report = {
-    id: `report_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    barcode: barcode.trim() || undefined,
-    name: name.trim() || undefined,
-    brand: brand.trim() || undefined,
-    store: store.trim() || undefined,
-    notes: notes.trim() || undefined,
-    userId,
-    timestamp: new Date().toISOString(),
-    status: 'received',
+    barcode: barcode.trim() || null,
+    name: name.trim() || null,
+    brand: brand.trim() || null,
+    store: store.trim() || null,
+    notes: notes.trim() || null,
+    user_id: userId,
+    status: 'pending',
   };
 
-  console.log('[Missing Product Report Received by Developer API]:', JSON.stringify(report, null, 2));
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    console.error('Missing Supabase configuration for missing-product report persistence');
+    return res.status(503).json({ error: 'Report service is not configured' });
+  }
+
+  const { data: insertedReport, error } = await supabase
+    .from('missing_product_reports')
+    .insert(report)
+    .select('id, barcode, name, brand, store, notes, user_id, status, created_at')
+    .single();
+
+  if (error) {
+    console.error('Missing product report persistence failed:', error.message);
+    return res.status(500).json({ error: 'Unable to save missing product report' });
+  }
 
   return res.status(200).json({
     success: true,
     message: 'Missing product report successfully submitted to developer API for indexing.',
-    report,
+    report: insertedReport,
   });
 }

@@ -896,7 +896,7 @@ export function useWorkoutSession(user: AuthUser | null) {
         for (let i = 1; i <= ex.targetSets; i++) {
           const key = `${ex.id}-${i}`;
           const isTimed = ex.type === 'timed';
-          const defaultInput = isTimed
+          const defaultInput: (typeof inputs)[string] = isTimed
             ? {
                 weight: '',
                 reps: '',
