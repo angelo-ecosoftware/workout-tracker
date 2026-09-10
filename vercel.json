@@ -31,7 +31,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'sha256-RInP0eI+qj5i15D5/LThxPAtg2P2gJ2+1R3JkX7b0+U='; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.storage.supabase.co; font-src 'self' data:; frame-ancestors 'none'; object-src 'none'; base-uri 'self';"
+          "value": "default-src 'self'; script-src 'self' 'sha256-CdlvfB4mNMNxP1iOMqkmfT2amqiFFy5NKl4tDD9uLms='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.supabase.co http://googleusercontent.com https://*.googleusercontent.com https://static.exercisedb.dev; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.storage.supabase.co https://wger.de; font-src 'self' data: https://fonts.gstatic.com; frame-ancestors 'none'; object-src 'none'; base-uri 'self';"
         },
         {
           "key": "Strict-Transport-Security",
