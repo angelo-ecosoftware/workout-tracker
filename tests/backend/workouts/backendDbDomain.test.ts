@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   initializeUser,
+} from '../../../src/lib/db/users.ts';
+import {
   fetchWorkoutsData,
   saveWorkoutsAndExercises,
+} from '../../../src/lib/db/workouts.ts';
+import {
   fetchWorkoutHistory,
   deleteSessions,
-} from '../../../src/lib/supabaseData.ts';
+} from '../../../src/lib/db/sessions.ts';
 import { workoutFactory } from '../../shared/fixtures/factories.ts';
 
 // Mock the underlying Supabase client to test data domain logic deterministically

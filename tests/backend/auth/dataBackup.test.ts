@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { exportAllLogs, importAllLogs } from '../../../src/lib/supabaseData.ts';
+import { exportAllLogs, importAllLogs, deleteAllLogs } from '../../../src/lib/db/backup.ts';
 import { supabase } from '../../../src/lib/supabase.ts';
+import { deleteWorkoutPhotos } from '../../../src/lib/storage.ts';
 
 vi.mock('../../../src/lib/supabase.ts', () => ({
   supabase: {
     from: vi.fn(),
   },
+}));
+vi.mock('../../../src/lib/storage.ts', () => ({
+  deleteWorkoutPhotos: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe('exportAllLogs & importAllLogs data backup integrity & unique ID remapping', () => {
@@ -158,5 +162,36 @@ describe('exportAllLogs & importAllLogs data backup integrity & unique ID remapp
     expect(importedSets[0].user_id).toBe('new_athlete_id_999');
     expect(importedSets[0].session_id).toBe(newSessionId); // Linked to new session ID!
     expect(importedSets[0].exercise_id).toBe(newExId);     // Linked to new exercise ID!
+  });
+
+  it('deleteAllLogs removes session photos, logs, and resets progression state', async () => {
+    const tables: string[] = [];
+    const mockFrom = vi.fn((table: string) => {
+      tables.push(table);
+      const query: any = {
+        select: vi.fn().mockReturnThis(),
+        update: vi.fn().mockReturnThis(),
+        delete: vi.fn().mockReturnThis(),
+        eq: vi.fn(),
+      };
+      query.eq.mockResolvedValue(table === 'sessions'
+        ? { data: [{ photos: ['photo-a.jpg'] }, { photos: ['photo-b.jpg'] }], error: null }
+        : { data: null, error: null });
+      return query;
+    });
+    (supabase.from as unknown as ReturnType<typeof vi.fn>).mockImplementation(mockFrom);
+
+    await expect(deleteAllLogs('target_user_456')).resolves.toBe(true);
+
+    expect(deleteWorkoutPhotos).toHaveBeenCalledWith(['photo-a.jpg', 'photo-b.jpg']);
+    expect(tables).toEqual([
+      'sessions',
+      'sets',
+      'sessions',
+      'body_logs',
+      'dietary_log_entries',
+      'dietary_logs',
+      'users',
+    ]);
   });
 });

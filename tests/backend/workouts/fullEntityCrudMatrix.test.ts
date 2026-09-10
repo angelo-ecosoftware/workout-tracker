@@ -2,17 +2,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   initializeUser,
   saveUserMetrics,
+} from '../../../src/lib/db/users.ts';
+import {
   logDailyBodyWeight,
   fetchBodyMeasurementLogs,
+} from '../../../src/lib/db/biometrics.ts';
+import {
   fetchWorkoutsData,
   saveWorkoutsAndExercises,
+} from '../../../src/lib/db/workouts.ts';
+import {
   updateSessionDate,
   updateSessionNotes,
   updateSessionPhotos,
   deleteSessions,
   fetchWorkoutHistory,
   fetchSetsForSession,
-} from '../../../src/lib/supabaseData.ts';
+} from '../../../src/lib/db/sessions.ts';
 import {
   saveHiveMindFoodItem,
   saveHiveMindFoodItems,
@@ -41,7 +47,7 @@ let mockDb: Record<string, any[]> = {
   workout_exercises: [],
   sessions: [],
   sets: [],
-  body_measurement_logs: [],
+  body_logs: [],
   food_items: [],
 };
 
@@ -206,7 +212,7 @@ describe('Full-On CRUD & Error Code Testing Across All Application Entities', ()
       workout_exercises: [],
       sessions: [],
       sets: [],
-      body_measurement_logs: [],
+      body_logs: [],
       food_items: [],
     };
     mockLocalStorage = {};
@@ -257,7 +263,7 @@ describe('Full-On CRUD & Error Code Testing Across All Application Entities', ()
   // =========================================================================
   // 2. ENTITY: DAILY BODY MEASUREMENTS & BIOMETRICS
   // =========================================================================
-  describe('Entity 2: Body Measurement Logs (body_measurement_logs)', () => {
+  describe('Entity 2: Body Measurement Logs (body_logs)', () => {
     it('✅ CREATE / UPSERT (200): Logs daily bodyweight check-in with notes and calculated metrics', async () => {
       const log = await logDailyBodyWeight('usr_bio', {
         date: '2026-09-03',

@@ -1,5 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import { BodyMeasurementLog, UserMetrics } from '../../../src/models.ts';
+import { logDailyBodyWeight } from '../../../src/lib/db/biometrics.ts';
+
+const localStorageValues: Record<string, string> = {};
+globalThis.localStorage = {
+  getItem: (key: string) => localStorageValues[key] ?? null,
+  setItem: (key: string, value: string) => { localStorageValues[key] = value; },
+  removeItem: (key: string) => { delete localStorageValues[key]; },
+  clear: () => {
+    for (const key of Object.keys(localStorageValues)) delete localStorageValues[key];
+  },
+  key: (index: number) => Object.keys(localStorageValues)[index] ?? null,
+  length: 0,
+};
 
 describe('Happy Path Biometric Forms: Measurement Logging & BMI Pipelines', () => {
 
@@ -68,7 +81,6 @@ describe('Happy Path Biometric Forms: Measurement Logging & BMI Pipelines', () =
     });
 
     it('updates users table weight_kg and local storage cache when logging daily bodyweight', async () => {
-      const { logDailyBodyWeight } = await import('../../../src/lib/supabaseData.ts');
       const mockLog = await logDailyBodyWeight('usr_happy_01', {
         date: '2026-09-04',
         weightKg: 82.5,

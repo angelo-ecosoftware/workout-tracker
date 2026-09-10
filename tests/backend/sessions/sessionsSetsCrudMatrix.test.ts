@@ -15,6 +15,10 @@ import { WorkoutSet } from '../../../src/models.ts';
 // -----------------------------------------------------------------------------
 let mockSessionsTable: any[] = [];
 let mockSetsTable: any[] = [];
+let mockWorkoutsTable: any[] = [];
+let mockExercisesTable: any[] = [];
+let mockUsersTable: any[] = [];
+let mockBodyLogsTable: any[] = [];
 let shouldSimulateDbError = false;
 let simulatedDbErrorMessage = 'Database transaction error (500)';
 
@@ -51,6 +55,29 @@ vi.mock('../../../src/lib/supabase.ts', () => {
           if (f.type === 'in') data = data.filter((r) => f.val.includes(r[f.field]));
         }
         return Promise.resolve({ data: data[0] || null, error: null, status: 200 });
+      }),
+      single: vi.fn(() => {
+        if (shouldSimulateDbError) {
+          return Promise.resolve({ data: null, error: { message: simulatedDbErrorMessage, code: '500' }, status: 500 });
+        }
+        const tables: Record<string, any[]> = {
+          sessions: mockSessionsTable,
+          sets: mockSetsTable,
+          workouts: mockWorkoutsTable,
+          exercises: mockExercisesTable,
+          users: mockUsersTable,
+          body_logs: mockBodyLogsTable,
+        };
+        let data = [...(tables[table] || [])];
+        for (const f of builder._filters) {
+          if (f.type === 'eq') data = data.filter((r) => r[f.field] === f.val);
+          if (f.type === 'in') data = data.filter((r) => f.val.includes(r[f.field]));
+        }
+        return Promise.resolve({
+          data: data[0] || null,
+          error: data[0] ? null : { message: 'Not found', code: 'PGRST116' },
+          status: data[0] ? 200 : 404,
+        });
       }),
       update: vi.fn((patch: any) => {
         return {
@@ -110,7 +137,15 @@ vi.mock('../../../src/lib/supabase.ts', () => {
         if (shouldSimulateDbError) {
           return Promise.resolve({ data: null, error: { message: simulatedDbErrorMessage, code: '500' }, status: 500 }).then(onfulfilled);
         }
-        let data = table === 'sessions' ? [...mockSessionsTable] : [...mockSetsTable];
+        const tables: Record<string, any[]> = {
+          sessions: mockSessionsTable,
+          sets: mockSetsTable,
+          workouts: mockWorkoutsTable,
+          exercises: mockExercisesTable,
+          users: mockUsersTable,
+          body_logs: mockBodyLogsTable,
+        };
+        let data = [...(tables[table] || [])];
         for (const f of builder._filters) {
           if (f.type === 'eq') data = data.filter((r) => r[f.field] === f.val);
           if (f.type === 'in') data = data.filter((r) => f.val.includes(r[f.field]));
@@ -132,6 +167,10 @@ describe('Entities: Completed Workout Sessions & Logged Sets (sessions, sets) - 
   beforeEach(() => {
     mockSessionsTable = [];
     mockSetsTable = [];
+    mockWorkoutsTable = [];
+    mockExercisesTable = [];
+    mockUsersTable = [];
+    mockBodyLogsTable = [];
     shouldSimulateDbError = false;
     vi.clearAllMocks();
   });
@@ -199,6 +238,27 @@ describe('Entities: Completed Workout Sessions & Logged Sets (sessions, sets) - 
       expect(sets).toHaveLength(2);
       expect(sets[0].weight).toBe(140);
       expect(sets[1].weight).toBe(150);
+    });
+
+    it('200 OK: Public session includes exercise metadata and body-log metrics', async () => {
+      mockWorkoutsTable.push({ id: 'w_leg_day', name: 'Leg Day' });
+      mockExercisesTable.push({ id: 'ex_squat', name: 'Back Squat', type: 'strength' });
+      mockUsersTable.push({ user_id: userId, name: 'Athlete' });
+      mockBodyLogsTable.push({
+        user_id: userId,
+        log_date: '2026-09-03',
+        weight_kg: 82.5,
+        calculated_bmi: 24.9,
+      });
+
+      const result = await fetchPublicWorkoutSession(sampleSessionId);
+
+      expect(result?.workoutName).toBe('Leg Day');
+      expect(result?.athleteName).toBe('Athlete');
+      expect(result?.bodyWeightKg).toBe(82.5);
+      expect(result?.calculatedBmi).toBe(24.9);
+      expect(result?.sets[0].exerciseName).toBe('Back Squat');
+      expect(result?.sets[0].type).toBe('strength');
     });
 
     it('404 / Empty: Returns empty history array when user has not completed any workouts', async () => {
