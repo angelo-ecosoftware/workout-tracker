@@ -16,6 +16,7 @@ import { RestTimerDrawer } from "./tracker/RestTimerDrawer.tsx";
 import { ActiveWorkoutHeaderBar } from "./tracker/ActiveWorkoutHeaderBar.tsx";
 import { FinishWorkoutModal } from "./tracker/FinishWorkoutModal.tsx";
 import { SetPraiseToast } from "./tracker/SetPraiseToast.tsx";
+import { useResourceScroll } from "../../utils/useResourceScroll.ts";
 
 interface WorkoutDayTrackerProps {
   routeWorkoutId?: string | null;
@@ -97,7 +98,12 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
     handleLogWorkout,
   } = useWorkoutSession(user);
 
+  useResourceScroll(user?.uid, 'workout-scroll', activeWorkout?.id, routeEditMode ? 'edit' : 'view');
+
   useEffect(() => {
+    if (!routeEditMode && isRoutineEditorOpen) {
+      setIsRoutineEditorOpen(false);
+    }
     if (loading || !routeWorkoutId) return;
     const routedWorkout = workouts.find((workout) => workout.id === routeWorkoutId);
     if (!routedWorkout) return;

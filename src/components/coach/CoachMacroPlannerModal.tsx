@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Utensils,
   Check,
@@ -15,6 +15,7 @@ import {
   fetchActiveMacroPrescription,
   saveMacroPrescription,
 } from '../../lib/supabaseData.ts';
+import { clearContinuity, readContinuity, writeContinuity } from '../../utils/continuityState.ts';
 
 interface CoachMacroPlannerModalProps {
   isOpen: boolean;
@@ -35,6 +36,7 @@ export const CoachMacroPlannerModal: React.FC<CoachMacroPlannerModalProps> = ({
   athleteName,
   onPrescriptionSaved,
 }) => {
+  const skipDraftWriteRef = useRef(false);
   const [kcal, setKcal] = useState<number | ''>(2600);
   const [protein, setProtein] = useState<number | ''>(185);
   const [carbs, setCarbs] = useState<number | ''>(280);
@@ -46,8 +48,31 @@ export const CoachMacroPlannerModal: React.FC<CoachMacroPlannerModalProps> = ({
 
   useEffect(() => {
     if (isOpen && athleteId) {
+      const draft = readContinuity<{
+        kcal: number | '';
+        protein: number | '';
+        carbs: number | '';
+        fat: number | '';
+        fiber: number | '';
+        notes: string;
+      }>(coachId, 'macro-planner', athleteId, 1);
+      skipDraftWriteRef.current = true;
+      const validDraft = Boolean(
+        draft?.payload
+        && typeof draft.payload.notes === 'string'
+        && [draft.payload.kcal, draft.payload.protein, draft.payload.carbs, draft.payload.fat]
+          .every((value) => value === '' || typeof value === 'number'),
+      );
+      if (validDraft && draft?.payload) {
+        setKcal(draft.payload.kcal);
+        setProtein(draft.payload.protein);
+        setCarbs(draft.payload.carbs);
+        setFat(draft.payload.fat);
+        setFiber(draft.payload.fiber);
+        setNotes(draft.payload.notes);
+      }
       fetchActiveMacroPrescription(athleteId).then((existing) => {
-        if (existing) {
+        if (existing && !draft?.payload) {
           setKcal(existing.targetKcal);
           setProtein(existing.targetProteinG);
           setCarbs(existing.targetCarbsG);
@@ -57,7 +82,26 @@ export const CoachMacroPlannerModal: React.FC<CoachMacroPlannerModalProps> = ({
         }
       });
     }
-  }, [isOpen, athleteId]);
+  }, [isOpen, athleteId, coachId]);
+
+  useEffect(() => {
+    if (!isOpen || !athleteId) return;
+    if (skipDraftWriteRef.current) {
+      skipDraftWriteRef.current = false;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      writeContinuity(coachId, 'macro-planner', athleteId, 1, {
+        kcal,
+        protein,
+        carbs,
+        fat,
+        fiber,
+        notes,
+      });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, coachId, athleteId, kcal, protein, carbs, fat, fiber, notes]);
 
   if (!isOpen) return null;
 
@@ -82,6 +126,7 @@ export const CoachMacroPlannerModal: React.FC<CoachMacroPlannerModalProps> = ({
         coachName
       );
 
+      clearContinuity(coachId, 'macro-planner', athleteId);
       setStatusMsg({ type: 'success', text: `Prescribed daily nutrition plan for ${athleteName}!` });
       setTimeout(() => {
         if (onPrescriptionSaved) onPrescriptionSaved();

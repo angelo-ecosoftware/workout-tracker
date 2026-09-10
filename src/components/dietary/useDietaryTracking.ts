@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   LoggedDietaryEntry,
   DailyDietaryLog,
@@ -15,11 +15,14 @@ import {
 } from '../../lib/dietaryData.ts';
 import { lookupBarcodeProduct } from '../../lib/barcodeService.ts';
 import { formatDateTitle as formatDateTitleUtil } from '../../utils/date.ts';
+import { clearContinuity, readContinuity, writeContinuity } from '../../utils/continuityState.ts';
 
 export const useDietaryTracking = (userId: string) => {
   // Date State: YYYY-MM-DD
   const todayStr = new Date().toISOString().split('T')[0];
-  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+  const [selectedDate, setSelectedDate] = useState<string>(() =>
+    readContinuity<{ selectedDate: string }>(userId, 'dietary-context', 'current', 1)?.payload.selectedDate || todayStr
+  );
 
   // Day's Logged Entries & Summary
   const [entries, setEntries] = useState<LoggedDietaryEntry[]>([]);
@@ -71,6 +74,118 @@ export const useDietaryTracking = (userId: string) => {
   const [newFoodSugar, setNewFoodSugar] = useState<number | ''>('');
   const [newFoodFat, setNewFoodFat] = useState<number | ''>('');
   const [newFoodFiber, setNewFoodFiber] = useState<number | ''>('');
+  const skipDraftWriteRef = useRef(false);
+
+  useEffect(() => {
+    writeContinuity(userId, 'dietary-context', 'current', 1, { selectedDate });
+  }, [userId, selectedDate]);
+
+  useEffect(() => {
+    if (!isAddModalOpen) return;
+    const draft = readContinuity<{
+      activeModalTab: 'search' | 'link' | 'list' | 'custom';
+      searchQuery: string;
+      selectedFoodItem: FoodItemNutrition | null;
+      portionGrams: number;
+      singleLinkInput: string;
+      listLinkInput: string;
+      listExtractedProducts: Array<{ id: string; title: string; brand?: string; salesUnitSize?: string; nutrition?: FoodItemNutrition }>;
+      newFoodName: string;
+      newFoodBrand: string;
+      newFoodBarcode: string;
+      newFoodServingUnit: 'gram' | 'ml';
+      newFoodKcal: number | '';
+      newFoodProtein: number | '';
+      newFoodCarbs: number | '';
+      newFoodSugar: number | '';
+      newFoodFat: number | '';
+      newFoodFiber: number | '';
+    }>(userId, 'dietary-editor', selectedDate, 1);
+    skipDraftWriteRef.current = true;
+    const validDraft = Boolean(
+      draft?.payload
+      && typeof draft.payload.activeModalTab === 'string'
+      && typeof draft.payload.searchQuery === 'string'
+      && typeof draft.payload.portionGrams === 'number'
+      && typeof draft.payload.singleLinkInput === 'string'
+      && typeof draft.payload.listLinkInput === 'string'
+      && Array.isArray(draft.payload.listExtractedProducts)
+      && typeof draft.payload.newFoodName === 'string'
+      && typeof draft.payload.newFoodBrand === 'string'
+      && typeof draft.payload.newFoodBarcode === 'string'
+    );
+    if (validDraft && draft?.payload) {
+      const p = draft.payload;
+      setActiveModalTab(p.activeModalTab);
+      setSearchQuery(p.searchQuery);
+      setSelectedFoodItem(p.selectedFoodItem);
+      setPortionGrams(p.portionGrams);
+      setSingleLinkInput(p.singleLinkInput);
+      setListLinkInput(p.listLinkInput);
+      setListExtractedProducts(p.listExtractedProducts);
+      setNewFoodName(p.newFoodName);
+      setNewFoodBrand(p.newFoodBrand);
+      setNewFoodBarcode(p.newFoodBarcode);
+      setNewFoodServingUnit(p.newFoodServingUnit);
+      setNewFoodKcal(p.newFoodKcal);
+      setNewFoodProtein(p.newFoodProtein);
+      setNewFoodCarbs(p.newFoodCarbs);
+      setNewFoodSugar(p.newFoodSugar);
+      setNewFoodFat(p.newFoodFat);
+      setNewFoodFiber(p.newFoodFiber);
+    }
+  }, [isAddModalOpen, userId, selectedDate]);
+
+  useEffect(() => {
+    if (!isAddModalOpen) return;
+    if (skipDraftWriteRef.current) {
+      skipDraftWriteRef.current = false;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      writeContinuity(userId, 'dietary-editor', selectedDate, 1, {
+        activeModalTab,
+        searchQuery,
+        selectedFoodItem,
+        portionGrams,
+        singleLinkInput,
+        listLinkInput,
+        listExtractedProducts,
+        newFoodName,
+        newFoodBrand,
+        newFoodBarcode,
+        newFoodServingUnit,
+        newFoodKcal,
+        newFoodProtein,
+        newFoodCarbs,
+        newFoodSugar,
+        newFoodFat,
+        newFoodFiber,
+      });
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [
+    isAddModalOpen,
+    userId,
+    selectedDate,
+    activeModalTab,
+    searchQuery,
+    selectedFoodItem,
+    portionGrams,
+    singleLinkInput,
+    listLinkInput,
+    listExtractedProducts,
+    newFoodName,
+    newFoodBrand,
+    newFoodBarcode,
+    newFoodServingUnit,
+    newFoodKcal,
+    newFoodProtein,
+    newFoodCarbs,
+    newFoodSugar,
+    newFoodFat,
+    newFoodFiber,
+  ]);
 
   // Refresh active day's entries whenever selectedDate or userId changes
   useEffect(() => {
@@ -191,6 +306,7 @@ export const useDietaryTracking = (userId: string) => {
     setIsAddModalOpen(false);
     setSelectedFoodItem(null);
     setPortionGrams(100);
+    clearContinuity(userId, 'dietary-editor', selectedDate);
   };
 
   // 5-in-1 Omni-Input Resolver (Name, Barcode, Store Product, Shared List, Recipe)
@@ -582,6 +698,7 @@ export const useDietaryTracking = (userId: string) => {
     setNewFoodSugar('');
     setNewFoodFat('');
     setNewFoodFiber('');
+    clearContinuity(userId, 'dietary-editor', selectedDate);
   };
 
   return {

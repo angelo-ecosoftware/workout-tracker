@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import {
   fetchWorkoutHistory,
@@ -48,6 +48,9 @@ interface InsightsViewProps {
 export const InsightsView: React.FC<InsightsViewProps> = ({ userId: propUserId }) => {
   const { user, loading: authLoading } = useAuth();
   const activeUserId = propUserId || user?.uid;
+  const loadGenerationRef = useRef(0);
+  const activeUserIdRef = useRef(activeUserId);
+  activeUserIdRef.current = activeUserId;
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [userMetrics, setUserMetrics] = useState<UserMetrics | null>(null);
@@ -70,16 +73,27 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ userId: propUserId }
   const [exerciseReport, setExerciseReport] = useState<ExerciseProgressionReport | null>(null);
 
   useEffect(() => {
+    const loadGeneration = ++loadGenerationRef.current;
+    let cancelled = false;
+    const isCurrentLoad = () =>
+      !cancelled &&
+      loadGenerationRef.current === loadGeneration &&
+      activeUserIdRef.current === activeUserId;
+
     async function loadData() {
       if (authLoading) return;
       if (!activeUserId) {
-        setLoading(false);
+        if (isCurrentLoad()) setLoading(false);
         return;
       }
 
       try {
+        if (!isCurrentLoad()) return;
         setLoading(true);
         setErrorMsg(null);
+        setSelectedProgramId('all');
+        setSelectedExerciseId(null);
+        setExerciseReport(null);
 
         const [historySessions, allSets, workoutsData, userProfile, historicalBodyLogs, progs] = await Promise.all([
           fetchWorkoutHistory(activeUserId),
@@ -90,6 +104,7 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ userId: propUserId }
           fetchSavedRoutinePrograms(activeUserId),
         ]);
 
+        if (!isCurrentLoad()) return;
         if (userProfile?.metrics) {
           setUserMetrics(userProfile.metrics);
         } else {
@@ -104,6 +119,7 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ userId: propUserId }
           }
         }
 
+        if (!isCurrentLoad()) return;
         setBodyLogs(historicalBodyLogs || []);
         setSavedPrograms(progs || []);
         setRawSessions(historySessions);
@@ -115,6 +131,7 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ userId: propUserId }
         const loggedExIds = new Set(allSets.map((s) => s.exerciseId));
         const activeExercises = workoutsData.exercisesList.filter((e) => loggedExIds.has(e.id));
 
+        if (!isCurrentLoad()) return;
         if (activeExercises.length > 0) {
           const firstEx = activeExercises[0];
           setSelectedExerciseId(firstEx.id);
@@ -127,15 +144,19 @@ export const InsightsView: React.FC<InsightsViewProps> = ({ userId: propUserId }
           setExerciseReport(rep);
         }
       } catch (err: unknown) {
+        if (!isCurrentLoad()) return;
         console.error('Failed to load insights metrics:', err);
         setErrorMsg(err instanceof Error ? err.message : 'Failed to aggregate insights.');
       } finally {
-        setLoading(false);
+        if (isCurrentLoad()) setLoading(false);
       }
     }
 
     loadData();
-  }, [user, authLoading]);
+    return () => {
+      cancelled = true;
+    };
+  }, [activeUserId, user, authLoading]);
 
   // Scoped calculation based on selectedProgramId
   const { filteredSessions, filteredSets, workoutMap } = useMemo(() => {

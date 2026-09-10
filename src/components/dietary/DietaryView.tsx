@@ -8,6 +8,7 @@ import { BarcodeScannerModal } from './BarcodeScannerModal.tsx';
 import { useDietaryTracking } from './useDietaryTracking.ts';
 import { CoachMacroPrescription } from '../../models.ts';
 import { fetchActiveMacroPrescription } from '../../lib/supabaseData.ts';
+import { useResourceScroll } from '../../utils/useResourceScroll.ts';
 
 interface DietaryViewProps {
   userId?: string;
@@ -89,6 +90,8 @@ export const DietaryView: React.FC<DietaryViewProps> = ({ userId: propUserId }) 
     setNewFoodFiber,
     handleSaveNewCustomFood,
   } = useDietaryTracking(userId);
+
+  useResourceScroll(userId, 'dietary-scroll', selectedDate, isAddModalOpen ? 'add' : 'view');
 
   // Helper to identify store metadata from source URL or ID prefix
   const getStoreMetadata = (url?: string, id?: string): StoreMetadata | null => {

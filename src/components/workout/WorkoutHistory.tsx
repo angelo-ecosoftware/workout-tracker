@@ -21,6 +21,8 @@ import { Activity, Loader2, ChevronLeft, Trash2 } from 'lucide-react';
 import { ConfirmModal } from '../ui/ConfirmModal.tsx';
 import { PopulatedSession, SessionDetailCard } from './history/SessionDetailCard.tsx';
 import { SessionGridCard } from './history/SessionGridCard.tsx';
+import { useResourceScroll } from '../../utils/useResourceScroll.ts';
+import { clearContinuity, readContinuity, writeContinuity } from '../../utils/continuityState.ts';
 
 export const WorkoutHistory: React.FC<{
   targetUserId?: string;
@@ -37,6 +39,10 @@ export const WorkoutHistory: React.FC<{
 }) => {
   const { user, loading: authLoading } = useAuth();
   const activeUserId = targetUserId || user?.uid;
+  const loadGenerationRef = useRef(0);
+  const activeUserIdRef = useRef(activeUserId);
+  activeUserIdRef.current = activeUserId;
+  useResourceScroll(activeUserId, 'logbook-scroll', routeSessionId || 'list', routeEditMode ? 'edit' : 'view');
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [sessions, setSessions] = useState<PopulatedSession[]>([]);
@@ -54,6 +60,12 @@ export const WorkoutHistory: React.FC<{
   const [editingNotesValue, setEditingNotesValue] = useState<string>("");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
   const getNotesDraftKey = (sessionId: string) => `logbook_notes_draft_${activeUserId}_${sessionId}`;
+  const getEditorDraft = (sessionId: string) => readContinuity<{
+    field: 'notes' | 'date' | 'coachNotes' | 'weight';
+    value: string | number;
+    sleepHours?: number;
+    energyScore?: number;
+  }>(activeUserId, 'logbook-editor', sessionId, 1);
 
   // Coach Notes editing state
   const [editingCoachNotesSessionId, setEditingCoachNotesSessionId] = useState<string | null>(null);
@@ -137,6 +149,7 @@ export const WorkoutHistory: React.FC<{
       try {
         localStorage.removeItem(getNotesDraftKey(sessionId));
       } catch {}
+      clearContinuity(activeUserId, 'logbook-editor', sessionId);
       setEditingNotesSessionId(null);
       onResourceRouteChange?.(`/logbook/${encodeURIComponent(sessionId)}`);
     } catch (err) {
@@ -161,6 +174,7 @@ export const WorkoutHistory: React.FC<{
   const startEditingCoachNotes = (session: PopulatedSession) => {
     setEditingCoachNotesSessionId(session.id);
     setEditingCoachNotesValue(session.coachNotes || "");
+    onResourceRouteChange?.(`/logbook/${encodeURIComponent(session.id)}/edit`);
   };
 
   const saveCoachNotesEdit = async (sessionId: string) => {
@@ -172,7 +186,9 @@ export const WorkoutHistory: React.FC<{
       setSessions(prev =>
         prev.map(s => (s.id === sessionId ? { ...s, coachNotes: cleanCoachNotes, coachName: user?.displayName || s.coachName } : s))
       );
+      clearContinuity(activeUserId, 'logbook-editor', sessionId);
       setEditingCoachNotesSessionId(null);
+      onResourceRouteChange?.(`/logbook/${encodeURIComponent(sessionId)}`);
     } catch (err) {
       console.error("Failed to update coach notes:", err);
       alert("Failed to update coach notes.");
@@ -182,8 +198,10 @@ export const WorkoutHistory: React.FC<{
   };
 
   const cancelCoachNotesEdit = () => {
+    if (editingCoachNotesSessionId) clearContinuity(activeUserId, 'logbook-editor', editingCoachNotesSessionId);
     setEditingCoachNotesSessionId(null);
     setEditingCoachNotesValue("");
+    if (routeSessionId) onResourceRouteChange?.(`/logbook/${encodeURIComponent(routeSessionId)}`);
   };
 
   // Helper to extract session's local date string YYYY-MM-DD
@@ -207,11 +225,14 @@ export const WorkoutHistory: React.FC<{
     const fallbackWeight = userProfile?.weightKg || userProfile?.metrics?.weight;
     setEditingWeightSessionId(session.id);
     setEditingWeightValue(existingLog?.weightKg != null ? String(existingLog.weightKg) : (fallbackWeight ? String(fallbackWeight) : ""));
+    onResourceRouteChange?.(`/logbook/${encodeURIComponent(session.id)}/edit`);
   };
 
   const cancelWeightEdit = () => {
+    if (editingWeightSessionId) clearContinuity(activeUserId, 'logbook-editor', editingWeightSessionId);
     setEditingWeightSessionId(null);
     setEditingWeightValue("");
+    if (routeSessionId) onResourceRouteChange?.(`/logbook/${encodeURIComponent(routeSessionId)}`);
   };
 
   const saveWeightEdit = async (session: PopulatedSession) => {
@@ -251,7 +272,9 @@ export const WorkoutHistory: React.FC<{
         metrics: { ...prev.metrics, weight: parsedWeight },
       } : prev);
 
+      clearContinuity(activeUserId, 'logbook-editor', session.id);
       setEditingWeightSessionId(null);
+      onResourceRouteChange?.(`/logbook/${encodeURIComponent(session.id)}`);
     } catch (err: unknown) {
       console.error("Failed to save body weight:", err);
       alert(err instanceof Error ? err.message : "Failed to save body weight.");
@@ -349,6 +372,7 @@ export const WorkoutHistory: React.FC<{
     } else {
       setEditingDateValue("");
     }
+    onResourceRouteChange?.(`/logbook/${encodeURIComponent(session.id)}/edit`);
   };
 
   const saveDateEdit = async (session: PopulatedSession) => {
@@ -368,8 +392,10 @@ export const WorkoutHistory: React.FC<{
             : s
         ).sort((a, b) => (a.completedAt?.getTime() || 0) - (b.completedAt?.getTime() || 0))
       );
+      clearContinuity(activeUserId, 'logbook-editor', session.id);
       
       setEditingDateSessionId(null);
+      onResourceRouteChange?.(`/logbook/${encodeURIComponent(session.id)}`);
     } catch (err) {
       console.error("Failed to update date and metrics:", err);
       alert("Failed to update date and metrics.");
@@ -377,8 +403,10 @@ export const WorkoutHistory: React.FC<{
   };
 
   const cancelDateEdit = () => {
+    if (editingDateSessionId) clearContinuity(activeUserId, 'logbook-editor', editingDateSessionId);
     setEditingDateSessionId(null);
     setEditingDateValue("");
+    if (routeSessionId) onResourceRouteChange?.(`/logbook/${encodeURIComponent(routeSessionId)}`);
   };
 
   const toggleSelection = (id: string) => {
@@ -412,13 +440,21 @@ export const WorkoutHistory: React.FC<{
   };
 
   useEffect(() => {
+    const loadGeneration = ++loadGenerationRef.current;
+    let cancelled = false;
+    const isCurrentLoad = () =>
+      !cancelled &&
+      loadGenerationRef.current === loadGeneration &&
+      activeUserIdRef.current === activeUserId;
+
     async function loadHistory() {
       if (authLoading) return;
       if (!activeUserId) {
-        setLoading(false);
+        if (isCurrentLoad()) setLoading(false);
         return;
       }
       try {
+        if (!isCurrentLoad()) return;
         setLoading(true);
         setErrorMsg(null);
         
@@ -431,6 +467,7 @@ export const WorkoutHistory: React.FC<{
           activeUserId && activeUserId !== user?.uid ? fetchUserPrivacySettings(activeUserId) : Promise.resolve(null),
         ]);
 
+        if (!isCurrentLoad()) return;
         if (userProfileData) {
           setUserProfile(userProfileData);
         }
@@ -440,6 +477,7 @@ export const WorkoutHistory: React.FC<{
 
         const viewerReceiptsOn = viewerPrivacy ? viewerPrivacy.shareReviewReceipts !== false : true;
         const athleteReceiptsOn = athletePrivacy ? athletePrivacy.shareReviewReceipts !== false : true;
+        if (!isCurrentLoad()) return;
         setAllowReviewReceipts(viewerReceiptsOn && athleteReceiptsOn);
 
         const { workoutsList, exercisesList } = workoutsData;
@@ -447,6 +485,7 @@ export const WorkoutHistory: React.FC<{
         const exerciseMap = new Map(exercisesList.map(e => [e.id, e]));
 
         const promises = historySessions.map(async (session) => {
+          if (!isCurrentLoad()) return null;
           if (!session.completedAt) return null;
           
           const workout = workoutMap.get(session.workoutId);
@@ -454,6 +493,7 @@ export const WorkoutHistory: React.FC<{
           const order = workout?.order || 0;
           
           const rawSets = await fetchSetsForSession(session.id);
+          if (!isCurrentLoad()) return null;
           
           const populatedSets = rawSets.map((s) => {
             const ex = exerciseMap.get(s.exerciseId);
@@ -487,63 +527,132 @@ export const WorkoutHistory: React.FC<{
         });
         
         const results = await Promise.all(promises);
+        if (!isCurrentLoad()) return;
         const populated = results.filter((res): res is PopulatedSession => res !== null);
         
         setSessions(populated);
       } catch (err: unknown) {
+        if (!isCurrentLoad()) return;
         console.error('Error loading history:', err);
         setErrorMsg(err instanceof Error ? err.message : 'Failed to load history.');
       } finally {
-        setLoading(false);
+        if (isCurrentLoad()) setLoading(false);
       }
     }
     
     loadHistory();
-  }, [user, authLoading]);
+    return () => {
+      cancelled = true;
+    };
+  }, [activeUserId, user, authLoading]);
 
   useEffect(() => {
+    if (!routeEditMode && (editingNotesSessionId || editingDateSessionId || editingCoachNotesSessionId || editingWeightSessionId)) {
+      setEditingNotesSessionId(null);
+      setEditingNotesValue("");
+      setEditingDateSessionId(null);
+      setEditingDateValue("");
+      setEditingCoachNotesSessionId(null);
+      setEditingCoachNotesValue("");
+      setEditingWeightSessionId(null);
+      setEditingWeightValue("");
+    }
     if (routeSessionId && sessions.some((session) => session.id === routeSessionId)) {
       setExpandedSessionId(routeSessionId);
-      if (routeEditMode && !editingNotesSessionId && !isReadOnlyClientMode) {
+      if (
+        routeEditMode
+        && !editingNotesSessionId
+        && !editingDateSessionId
+        && !editingCoachNotesSessionId
+        && !editingWeightSessionId
+        && !isReadOnlyClientMode
+      ) {
         const session = sessions.find((candidate) => candidate.id === routeSessionId);
         if (session) {
           let notes = session.notes || "";
-          try {
-            const raw = localStorage.getItem(getNotesDraftKey(session.id));
-            const parsed = raw ? JSON.parse(raw) : null;
-            if (
-              parsed?.version === 1
-              && parsed?.resourceType === 'logbook-notes'
-              && parsed?.userId === activeUserId
-              && parsed?.sessionId === session.id
-              && typeof parsed.value === 'string'
-            ) {
-              notes = parsed.value;
-            }
-          } catch {}
-          setEditingNotesSessionId(session.id);
-          setEditingNotesValue(notes);
+          const draft = getEditorDraft(session.id);
+          if (draft?.payload.field === 'date') {
+            setEditingDateSessionId(session.id);
+            setEditingDateValue(String(draft.payload.value));
+            setEditingSleepValue(draft.payload.sleepHours ?? session.sleepHours ?? 8);
+            setEditingEnergyValue(draft.payload.energyScore ?? session.energyScore ?? 7);
+          } else if (draft?.payload.field === 'coachNotes') {
+            setEditingCoachNotesSessionId(session.id);
+            setEditingCoachNotesValue(String(draft.payload.value));
+          } else if (draft?.payload.field === 'weight') {
+            setEditingWeightSessionId(session.id);
+            setEditingWeightValue(String(draft.payload.value));
+          } else {
+            const legacyDraft = (() => {
+              try {
+                const raw = localStorage.getItem(getNotesDraftKey(session.id));
+                const parsed = raw ? JSON.parse(raw) : null;
+                return typeof parsed?.value === 'string' ? parsed.value : null;
+              } catch {
+                return null;
+              }
+            })();
+            notes = legacyDraft ?? (draft?.payload.field === 'notes' ? String(draft.payload.value) : notes);
+            setEditingNotesSessionId(session.id);
+            setEditingNotesValue(notes);
+          }
         }
       }
     }
-  }, [routeSessionId, routeEditMode, sessions, editingNotesSessionId, isReadOnlyClientMode, activeUserId]);
+  }, [
+    routeSessionId,
+    routeEditMode,
+    sessions,
+    editingNotesSessionId,
+    editingDateSessionId,
+    editingCoachNotesSessionId,
+    editingWeightSessionId,
+    isReadOnlyClientMode,
+    activeUserId,
+  ]);
 
   useEffect(() => {
-    if (!editingNotesSessionId || isReadOnlyClientMode || !activeUserId) return;
+    const field = editingNotesSessionId
+      ? 'notes'
+      : editingDateSessionId
+        ? 'date'
+        : editingCoachNotesSessionId
+          ? 'coachNotes'
+          : editingWeightSessionId
+            ? 'weight'
+            : null;
+    const sessionId = editingNotesSessionId || editingDateSessionId || editingCoachNotesSessionId || editingWeightSessionId;
+    if (!field || !sessionId || isReadOnlyClientMode || !activeUserId) return;
+    const value = field === 'notes'
+      ? editingNotesValue
+      : field === 'date'
+        ? editingDateValue
+        : field === 'coachNotes'
+          ? editingCoachNotesValue
+          : editingWeightValue;
     const timer = window.setTimeout(() => {
-      try {
-        localStorage.setItem(getNotesDraftKey(editingNotesSessionId), JSON.stringify({
-          version: 1,
-          resourceType: 'logbook-notes',
-          userId: activeUserId,
-          sessionId: editingNotesSessionId,
-          updatedAt: new Date().toISOString(),
-          value: editingNotesValue,
-        }));
-      } catch {}
+      writeContinuity(activeUserId, 'logbook-editor', sessionId, 1, {
+        field,
+        value,
+        sleepHours: field === 'date' ? editingSleepValue : undefined,
+        energyScore: field === 'date' ? editingEnergyValue : undefined,
+      });
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [editingNotesSessionId, editingNotesValue, isReadOnlyClientMode, activeUserId]);
+  }, [
+    editingNotesSessionId,
+    editingNotesValue,
+    editingDateSessionId,
+    editingDateValue,
+    editingSleepValue,
+    editingEnergyValue,
+    editingCoachNotesSessionId,
+    editingCoachNotesValue,
+    editingWeightSessionId,
+    editingWeightValue,
+    isReadOnlyClientMode,
+    activeUserId,
+  ]);
 
   if (loading) {
     return (
