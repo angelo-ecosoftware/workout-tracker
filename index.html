@@ -2,31 +2,93 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <title>Workout Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    
+    <title>Kinisia — Track & Go Progressive Overload App</title>
+    <meta
+      name="description"
+      content="Kinisia is the zero-fluff, Track & Go progressive overload workout tracker. Log sets instantly, reference 1,500+ exercise GIFs, and get back to your workout."
+    />
+    <meta name="keywords" content="kinisia, track and go, progressive overload tracker, workout logbook, strength training app, exercise GIFs, minimal gym app" />
+    <meta name="author" content="Kinisia" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <link rel="canonical" href="https://kinisia.nl/" />
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "SoftwareApplication",
+          "name": "Kinisia",
+          "url": "https://kinisia.nl/",
+          "applicationCategory": "HealthApplication",
+          "operatingSystem": "All",
+          "description": "Zero-fluff Track & Go progressive overload workout logbook and gym tracker web application.",
+          "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "EUR"
+          }
+        },
+        {
+          "@type": "WebSite",
+          "name": "Kinisia",
+          "alternateName": ["Kinisia App", "Kinisia Track & Go"],
+          "url": "https://kinisia.nl/"
+        },
+        {
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            {
+              "@type": "ListItem",
+              "position": 1,
+              "name": "Home",
+              "item": "https://kinisia.nl/"
+            },
+            {
+              "@type": "ListItem",
+              "position": 2,
+              "name": "Login",
+              "item": "https://kinisia.nl/login"
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://kinisia.nl/" />
+    <meta property="og:title" content="Kinisia — Track & Go Workout Tracker" />
+    <meta property="og:description" content="Track & Go. Log sets instantly, master form with 1,500+ GIFs, and track progressive overload without the fluff." />
+    <meta property="og:image" content="https://kinisia.nl/icon-512.png" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://kinisia.nl/" />
+    <meta name="twitter:title" content="Kinisia — Track & Go Workout Tracker" />
+    <meta name="twitter:description" content="Track & Go. Log sets instantly, master form with 1,500+ GIFs, and track progressive overload without the fluff." />
+    <meta name="twitter:image" content="https://kinisia.nl/icon-512.png" />
+
     <meta name="theme-color" content="#000000" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Workout Tracker" />
+    <meta name="apple-mobile-web-app-title" content="Kinisia" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
+    <link rel="shortcut icon" href="/icon-192.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+
     <script>
-      // Capture beforeinstallprompt before React loads so it is never missed
       window.deferredInstallPrompt = null;
       window.addEventListener('beforeinstallprompt', function(e) {
         e.preventDefault();
         window.deferredInstallPrompt = e;
         window.dispatchEvent(new Event('deferredpromptready'));
       });
-      window.addEventListener('error', function(e) {
-        if (e.message === 'Script error.' || e.message === 'Script error') {
-          e.stopImmediatePropagation();
-        }
-      }, true);
     </script>
   </head>
   <body>
@@ -34,4 +96,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
