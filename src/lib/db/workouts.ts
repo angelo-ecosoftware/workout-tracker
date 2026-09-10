@@ -2,11 +2,11 @@ import { supabase } from '../supabase.ts';
 import { Workout, Exercise } from '../../models.ts';
 import { DbWorkoutRow, DbExerciseRow } from '../../types/supabase.ts';
 
-export async function seedTemplatesIfMissing(_userId?: string) {
+async function legacySeedTemplatesIfMissing(_userId?: string) {
   return;
 }
 
-export async function fetchWorkoutsData(userId?: string) {
+async function legacyFetchWorkoutsData(userId?: string) {
   let workoutsList: Workout[] = [];
   let exercisesList: Exercise[] = [];
 
@@ -75,7 +75,7 @@ export async function fetchWorkoutsData(userId?: string) {
   return { combinedWorkouts, workoutsList, exercisesList };
 }
 
-export async function saveWorkoutsAndExercises(
+async function legacySaveWorkoutsAndExercises(
   userId: string,
   updatedWorkouts: (Workout & { exercises: Exercise[] })[]
 ) {
@@ -128,3 +128,9 @@ export async function saveWorkoutsAndExercises(
     throw err;
   }
 }
+
+export {
+  seedTemplatesIfMissing,
+  fetchWorkoutsData,
+  saveWorkoutsAndExercises,
+} from './workoutsCanonical.ts';

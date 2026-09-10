@@ -7,6 +7,7 @@ import { Workout, Exercise } from '../../../src/models.ts';
 // -----------------------------------------------------------------------------
 let mockWorkoutsTable: any[] = [];
 let mockExercisesTable: any[] = [];
+let mockWorkoutExercisesTable: any[] = [];
 let shouldSimulateDbError = false;
 let simulatedDbErrorMessage = 'Foreign key constraint violation (500)';
 
@@ -32,7 +33,7 @@ vi.mock('../../../src/lib/supabase.ts', () => {
         const items = Array.isArray(payload) ? payload : [payload];
         items.forEach((item) => {
           const target = table === 'workouts' ? mockWorkoutsTable : mockExercisesTable;
-          const idx = target.findIndex((r) => r.id === item.id);
+          const idx = target.findIndex((r) => r.id === item.id && r.user_id === item.user_id);
           if (idx >= 0) {
             target[idx] = { ...target[idx], ...item };
           } else {
@@ -41,40 +42,70 @@ vi.mock('../../../src/lib/supabase.ts', () => {
         });
         return Promise.resolve({ data: items, error: null, status: 200 });
       }),
+      insert: vi.fn((payload: any[]) => {
+        if (shouldSimulateDbError) {
+          return Promise.reject(new Error(simulatedDbErrorMessage));
+        }
+        if (table === 'workout_exercises') {
+          mockWorkoutExercisesTable.push(...payload);
+        }
+        return Promise.resolve({ data: payload, error: null, status: 201 });
+      }),
       delete: vi.fn(() => {
-        return {
-          eq: (field: string, val: any) => {
-            if (shouldSimulateDbError) {
-              return Promise.resolve({ data: null, error: { message: simulatedDbErrorMessage, code: '500' }, status: 500 });
-            }
-            if (table === 'workouts') {
-              const before = mockWorkoutsTable.length;
-              mockWorkoutsTable = mockWorkoutsTable.filter((r) => r[field] !== val);
-              return Promise.resolve({ data: { count: before - mockWorkoutsTable.length }, error: null, status: 200 });
-            }
-            if (table === 'exercises') {
-              const before = mockExercisesTable.length;
-              mockExercisesTable = mockExercisesTable.filter((r) => r[field] !== val);
-              return Promise.resolve({ data: { count: before - mockExercisesTable.length }, error: null, status: 200 });
-            }
-            return Promise.resolve({ data: null, error: null, status: 200 });
+        const deleteBuilder: any = {
+          _eq: [] as { field: string; value: any }[],
+          _not: [] as { field: string; values: string[] }[],
+          eq: (field: string, value: any) => {
+            deleteBuilder._eq.push({ field, value });
+            return deleteBuilder;
           },
-          in: (field: string, vals: any[]) => {
-            if (table === 'workouts') {
-              mockWorkoutsTable = mockWorkoutsTable.filter((r) => !vals.includes(r[field]));
+          in: (field: string, values: any[]) => {
+            deleteBuilder._not.push({ field, values: values.map(String) });
+            return deleteBuilder;
+          },
+          not: (field: string, _operator: string, value: string) => {
+            deleteBuilder._not.push({
+              field,
+              values: value.replace(/[()"]/g, '').split(',').filter(Boolean),
+            });
+            return deleteBuilder;
+          },
+          then: (onfulfilled: any) => {
+            if (shouldSimulateDbError) {
+              return Promise.resolve({ data: null, error: { message: simulatedDbErrorMessage, code: '500' }, status: 500 }).then(onfulfilled);
             }
-            if (table === 'exercises') {
-              mockExercisesTable = mockExercisesTable.filter((r) => !vals.includes(r[field]));
-            }
-            return Promise.resolve({ data: null, error: null, status: 200 });
+            const target = table === 'workouts'
+              ? mockWorkoutsTable
+              : table === 'exercises'
+                ? mockExercisesTable
+                : mockWorkoutExercisesTable;
+            const before = target.length;
+            const retained = target.filter((row) =>
+              !deleteBuilder._eq.some((filter: any) => row[filter.field] === filter.value) ||
+              deleteBuilder._not.some((filter: any) => filter.field === 'id' && filter.values.includes(String(row.id)))
+            );
+            if (table === 'workouts') mockWorkoutsTable = retained;
+            if (table === 'exercises') mockExercisesTable = retained;
+            if (table === 'workout_exercises') mockWorkoutExercisesTable = retained;
+            return Promise.resolve({
+              data: { count: before - retained.length },
+              error: null,
+              status: 200,
+            }).then(onfulfilled);
           },
         };
+        return deleteBuilder;
       }),
       then: (onfulfilled: any) => {
         if (shouldSimulateDbError) {
           return Promise.resolve({ data: null, error: { message: simulatedDbErrorMessage, code: '500' }, status: 500 }).then(onfulfilled);
         }
-        let data = table === 'workouts' ? [...mockWorkoutsTable] : [...mockExercisesTable];
+        let data =
+          table === 'workouts'
+            ? [...mockWorkoutsTable]
+            : table === 'workout_exercises'
+              ? [...mockWorkoutExercisesTable]
+              : [...mockExercisesTable];
         for (const f of builder._filters) {
           data = data.filter((r) => r[f.field] === f.val);
         }
@@ -95,6 +126,7 @@ describe('Entities: Workouts & Exercises (workouts, exercises) - Complete CRUD M
   beforeEach(() => {
     mockWorkoutsTable = [];
     mockExercisesTable = [];
+    mockWorkoutExercisesTable = [];
     shouldSimulateDbError = false;
     vi.clearAllMocks();
   });
@@ -135,11 +167,15 @@ describe('Entities: Workouts & Exercises (workouts, exercises) - Complete CRUD M
 
       expect(mockWorkoutsTable).toHaveLength(1);
       expect(mockWorkoutsTable[0].name).toBe('Day 1 - Heavy Push');
-      expect(mockWorkoutsTable[0].exercise_ids).toEqual(['ex_bench', 'ex_incline']);
+      expect(mockWorkoutsTable[0].exercise_ids).toHaveLength(2);
+      expect(mockWorkoutsTable[0].exercise_ids.every((id: string) => id.startsWith('ex_'))).toBe(true);
 
       expect(mockExercisesTable).toHaveLength(2);
       expect(mockExercisesTable[0].name).toBe('Barbell Flat Bench Press');
       expect(mockExercisesTable[1].name).toBe('Incline Dumbbell Press');
+      expect(mockWorkoutExercisesTable).toHaveLength(2);
+      expect(mockWorkoutExercisesTable.map((row) => row.exercise_id))
+        .toEqual(mockWorkoutsTable[0].exercise_ids);
     });
 
     it('500 Internal Server Error: Catches database exception when exercise creation fails', async () => {

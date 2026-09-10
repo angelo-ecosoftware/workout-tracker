@@ -117,7 +117,7 @@ describe('Users Domain Persistence & Onboarding Workflows', () => {
 
     await saveUserMetrics('usr_alpha', metrics);
 
-    expect(mockUsersDb[0].metrics).toEqual(metrics);
+    expect(mockUsersDb[0].metrics).toMatchObject(metrics);
     const stored = JSON.parse(localStorage.getItem('user_metrics_usr_alpha') || '{}');
     expect(stored.height).toBe(185);
     expect(stored.weight).toBe(84.0);

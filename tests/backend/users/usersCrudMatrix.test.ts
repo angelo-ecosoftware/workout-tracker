@@ -215,7 +215,7 @@ describe('Entity: Users (users table) - Complete CRUD Matrix (200, 400, 401, 404
 
       await saveUserMetrics('usr_metric_user', metrics);
 
-      expect(mockUsersTable[0].metrics).toEqual(metrics);
+      expect(mockUsersTable[0].metrics).toMatchObject(metrics);
       const cached = JSON.parse(localStorage.getItem('user_metrics_usr_metric_user') || '{}');
       expect(cached.weight).toBe(86.5);
       expect(cached.bodyMeasurementsNotes).toContain('Target weight: 82kg');

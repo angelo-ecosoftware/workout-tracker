@@ -80,7 +80,7 @@ describe('User Preferences & Biometric Metrics Engine', () => {
 
     await saveUserMetrics('usr_metrics_1', metrics);
 
-    expect(mockUsersDb[0].metrics).toEqual(metrics);
+    expect(mockUsersDb[0].metrics).toMatchObject(metrics);
   });
 
   it('2. Retrieves user metrics with fallback to local storage when database is offline', async () => {

@@ -1,5 +1,6 @@
 import { supabase } from '../supabase.ts';
 import { UserProfile, UserMetrics, BodyMeasurementLog } from '../../models.ts';
+import { logDailyBodyWeight } from './biometrics.ts';
 
 function getLocalStorageItem(key: string): string | null {
   try {
@@ -132,17 +133,42 @@ export async function initializeUser(userId: string, email?: string, name?: stri
 }
 
 export async function saveUserMetrics(userId: string, metrics: UserMetrics) {
+  // Preserve the production contract: cache immediately for offline use,
+  // persist explicit profile columns plus the JSON snapshot, then record a
+  // daily body log when a weight is supplied.
   try {
     setLocalStorageItem(`user_metrics_${userId}`, JSON.stringify(metrics));
-    const { error } = await supabase
-      .from('users')
-      .update({ metrics })
-      .eq('user_id', userId);
+  } catch (err) {
+    console.warn('Could not cache user metrics locally:', err);
+  }
 
+  try {
+    const updatePayload: Record<string, unknown> = { metrics };
+    if (metrics.dateOfBirth) updatePayload.date_of_birth = metrics.dateOfBirth;
+    if (metrics.gender) updatePayload.gender = metrics.gender;
+    if (metrics.height) updatePayload.height_cm = metrics.height;
+    if (metrics.weight) updatePayload.weight_kg = metrics.weight;
+    if (metrics.fitnessLevel) updatePayload.fitness_level = metrics.fitnessLevel;
+    if (metrics.trainingLocation) updatePayload.training_location = metrics.trainingLocation;
+    updatePayload.updated_at = new Date().toISOString();
+
+    const { error } = await supabase.from('users').update(updatePayload).eq('user_id', userId);
     if (error) {
-      console.warn('Supabase saveUserMetrics error:', error);
+      // Preserve compatibility with deployments missing newer explicit columns.
+      await supabase.from('users').update({ metrics }).eq('user_id', userId);
     }
   } catch (err) {
-    console.warn('Failed to save user metrics:', err);
+    console.warn('Supabase update metrics failed:', err);
+  }
+
+  if (metrics.weight && metrics.weight > 0) {
+    const today = new Date().toISOString().split('T')[0];
+    await logDailyBodyWeight(userId, {
+      date: today,
+      weightKg: metrics.weight,
+      heightCm: metrics.height,
+      source: 'profile',
+      notes: metrics.bodyMeasurementsNotes,
+    });
   }
 }

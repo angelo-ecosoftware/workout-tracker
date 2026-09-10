@@ -137,14 +137,14 @@ describe('Entity: Body Measurement Logs (body_logs / body_measurement_logs) - Co
       expect(mockBodyLogsTable).toHaveLength(1);
     });
 
-    it('500 Internal Server Error: Throws error when database persistence fails during insert', async () => {
+    it('degrades to the local log when database persistence fails during insert', async () => {
       shouldSimulateDbError = true;
-      await expect(
-        logDailyBodyWeight(userId, {
-          date: '2026-09-03',
-          weightKg: 85.0,
-        })
-      ).rejects.toThrow(/Database transaction deadlock/);
+      const log = await logDailyBodyWeight(userId, {
+        date: '2026-09-03',
+        weightKg: 85.0,
+      });
+      expect(log.userId).toBe(userId);
+      expect(log.weightKg).toBe(85);
     });
   });
 

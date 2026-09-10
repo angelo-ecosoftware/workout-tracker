@@ -72,8 +72,8 @@ describe('User Sessions Historical CRUD & Timeline Queries', () => {
     expect(historyUser2[0].id).toBe('sess_user2');
   });
 
-  it('3. Throws error cleanly when database query fails during history fetch', async () => {
+  it('3. Returns an empty history when database query fails', async () => {
     shouldFailDb = true;
-    await expect(fetchWorkoutHistory('usr_fail')).rejects.toThrow('DB Error');
+    await expect(fetchWorkoutHistory('usr_fail')).resolves.toEqual([]);
   });
 });

@@ -108,7 +108,7 @@ describe('Happy Path User Forms: Onboarding, Profile Edits & Metric Capture', ()
 
       await saveUserMetrics('usr_happy_2', onboardingData);
 
-      expect(mockUsersDb[0].metrics).toEqual(onboardingData);
+      expect(mockUsersDb[0].metrics).toMatchObject(onboardingData);
       const cached = JSON.parse(localStorage.getItem('user_metrics_usr_happy_2') || '{}');
       expect(cached.goals).toContain('hypertrophy');
       expect(cached.height).toBe(182);

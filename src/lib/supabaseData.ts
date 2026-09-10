@@ -3,103 +3,17 @@ import { UserProfile, Workout, Session, WorkoutSet, Exercise, LastSetSummary, Bo
 import { SessionEngine, SetLogger } from '../engine.ts';
 import { deleteWorkoutPhotos } from './storage.ts';
 import { DbSessionRow, DbSetRow, DbWorkoutRow, DbExerciseRow, DbWorkoutExerciseRow, DbBodyLogRow } from '../types/supabase.ts';
-
-// Get or create user profile
-export async function initializeUser(userId: string, email?: string, name?: string) {
-  const { data: authData } = await supabase.auth.getUser();
-  const authUser = authData?.user;
-
-  // Derive best available email and name from parameters or auth metadata
-  const resolvedEmail = email || authUser?.email || '';
-  const metaName = authUser?.user_metadata?.full_name || authUser?.user_metadata?.name;
-  const resolvedName = name || metaName || (resolvedEmail ? resolvedEmail.split('@')[0] : '') || 'Athlete';
-
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (!data) {
-    const newUser: UserProfile = {
-      userId,
-      email: resolvedEmail,
-      name: resolvedName,
-      lastCompletedWorkoutOrder: 0,
-      maxWorkoutOrder: 3,
-      lastSetSummaryPerExercise: {},
-      createdAt: new Date(),
-    };
-
-    const { error: insertError } = await supabase.from('users').upsert({
-      user_id: userId,
-      email: resolvedEmail,
-      name: resolvedName,
-      last_completed_workout_order: 0,
-      max_workout_order: 3,
-      last_set_summary_per_exercise: {},
-      created_at: newUser.createdAt.toISOString(),
-    }, { onConflict: 'user_id' });
-
-    if (insertError) {
-      console.warn('initializeUser upsert warning:', insertError);
-    }
-
-    return newUser;
-  }
-
-  // If existing record was created with empty/null email or default 'Athlete' name, patch it with Google profile data
-  const isMissingEmail = !data.email && !!resolvedEmail;
-  const isDefaultName = (!data.name || data.name === 'Athlete') && resolvedName !== 'Athlete';
-
-  if (isMissingEmail || isDefaultName) {
-    const patchPayload: Record<string, any> = {};
-    if (isMissingEmail) patchPayload.email = resolvedEmail;
-    if (isDefaultName) patchPayload.name = resolvedName;
-
-    await supabase
-      .from('users')
-      .update(patchPayload)
-      .eq('user_id', userId);
-    
-    data.email = resolvedEmail || data.email;
-    data.name = resolvedName || data.name;
-  }
-
-  const localMetricsRaw = localStorage.getItem(`user_metrics_${userId}`);
-  const localMetrics = localMetricsRaw ? JSON.parse(localMetricsRaw) : undefined;
-  const rawBodyLogs = localStorage.getItem(`body_logs_${userId}`);
-  const cachedLogs: BodyMeasurementLog[] = rawBodyLogs ? JSON.parse(rawBodyLogs) : [];
-  const latestCachedWeight = cachedLogs.length > 0 ? cachedLogs[cachedLogs.length - 1].weightKg : undefined;
-
-  const resolvedWeight = data.weight_kg != null ? Number(data.weight_kg) : (data.metrics?.weight != null ? Number(data.metrics.weight) : (localMetrics?.weight || latestCachedWeight));
-  const resolvedHeight = data.height_cm != null ? Number(data.height_cm) : (data.metrics?.height != null ? Number(data.metrics.height) : localMetrics?.height);
-
-  return {
-    userId: data.user_id || userId,
-    email: data.email || resolvedEmail,
-    name: data.name || resolvedName,
-    dateOfBirth: data.date_of_birth || data.metrics?.dateOfBirth,
-    gender: data.gender || data.metrics?.gender,
-    heightCm: resolvedHeight,
-    weightKg: resolvedWeight,
-    fitnessLevel: data.fitness_level || data.metrics?.fitnessLevel,
-    trainingLocation: data.training_location || data.metrics?.trainingLocation,
-    lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
-    maxWorkoutOrder: data.max_workout_order ?? 3,
-    lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
-    createdAt: data.created_at ? new Date(data.created_at) : new Date(),
-    metrics: data.metrics || localMetrics || (resolvedWeight ? { weight: resolvedWeight, height: resolvedHeight } : undefined),
-  } as UserProfile;
-}
+import { initializeUser, saveUserMetrics } from './db/users.ts';
+import { logDailyBodyWeight, fetchBodyMeasurementLogs } from './db/biometrics.ts';
+import { seedTemplatesIfMissing as canonicalSeedTemplatesIfMissing } from './db/workouts.ts';
 
 // Ensure the static workouts/exercises templates exist in Supabase
-export async function seedTemplatesIfMissing(_userId?: string) {
+async function legacySeedTemplatesIfMissing(_userId?: string) {
   // Seeding disabled - users customize or manage their routines directly or via database
   return;
 }
 
-export async function fetchWorkoutsData(userId?: string) {
+async function legacyFetchWorkoutsData(userId?: string) {
   let workoutsList: Workout[] = [];
   let exercisesList: Exercise[] = [];
 
@@ -205,7 +119,7 @@ export async function getUserProgressState(userId: string) {
   const isFirstRegistration = !data;
 
   if (!data) {
-    await seedTemplatesIfMissing(userId);
+    await canonicalSeedTemplatesIfMissing(userId);
     const createdProfile = await initializeUser(userId, userEmail, userName);
     return {
       profile: createdProfile,
@@ -298,7 +212,7 @@ export async function getUserProgressState(userId: string) {
   };
 }
 
-export async function updateSessionDate(
+async function legacyUpdateSessionDate(
   sessionId: string,
   newDate: Date,
   sleepHours?: number | null,
@@ -318,14 +232,14 @@ export async function updateSessionDate(
     .eq('id', sessionId);
 }
 
-export async function updateSessionNotes(sessionId: string, notes: string | null) {
+async function legacyUpdateSessionNotes(sessionId: string, notes: string | null) {
   await supabase
     .from('sessions')
     .update({ notes })
     .eq('id', sessionId);
 }
 
-export async function updateSessionCoachNotes(sessionId: string, coachNotes: string | null, coachName?: string | null) {
+async function legacyUpdateSessionCoachNotes(sessionId: string, coachNotes: string | null, coachName?: string | null) {
   const payload: Record<string, any> = { coach_notes: coachNotes };
   if (coachName) payload.coach_name = coachName;
 
@@ -335,7 +249,7 @@ export async function updateSessionCoachNotes(sessionId: string, coachNotes: str
     .eq('id', sessionId);
 }
 
-export async function markSessionAsReviewed(
+async function legacyMarkSessionAsReviewed(
   sessionId: string,
   coachId: string,
   coachName?: string | null
@@ -357,14 +271,14 @@ export async function markSessionAsReviewed(
   return { reviewedAt: now, coachName };
 }
 
-export async function updateSessionPhotos(sessionId: string, photos: string[]) {
+async function legacyUpdateSessionPhotos(sessionId: string, photos: string[]) {
   await supabase
     .from('sessions')
     .update({ photos })
     .eq('id', sessionId);
 }
 
-export async function deleteSessions(sessionIds: string[], userId?: string) {
+async function legacyDeleteSessions(sessionIds: string[], userId?: string) {
   if (!sessionIds.length) return;
 
   // Retrieve user_id from session if not provided
@@ -442,7 +356,7 @@ export async function deleteSessions(sessionIds: string[], userId?: string) {
   }
 }
 
-export async function fetchWorkoutHistory(userId: string) {
+async function legacyFetchWorkoutHistory(userId: string) {
   const { data } = await supabase
     .from('sessions')
     .select('*')
@@ -471,7 +385,7 @@ export async function fetchWorkoutHistory(userId: string) {
   return sessions;
 }
 
-export async function fetchSetsForSession(sessionId: string) {
+async function legacyFetchSetsForSession(sessionId: string) {
   const { data } = await supabase
     .from('sets')
     .select('*')
@@ -500,7 +414,7 @@ export async function fetchSetsForSession(sessionId: string) {
  * Publicly fetches a single workout session by ID with its workout metadata, sets, and exercise names.
  * Safe for unauthenticated guests.
  */
-export async function fetchPublicWorkoutSession(sessionId: string): Promise<{
+async function legacyFetchPublicWorkoutSession(sessionId: string): Promise<{
   session: Session;
   workoutName: string;
   athleteName?: string;
@@ -603,7 +517,7 @@ export async function fetchPublicWorkoutSession(sessionId: string): Promise<{
   }
 }
 
-export async function fetchAllSetsForUser(userId: string) {
+async function legacyFetchAllSetsForUser(userId: string) {
   const { data, error } = await supabase
     .from('sets')
     .select('*')
@@ -633,7 +547,7 @@ export async function fetchAllSetsForUser(userId: string) {
   return sets;
 }
 
-export async function logSessionCompletion(
+async function legacyLogSessionCompletion(
   userId: string,
   workoutId: string,
   setsData: SessionSetInputPayload[],
@@ -839,7 +753,7 @@ export async function logSessionCompletion(
     .eq('user_id', userId);
 }
 
-export async function saveUserMetrics(userId: string, metrics: import('../models.ts').UserMetrics) {
+async function legacySaveUserMetrics(userId: string, metrics: import('../models.ts').UserMetrics) {
   // 1. Always save to local storage for instant offline availability
   try {
     localStorage.setItem(`user_metrics_${userId}`, JSON.stringify(metrics));
@@ -888,7 +802,7 @@ export async function saveUserMetrics(userId: string, metrics: import('../models
  * Logs or updates a daily body measurement entry for a user.
  * Ensures the BMI and weight are recorded once per day so day-to-day progression is retained.
  */
-export async function logDailyBodyWeight(
+async function legacyLogDailyBodyWeight(
   userId: string,
   payload: {
     date: string; // YYYY-MM-DD
@@ -997,7 +911,7 @@ export async function logDailyBodyWeight(
 /**
  * Fetches historical body measurement logs for trend and BMI analytics.
  */
-export async function fetchBodyMeasurementLogs(userId: string): Promise<import('../models.ts').BodyMeasurementLog[]> {
+async function legacyFetchBodyMeasurementLogs(userId: string): Promise<import('../models.ts').BodyMeasurementLog[]> {
   // 1. Try Supabase
   try {
     const { data, error } = await supabase
@@ -1038,7 +952,7 @@ export async function fetchBodyMeasurementLogs(userId: string): Promise<import('
   return [];
 }
 
-export interface ExportScopeOptions {
+interface LegacyExportScopeOptions {
   includeRoutines?: boolean;
   includeExercises?: boolean;
   includeWorkoutHistory?: boolean;
@@ -1047,8 +961,8 @@ export interface ExportScopeOptions {
   includeProfile?: boolean;
 }
 
-export async function exportAllLogs(userId: string, options?: ExportScopeOptions) {
-  const opts: ExportScopeOptions = {
+async function legacyExportAllLogs(userId: string, options?: LegacyExportScopeOptions) {
+  const opts: LegacyExportScopeOptions = {
     includeRoutines: options?.includeRoutines ?? true,
     includeExercises: options?.includeExercises ?? true,
     includeWorkoutHistory: options?.includeWorkoutHistory ?? true,
@@ -1119,7 +1033,7 @@ export async function exportAllLogs(userId: string, options?: ExportScopeOptions
   };
 }
 
-export async function deleteAllLogs(userId: string) {
+async function legacyDeleteAllLogs(userId: string) {
   await supabase.from('sets').delete().eq('user_id', userId);
   await supabase.from('sessions').delete().eq('user_id', userId);
   await supabase.from('body_logs').delete().eq('user_id', userId);
@@ -1127,7 +1041,7 @@ export async function deleteAllLogs(userId: string) {
   await supabase.from('dietary_logs').delete().eq('user_id', userId);
 }
 
-export async function importAllLogs(
+async function legacyImportAllLogs(
   userId: string,
   data: Record<string, unknown>,
   options?: { preserveOriginalIds?: boolean }
@@ -1310,7 +1224,7 @@ export async function importAllLogs(
   }
 }
 
-export async function saveWorkoutsAndExercises(
+async function legacySaveWorkoutsAndExercises(
   userId: string,
   updatedWorkouts: (Workout & { exercises: Exercise[] })[]
 ) {
@@ -1531,4 +1445,31 @@ export async function fetchAllCatalogExercises(): Promise<CatalogExercise[]> {
 
 // Re-export roles, coaching, privacy, and routine library APIs
 export * from './db/roles.ts';
+export { initializeUser } from './db/users.ts';
+export { saveUserMetrics } from './db/users.ts';
+export { logDailyBodyWeight, fetchBodyMeasurementLogs } from './db/biometrics.ts';
+export {
+  seedTemplatesIfMissing,
+  fetchWorkoutsData,
+  saveWorkoutsAndExercises,
+} from './db/workouts.ts';
+export {
+  updateSessionDate,
+  updateSessionNotes,
+  updateSessionCoachNotes,
+  markSessionAsReviewed,
+  updateSessionPhotos,
+  deleteSessions,
+  fetchWorkoutHistory,
+  fetchSetsForSession,
+  fetchPublicWorkoutSession,
+  fetchAllSetsForUser,
+  logSessionCompletion,
+} from './db/sessions.ts';
+export {
+  exportAllLogs,
+  deleteAllLogs,
+  importAllLogs,
+} from './db/backup.ts';
+export type { ExportScopeOptions } from './db/backup.ts';
 

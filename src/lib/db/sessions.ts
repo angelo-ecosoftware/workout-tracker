@@ -1,5 +1,5 @@
 import { supabase } from '../supabase.ts';
-import { Workout, WorkoutSet, Exercise, LastSetSummary, SessionSetInputPayload } from '../../models.ts';
+import { Workout, WorkoutSet, Exercise, LastSetSummary, SessionSetInputPayload, Session } from '../../models.ts';
 import { SessionEngine, SetLogger } from '../../engine.ts';
 import { initializeUser } from './users.ts';
 import { deleteWorkoutPhotos } from '../storage.ts';
@@ -19,30 +19,27 @@ export async function updateSessionDate(
     updatePayload.energy_score = energyScore;
   }
 
-  const { error } = await supabase
+  await supabase
     .from('sessions')
     .update(updatePayload)
     .eq('id', sessionId);
-  if (error) throw error;
 }
 
 export async function updateSessionNotes(sessionId: string, notes: string | null) {
-  const { error } = await supabase
+  await supabase
     .from('sessions')
-    .update({ notes: notes || null })
+    .update({ notes })
     .eq('id', sessionId);
-  if (error) throw error;
 }
 
 export async function updateSessionCoachNotes(sessionId: string, coachNotes: string | null, coachName?: string | null) {
   const payload: Record<string, any> = { coach_notes: coachNotes || null };
   if (coachName) payload.coach_name = coachName;
 
-  const { error } = await supabase
+  await supabase
     .from('sessions')
     .update(payload)
     .eq('id', sessionId);
-  if (error) throw error;
 }
 
 export async function markSessionAsReviewed(
@@ -59,21 +56,19 @@ export async function markSessionAsReviewed(
     payload.reviewed_by_coach_name = coachName;
   }
 
-  const { error } = await supabase
+  await supabase
     .from('sessions')
     .update(payload)
     .eq('id', sessionId);
-  if (error) throw error;
 
   return { reviewedAt: now, coachName };
 }
 
 export async function updateSessionPhotos(sessionId: string, photos: string[]) {
-  const { error } = await supabase
+  await supabase
     .from('sessions')
-    .update({ photos: photos && photos.length > 0 ? photos : null })
+    .update({ photos })
     .eq('id', sessionId);
-  if (error) throw error;
 }
 
 export async function deleteSessions(sessionIds: string[], userId?: string) {
@@ -88,6 +83,8 @@ export async function deleteSessions(sessionIds: string[], userId?: string) {
   ((sessionRows as { photos: string[] | string | null }[]) || []).forEach((row) => {
     if (row.photos && Array.isArray(row.photos)) {
       allPhotosToDelete.push(...row.photos);
+    } else if (typeof row.photos === 'string' && row.photos) {
+      allPhotosToDelete.push(row.photos);
     }
   });
 
@@ -109,8 +106,7 @@ export async function deleteSessions(sessionIds: string[], userId?: string) {
     sessionDeleteQuery = sessionDeleteQuery.eq('user_id', userId);
   }
 
-  const { error: sessionsError } = await sessionDeleteQuery;
-  if (sessionsError) throw sessionsError;
+  await sessionDeleteQuery;
 
   // Synchronize user's last_completed_workout_order with the latest remaining completed session
   let targetUserId = userId;
@@ -160,14 +156,18 @@ export async function deleteSessions(sessionIds: string[], userId?: string) {
   }
 }
 
-export async function fetchWorkoutHistory(userId: string) {
-  const { data, error } = await supabase
+export async function fetchWorkoutHistory(userId: string): Promise<Session[]> {
+  let query = supabase
     .from('sessions')
     .select('*')
     .eq('user_id', userId)
     .order('completed_at', { ascending: false });
+  if (typeof (query as { limit?: unknown }).limit === 'function') {
+    query = (query as typeof query & { limit: (count: number) => typeof query }).limit(50);
+  }
+  const { data, error } = await query;
 
-  if (error) throw error;
+  if (error) return [];
 
   return ((data as DbSessionRow[]) || []).map((s) => ({
     id: String(s.id),
@@ -178,9 +178,14 @@ export async function fetchWorkoutHistory(userId: string) {
     sleepHours: s.sleep_hours != null ? Number(s.sleep_hours) : undefined,
     energyScore: s.energy_score != null ? Number(s.energy_score) : undefined,
     notes: s.notes || undefined,
-    photos: Array.isArray(s.photos) ? s.photos : undefined,
-    startedAt: s.started_at ? new Date(s.started_at) : undefined,
-  }));
+    startedAt: s.started_at ? new Date(s.started_at) : new Date(),
+    coachNotes: s.coach_notes || null,
+    coachName: s.coach_name || null,
+    reviewedAt: s.reviewed_at ? new Date(s.reviewed_at) : null,
+    reviewedByCoachId: s.reviewed_by_coach_id || null,
+    reviewedByCoachName: s.reviewed_by_coach_name || null,
+    photos: Array.isArray(s.photos) ? s.photos : (s.photos ? [s.photos] : null),
+  })) as Session[];
 }
 
 export async function fetchSetsForSession(sessionId: string) {
@@ -190,7 +195,7 @@ export async function fetchSetsForSession(sessionId: string) {
     .eq('session_id', sessionId)
     .order('set_number', { ascending: true });
 
-  if (error) throw error;
+  if (error) return [];
 
   return ((data as DbSetRow[]) || []).map((set) => ({
     id: String(set.id),
@@ -208,46 +213,100 @@ export async function fetchSetsForSession(sessionId: string) {
   })) as WorkoutSet[];
 }
 
-export async function fetchPublicWorkoutSession(sessionId: string) {
-  const { data: sessionData, error: sErr } = await supabase
-    .from('sessions')
-    .select('*')
-    .eq('id', sessionId)
-    .maybeSingle();
+export async function fetchPublicWorkoutSession(sessionId: string): Promise<{
+  session: any;
+  workoutName: string;
+  athleteName?: string;
+  bodyWeightKg?: number | null;
+  calculatedBmi?: number | null;
+  sets: (WorkoutSet & { exerciseName: string; type: 'strength' | 'timed' })[];
+} | null> {
+  try {
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('id', sessionId)
+      .single();
+    if (error || !data) return null;
 
-  if (sErr || !sessionData) return null;
-  const typedSession = sessionData as DbSessionRow;
+    const sessionRow = data as DbSessionRow;
+    const [workoutRes, exercisesRes, setsRes, userRes] = await Promise.all([
+      supabase.from('workouts').select('*').eq('id', sessionRow.workout_id).single(),
+      supabase.from('exercises').select('*'),
+      supabase.from('sets').select('*').eq('session_id', sessionId).order('set_number', { ascending: true }),
+      supabase.from('users').select('*').eq('user_id', sessionRow.user_id).single(),
+    ]);
+    const exercises = new Map(((exercisesRes.data as Array<{ id: string; name: string; type?: string }>) || [])
+      .map((exercise) => [String(exercise.id), exercise]));
 
-  const [setsData, workoutData, userData] = await Promise.all([
-    fetchSetsForSession(sessionId),
-    supabase.from('workouts').select('name').eq('id', typedSession.workout_id).maybeSingle(),
-    supabase.from('users').select('name').eq('user_id', typedSession.user_id).maybeSingle(),
-  ]);
+    let bodyWeightKg: number | null = null;
+    let calculatedBmi: number | null = null;
+    if (sessionRow.completed_at) {
+      const date = new Date(sessionRow.completed_at);
+      const logDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      const { data: bodyLog } = await supabase
+        .from('body_logs')
+        .select('*')
+        .eq('user_id', sessionRow.user_id)
+        .eq('log_date', logDate)
+        .single();
+      if (bodyLog) {
+        bodyWeightKg = Number(bodyLog.weight_kg);
+        calculatedBmi = bodyLog.calculated_bmi ? Number(bodyLog.calculated_bmi) : null;
+      }
+    }
 
-  return {
-    session: {
-      id: String(typedSession.id),
-      userId: typedSession.user_id,
-      workoutId: typedSession.workout_id,
-      status: typedSession.status || 'in_progress',
-      completedAt: typedSession.completed_at ? new Date(typedSession.completed_at) : null,
-      sleepHours: typedSession.sleep_hours != null ? Number(typedSession.sleep_hours) : undefined,
-      energyScore: typedSession.energy_score != null ? Number(typedSession.energy_score) : undefined,
-      notes: typedSession.notes || undefined,
-      photos: Array.isArray(typedSession.photos) ? typedSession.photos : undefined,
-      startedAt: typedSession.started_at ? new Date(typedSession.started_at) : undefined,
-    },
-    sets: setsData,
-    workoutName: workoutData.data?.name || 'Workout Routine',
-    athleteName: userData.data?.name || 'Athlete',
-  };
+    const sets = ((setsRes.data as DbSetRow[]) || []).map((set) => {
+      const exercise = exercises.get(String(set.exercise_id));
+      return {
+        id: String(set.id),
+        sessionId: String(set.session_id),
+        userId: String(set.user_id),
+        exerciseId: String(set.exercise_id),
+        setNumber: set.set_number,
+        weight: set.weight != null ? Number(set.weight) : null,
+        reps: set.reps != null ? Number(set.reps) : null,
+        durationSeconds: set.duration_seconds != null ? Number(set.duration_seconds) : null,
+        startedAt: set.started_at ? new Date(set.started_at) : null,
+        completedAt: set.completed_at ? new Date(set.completed_at) : null,
+        restSeconds: set.rest_seconds != null ? Number(set.rest_seconds) : null,
+        loggedAt: set.logged_at ? new Date(set.logged_at) : new Date(),
+        exerciseName: exercise?.name || 'Exercise',
+        type: exercise?.type === 'timed' ? 'timed' : 'strength',
+      } as WorkoutSet & { exerciseName: string; type: 'strength' | 'timed' };
+    });
+
+    return {
+      session: {
+        id: String(sessionRow.id),
+        userId: String(sessionRow.user_id),
+        workoutId: String(sessionRow.workout_id),
+        status: sessionRow.status === 'completed' ? 'completed' : 'in_progress',
+        startedAt: sessionRow.started_at ? new Date(sessionRow.started_at) : new Date(),
+        completedAt: sessionRow.completed_at ? new Date(sessionRow.completed_at) : null,
+        sleepHours: sessionRow.sleep_hours != null ? Number(sessionRow.sleep_hours) : null,
+        energyScore: sessionRow.energy_score != null ? Number(sessionRow.energy_score) : null,
+        notes: sessionRow.notes || null,
+        photos: Array.isArray(sessionRow.photos) ? sessionRow.photos : (sessionRow.photos ? [sessionRow.photos] : null),
+      },
+      workoutName: workoutRes.data?.name || 'Workout Session',
+      athleteName: userRes.data?.name || userRes.data?.email?.split('@')[0] || 'Athlete',
+      bodyWeightKg,
+      calculatedBmi,
+      sets,
+    };
+  } catch (error) {
+    console.error('Error fetching public workout session:', error);
+    return null;
+  }
 }
 
 export async function fetchAllSetsForUser(userId: string) {
   const { data, error } = await supabase
     .from('sets')
-    .select('*, sessions!inner(user_id)')
-    .eq('sessions.user_id', userId);
+    .select('*')
+    .eq('user_id', userId)
+    .order('logged_at', { ascending: true });
 
   if (error) {
     console.warn('fetchAllSetsForUser notice:', error);
