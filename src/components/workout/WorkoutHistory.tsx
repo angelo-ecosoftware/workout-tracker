@@ -22,9 +22,18 @@ import { ConfirmModal } from '../ui/ConfirmModal.tsx';
 import { PopulatedSession, SessionDetailCard } from './history/SessionDetailCard.tsx';
 import { SessionGridCard } from './history/SessionGridCard.tsx';
 
-export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientMode?: boolean }> = ({
+export const WorkoutHistory: React.FC<{
+  targetUserId?: string;
+  isReadOnlyClientMode?: boolean;
+  routeSessionId?: string | null;
+  routeEditMode?: boolean;
+  onResourceRouteChange?: (path: string) => void;
+}> = ({
   targetUserId,
   isReadOnlyClientMode = false,
+  routeSessionId = null,
+  routeEditMode = false,
+  onResourceRouteChange,
 }) => {
   const { user, loading: authLoading } = useAuth();
   const activeUserId = targetUserId || user?.uid;
@@ -44,6 +53,7 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
   const [editingNotesSessionId, setEditingNotesSessionId] = useState<string | null>(null);
   const [editingNotesValue, setEditingNotesValue] = useState<string>("");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const getNotesDraftKey = (sessionId: string) => `logbook_notes_draft_${activeUserId}_${sessionId}`;
 
   // Coach Notes editing state
   const [editingCoachNotesSessionId, setEditingCoachNotesSessionId] = useState<string | null>(null);
@@ -69,6 +79,7 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
 
   const handleOpenSession = async (session: PopulatedSession) => {
     setExpandedSessionId(session.id);
+    onResourceRouteChange?.(`/logbook/${encodeURIComponent(session.id)}`);
     const isCoachInspectingAthlete = Boolean(user && activeUserId && activeUserId !== user.uid);
     if (isCoachInspectingAthlete && !session.reviewedAt && user && allowReviewReceipts) {
       try {
@@ -111,6 +122,7 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
   const startEditingNotes = (session: PopulatedSession) => {
     setEditingNotesSessionId(session.id);
     setEditingNotesValue(session.notes || "");
+    onResourceRouteChange?.(`/logbook/${encodeURIComponent(session.id)}/edit`);
   };
 
   const saveNotesEdit = async (sessionId: string) => {
@@ -122,7 +134,11 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
       setSessions(prev =>
         prev.map(s => (s.id === sessionId ? { ...s, notes: cleanNotes } : s))
       );
+      try {
+        localStorage.removeItem(getNotesDraftKey(sessionId));
+      } catch {}
       setEditingNotesSessionId(null);
+      onResourceRouteChange?.(`/logbook/${encodeURIComponent(sessionId)}`);
     } catch (err) {
       console.error("Failed to update notes:", err);
       alert("Failed to update notes.");
@@ -132,8 +148,14 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
   };
 
   const cancelNotesEdit = () => {
+    if (editingNotesSessionId) {
+      try {
+        localStorage.removeItem(getNotesDraftKey(editingNotesSessionId));
+      } catch {}
+    }
     setEditingNotesSessionId(null);
     setEditingNotesValue("");
+    if (routeSessionId) onResourceRouteChange?.(`/logbook/${encodeURIComponent(routeSessionId)}`);
   };
 
   const startEditingCoachNotes = (session: PopulatedSession) => {
@@ -479,6 +501,50 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
     loadHistory();
   }, [user, authLoading]);
 
+  useEffect(() => {
+    if (routeSessionId && sessions.some((session) => session.id === routeSessionId)) {
+      setExpandedSessionId(routeSessionId);
+      if (routeEditMode && !editingNotesSessionId && !isReadOnlyClientMode) {
+        const session = sessions.find((candidate) => candidate.id === routeSessionId);
+        if (session) {
+          let notes = session.notes || "";
+          try {
+            const raw = localStorage.getItem(getNotesDraftKey(session.id));
+            const parsed = raw ? JSON.parse(raw) : null;
+            if (
+              parsed?.version === 1
+              && parsed?.resourceType === 'logbook-notes'
+              && parsed?.userId === activeUserId
+              && parsed?.sessionId === session.id
+              && typeof parsed.value === 'string'
+            ) {
+              notes = parsed.value;
+            }
+          } catch {}
+          setEditingNotesSessionId(session.id);
+          setEditingNotesValue(notes);
+        }
+      }
+    }
+  }, [routeSessionId, routeEditMode, sessions, editingNotesSessionId, isReadOnlyClientMode, activeUserId]);
+
+  useEffect(() => {
+    if (!editingNotesSessionId || isReadOnlyClientMode || !activeUserId) return;
+    const timer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(getNotesDraftKey(editingNotesSessionId), JSON.stringify({
+          version: 1,
+          resourceType: 'logbook-notes',
+          userId: activeUserId,
+          sessionId: editingNotesSessionId,
+          updatedAt: new Date().toISOString(),
+          value: editingNotesValue,
+        }));
+      } catch {}
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [editingNotesSessionId, editingNotesValue, isReadOnlyClientMode, activeUserId]);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-gray-400">
@@ -548,7 +614,10 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
       {expandedSessionId ? (
         <div>
           <button 
-            onClick={() => setExpandedSessionId(null)}
+            onClick={() => {
+              setExpandedSessionId(null);
+              onResourceRouteChange?.('/history');
+            }}
             className="mb-4 text-[#C0FF00] font-sans font-bold text-sm flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
             <ChevronLeft className="w-5 h-5" />

@@ -14,6 +14,8 @@ import {
   getAppTab,
   getCanonicalPath,
   getPathForTab,
+  getResourceRoute,
+  ResourceRoute,
   AppTab,
 } from './appRouting.ts';
 
@@ -84,6 +86,9 @@ function getInitialTab(): TabType {
 const GymAppContent: React.FC = () => {
   const { user, loading, token, isCoach, isAdmin, specialty } = useAuth();
   const [activeTab, setActiveTabState] = useState<TabType>(() => getInitialTab());
+  const [resourceRoute, setResourceRoute] = useState<ResourceRoute | null>(() =>
+    getResourceRoute(window.location.pathname)
+  );
   const [publicSessionId, setPublicSessionId] = useState<string | null>(() => getPublicSessionIdFromUrl());
   const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => getCoachInviteCodeFromUrl());
   const [coachInviteData, setCoachInviteData] = useState<CoachAthleteLink | null>(null);
@@ -110,6 +115,7 @@ const GymAppContent: React.FC = () => {
     } catch {}
     const tab = getAppTab(window.location.pathname, '');
     if (tab) setActiveTabState(tab);
+    setResourceRoute(getResourceRoute(window.location.pathname));
     setShowLoginModal(isLoginRoute());
   };
 
@@ -132,6 +138,7 @@ const GymAppContent: React.FC = () => {
       if (window.location.pathname !== path || window.location.hash) {
         window.history.replaceState(null, '', path);
       }
+      setResourceRoute(null);
     } catch {
       // ignore
     }
@@ -145,7 +152,11 @@ const GymAppContent: React.FC = () => {
 
     if (user) {
       try {
-        sanitizeAuthenticatedSession(getPathForTab(getInitialTab()));
+        const currentResourceRoute = getResourceRoute(window.location.pathname);
+        const targetPath = currentResourceRoute
+          ? window.location.pathname
+          : getPathForTab(getInitialTab());
+        sanitizeAuthenticatedSession(targetPath);
       } catch {}
     }
 
@@ -157,6 +168,7 @@ const GymAppContent: React.FC = () => {
 
       setShowLoginModal(isLoginRoute());
       const currentTab = getAppTab(pathname, hash);
+      setResourceRoute(getResourceRoute(window.location.pathname));
 
       if (user) {
         if (!currentTab || getAppRoute(pathname, hash) === 'login' || isGoogleAuthUrl()) {
@@ -372,11 +384,26 @@ const GymAppContent: React.FC = () => {
               </div>
 
               <div>
-                {!inspectingClient && activeTab === 'tracker' && <WorkoutDayTracker />}
+                {!inspectingClient && activeTab === 'tracker' && (
+                  <WorkoutDayTracker
+                    routeWorkoutId={resourceRoute?.type === 'workout' ? resourceRoute.resourceId : null}
+                    routeEditMode={resourceRoute?.type === 'workout' ? resourceRoute.isEdit : false}
+                    onResourceRouteChange={(path) => {
+                      window.history.pushState({}, '', path);
+                      setResourceRoute(getResourceRoute(path));
+                    }}
+                  />
+                )}
                 {activeTab === 'history' && (
                   <WorkoutHistory
                     targetUserId={inspectingClient?.athleteId}
                     isReadOnlyClientMode={Boolean(inspectingClient)}
+                    routeSessionId={resourceRoute?.type === 'logbook' ? resourceRoute.resourceId : null}
+                    routeEditMode={resourceRoute?.type === 'logbook' ? resourceRoute.isEdit : false}
+                    onResourceRouteChange={(path) => {
+                      window.history.pushState({}, '', path);
+                      setResourceRoute(getResourceRoute(path));
+                    }}
                   />
                 )}
                 {activeTab === 'insights' && <InsightsView userId={inspectingClient?.athleteId} />}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Workout, Exercise } from '../../models.ts';
 import { 
   X, Trash2, Save, Layers, Check, AlertCircle, RefreshCw, Search, Bookmark
@@ -18,7 +18,11 @@ interface RoutineEditorModalProps {
   userId: string;
   workouts: (Workout & { exercises: Exercise[] })[];
   onSaveWorkouts: (updatedWorkouts: (Workout & { exercises: Exercise[] })[]) => Promise<void>;
+  initialWorkoutId?: string;
 }
+
+const ROUTINE_DRAFT_VERSION = 1;
+const getRoutineDraftKey = (userId: string) => `routine_editor_draft_${userId}`;
 
 export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   isOpen,
@@ -26,7 +30,9 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   userId,
   workouts: initialWorkouts,
   onSaveWorkouts,
+  initialWorkoutId,
 }) => {
+  const skipAutosaveRef = useRef(false);
   const [workouts, setWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>(() => 
     JSON.parse(JSON.stringify(initialWorkouts || []))
   );
@@ -44,13 +50,69 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   // Sync state whenever initialWorkouts changes or modal opens
   React.useEffect(() => {
     if (isOpen && initialWorkouts) {
-      setWorkouts(JSON.parse(JSON.stringify(initialWorkouts)));
-      setSelectedWorkoutIndex(0);
+      let restoredWorkouts = JSON.parse(JSON.stringify(initialWorkouts));
+      let restoredWorkoutId = initialWorkoutId;
+      try {
+        const raw = localStorage.getItem(getRoutineDraftKey(userId));
+        const parsed = raw ? JSON.parse(raw) : null;
+        const knownWorkoutIds = new Set(initialWorkouts.map((workout) => workout.id));
+        const isValidDraft = Array.isArray(parsed?.workouts)
+          && parsed.workouts.every((workout: Workout & { exercises?: Exercise[] }) =>
+            workout
+            && typeof workout.id === 'string'
+            && typeof workout.name === 'string'
+            && (knownWorkoutIds.has(workout.id) || workout.id.startsWith('custom_w_'))
+            && Array.isArray(workout.exercises)
+            && workout.exercises.every((exercise) => exercise && typeof exercise.id === 'string' && typeof exercise.name === 'string')
+          );
+        if (
+          parsed?.version === ROUTINE_DRAFT_VERSION &&
+          parsed?.resourceType === 'routine-collection' &&
+          parsed?.userId === userId &&
+          isValidDraft
+        ) {
+          restoredWorkouts = parsed.workouts;
+          restoredWorkoutId = typeof parsed.selectedWorkoutId === 'string'
+            ? parsed.selectedWorkoutId
+            : restoredWorkoutId;
+        }
+      } catch {
+        // Corrupt or unavailable draft storage must not block routine editing.
+      }
+      skipAutosaveRef.current = true;
+      setWorkouts(restoredWorkouts);
+      const restoredIndex = restoredWorkoutId
+        ? restoredWorkouts.findIndex((workout: Workout) => workout.id === restoredWorkoutId)
+        : -1;
+      setSelectedWorkoutIndex(restoredIndex >= 0 ? restoredIndex : 0);
       setEditingExerciseId(null);
       setStatusMsg(null);
       setWorkoutToDeleteIndex(null);
     }
-  }, [isOpen, initialWorkouts]);
+  }, [isOpen, initialWorkouts, initialWorkoutId, userId]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (skipAutosaveRef.current) {
+      skipAutosaveRef.current = false;
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(getRoutineDraftKey(userId), JSON.stringify({
+          version: ROUTINE_DRAFT_VERSION,
+          resourceType: 'routine-collection',
+          userId,
+          selectedWorkoutId: workouts[selectedWorkoutIndex]?.id || null,
+          updatedAt: new Date().toISOString(),
+          workouts,
+        }));
+      } catch {
+        // Draft persistence is best effort; keep the in-memory editor usable.
+      }
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, userId, workouts, selectedWorkoutIndex]);
 
   if (!isOpen) return null;
 
@@ -175,6 +237,11 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
         })),
       }));
       await onSaveWorkouts(sanitizedWorkouts);
+      try {
+        localStorage.removeItem(getRoutineDraftKey(userId));
+      } catch {
+        // Ignore storage failures after a successful server save.
+      }
       setIsSuccessModalOpen(true);
     } catch (err: unknown) {
       console.error('Error saving routine config:', err);

@@ -10,6 +10,12 @@ export type AppRoute =
 
 export type AppTab = Exclude<AppRoute, 'home' | 'login'>;
 
+export interface ResourceRoute {
+  type: 'workout' | 'logbook';
+  resourceId: string | null;
+  isEdit: boolean;
+}
+
 const routeByPath: Record<string, AppRoute> = {
   '/': 'home',
   '/login': 'login',
@@ -67,6 +73,30 @@ function normalizeHash(hash: string): string {
   return hash.trim().toLowerCase().split('?')[0];
 }
 
+function getResourcePath(pathname: string, base: string): { resourceId: string | null; isEdit: boolean } | null {
+  const path = pathname.trim().replace(/\/+$/, '') || '/';
+  const match = path.match(new RegExp(`^${base}(?:/([^/]+))?(?:/(edit))?$`, 'i'));
+  if (!match) return null;
+  let resourceId = match?.[1] || null;
+  try {
+    resourceId = resourceId ? decodeURIComponent(resourceId) : null;
+  } catch {
+    return null;
+  }
+  return {
+    resourceId,
+    isEdit: match?.[2] === 'edit',
+  };
+}
+
+export function getResourceRoute(pathname: string): ResourceRoute | null {
+  const workout = getResourcePath(pathname, '/workouts');
+  if (workout) return { type: 'workout', ...workout };
+  const logbook = getResourcePath(pathname, '/logbook');
+  if (logbook) return { type: 'logbook', ...logbook };
+  return null;
+}
+
 export function getAppRoute(pathname: string, hash = ''): AppRoute {
   // Existing bookmarks use hash routes at the site root. Only recognized
   // application routes are interpreted; in-page anchors remain untouched.
@@ -76,6 +106,9 @@ export function getAppRoute(pathname: string, hash = ''): AppRoute {
     if (legacyRoute) return legacyRoute;
   }
 
+  if (getResourceRoute(normalizedPath)) {
+    return normalizedPath.startsWith('/logbook') ? 'history' : 'tracker';
+  }
   return routeByPath[normalizedPath] || 'home';
 }
 

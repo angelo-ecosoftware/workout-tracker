@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "../../context/AuthContext.tsx";
 import { Exercise } from "../../models.ts";
 import { saveWorkoutsAndExercises } from "../../lib/supabaseData.ts";
@@ -17,7 +17,17 @@ import { ActiveWorkoutHeaderBar } from "./tracker/ActiveWorkoutHeaderBar.tsx";
 import { FinishWorkoutModal } from "./tracker/FinishWorkoutModal.tsx";
 import { SetPraiseToast } from "./tracker/SetPraiseToast.tsx";
 
-export const WorkoutDayTracker: React.FC = () => {
+interface WorkoutDayTrackerProps {
+  routeWorkoutId?: string | null;
+  routeEditMode?: boolean;
+  onResourceRouteChange?: (path: string) => void;
+}
+
+export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
+  routeWorkoutId = null,
+  routeEditMode = false,
+  onResourceRouteChange,
+}) => {
   const { user } = useAuth();
   const {
     workouts,
@@ -87,6 +97,23 @@ export const WorkoutDayTracker: React.FC = () => {
     handleLogWorkout,
   } = useWorkoutSession(user);
 
+  useEffect(() => {
+    if (loading || !routeWorkoutId) return;
+    const routedWorkout = workouts.find((workout) => workout.id === routeWorkoutId);
+    if (!routedWorkout) return;
+    if (activeWorkout?.id !== routedWorkout.id) setActiveWorkout(routedWorkout);
+    if (routeEditMode && !isRoutineEditorOpen) setIsRoutineEditorOpen(true);
+  }, [
+    loading,
+    routeWorkoutId,
+    routeEditMode,
+    workouts,
+    activeWorkout?.id,
+    isRoutineEditorOpen,
+    setActiveWorkout,
+    setIsRoutineEditorOpen,
+  ]);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
@@ -136,7 +163,10 @@ export const WorkoutDayTracker: React.FC = () => {
         {user && (
           <RoutineEditorModal
             isOpen={isRoutineEditorOpen}
-            onClose={() => setIsRoutineEditorOpen(false)}
+            onClose={() => {
+              setIsRoutineEditorOpen(false);
+              onResourceRouteChange?.('/workouts');
+            }}
             userId={user.uid}
             workouts={workouts}
             onSaveWorkouts={async (updatedWorkouts) => {
@@ -181,8 +211,14 @@ export const WorkoutDayTracker: React.FC = () => {
         onSelectWorkout={(w) => {
           setActiveWorkout(w);
           setErrorMsg(null);
+          onResourceRouteChange?.(`/workouts/${encodeURIComponent(w.id)}`);
         }}
-        onOpenRoutineEditor={() => setIsRoutineEditorOpen(true)}
+        onOpenRoutineEditor={() => {
+          setIsRoutineEditorOpen(true);
+          onResourceRouteChange?.(activeWorkout?.id
+            ? `/workouts/${encodeURIComponent(activeWorkout.id)}/edit`
+            : '/workouts');
+        }}
       />
 
       {activeWorkout && (
@@ -423,7 +459,13 @@ export const WorkoutDayTracker: React.FC = () => {
       {user && (
         <RoutineEditorModal
           isOpen={isRoutineEditorOpen}
-          onClose={() => setIsRoutineEditorOpen(false)}
+          initialWorkoutId={activeWorkout?.id}
+          onClose={() => {
+            setIsRoutineEditorOpen(false);
+            if (activeWorkout) {
+              onResourceRouteChange?.(`/workouts/${encodeURIComponent(activeWorkout.id)}`);
+            }
+          }}
           userId={user.uid}
           workouts={workouts}
           onSaveWorkouts={async (updatedWorkouts) => {
