@@ -1,12 +1,11 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { usePWA } from '../../context/PWAContext.tsx';
 import { Dumbbell, Settings, User, WifiOff, RefreshCw } from 'lucide-react';
+import { SettingsModal } from '../modals/SettingsModal.tsx';
+import { ProfileModal } from '../modals/ProfileModal.tsx';
 import { UserMetrics, Workout } from '../../models.ts';
 import { initializeUser, fetchWorkoutsData } from '../../lib/supabaseData.ts';
-
-const SettingsModal = lazy(() => import('../modals/SettingsModal.tsx').then(m => ({ default: m.SettingsModal })));
-const ProfileModal = lazy(() => import('../modals/ProfileModal.tsx').then(m => ({ default: m.ProfileModal })));
 
 export const Header: React.FC = () => {
   const { user, isAdmin } = useAuth();
@@ -155,22 +154,20 @@ export const Header: React.FC = () => {
         </div>
       </header>
 
-      <Suspense fallback={null}>
-        <ProfileModal
-          isOpen={isProfileOpen}
-          onClose={() => setIsProfileOpen(false)}
-          user={user}
-          metrics={metrics}
-          routines={routines}
-          isAdmin={isAdmin}
-          onMetricsUpdated={(newMetrics) => setMetrics(newMetrics)}
-        />
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        user={user}
+        metrics={metrics}
+        routines={routines}
+        isAdmin={isAdmin}
+        onMetricsUpdated={(newMetrics) => setMetrics(newMetrics)}
+      />
 
-        <SettingsModal
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-        />
-      </Suspense>
+      <SettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+      />
     </>
   );
 };
