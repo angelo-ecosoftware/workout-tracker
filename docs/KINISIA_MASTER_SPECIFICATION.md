@@ -115,7 +115,7 @@ The Log Book ([src/components/workout/WorkoutHistory.tsx](src/components/workout
 - **Chronological Session Feed**: Grouped by date and routine day.
 - **Set-by-Set Historical Breakdown**: Exact weights lifted, reps logged, rest durations, and completed timestamps.
 - **Physique Progress Gallery**: Securely displays session photos captured during training.
-- **Shareable Public Session Cards ([src/components/workout/PublicSessionView.tsx](src/components/workout/PublicSessionView.tsx))**: Generates read-only shareable links (`https://kinisia.nl/#/share/:sessionId`) allowing athletes to share workouts without exposing private account tokens.
+- **Shareable Public Session Cards ([src/components/workout/PublicSessionView.tsx](src/components/workout/PublicSessionView.tsx))**: Generates read-only shareable links using the existing `?session=<sessionId>` query contract, allowing athletes to share workouts without exposing private account tokens.
 
 ---
 
