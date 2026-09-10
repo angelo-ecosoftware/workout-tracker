@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Zap, Dumbbell, Clock, Info, Ban } from 'lucide-react';
+import { ChevronDown, ChevronUp, Zap, Dumbbell, Info, Ban } from 'lucide-react';
 import { Exercise, UserProfile } from '../../../models.ts';
 import { WgerExerciseInfo } from '../WgerExerciseInfo.tsx';
 import { ExerciseSetRow } from './ExerciseSetRow.tsx';
@@ -43,7 +43,7 @@ interface ExerciseCardProps {
   onToggleCompleted?: (key: string) => void;
 }
 
-export const ExerciseCard: React.FC<ExerciseCardProps> = ({
+export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
   exercise,
   userProfile,
   inputs,
@@ -65,20 +65,27 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
   useEffect(() => {
     let isMounted = true;
-    const initial = getExerciseThumbnailSync(exercise.name, exercise.id);
-    if (initial) {
-      setGifUrl(initial);
+    
+    // Check local synchronous cache first to prevent external network calls
+    const syncThumbnail = getExerciseThumbnailSync(exercise.name, exercise.id);
+    if (syncThumbnail) {
+      setGifUrl(syncThumbnail);
       setImgError(false);
       return;
     }
-    getExerciseDetailsWithMedia(exercise.name)
-      .then((res) => {
-        if (isMounted && res?.gifUrl) {
-          setGifUrl(res.gifUrl);
-          setImgError(false);
-        }
-      })
-      .catch(() => {});
+
+    // Lazy load image media only if card is visible / expanded or missing thumbnail
+    if (!gifUrl) {
+      getExerciseDetailsWithMedia(exercise.name)
+        .then((res) => {
+          if (isMounted && res?.gifUrl) {
+            setGifUrl(res.gifUrl);
+            setImgError(false);
+          }
+        })
+        .catch(() => {});
+    }
+
     return () => {
       isMounted = false;
     };
@@ -97,7 +104,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           : 'bg-[#111] border border-[#222] hover:border-[#333] p-4'
       }`}
     >
-      {/* Exercise metadata details header */}
       <div
         role="button"
         tabIndex={0}
@@ -116,7 +122,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2.5">
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              {/* Exercise Demonstration Animated GIF Thumbnail on the Left of Title */}
               <div
                 role="button"
                 tabIndex={0}
@@ -183,7 +188,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   </span>
                 </div>
 
-                {/* Subline: Target volume */}
                 <p className="font-sans text-[11px] text-gray-400 uppercase tracking-wider font-semibold mt-1">
                   {isSkipped ? (
                     <span className="text-amber-400/90 font-mono text-[10px] font-bold">
@@ -203,7 +207,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </div>
 
             <div className="flex items-center gap-2 shrink-0 self-start ml-2">
-              {/* Slim Minimal Smart "Skip / Didn't Do" Button */}
               <button
                 type="button"
                 onClick={(e) => {
@@ -235,7 +238,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
           </div>
         </div>
 
-        {/* Dynamic Auto-progression coach recommendation badge */}
         {!isSkipped && advice.action === 'increase' && (
           <div className="flex items-center gap-3">
             <div className="bg-[#C0FF00] text-black rounded-xl px-3 py-1 flex items-center gap-1.5 shrink-0 shadow-[0_0_15px_rgba(192,255,0,0.15)]">
@@ -248,7 +250,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         )}
       </div>
 
-      {/* Expanded Section for Skipped Exercise */}
       {isExpanded && isSkipped && (
         <div className="bg-[#141414] border border-[#222] rounded-xl p-3.5 text-center text-xs font-mono text-gray-400 flex items-center justify-between gap-3">
           <span>Exercise marked as skipped for this workout session.</span>
@@ -266,7 +267,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         <>
           <WgerExerciseInfo exerciseName={displayName} />
 
-          {/* Coach Advice (Keep weight) */}
           {advice.action === 'keep' && cachedEx && (
             <div className="bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-xl px-3 py-1.5 flex items-center gap-1.5 self-start">
               <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wide text-gray-400">
@@ -275,7 +275,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </div>
           )}
 
-          {/* Previous Historical Reference sub-line */}
           {cachedEx && (
             <div className="bg-[#1a1a1a] rounded-xl border border-[#222] p-3 flex flex-col gap-2 text-[10px] font-mono text-gray-400">
               <div className="flex items-center gap-1.5">
@@ -299,9 +298,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </div>
           )}
 
-          {/* Active Entry fields grid */}
           <div className="space-y-1.5">
-            {/* Minimal Clean Header */}
             <div className="grid grid-cols-12 gap-1 sm:gap-2 text-[10px] font-mono font-bold text-gray-500 uppercase tracking-wider px-1.5 sm:px-2.5 pb-1 border-b border-[#222]">
               <div className="col-span-2 sm:col-span-2 flex items-center">
                 <span>SET</span>
@@ -314,9 +311,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
               </div>
             </div>
 
-            {/* Entry sets lines with active/next set detection */}
             {(() => {
-              // Find the first uncompleted set to mark as 'isCurrent'
               let firstUncompletedIndex = -1;
               for (let i = 1; i <= exercise.targetSets; i++) {
                 const k = `${exercise.id}-${i}`;
@@ -326,15 +321,11 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 }
               }
 
-              // In sequential set mode: show strictly 1 singular set at a time.
-              // If set 1 is done, set 1 disappears and only set 2 is shown.
-              // If all sets are done, show the last set (completed) as finished state.
               const setsToRender: number[] = [];
               if (isSequentialSetMode) {
                 if (firstUncompletedIndex !== -1) {
                   setsToRender.push(firstUncompletedIndex);
                 } else {
-                  // All sets completed for this exercise
                   setsToRender.push(exercise.targetSets);
                 }
               } else {
@@ -372,7 +363,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
         </>
       )}
 
-      {/* P2.1 & P2.2 & P2.4: Minimalist Exercise Guide Drawer */}
       <ExerciseGuideDrawer
         isOpen={isGuideOpen}
         exerciseName={displayName}
@@ -383,4 +373,4 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = ({
       />
     </div>
   );
-};
+});
