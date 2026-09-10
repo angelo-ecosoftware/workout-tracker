@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, X, Dumbbell, MapPin, Sparkles, Check, ShieldCheck } from 'lucide-react';
 import { AuthUser } from '../../context/AuthContext.tsx';
 import { UserMetrics, Workout } from '../../models.ts';
@@ -6,7 +6,6 @@ import { saveUserMetrics } from '../../lib/supabaseData.ts';
 import { ConfirmModal } from '../ui/ConfirmModal.tsx';
 import { ProfileBiometricsSection } from './ProfileBiometricsSection.tsx';
 import { ProfileGoalsSection } from './ProfileGoalsSection.tsx';
-import { clearContinuity, readContinuity, writeContinuity } from '../../utils/continuityState.ts';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -27,7 +26,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   isAdmin = false,
   onMetricsUpdated,
 }) => {
-  const skipDraftWriteRef = useRef(false);
   const [dob, setDob] = useState(initialMetrics?.dateOfBirth || '');
   const [height, setHeight] = useState<string>(initialMetrics?.height ? initialMetrics.height.toString() : '');
   const [weight, setWeight] = useState<string>(initialMetrics?.weight ? initialMetrics.weight.toString() : '');
@@ -57,38 +55,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       const storedMetricsRaw = localStorage.getItem(`user_metrics_${user.id}`);
       const cached = storedMetricsRaw ? JSON.parse(storedMetricsRaw) : null;
       const effectiveMetrics = initialMetrics || cached;
-      const draft = readContinuity<{
-        dob: string;
-        height: string;
-        weight: string;
-        gender: UserMetrics['gender'];
-        somatotype: UserMetrics['somatotype'];
-        fitnessLevel: UserMetrics['fitnessLevel'];
-        selectedGoals: string[];
-        location: UserMetrics['trainingLocation'];
-        bodyNotes: string;
-      }>(user.id, 'profile-editor', 'profile', 1);
-      const draftPayload = draft?.payload;
-      const isValidDraft = Boolean(
-        draftPayload
-        && typeof draftPayload.dob === 'string'
-        && typeof draftPayload.height === 'string'
-        && typeof draftPayload.weight === 'string'
-        && Array.isArray(draftPayload.selectedGoals)
-        && typeof draftPayload.bodyNotes === 'string',
-      );
-      skipDraftWriteRef.current = true;
-      if (isValidDraft && draftPayload) {
-        setDob(draftPayload.dob);
-        setHeight(draftPayload.height);
-        setWeight(draftPayload.weight);
-        setGender(draftPayload.gender);
-        setSomatotype(draftPayload.somatotype);
-        setFitnessLevel(draftPayload.fitnessLevel);
-        setSelectedGoals(draftPayload.selectedGoals);
-        setLocation(draftPayload.location);
-        setBodyNotes(draftPayload.bodyNotes);
-      } else if (effectiveMetrics) {
+      if (effectiveMetrics) {
         setDob(effectiveMetrics.dateOfBirth || '');
         setHeight(effectiveMetrics.height ? effectiveMetrics.height.toString() : '');
         setWeight(effectiveMetrics.weight ? effectiveMetrics.weight.toString() : '');
@@ -102,28 +69,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       setSavedSuccess(false);
     }
   }, [isOpen, initialMetrics, user.id]);
-
-  useEffect(() => {
-    if (!isOpen || isAdmin) return;
-    if (skipDraftWriteRef.current) {
-      skipDraftWriteRef.current = false;
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      writeContinuity(user.id, 'profile-editor', 'profile', 1, {
-        dob,
-        height,
-        weight,
-        gender,
-        somatotype,
-        fitnessLevel,
-        selectedGoals,
-        location,
-        bodyNotes,
-      });
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [isOpen, isAdmin, user.id, dob, height, weight, gender, somatotype, fitnessLevel, selectedGoals, location, bodyNotes]);
 
   if (!isOpen) return null;
 
@@ -236,7 +181,6 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     };
 
     await saveUserMetrics(user.id, updatedMetrics);
-    clearContinuity(user.id, 'profile-editor', 'profile');
     if (onMetricsUpdated) {
       onMetricsUpdated(updatedMetrics);
     }

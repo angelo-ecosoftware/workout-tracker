@@ -26,7 +26,6 @@ import { formatSingleExerciseName } from '../../lib/exerciseSearch.ts';
 import { CustomExerciseCues } from '../../models.ts';
 import { saveExerciseCustomCues } from '../../lib/exerciseCustomCuesService.ts';
 import { SuccessModal } from '../ui/SuccessModal.tsx';
-import { clearContinuity, readContinuity, writeContinuity } from '../../utils/continuityState.ts';
 
 interface ExerciseGuideDrawerProps {
   isOpen: boolean;
@@ -57,8 +56,6 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
   const [isSavingCues, setIsSavingCues] = useState(false);
   const [cueSaveMsg, setCueSaveMsg] = useState<string | null>(null);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-  const skipDraftWriteRef = useRef(false);
-  const restoredDraftRef = useRef(false);
 
   // Section anchor refs for auto-scroll into view when toggling edit mode
   const motionCardRef = useRef<HTMLDivElement>(null);
@@ -75,49 +72,10 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
   }, [exerciseId, isOpen]);
 
   useEffect(() => {
-    if (!isOpen || !exerciseId || !userId) return;
-    const draft = readContinuity<{ customCues: CustomExerciseCues; customGifUrl: string }>(
-      userId,
-      'exercise-cues',
-      exerciseId,
-      1,
-    );
-    skipDraftWriteRef.current = true;
-    const validDraft = Boolean(
-      draft?.payload
-      && typeof draft.payload.customGifUrl === 'string'
-      && draft.payload.customCues
-      && Array.isArray(draft.payload.customCues.cues),
-    );
-    restoredDraftRef.current = validDraft;
-    if (validDraft && draft?.payload) {
-      setCustomCues(draft.payload.customCues);
-      setCustomGifUrl(draft.payload.customGifUrl);
-      setIsEditingCues(true);
-    }
-  }, [isOpen, exerciseId, userId]);
-
-  useEffect(() => {
-    if (!isOpen || !isEditingCues || !exerciseId || !userId) return;
-    if (skipDraftWriteRef.current) {
-      skipDraftWriteRef.current = false;
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      writeContinuity(userId, 'exercise-cues', exerciseId, 1, {
-        customCues,
-        customGifUrl,
-      });
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [isOpen, isEditingCues, exerciseId, userId, customCues, customGifUrl]);
-
-  useEffect(() => {
-    if (initialCustomCues && !restoredDraftRef.current) {
+    if (initialCustomCues) {
       setCustomCues(initialCustomCues);
     }
-    if (!isOpen) restoredDraftRef.current = false;
-  }, [initialCustomCues, isOpen]);
+  }, [initialCustomCues]);
 
   // Guarantee strictly single-exercise format without compound alternatives
   const singleExerciseName = useMemo(() => {
@@ -284,9 +242,6 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
       await saveExerciseCustomCues(exerciseId, userId, customCues);
     }
 
-    if (exerciseId && userId) {
-      clearContinuity(userId, 'exercise-cues', exerciseId);
-    }
     setIsSavingCues(false);
     setIsEditingCues(false);
     setIsSuccessModalOpen(true);

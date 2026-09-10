@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Layers,
   Plus,
@@ -13,7 +13,6 @@ import {
 import { Workout, Exercise } from '../../models.ts';
 import { createRoutineProposal } from '../../lib/supabaseData.ts';
 import { ExerciseSearchPicker } from '../workout/ExerciseSearchPicker.tsx';
-import { clearContinuity, readContinuity, writeContinuity } from '../../utils/continuityState.ts';
 
 interface RoutineProposalComposerProps {
   isOpen: boolean;
@@ -34,7 +33,6 @@ export const RoutineProposalComposer: React.FC<RoutineProposalComposerProps> = (
   athleteName,
   onProposalSent,
 }) => {
-  const skipDraftWriteRef = useRef(false);
   const [title, setTitle] = useState('4-Day Upper/Lower Strength Split');
   const [description, setDescription] = useState('Personalized progressive overload training split');
   const [workouts, setWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([
@@ -62,54 +60,6 @@ export const RoutineProposalComposer: React.FC<RoutineProposalComposerProps> = (
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const draft = readContinuity<{
-      title: string;
-      description: string;
-      workouts: (Workout & { exercises: Exercise[] })[];
-      selectedDayIdx: number;
-    }>(coachId, 'routine-proposal', athleteId, 1);
-    skipDraftWriteRef.current = true;
-    const validDraft = Boolean(
-      draft?.payload
-      && typeof draft.payload.title === 'string'
-      && typeof draft.payload.description === 'string'
-      && Array.isArray(draft.payload.workouts)
-      && draft.payload.workouts.every((workout) =>
-        workout
-        && typeof workout.id === 'string'
-        && typeof workout.name === 'string'
-        && Array.isArray(workout.exercises)
-        && workout.exercises.every((exercise) => exercise && typeof exercise.id === 'string' && typeof exercise.name === 'string')
-      ),
-    );
-    if (validDraft && draft?.payload) {
-      setTitle(draft.payload.title);
-      setDescription(draft.payload.description);
-      setWorkouts(draft.payload.workouts);
-      setSelectedDayIdx(Math.min(draft.payload.selectedDayIdx, Math.max(0, draft.payload.workouts.length - 1)));
-    }
-    setStatusMsg(null);
-  }, [isOpen, coachId, athleteId]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    if (skipDraftWriteRef.current) {
-      skipDraftWriteRef.current = false;
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      writeContinuity(coachId, 'routine-proposal', athleteId, 1, {
-        title,
-        description,
-        workouts,
-        selectedDayIdx,
-      });
-    }, 250);
-    return () => window.clearTimeout(timer);
-  }, [isOpen, coachId, athleteId, title, description, workouts, selectedDayIdx]);
 
   if (!isOpen) return null;
 
@@ -175,7 +125,6 @@ export const RoutineProposalComposer: React.FC<RoutineProposalComposerProps> = (
         coachName
       );
 
-      clearContinuity(coachId, 'routine-proposal', athleteId);
       setStatusMsg({ type: 'success', text: `Proposal sent to ${athleteName}!` });
       setTimeout(() => {
         if (onProposalSent) onProposalSent();
