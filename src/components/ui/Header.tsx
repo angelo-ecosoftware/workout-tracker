@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { usePWA } from '../../context/PWAContext.tsx';
 import { Dumbbell, Settings, User, WifiOff, RefreshCw } from 'lucide-react';
@@ -16,14 +16,32 @@ export const Header: React.FC = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [metrics, setMetrics] = useState<UserMetrics | undefined>(undefined);
   const [routines, setRoutines] = useState<Workout[]>([]);
+  const currentUserIdRef = useRef<string | null>(null);
+  const loadGenerationRef = useRef(0);
+  currentUserIdRef.current = user?.id ?? null;
 
   useEffect(() => {
-    if (!user || isAdmin) return;
+    if (!user || isAdmin) {
+      ++loadGenerationRef.current;
+      setMetrics((previous) => (previous === undefined ? previous : undefined));
+      setRoutines((previous) => (previous.length === 0 ? previous : []));
+      return;
+    }
+    const userId = user.id;
+
+    setMetrics((previous) => (previous === undefined ? previous : undefined));
+    setRoutines((previous) => (previous.length === 0 ? previous : []));
 
     // Load initial user metrics & active routines for frequency calculation
     const loadProfileData = async () => {
+      const loadGeneration = ++loadGenerationRef.current;
+      const isCurrentLoad = () =>
+        loadGenerationRef.current === loadGeneration &&
+        currentUserIdRef.current === userId;
+
       try {
-        const profile = await initializeUser(user.id, user.email, user.displayName);
+        const profile = await initializeUser(userId, user.email, user.displayName);
+        if (!isCurrentLoad()) return;
         if (profile) {
           const resolvedWeight = profile.weightKg || profile.metrics?.weight;
           const resolvedHeight = profile.heightCm || profile.metrics?.height;
@@ -37,15 +55,21 @@ export const Header: React.FC = () => {
             trainingLocation: profile.trainingLocation || profile.metrics?.trainingLocation,
           };
           setMetrics(resolvedMetrics);
-          localStorage.setItem(`user_metrics_${user.id}`, JSON.stringify(resolvedMetrics));
+          try {
+            localStorage.setItem(`user_metrics_${userId}`, JSON.stringify(resolvedMetrics));
+          } catch {}
         } else {
-          const cached = localStorage.getItem(`user_metrics_${user.id}`);
-          if (cached) setMetrics(JSON.parse(cached));
+          try {
+            const cached = localStorage.getItem(`user_metrics_${userId}`);
+            if (cached) setMetrics(JSON.parse(cached));
+          } catch {}
         }
 
-        const { workoutsList: userRoutines } = await fetchWorkoutsData(user.id);
+        const { workoutsList: userRoutines } = await fetchWorkoutsData(userId);
+        if (!isCurrentLoad()) return;
         setRoutines(userRoutines || []);
       } catch (err) {
+        if (!isCurrentLoad()) return;
         console.warn('Could not load user metrics in header:', err);
       }
     };
@@ -60,10 +84,11 @@ export const Header: React.FC = () => {
     window.addEventListener('workout_settings_updated', handleProfileSync);
 
     return () => {
+      ++loadGenerationRef.current;
       window.removeEventListener('user_profile_updated', handleProfileSync);
       window.removeEventListener('workout_settings_updated', handleProfileSync);
     };
-  }, [user]);
+  }, [user, isAdmin]);
 
   if (!user) return null;
 

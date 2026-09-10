@@ -89,7 +89,11 @@ const GymAppContent: React.FC = () => {
   const [coachInviteData, setCoachInviteData] = useState<CoachAthleteLink | null>(null);
   const [inspectingClient, setInspectingClient] = useState<{ athleteId: string; athleteName: string } | null>(null);
   const [coachPersonalWorkoutMode, setCoachPersonalWorkoutMode] = useState<boolean>(() => {
-    return localStorage.getItem('coach_personal_workout_mode') === 'true';
+    try {
+      return localStorage.getItem('coach_personal_workout_mode') === 'true';
+    } catch {
+      return false;
+    }
   });
 
   const isLoginRoute = () => {
