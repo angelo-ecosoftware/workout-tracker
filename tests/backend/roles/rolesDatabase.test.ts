@@ -23,6 +23,18 @@ import {
 } from '../../../src/lib/db/roles.ts';
 import { supabase } from '../../../src/lib/supabase.ts';
 
+const localStorageValues: Record<string, string> = {};
+globalThis.localStorage = {
+  getItem: (key: string) => localStorageValues[key] ?? null,
+  setItem: (key: string, value: string) => { localStorageValues[key] = value; },
+  removeItem: (key: string) => { delete localStorageValues[key]; },
+  clear: () => {
+    for (const key of Object.keys(localStorageValues)) delete localStorageValues[key];
+  },
+  key: (index: number) => Object.keys(localStorageValues)[index] ?? null,
+  length: 0,
+};
+
 describe('Roles, Privacy, Coaching & Routine Library Data Access Layer', () => {
   beforeEach(() => {
     vi.clearAllMocks();
