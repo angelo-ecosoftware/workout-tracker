@@ -369,7 +369,7 @@ const GymAppContent: React.FC = () => {
                       getCollectionForRoute(routeState) === 'workouts' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                     }`}
                   >
-                    Today's Session
+                    Session
                   </button>
                 )}
                 {!inspectingClient && (
@@ -398,7 +398,7 @@ const GymAppContent: React.FC = () => {
                     getCollectionForRoute(routeState) === 'logbook' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  Log Book
+                  History
                 </button>
                 <button
                   onClick={() => setActiveTab('dietary')}
