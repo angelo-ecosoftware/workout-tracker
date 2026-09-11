@@ -1,6 +1,6 @@
 export function getCollectionScrollKey(
   userId: string | undefined,
-  collection: 'workouts' | 'routines' | 'logbook',
+  collection: 'workouts' | 'routines' | 'exercises' | 'logbook',
   context = 'default'
 ): string | null {
   return userId ? `route_scroll_${userId}_${collection}_${context}` : null;
@@ -8,7 +8,7 @@ export function getCollectionScrollKey(
 
 export function saveCollectionScroll(
   userId: string | undefined,
-  collection: 'workouts' | 'routines' | 'logbook',
+  collection: 'workouts' | 'routines' | 'exercises' | 'logbook',
   context: string,
   scrollY: number
 ): void {
@@ -21,7 +21,7 @@ export function saveCollectionScroll(
 
 export function readCollectionScroll(
   userId: string | undefined,
-  collection: 'workouts' | 'routines' | 'logbook',
+  collection: 'workouts' | 'routines' | 'exercises' | 'logbook',
   context: string
 ): number | null {
   const key = getCollectionScrollKey(userId, collection, context);

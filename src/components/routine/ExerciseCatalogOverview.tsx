@@ -5,7 +5,7 @@ import { fetchCatalogExercisePage } from '../../lib/db/exerciseCatalog.ts';
 
 interface ExerciseCatalogOverviewProps {
   selectedExerciseIds: Set<string>;
-  onAddExercise: (exercise: CatalogExercise) => void;
+  onAddExercise?: (exercise: CatalogExercise) => void;
 }
 
 const PAGE_SIZES = [5, 10, 25, 50, 100];
@@ -69,9 +69,13 @@ export const ExerciseCatalogOverview: React.FC<ExerciseCatalogOverviewProps> = (
         <div>
           <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#C0FF00]">Exercise index</p>
           <h2 id="exercise-catalog-title" className="mt-1 text-xl font-display font-black uppercase text-white">
-            Add exercises
+            {onAddExercise ? 'Add exercises' : 'Exercises'}
           </h2>
-          <p className="mt-1 text-xs text-gray-400">Search the catalog, filter by muscle group, and add directly to this routine.</p>
+          <p className="mt-1 text-xs text-gray-400">
+            {onAddExercise
+              ? 'Search the catalog, filter by muscle group, and add directly to this routine.'
+              : 'Browse the exercise catalog by name, muscle group, and page.'}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <label className="relative">
@@ -102,11 +106,13 @@ export const ExerciseCatalogOverview: React.FC<ExerciseCatalogOverviewProps> = (
       </div>
 
       <div className="overflow-hidden rounded-2xl border border-[#262626] bg-[#111]">
-        <div className="hidden grid-cols-[1fr_140px_100px_90px] gap-3 border-b border-[#262626] px-4 py-3 text-[9px] font-mono font-bold uppercase tracking-widest text-gray-500 sm:grid">
+        <div className={`hidden gap-3 border-b border-[#262626] px-4 py-3 text-[9px] font-mono font-bold uppercase tracking-widest text-gray-500 sm:grid ${
+          onAddExercise ? 'sm:grid-cols-[1fr_140px_100px_90px]' : 'sm:grid-cols-[1fr_180px_120px]'
+        }`}>
           <span>Exercise</span>
           <span>Muscle</span>
           <span>Type</span>
-          <span className="text-right">Action</span>
+          {onAddExercise && <span className="text-right">Action</span>}
         </div>
         {loading ? (
           <div className="px-4 py-10 text-center text-xs font-mono text-gray-500">Loading exercise index…</div>
@@ -121,7 +127,9 @@ export const ExerciseCatalogOverview: React.FC<ExerciseCatalogOverviewProps> = (
               return (
                 <div
                   key={exercise.id}
-                  className="grid gap-2 border-b border-[#202020] px-4 py-3 last:border-b-0 sm:grid-cols-[1fr_140px_100px_90px] sm:items-center sm:gap-3"
+                  className={`grid gap-2 border-b border-[#202020] px-4 py-3 last:border-b-0 sm:items-center sm:gap-3 ${
+                    onAddExercise ? 'sm:grid-cols-[1fr_140px_100px_90px]' : 'sm:grid-cols-[1fr_180px_120px]'
+                  }`}
                 >
                   <div className="flex items-center gap-3">
                     <span className="w-7 shrink-0 text-[10px] font-mono text-gray-600">{(page - 1) * pageSize + index + 1}</span>
@@ -132,16 +140,18 @@ export const ExerciseCatalogOverview: React.FC<ExerciseCatalogOverviewProps> = (
                   </div>
                   <span className="text-xs text-gray-400">{exercise.category}</span>
                   <span className="text-xs uppercase text-gray-500">{exercise.type}</span>
-                  <button
-                    type="button"
-                    disabled={added}
-                    onClick={() => onAddExercise(exercise)}
-                    className={`inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-bold uppercase transition-colors ${
-                      added ? 'cursor-default border border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'bg-[#C0FF00] text-black hover:bg-[#a6dc00]'
-                    }`}
-                  >
-                    {added ? <><Check className="h-3 w-3" /> Added</> : 'Add'}
-                  </button>
+                  {onAddExercise && (
+                    <button
+                      type="button"
+                      disabled={added}
+                      onClick={() => onAddExercise(exercise)}
+                      className={`inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-1.5 text-[10px] font-bold uppercase transition-colors ${
+                        added ? 'cursor-default border border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'bg-[#C0FF00] text-black hover:bg-[#a6dc00]'
+                      }`}
+                    >
+                      {added ? <><Check className="h-3 w-3" /> Added</> : 'Add'}
+                    </button>
+                  )}
                 </div>
               );
             })}

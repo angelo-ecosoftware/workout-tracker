@@ -1,12 +1,12 @@
-export type AppSection = 'workouts' | 'routines' | 'logbook' | 'insights' | 'dietary' | 'coach' | 'admin';
+export type AppSection = 'workouts' | 'routines' | 'exercises' | 'logbook' | 'insights' | 'dietary' | 'coach' | 'admin';
 
 export type CanonicalRoute =
-  | { kind: 'collection'; collection: 'workouts' | 'routines' | 'logbook' }
+  | { kind: 'collection'; collection: 'workouts' | 'routines' | 'exercises' | 'logbook' }
   | { kind: 'workout'; workoutId: string; mode: 'view' | 'info' | 'edit' }
   | { kind: 'workoutExercise'; workoutId: string; exerciseId: string; mode: 'info' | 'edit' }
   | { kind: 'routine'; routineId: string; mode: 'view' | 'editor' }
   | { kind: 'logbook'; logId: string; mode: 'view' | 'edit' }
-  | { kind: 'section'; section: Exclude<AppSection, 'workouts' | 'routines' | 'logbook'> }
+  | { kind: 'section'; section: Exclude<AppSection, 'workouts' | 'routines' | 'exercises' | 'logbook'> }
   | { kind: 'home' | 'login' };
 
 const LEGACY_HASH_SECTIONS: Record<string, CanonicalRoute> = {
@@ -62,6 +62,7 @@ export function parseCanonicalPath(pathname: string): CanonicalRoute | null {
   const path = normalizePath(pathname);
   if (path === '/workouts') return { kind: 'collection', collection: 'workouts' };
   if (path === '/routines') return { kind: 'collection', collection: 'routines' };
+  if (path === '/exercises') return { kind: 'collection', collection: 'exercises' };
   if (path === '/logbook') return { kind: 'collection', collection: 'logbook' };
   if (path === '/') return { kind: 'home' };
   if (path === '/login' || path === '/signin') return { kind: 'login' };

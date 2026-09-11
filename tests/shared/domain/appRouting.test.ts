@@ -14,6 +14,7 @@ describe('canonical application routes', () => {
     ['/workout/w-1/edit', { kind: 'workout', workoutId: 'w-1', mode: 'edit' }],
     ['/workout/w-1/exercise/e-1/info', { kind: 'workoutExercise', workoutId: 'w-1', exerciseId: 'e-1', mode: 'info' }],
     ['/routines', { kind: 'collection', collection: 'routines' }],
+    ['/exercises', { kind: 'collection', collection: 'exercises' }],
     ['/routine/r-1', { kind: 'routine', routineId: 'r-1', mode: 'view' }],
     ['/routine/r-1/editor', { kind: 'routine', routineId: 'r-1', mode: 'editor' }],
     ['/logbook', { kind: 'collection', collection: 'logbook' }],

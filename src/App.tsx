@@ -11,6 +11,7 @@ import { CoachAthleteLink } from './models.ts';
 import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
 import { isGoogleAuthUrl, sanitizeAuthenticatedSession } from './utils/authUrl.ts';
 import { Loader2 } from 'lucide-react';
+import { ExerciseCatalogOverview } from './components/routine/ExerciseCatalogOverview.tsx';
 import { useRouteContinuity } from './hooks/useRouteContinuity.ts';
 import {
   CanonicalRoute,
@@ -401,6 +402,16 @@ const GymAppContent: React.FC = () => {
                     Routines
                   </button>
                 )}
+                {!inspectingClient && (
+                  <button
+                    onClick={() => navigateToRoute('/exercises')}
+                    className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                      getCollectionForRoute(routeState) === 'exercises' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Exercises
+                  </button>
+                )}
                 <button
                   onClick={() => setActiveTab('history')}
                   className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
@@ -466,6 +477,9 @@ const GymAppContent: React.FC = () => {
                     route={routeState.kind === 'routine' ? routeState : { kind: 'collection', collection: 'routines' }}
                     onNavigate={navigateToRoute}
                   />
+                )}
+                {getCollectionForRoute(routeState) === 'exercises' && user && (
+                  <ExerciseCatalogOverview selectedExerciseIds={new Set()} />
                 )}
                 {activeTab === 'insights' && <InsightsView userId={inspectingClient?.athleteId} />}
                 {activeTab === 'dietary' && <DietaryView userId={inspectingClient?.athleteId} />}
