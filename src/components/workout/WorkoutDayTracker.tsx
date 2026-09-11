@@ -162,6 +162,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
         }}
         userId={user.uid}
         workouts={workouts}
+        initialWorkoutId={routeWorkoutId}
         onSaveWorkouts={async (updatedWorkouts) => {
           await saveWorkoutsAndExercises(user.uid, updatedWorkouts);
           setWorkouts(updatedWorkouts);

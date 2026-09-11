@@ -3,7 +3,6 @@ import { AuthUser } from '../../../context/AuthContext.tsx';
 import { Workout, Exercise, UserProfile } from '../../../models.ts';
 import {
   fetchWorkoutsData,
-  fetchWorkoutById,
   getUserProgressState,
   fetchWorkoutHistory,
   logSessionCompletion,
@@ -416,7 +415,7 @@ export function useWorkoutSession(user: AuthUser | null, requestedWorkoutId?: st
       await seedTemplatesIfMissing(user.uid);
 
       const [wData, userProgress, historyLogs] = await Promise.all([
-        requestedWorkoutId ? fetchWorkoutById(user.uid, requestedWorkoutId) : fetchWorkoutsData(user.uid),
+        fetchWorkoutsData(user.uid),
         getUserProgressState(user.uid),
         fetchWorkoutHistory(user.uid).catch(() => []),
       ]);

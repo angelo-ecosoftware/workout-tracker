@@ -19,6 +19,7 @@ interface RoutineEditorModalProps {
   userId: string;
   workouts: (Workout & { exercises: Exercise[] })[];
   onSaveWorkouts: (updatedWorkouts: (Workout & { exercises: Exercise[] })[]) => Promise<void>;
+  initialWorkoutId?: string | null;
   presentation?: 'modal' | 'page';
 }
 
@@ -28,12 +29,16 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   userId,
   workouts: initialWorkouts,
   onSaveWorkouts,
+  initialWorkoutId = null,
   presentation = 'modal',
 }) => {
   const [workouts, setWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>(() => 
     JSON.parse(JSON.stringify(initialWorkouts || []))
   );
-  const [selectedWorkoutIndex, setSelectedWorkoutIndex] = useState<number>(0);
+  const [selectedWorkoutIndex, setSelectedWorkoutIndex] = useState<number>(() => {
+    const initialIndex = initialWorkouts.findIndex((workout) => workout.id === initialWorkoutId);
+    return initialIndex >= 0 ? initialIndex : 0;
+  });
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -47,12 +52,13 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   React.useEffect(() => {
     if (isOpen && initialWorkouts) {
       setWorkouts(JSON.parse(JSON.stringify(initialWorkouts)));
-      setSelectedWorkoutIndex(0);
+      const initialIndex = initialWorkouts.findIndex((workout) => workout.id === initialWorkoutId);
+      setSelectedWorkoutIndex(initialIndex >= 0 ? initialIndex : 0);
       setEditingExerciseId(null);
       setStatusMsg(null);
       setWorkoutToDeleteIndex(null);
     }
-  }, [isOpen, initialWorkouts]);
+  }, [isOpen, initialWorkouts, initialWorkoutId]);
 
   if (!isOpen) return null;
 
