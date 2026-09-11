@@ -152,6 +152,16 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     injuriesNotes: injuries || undefined,
   };
 
+  const advanceSingleChoice = () => {
+    if (!driverRef.current?.isActive()) return;
+
+    window.setTimeout(() => {
+      if (driverRef.current?.isActive()) {
+        driverRef.current.moveNext();
+      }
+    }, 0);
+  };
+
   const save = async (status: 'completed' | 'deferred') => {
     setError(null);
     setStage('saving');
@@ -234,21 +244,21 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               <fieldset data-onboarding="duration">
                 <legend className="text-[10px] font-bold uppercase text-gray-400">Gym time per session</legend>
                 <div className="mt-2 grid grid-cols-4 gap-2">
-                  {DURATIONS.map((value) => <button key={value} type="button" aria-pressed={duration === value} onClick={() => setDuration(value)} className={`rounded-xl border px-2 py-3 text-xs font-bold ${duration === value ? 'border-[#C0FF00] bg-[#C0FF00] text-black' : 'border-[#333] bg-[#181818] text-gray-400'}`}>{value} min</button>)}
+                  {DURATIONS.map((value) => <button key={value} type="button" aria-pressed={duration === value} onClick={() => { setDuration(value); advanceSingleChoice(); }} className={`rounded-xl border px-2 py-3 text-xs font-bold ${duration === value ? 'border-[#C0FF00] bg-[#C0FF00] text-black' : 'border-[#333] bg-[#181818] text-gray-400'}`}>{value} min</button>)}
                 </div>
               </fieldset>
 
               <fieldset data-onboarding="experience">
                 <legend className="text-[10px] font-bold uppercase text-gray-400">Experience level</legend>
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {LEVELS.map((option) => <button key={option.value} type="button" aria-pressed={level === option.value} onClick={() => setLevel(option.value)} className={`rounded-xl border px-3 py-3 text-left text-[10px] font-bold uppercase ${level === option.value ? 'border-[#C0FF00] bg-[#C0FF00] text-black' : 'border-[#333] bg-[#181818] text-gray-400'}`}>{option.label}</button>)}
+                  {LEVELS.map((option) => <button key={option.value} type="button" aria-pressed={level === option.value} onClick={() => { setLevel(option.value); advanceSingleChoice(); }} className={`rounded-xl border px-3 py-3 text-left text-[10px] font-bold uppercase ${level === option.value ? 'border-[#C0FF00] bg-[#C0FF00] text-black' : 'border-[#333] bg-[#181818] text-gray-400'}`}>{option.label}</button>)}
                 </div>
               </fieldset>
 
               <fieldset data-onboarding="location">
                 <legend className="text-[10px] font-bold uppercase text-gray-400">Training location</legend>
                 <div className="mt-2 grid grid-cols-3 gap-2">
-                  {(['gym', 'home', 'hybrid'] as const).map((value) => <button key={value} type="button" aria-pressed={location === value} onClick={() => setLocation(value)} className={`rounded-xl border px-3 py-3 text-xs font-bold uppercase ${location === value ? 'border-[#C0FF00] bg-[#C0FF00] text-black' : 'border-[#333] bg-[#181818] text-gray-400'}`}>{value}</button>)}
+                  {(['gym', 'home', 'hybrid'] as const).map((value) => <button key={value} type="button" aria-pressed={location === value} onClick={() => { setLocation(value); advanceSingleChoice(); }} className={`rounded-xl border px-3 py-3 text-xs font-bold uppercase ${location === value ? 'border-[#C0FF00] bg-[#C0FF00] text-black' : 'border-[#333] bg-[#181818] text-gray-400'}`}>{value}</button>)}
                 </div>
               </fieldset>
 
