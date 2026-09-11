@@ -96,7 +96,14 @@ const GymAppContent: React.FC = () => {
   const [routeState, setRouteState] = useState<CanonicalRoute>(() =>
     parseLocation(window.location.pathname, window.location.hash)
   );
-  useRouteContinuity(user?.uid, routeState);
+  const [profileBackgroundRoute, setProfileBackgroundRoute] = useState<CanonicalRoute>(() => {
+    const initialRoute = parseLocation(window.location.pathname, window.location.hash);
+    return initialRoute.kind === 'profile'
+      ? { kind: 'collection', collection: 'workouts' }
+      : initialRoute;
+  });
+  const displayRoute = routeState.kind === 'profile' ? profileBackgroundRoute : routeState;
+  useRouteContinuity(user?.uid, displayRoute);
   const [publicSessionId, setPublicSessionId] = useState<string | null>(() => getPublicSessionIdFromUrl());
   const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => getCoachInviteCodeFromUrl());
   const [coachInviteData, setCoachInviteData] = useState<CoachAthleteLink | null>(null);
@@ -124,6 +131,15 @@ const GymAppContent: React.FC = () => {
     if (collection === 'logbook') setActiveTabState('history');
     if (nextRoute.kind === 'section') setActiveTabState(nextRoute.section as TabType);
     setShowLoginModal(isLoginRoute());
+  };
+
+  const openProfile = () => {
+    if (routeState.kind !== 'profile') setProfileBackgroundRoute(routeState);
+    navigateToRoute('/profile');
+  };
+
+  const closeProfile = () => {
+    navigateToRoute(serializeRoute(profileBackgroundRoute));
   };
 
   // Default admins to admin tab
@@ -336,7 +352,11 @@ const GymAppContent: React.FC = () => {
         />
       )}
 
-      <Header />
+      <Header
+        profileOpen={routeState.kind === 'profile'}
+        onProfileOpen={openProfile}
+        onProfileClose={closeProfile}
+      />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         <Suspense fallback={loadingSpinner}>
@@ -366,7 +386,7 @@ const GymAppContent: React.FC = () => {
                   <button
                     onClick={() => setActiveTab('tracker')}
                     className={`flex-1 min-w-0 whitespace-nowrap px-1.5 sm:px-3 py-2 text-[9px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                      getCollectionForRoute(routeState) === 'workouts' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                      getCollectionForRoute(displayRoute) === 'workouts' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                     }`}
                   >
                     <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
@@ -377,7 +397,7 @@ const GymAppContent: React.FC = () => {
                   <button
                     onClick={() => navigateToRoute('/routines')}
                     className={`flex-1 min-w-0 whitespace-nowrap px-1.5 sm:px-3 py-2 text-[9px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                      getCollectionForRoute(routeState) === 'routines' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                      getCollectionForRoute(displayRoute) === 'routines' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                     }`}
                   >
                     <Layers3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
@@ -388,7 +408,7 @@ const GymAppContent: React.FC = () => {
                   <button
                     onClick={() => navigateToRoute('/exercises')}
                     className={`flex-1 min-w-0 whitespace-nowrap px-1.5 sm:px-3 py-2 text-[9px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                      getCollectionForRoute(routeState) === 'exercises' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                      getCollectionForRoute(displayRoute) === 'exercises' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                     }`}
                   >
                     <Dumbbell className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
@@ -398,7 +418,7 @@ const GymAppContent: React.FC = () => {
                 <button
                   onClick={() => setActiveTab('history')}
                   className={`flex-1 min-w-0 whitespace-nowrap px-1.5 sm:px-3 py-2 text-[9px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                    getCollectionForRoute(routeState) === 'logbook' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                    getCollectionForRoute(displayRoute) === 'logbook' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   <History className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
@@ -407,7 +427,7 @@ const GymAppContent: React.FC = () => {
                 <button
                   onClick={() => setActiveTab('dietary')}
                   className={`flex-1 min-w-0 whitespace-nowrap px-1.5 sm:px-3 py-2 text-[9px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                    routeState.kind === 'section' && routeState.section === 'dietary' ? 'bg-[#00ade6] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                    displayRoute.kind === 'section' && displayRoute.section === 'dietary' ? 'bg-[#00ade6] text-black shadow-md' : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   <Utensils className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
@@ -417,7 +437,7 @@ const GymAppContent: React.FC = () => {
                   <button
                     onClick={() => setActiveTab('admin')}
                     className={`flex-1 min-w-0 whitespace-nowrap px-1.5 sm:px-3 py-2 text-[9px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1 ${
-                      routeState.kind === 'section' && routeState.section === 'admin' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-purple-400 hover:text-purple-300'
+                      displayRoute.kind === 'section' && displayRoute.section === 'admin' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-purple-400 hover:text-purple-300'
                     }`}
                   >
                     <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
@@ -427,40 +447,40 @@ const GymAppContent: React.FC = () => {
               </div>
 
               <div>
-                {!inspectingClient && getCollectionForRoute(routeState) === 'workouts' && (
+                {!inspectingClient && getCollectionForRoute(displayRoute) === 'workouts' && (
                   <WorkoutDayTracker
                     routeWorkoutId={
-                      routeState.kind === 'workout' || routeState.kind === 'workoutExercise'
-                        ? routeState.workoutId
+                      displayRoute.kind === 'workout' || displayRoute.kind === 'workoutExercise'
+                        ? displayRoute.workoutId
                         : null
                     }
-                    routeExerciseId={routeState.kind === 'workoutExercise' ? routeState.exerciseId : null}
-                    routeExerciseMode={routeState.kind === 'workoutExercise' ? routeState.mode : null}
-                    routeMode={routeState.kind === 'workout' ? routeState.mode : 'view'}
+                    routeExerciseId={displayRoute.kind === 'workoutExercise' ? displayRoute.exerciseId : null}
+                    routeExerciseMode={displayRoute.kind === 'workoutExercise' ? displayRoute.mode : null}
+                    routeMode={displayRoute.kind === 'workout' ? displayRoute.mode : 'view'}
                     onResourceRouteChange={navigateToRoute}
                   />
                 )}
-                {getCollectionForRoute(routeState) === 'logbook' && (
+                {getCollectionForRoute(displayRoute) === 'logbook' && (
                   <WorkoutHistory
                     targetUserId={inspectingClient?.athleteId}
                     isReadOnlyClientMode={Boolean(inspectingClient)}
-                    routeSessionId={routeState.kind === 'logbook' ? routeState.logId : null}
-                    routeEditMode={routeState.kind === 'logbook' && routeState.mode === 'edit'}
+                    routeSessionId={displayRoute.kind === 'logbook' ? displayRoute.logId : null}
+                    routeEditMode={displayRoute.kind === 'logbook' && displayRoute.mode === 'edit'}
                     onResourceRouteChange={navigateToRoute}
                   />
                 )}
-                {getCollectionForRoute(routeState) === 'routines' && user && (
+                {getCollectionForRoute(displayRoute) === 'routines' && user && (
                   <RoutineRouteView
                     userId={user.uid}
-                    route={routeState.kind === 'routine' ? routeState : { kind: 'collection', collection: 'routines' }}
+                    route={displayRoute.kind === 'routine' ? displayRoute : { kind: 'collection', collection: 'routines' }}
                     onNavigate={navigateToRoute}
                   />
                 )}
-                {getCollectionForRoute(routeState) === 'exercises' && user && (
+                {getCollectionForRoute(displayRoute) === 'exercises' && user && (
                   <ExerciseCatalogOverview selectedExerciseIds={new Set()} />
                 )}
-                {routeState.kind === 'section' && routeState.section === 'dietary' && <DietaryView userId={inspectingClient?.athleteId} />}
-                {isAdmin && routeState.kind === 'section' && routeState.section === 'admin' && <AdminPortalView />}
+                {displayRoute.kind === 'section' && displayRoute.section === 'dietary' && <DietaryView userId={inspectingClient?.athleteId} />}
+                {isAdmin && displayRoute.kind === 'section' && displayRoute.section === 'admin' && <AdminPortalView />}
               </div>
             </>
           )}
