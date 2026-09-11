@@ -323,7 +323,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                       key={lvl}
                       type="button"
                       onClick={() => setFitnessLevel(lvl)}
-                      className={`min-w-0 py-1.5 px-1 rounded-lg text-[9px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wider whitespace-nowrap transition-all cursor-pointer ${
+                      className={`min-w-0 min-h-[30px] px-1.5 py-1 rounded-lg text-[8px] sm:text-[10px] font-bold uppercase leading-tight tracking-tight sm:tracking-wider break-words transition-all cursor-pointer ${
                         fitnessLevel === lvl
                           ? 'bg-[#C0FF00] text-black shadow-[0_0_10px_rgba(192,255,0,0.3)]'
                           : 'bg-[#111] text-gray-400 border border-[#333] hover:border-gray-500'
