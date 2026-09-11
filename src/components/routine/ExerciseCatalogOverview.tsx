@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Check, ChevronLeft, ChevronRight, Dumbbell, Search } from 'lucide-react';
 import { CatalogExercise } from '../../data/exerciseCatalog.ts';
+import { EXERCISE_THUMBNAIL_FILES } from '../../data/exerciseThumbnailManifest.ts';
 import { fetchCatalogExercisePage } from '../../lib/db/exerciseCatalog.ts';
 import { getExerciseThumbnailSync } from '../../lib/exerciseApiService.ts';
 
@@ -11,7 +12,15 @@ interface ExerciseCatalogOverviewProps {
 
 const ExerciseCatalogImage: React.FC<{ exercise: CatalogExercise }> = ({ exercise }) => {
   const [failed, setFailed] = useState(false);
-  const imageUrl = exercise.images?.[0] || getExerciseThumbnailSync(exercise.name, exercise.id);
+  const sourceUrl = exercise.images?.[0] || getExerciseThumbnailSync(exercise.name, exercise.id);
+  const sourceFilename = sourceUrl?.split('/').pop();
+  const isExerciseDbGif = Boolean(sourceUrl?.includes('static.exercisedb.dev/media/') && sourceFilename?.endsWith('.gif'));
+  const thumbnailFilename = sourceFilename?.replace(/\.gif$/i, '.webp');
+  const imageUrl = isExerciseDbGif
+    ? (thumbnailFilename && EXERCISE_THUMBNAIL_FILES.has(thumbnailFilename)
+      ? `/exercise-thumbnails/${thumbnailFilename}`
+      : null)
+    : sourceUrl;
 
   if (!imageUrl || failed) {
     return (
@@ -26,8 +35,9 @@ const ExerciseCatalogImage: React.FC<{ exercise: CatalogExercise }> = ({ exercis
       src={imageUrl}
       alt={`${exercise.name} exercise demonstration`}
       loading="lazy"
+      decoding="async"
       onError={() => setFailed(true)}
-      className="h-full w-full object-cover"
+      className="h-full w-full object-contain"
     />
   );
 };
@@ -156,7 +166,7 @@ export const ExerciseCatalogOverview: React.FC<ExerciseCatalogOverviewProps> = (
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#333] bg-[#0b0b0b] shadow-[0_0_16px_rgba(192,255,0,0.08)]">
+                    <div className="h-20 w-20 shrink-0 overflow-hidden rounded-xl border border-[#333] bg-[#0b0b0b] shadow-[0_0_16px_rgba(192,255,0,0.08)] sm:h-24 sm:w-24">
                       <ExerciseCatalogImage exercise={exercise} />
                     </div>
                     <div>
