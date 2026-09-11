@@ -274,7 +274,6 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
         onSelectWorkout={(w) => {
           setActiveWorkout(w);
           setErrorMsg(null);
-          onResourceRouteChange?.(`/workout/${encodeURIComponent(w.id)}`);
         }}
         onOpenRoutineEditor={() => {
           setIsRoutineEditorOpen(true);

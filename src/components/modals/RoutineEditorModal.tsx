@@ -42,6 +42,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [detailExercise, setDetailExercise] = useState<{ id: string; name: string } | null>(null);
@@ -56,6 +57,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
       setSelectedWorkoutIndex(initialIndex >= 0 ? initialIndex : 0);
       setEditingExerciseId(null);
       setStatusMsg(null);
+      setHasUnsavedChanges(false);
       setWorkoutToDeleteIndex(null);
     }
   }, [isOpen, initialWorkouts, initialWorkoutId]);
@@ -67,6 +69,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
 
   // Routine management
   const handleAddWorkoutDay = () => {
+    setHasUnsavedChanges(true);
     const nextOrder = workouts.length > 0 ? Math.max(...workouts.map(w => w.order)) + 1 : 1;
     const newWorkout: Workout & { exercises: Exercise[] } = {
       id: `custom_w_${Date.now()}`,
@@ -85,6 +88,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
 
   const confirmDeleteWorkoutDay = () => {
     if (workoutToDeleteIndex === null) return;
+    setHasUnsavedChanges(true);
     const index = workoutToDeleteIndex;
     const filtered = workouts.filter((_, i) => i !== index);
     const reindexed = filtered.map((w, i) => ({ ...w, order: i + 1 }));
@@ -95,12 +99,14 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
 
   const handleUpdateWorkoutName = (newName: string) => {
     if (!currentWorkout) return;
+    setHasUnsavedChanges(true);
     setWorkouts(prev => prev.map((w, idx) => idx === selectedWorkoutIndex ? { ...w, name: newName } : w));
   };
 
   // Exercise management within current routine
   const handleAddExerciseFromCatalog = (pickedEx: CatalogExercise) => {
     if (!currentWorkout) return;
+    setHasUnsavedChanges(true);
     const newEx: Exercise = {
       id: pickedEx.id,
       name: formatSingleExerciseName(pickedEx.name),
@@ -126,6 +132,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
 
   const handleDeleteExercise = (exId: string) => {
     if (!currentWorkout) return;
+    setHasUnsavedChanges(true);
     const updatedExercises = currentWorkout.exercises.filter(e => e.id !== exId);
     const updatedIds = (currentWorkout.exerciseIds || []).filter(id => id !== exId);
 
@@ -141,6 +148,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
     if (!currentWorkout || fromIndex < 0 || toIndex < 0 || fromIndex >= currentWorkout.exercises.length || toIndex >= currentWorkout.exercises.length) {
       return;
     }
+    setHasUnsavedChanges(true);
     const list = [...currentWorkout.exercises];
     const [movedExercise] = list.splice(fromIndex, 1);
     list.splice(toIndex, 0, movedExercise);
@@ -153,6 +161,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
 
   const handleUpdateExercise = (exId: string, updates: Partial<Exercise>) => {
     if (!currentWorkout) return;
+    setHasUnsavedChanges(true);
     const updatedExercises = currentWorkout.exercises.map(e => 
       e.id === exId ? { ...e, ...updates } : e
     );
@@ -176,6 +185,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
         })),
       }));
       await onSaveWorkouts(sanitizedWorkouts);
+      setHasUnsavedChanges(false);
       setIsSuccessModalOpen(true);
     } catch (err: unknown) {
       console.error('Error saving routine config:', err);
@@ -332,7 +342,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
         )}
 
         {/* Footer Actions */}
-        <div className="p-4 sm:p-5 border-t border-[#222] bg-[#141414] flex items-center justify-between gap-3">
+        <div className="sticky bottom-0 z-20 flex items-center justify-between gap-3 border-t border-[#222] bg-[#141414]/95 p-4 shadow-[0_-12px_24px_rgba(0,0,0,0.35)] backdrop-blur-md sm:p-5">
           <button
             type="button"
             onClick={onClose}
@@ -342,7 +352,13 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
             Cancel
           </button>
           
-          <button
+          <div className="flex items-center gap-3">
+            {hasUnsavedChanges && (
+              <span className="hidden text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300 sm:inline">
+                Unsaved changes
+              </span>
+            )}
+            <button
             type="button"
             onClick={handleSaveAll}
             disabled={isSaving}
@@ -357,7 +373,8 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                 <Save className="w-3.5 h-3.5" /> Save Changes
               </>
             )}
-          </button>
+            </button>
+          </div>
         </div>
 
       </div>
