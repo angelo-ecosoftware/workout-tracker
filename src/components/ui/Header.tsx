@@ -81,7 +81,7 @@ export const Header: React.FC = () => {
               <Dumbbell className="w-5 h-5 stroke-[2]" />
             </div>
             <div>
-              <h1 className="font-display font-black italic text-base tracking-tight text-white leading-none uppercase flex items-center gap-1.5">
+              <h1 className="font-display font-black italic text-2xl sm:text-3xl tracking-tight text-white leading-none uppercase flex items-center gap-1.5">
                 <span>KINISIA</span>
                 {isAdmin && (
                   <span className="ml-1 text-[9px] font-mono font-black bg-purple-500/20 text-purple-300 border border-purple-500/40 px-1.5 py-0.5 rounded not-italic">

@@ -9,7 +9,7 @@ import { fetchInviteByCode } from './lib/db/roles.ts';
 import { CoachAthleteLink } from './models.ts';
 import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
 import { isGoogleAuthUrl, sanitizeAuthenticatedSession } from './utils/authUrl.ts';
-import { Loader2 } from 'lucide-react';
+import { Dumbbell, Flame, History, Layers3, Loader2, ShieldCheck, Utensils } from 'lucide-react';
 import { ExerciseCatalogOverview } from './components/routine/ExerciseCatalogOverview.tsx';
 import { useRouteContinuity } from './hooks/useRouteContinuity.ts';
 import {
@@ -361,61 +361,67 @@ const GymAppContent: React.FC = () => {
             />
           ) : (
             <>
-              <div className="flex bg-[#111] border border-[#222] rounded-full p-1 w-full max-w-xl mx-auto mb-8 font-sans flex-nowrap gap-1 overflow-x-auto scrollbar-none">
+              <div className="flex bg-[#111] border border-[#222] rounded-full p-1 w-full max-w-xl mx-auto mb-8 font-sans gap-0.5 sm:gap-1">
                 {!inspectingClient && (
                   <button
                     onClick={() => setActiveTab('tracker')}
-                    className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                    className={`flex-1 min-w-0 whitespace-nowrap px-1.5 sm:px-3 py-2 text-[9px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1 ${
                       getCollectionForRoute(routeState) === 'workouts' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                     }`}
                   >
-                    Session
+                    <Flame className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
+                    <span>Session</span>
                   </button>
                 )}
                 {!inspectingClient && (
                   <button
                     onClick={() => navigateToRoute('/routines')}
-                    className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                    className={`flex-1 min-w-0 whitespace-nowrap px-1.5 sm:px-3 py-2 text-[9px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1 ${
                       getCollectionForRoute(routeState) === 'routines' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                     }`}
                   >
-                    Routines
+                    <Layers3 className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
+                    <span>Routine</span>
                   </button>
                 )}
                 {!inspectingClient && (
                   <button
                     onClick={() => navigateToRoute('/exercises')}
-                    className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                    className={`flex-1 min-w-0 whitespace-nowrap px-1.5 sm:px-3 py-2 text-[9px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1 ${
                       getCollectionForRoute(routeState) === 'exercises' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                     }`}
                   >
-                    Exercises
+                    <Dumbbell className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
+                    <span>Exercise</span>
                   </button>
                 )}
                 <button
                   onClick={() => setActiveTab('history')}
-                  className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                  className={`flex-1 min-w-0 whitespace-nowrap px-1.5 sm:px-3 py-2 text-[9px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1 ${
                     getCollectionForRoute(routeState) === 'logbook' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  History
+                  <History className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
+                  <span>History</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('dietary')}
-                  className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                  className={`flex-1 min-w-0 whitespace-nowrap px-1.5 sm:px-3 py-2 text-[9px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1 ${
                     routeState.kind === 'section' && routeState.section === 'dietary' ? 'bg-[#00ade6] text-black shadow-md' : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  Dietary
+                  <Utensils className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
+                  <span>Diet</span>
                 </button>
                 {isAdmin && !inspectingClient && (
                   <button
                     onClick={() => setActiveTab('admin')}
-                    className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                    className={`flex-1 min-w-0 whitespace-nowrap px-1.5 sm:px-3 py-2 text-[9px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1 ${
                       routeState.kind === 'section' && routeState.section === 'admin' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-purple-400 hover:text-purple-300'
                     }`}
                   >
-                    Admin
+                    <ShieldCheck className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" aria-hidden="true" />
+                    <span>Admin</span>
                   </button>
                 )}
               </div>
