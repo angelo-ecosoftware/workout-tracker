@@ -229,17 +229,17 @@ export async function saveUserMetrics(userId: string, metrics: UserMetrics) {
 
   try {
     const updatePayload: Record<string, unknown> = { metrics };
-    if (metrics.dateOfBirth) updatePayload.date_of_birth = metrics.dateOfBirth;
-    if (metrics.gender) updatePayload.gender = metrics.gender;
-    if (metrics.height) updatePayload.height_cm = metrics.height;
-    if (metrics.weight) updatePayload.weight_kg = metrics.weight;
-    if (metrics.fitnessLevel) updatePayload.fitness_level = metrics.fitnessLevel;
-    if (metrics.trainingLocation) updatePayload.training_location = metrics.trainingLocation;
-    if (metrics.trainingDays) updatePayload.training_days = metrics.trainingDays;
-    if (metrics.sessionDurationMinutes) updatePayload.session_duration_minutes = metrics.sessionDurationMinutes;
-    if (metrics.goals) updatePayload.goals = metrics.goals;
-    if (metrics.injuriesNotes) updatePayload.injuries_notes = metrics.injuriesNotes;
-    if (metrics.somatotype) updatePayload.body_type = metrics.somatotype;
+    if (metrics.dateOfBirth !== undefined) updatePayload.date_of_birth = metrics.dateOfBirth || null;
+    if (metrics.gender !== undefined) updatePayload.gender = metrics.gender || null;
+    if (metrics.height !== undefined) updatePayload.height_cm = metrics.height || null;
+    if (metrics.weight !== undefined) updatePayload.weight_kg = metrics.weight || null;
+    if (metrics.fitnessLevel !== undefined) updatePayload.fitness_level = metrics.fitnessLevel || null;
+    if (metrics.trainingLocation !== undefined) updatePayload.training_location = metrics.trainingLocation || null;
+    if (metrics.trainingDays !== undefined) updatePayload.training_days = metrics.trainingDays;
+    if (metrics.sessionDurationMinutes !== undefined) updatePayload.session_duration_minutes = metrics.sessionDurationMinutes || null;
+    if (metrics.goals !== undefined) updatePayload.goals = metrics.goals;
+    if (metrics.injuriesNotes !== undefined) updatePayload.injuries_notes = metrics.injuriesNotes || null;
+    if (metrics.somatotype !== undefined) updatePayload.body_type = metrics.somatotype || null;
     updatePayload.updated_at = new Date().toISOString();
 
     const { error } = await supabase.from('users').update(updatePayload).eq('user_id', userId);

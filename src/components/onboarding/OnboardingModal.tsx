@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Check, ChevronRight, CircleHelp, Loader2, ShieldCheck, Sparkles, X } from 'lucide-react';
 import { driver, type Driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
@@ -82,11 +82,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         // New users have no saved onboarding values yet.
       });
   }, [isOpen, userId]);
-
-  const isComplete = useMemo(
-    () => goals.length > 0 && days.length > 0 && Boolean(duration && level && location),
-    [days.length, duration, goals.length, level, location]
-  );
 
   useEffect(() => {
     if (!isOpen || stage !== 'form' || tourStartedRef.current) return;
@@ -277,7 +272,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
             <p className="mt-5 flex items-start gap-2 text-[10px] leading-relaxed text-gray-500"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[#C0FF00]" aria-hidden="true" /> Your information is stored securely in your account and used to personalize Kinisia. You can update or remove it anytime in Profile settings.</p>
             {error && <p role="alert" className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-300">{error}</p>}
-            <button type="button" disabled={!isComplete} onClick={() => save('completed')} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#C0FF00] px-5 py-3 font-display text-sm font-black uppercase tracking-wider text-black disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="button" onClick={() => save('completed')} className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#C0FF00] px-5 py-3 font-display text-sm font-black uppercase tracking-wider text-black">
               Save onboarding <Check className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
