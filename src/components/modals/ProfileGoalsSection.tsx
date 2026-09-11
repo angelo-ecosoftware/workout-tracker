@@ -1,14 +1,12 @@
 import React from 'react';
 import { Target, Check, FileText } from 'lucide-react';
 
-export const STANDARD_GOALS = [
-  'Build Muscle (Hypertrophy)',
-  'Increase Strength (Powerlifting)',
-  'Fat Loss & Cutting',
-  'Endurance & Conditioning',
-  'Athletic Performance',
-  'Health & Longevity',
-  'Rehabilitation & Mobility',
+export const ONBOARDING_GOALS = [
+  'Build muscle',
+  'Strength',
+  'Fat loss',
+  'General fitness',
+  'Mobility',
 ];
 
 interface ProfileGoalsSectionProps {
@@ -32,7 +30,7 @@ export const ProfileGoalsSection: React.FC<ProfileGoalsSectionProps> = ({
           <Target className="w-3.5 h-3.5" /> Fitness Goals
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {STANDARD_GOALS.map((goal) => {
+          {ONBOARDING_GOALS.map((goal) => {
             const isSelected = selectedGoals.includes(goal);
             return (
               <button

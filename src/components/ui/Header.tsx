@@ -43,6 +43,12 @@ export const Header: React.FC<HeaderProps> = ({
             gender: profile.gender || profile.metrics?.gender,
             fitnessLevel: profile.fitnessLevel || profile.metrics?.fitnessLevel,
             trainingLocation: profile.trainingLocation || profile.metrics?.trainingLocation,
+            goals: profile.goals || profile.metrics?.goals,
+            somatotype: profile.metrics?.somatotype,
+            trainingDays: profile.trainingDays || profile.metrics?.trainingDays,
+            sessionDurationMinutes: profile.sessionDurationMinutes || profile.metrics?.sessionDurationMinutes,
+            injuriesNotes: profile.injuriesNotes || profile.metrics?.injuriesNotes || profile.metrics?.bodyMeasurementsNotes,
+            bodyMeasurementsNotes: profile.injuriesNotes || profile.metrics?.injuriesNotes || profile.metrics?.bodyMeasurementsNotes,
           };
           setMetrics(resolvedMetrics);
           localStorage.setItem(`user_metrics_${user.id}`, JSON.stringify(resolvedMetrics));

@@ -4,6 +4,7 @@ import { driver, type Driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import { FitnessLevel, Somatotype, UserProfile } from '../../models.ts';
 import { initializeUser, OnboardingProfileData, saveOnboardingProfile } from '../../lib/db/users.ts';
+import { ONBOARDING_GOALS } from '../modals/ProfileGoalsSection.tsx';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -21,7 +22,6 @@ const DAYS = [
   ['sunday', 'Sun'],
 ] as const;
 
-const GOALS = ['Build muscle', 'Strength', 'Fat loss', 'General fitness', 'Mobility'];
 const DURATIONS = [30, 60, 90, 120] as const;
 const LEVELS: Array<{ value: FitnessLevel; label: string }> = [
   { value: 'absolute_beginner', label: 'Absolute beginner' },
@@ -224,7 +224,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               <fieldset data-onboarding="goals">
                 <legend className="text-[10px] font-bold uppercase text-gray-400">Goals · choose at least one</legend>
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {GOALS.map((goal) => {
+                  {ONBOARDING_GOALS.map((goal) => {
                     const selected = goals.includes(goal);
                     return <button key={goal} type="button" aria-pressed={selected} onClick={() => toggle(goals, goal, setGoals)} className={`flex items-center justify-between rounded-xl border px-3 py-3 text-left text-xs font-bold ${selected ? 'border-[#C0FF00] bg-[#C0FF00]/15 text-white' : 'border-[#333] bg-[#181818] text-gray-400'}`}>{goal}{selected && <Check className="h-4 w-4 text-[#C0FF00]" aria-hidden="true" />}</button>;
                   })}

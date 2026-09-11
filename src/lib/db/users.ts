@@ -116,6 +116,9 @@ export async function initializeUser(userId: string, email?: string, name?: stri
   const resolvedMetrics: UserMetrics = {
     ...(localMetrics || {}),
     ...(data.metrics || {}),
+    trainingDays: data.training_days || data.metrics?.trainingDays || localMetrics?.trainingDays,
+    sessionDurationMinutes: data.session_duration_minutes || data.metrics?.sessionDurationMinutes || localMetrics?.sessionDurationMinutes,
+    injuriesNotes: data.injuries_notes || data.metrics?.injuriesNotes || data.metrics?.bodyMeasurementsNotes || localMetrics?.injuriesNotes || localMetrics?.bodyMeasurementsNotes,
   };
   const resolvedBodyType = data.body_type || data.metrics?.somatotype || localMetrics?.somatotype;
   if (resolvedBodyType) resolvedMetrics.somatotype = resolvedBodyType;
@@ -232,6 +235,10 @@ export async function saveUserMetrics(userId: string, metrics: UserMetrics) {
     if (metrics.weight) updatePayload.weight_kg = metrics.weight;
     if (metrics.fitnessLevel) updatePayload.fitness_level = metrics.fitnessLevel;
     if (metrics.trainingLocation) updatePayload.training_location = metrics.trainingLocation;
+    if (metrics.trainingDays) updatePayload.training_days = metrics.trainingDays;
+    if (metrics.sessionDurationMinutes) updatePayload.session_duration_minutes = metrics.sessionDurationMinutes;
+    if (metrics.goals) updatePayload.goals = metrics.goals;
+    if (metrics.injuriesNotes) updatePayload.injuries_notes = metrics.injuriesNotes;
     if (metrics.somatotype) updatePayload.body_type = metrics.somatotype;
     updatePayload.updated_at = new Date().toISOString();
 

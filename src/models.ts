@@ -27,6 +27,9 @@ export interface UserMetrics {
   fitnessLevel?: FitnessLevel;
   goals?: string[]; // Multiple standard goals selected
   trainingLocation?: 'gym' | 'home' | 'hybrid';
+  trainingDays?: string[];
+  sessionDurationMinutes?: 30 | 60 | 90 | 120;
+  injuriesNotes?: string;
   bodyMeasurementsNotes?: string; // Freeform notes
   updatedAt?: string;
 }

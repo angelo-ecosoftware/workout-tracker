@@ -17,6 +17,18 @@ interface ProfileModalProps {
   onMetricsUpdated?: (newMetrics: UserMetrics) => void;
 }
 
+const TRAINING_DAYS = [
+  ['monday', 'Mon'],
+  ['tuesday', 'Tue'],
+  ['wednesday', 'Wed'],
+  ['thursday', 'Thu'],
+  ['friday', 'Fri'],
+  ['saturday', 'Sat'],
+  ['sunday', 'Sun'],
+] as const;
+
+const SESSION_DURATIONS = [30, 60, 90, 120] as const;
+
 export const ProfileModal: React.FC<ProfileModalProps> = ({
   isOpen,
   onClose,
@@ -32,8 +44,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [gender, setGender] = useState<UserMetrics['gender']>(initialMetrics?.gender || 'prefer_not_to_say');
   const [somatotype, setSomatotype] = useState<UserMetrics['somatotype']>(initialMetrics?.somatotype || 'not_specified');
   const [fitnessLevel, setFitnessLevel] = useState<UserMetrics['fitnessLevel']>(initialMetrics?.fitnessLevel === 'advanced' ? 'amateur' : (initialMetrics?.fitnessLevel || 'intermediate'));
-  const [selectedGoals, setSelectedGoals] = useState<string[]>(initialMetrics?.goals || ['Build Muscle (Hypertrophy)']);
+  const [selectedGoals, setSelectedGoals] = useState<string[]>(initialMetrics?.goals || []);
   const [location, setLocation] = useState<UserMetrics['trainingLocation']>(initialMetrics?.trainingLocation || 'gym');
+  const [trainingDays, setTrainingDays] = useState<string[]>(initialMetrics?.trainingDays || []);
+  const [sessionDurationMinutes, setSessionDurationMinutes] = useState<UserMetrics['sessionDurationMinutes']>(initialMetrics?.sessionDurationMinutes);
   const [bodyNotes, setBodyNotes] = useState(initialMetrics?.bodyMeasurementsNotes || '');
   const [isSaving, setIsSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -62,8 +76,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         setGender(effectiveMetrics.gender || 'prefer_not_to_say');
         setSomatotype(effectiveMetrics.somatotype || 'not_specified');
         setFitnessLevel(effectiveMetrics.fitnessLevel === 'advanced' ? 'amateur' : (effectiveMetrics.fitnessLevel || 'intermediate'));
-        setSelectedGoals(effectiveMetrics.goals || ['Build Muscle (Hypertrophy)']);
+        setSelectedGoals(effectiveMetrics.goals || []);
         setLocation(effectiveMetrics.trainingLocation || 'gym');
+        setTrainingDays(effectiveMetrics.trainingDays || []);
+        setSessionDurationMinutes(effectiveMetrics.sessionDurationMinutes);
         setBodyNotes(effectiveMetrics.bodyMeasurementsNotes || '');
       }
       setSavedSuccess(false);
@@ -176,6 +192,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       fitnessLevel,
       goals: selectedGoals,
       trainingLocation: location,
+      trainingDays,
+      sessionDurationMinutes,
+      injuriesNotes: bodyNotes || undefined,
       bodyMeasurementsNotes: bodyNotes || undefined,
       updatedAt: new Date().toISOString(),
     };
@@ -340,6 +359,57 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-3">
+                <label className="text-[10px] uppercase font-bold text-gray-400 block mb-2">
+                  Available training days
+                </label>
+                <div className="grid grid-cols-4 sm:grid-cols-7 gap-1">
+                  {TRAINING_DAYS.map(([value, label]) => {
+                    const selected = trainingDays.includes(value);
+                    return (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => setTrainingDays((current) => selected ? current.filter((day) => day !== value) : [...current, value])}
+                        className={`py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all ${
+                          selected
+                            ? 'bg-[#C0FF00] text-black'
+                            : 'bg-[#111] text-gray-400 border border-[#333] hover:border-gray-500'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-3">
+                <label className="text-[10px] uppercase font-bold text-gray-400 block mb-2">
+                  Possible time to train
+                </label>
+                <div className="grid grid-cols-2 gap-1">
+                  {SESSION_DURATIONS.map((duration) => (
+                    <button
+                      key={duration}
+                      type="button"
+                      aria-pressed={sessionDurationMinutes === duration}
+                      onClick={() => setSessionDurationMinutes(duration)}
+                      className={`py-1.5 rounded-lg text-[10px] font-bold transition-all ${
+                        sessionDurationMinutes === duration
+                          ? 'bg-[#C0FF00] text-black'
+                          : 'bg-[#111] text-gray-400 border border-[#333] hover:border-gray-500'
+                      }`}
+                    >
+                      {duration} min
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             {/* Workout Frequency (Calculated from routines) */}
             <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-3 flex items-center justify-between">
               <div>
@@ -351,7 +421,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 </p>
               </div>
               <div className="px-3 py-1 rounded-lg bg-[#111] border border-[#333] text-[#C0FF00] font-mono text-xs font-black">
-                {routines.length > 0 ? `${routines.length} days / split` : 'Dynamic'}
+                {trainingDays.length > 0 ? `${trainingDays.length} days / week` : routines.length > 0 ? `${routines.length} days / split` : 'Not set'}
               </div>
             </div>
           </div>
