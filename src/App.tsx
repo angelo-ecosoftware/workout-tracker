@@ -406,7 +406,7 @@ const GymAppContent: React.FC = () => {
   const isDedicatedCoachWorkspace = isCoach && !coachPersonalWorkoutMode && !inspectingClient;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-[#f3f4f6] pb-16">
+    <div className="w-full min-w-0 min-h-screen bg-[#050505] text-[#f3f4f6] pb-16">
       {inspectingClient && (
         <CoachViewAsBanner
           athleteName={inspectingClient.athleteName}
@@ -428,7 +428,7 @@ const GymAppContent: React.FC = () => {
         onComplete={() => setShowOnboarding(false)}
       />
 
-      <main className="max-w-4xl mx-auto px-4 py-8">
+      <main className="w-full min-w-0 max-w-4xl mx-auto px-4 py-8">
         <Suspense fallback={loadingSpinner}>
           {isDedicatedCoachWorkspace ? (
             <CoachPortalView

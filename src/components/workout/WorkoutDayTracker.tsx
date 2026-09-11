@@ -231,7 +231,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
 
   return (
     <div
-      className="space-y-6"
+      className="w-full min-w-0 space-y-6"
       data-resource-type={routeWorkoutId ? 'workout' : undefined}
       data-resource-id={routeWorkoutId || undefined}
     >
