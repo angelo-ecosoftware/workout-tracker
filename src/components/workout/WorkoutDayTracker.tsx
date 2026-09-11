@@ -413,6 +413,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
                 const advice = getProgressionAdvice(ex);
                 // In sequential set mode, the single active exercise is always expanded
                 const isExpanded = isSequentialSetMode ? true : expandedExerciseId === ex.id;
+                const guideRouteWorkoutId = routeWorkoutId || activeWorkout.id;
 
                 return (
                   <ExerciseCard
@@ -426,17 +427,17 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
                     routeExerciseId={routeExerciseId}
                     advice={advice}
                     onOpenGuide={
-                      routeWorkoutId
+                      guideRouteWorkoutId
                         ? (exerciseId) => {
                             onResourceRouteChange?.(
-                              `/workout/${encodeURIComponent(routeWorkoutId)}/exercise/${encodeURIComponent(exerciseId)}/info`
+                              `/workout/${encodeURIComponent(guideRouteWorkoutId)}/exercise/${encodeURIComponent(exerciseId)}/info`
                             );
                           }
                         : undefined
                     }
                     onCloseGuide={
-                      routeWorkoutId
-                        ? () => onResourceRouteChange?.(`/workout/${encodeURIComponent(routeWorkoutId)}`)
+                      guideRouteWorkoutId
+                        ? () => onResourceRouteChange?.(`/workout/${encodeURIComponent(guideRouteWorkoutId)}`)
                         : undefined
                     }
                     onToggleExpand={() => {
