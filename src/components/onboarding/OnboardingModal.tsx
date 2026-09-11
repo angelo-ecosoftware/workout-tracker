@@ -95,6 +95,8 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     const timer = window.setTimeout(() => {
       const tour = driver({
         allowClose: false,
+        allowScroll: false,
+        popoverClass: 'kinisia-driver-popover',
         showProgress: true,
         nextBtnText: 'Next',
         prevBtnText: 'Previous',
@@ -108,7 +110,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           const skipButton = document.createElement('button');
           skipButton.type = 'button';
           skipButton.dataset.skipOnboarding = 'true';
-          skipButton.className = 'driver-popover-btn';
+          skipButton.className = 'driver-popover-footer-btn kinisia-driver-skip';
           skipButton.textContent = 'Skip onboarding';
           skipButton.addEventListener('click', () => {
             tour.destroy();
