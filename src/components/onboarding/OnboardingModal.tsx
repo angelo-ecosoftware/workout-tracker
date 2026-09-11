@@ -59,6 +59,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   const [bodyType, setBodyType] = useState<Somatotype>('not_specified');
   const [injuries, setInjuries] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [tourActive, setTourActive] = useState(false);
   const driverRef = useRef<Driver | null>(null);
   const tourStartedRef = useRef(false);
 
@@ -119,8 +120,10 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           });
           popover.footerButtons.prepend(skipButton);
         },
+        onDestroyed: () => setTourActive(false),
       });
       driverRef.current = tour;
+      setTourActive(true);
       tour.drive();
     }, 250);
 
@@ -151,6 +154,38 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     bodyType,
     injuriesNotes: injuries || undefined,
   };
+
+  const advanceSingleChoice = () => {
+    if (tourActive && driverRef.current?.isActive()) {
+      driverRef.current.moveNext();
+    }
+  };
+
+  const renderSingleChoice = (
+    label: string,
+    selected: boolean,
+    onSelect: () => void,
+  ) => (
+    <div className={`flex items-center overflow-hidden rounded-xl border ${selected ? 'border-[#C0FF00] bg-[#C0FF00] text-black' : 'border-[#333] bg-[#181818] text-gray-400'}`}>
+      <button
+        type="button"
+        aria-pressed={selected}
+        onClick={onSelect}
+        className="min-w-0 flex-1 px-3 py-3 text-left text-xs font-bold uppercase"
+      >
+        {label}
+      </button>
+      {selected && tourActive && (
+        <button
+          type="button"
+          onClick={advanceSingleChoice}
+          className="mr-2 shrink-0 rounded-md bg-black/15 px-1.5 py-0.5 text-[9px] font-bold uppercase text-black"
+        >
+          Next
+        </button>
+      )}
+    </div>
+  );
 
   const save = async (status: 'completed' | 'deferred') => {
     setError(null);
@@ -234,21 +269,21 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
               <fieldset data-onboarding="duration">
                 <legend className="text-[10px] font-bold uppercase text-gray-400">Gym time per session</legend>
                 <div className="mt-2 grid grid-cols-4 gap-2">
-                  {DURATIONS.map((value) => <button key={value} type="button" aria-pressed={duration === value} onClick={() => setDuration(value)} className={`rounded-xl border px-2 py-3 text-xs font-bold ${duration === value ? 'border-[#C0FF00] bg-[#C0FF00] text-black' : 'border-[#333] bg-[#181818] text-gray-400'}`}>{value} min</button>)}
+                  {DURATIONS.map((value) => <React.Fragment key={value}>{renderSingleChoice(`${value} min`, duration === value, () => setDuration(value))}</React.Fragment>)}
                 </div>
               </fieldset>
 
               <fieldset data-onboarding="experience">
                 <legend className="text-[10px] font-bold uppercase text-gray-400">Experience level</legend>
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {LEVELS.map((option) => <button key={option.value} type="button" aria-pressed={level === option.value} onClick={() => setLevel(option.value)} className={`rounded-xl border px-3 py-3 text-left text-[10px] font-bold uppercase ${level === option.value ? 'border-[#C0FF00] bg-[#C0FF00] text-black' : 'border-[#333] bg-[#181818] text-gray-400'}`}>{option.label}</button>)}
+                  {LEVELS.map((option) => <React.Fragment key={option.value}>{renderSingleChoice(option.label, level === option.value, () => setLevel(option.value))}</React.Fragment>)}
                 </div>
               </fieldset>
 
               <fieldset data-onboarding="location">
                 <legend className="text-[10px] font-bold uppercase text-gray-400">Training location</legend>
                 <div className="mt-2 grid grid-cols-3 gap-2">
-                  {(['gym', 'home', 'hybrid'] as const).map((value) => <button key={value} type="button" aria-pressed={location === value} onClick={() => setLocation(value)} className={`rounded-xl border px-3 py-3 text-xs font-bold uppercase ${location === value ? 'border-[#C0FF00] bg-[#C0FF00] text-black' : 'border-[#333] bg-[#181818] text-gray-400'}`}>{value}</button>)}
+                  {(['gym', 'home', 'hybrid'] as const).map((value) => <React.Fragment key={value}>{renderSingleChoice(value, location === value, () => setLocation(value))}</React.Fragment>)}
                 </div>
               </fieldset>
 
