@@ -11,6 +11,8 @@ import { SavedRoutinesLibraryModal } from './SavedRoutinesLibraryModal.tsx';
 import { formatSingleExerciseName } from '../../lib/exerciseSearch.ts';
 import { SuccessModal } from '../ui/SuccessModal.tsx';
 import { ExerciseGuideDrawer } from '../workout/ExerciseGuideDrawer.tsx';
+import { ExerciseCatalogOverview } from '../routine/ExerciseCatalogOverview.tsx';
+import { CatalogExercise } from '../../data/exerciseCatalog.ts';
 
 interface RoutineEditorModalProps {
   isOpen: boolean;
@@ -18,6 +20,7 @@ interface RoutineEditorModalProps {
   userId: string;
   workouts: (Workout & { exercises: Exercise[] })[];
   onSaveWorkouts: (updatedWorkouts: (Workout & { exercises: Exercise[] })[]) => Promise<void>;
+  presentation?: 'modal' | 'page';
 }
 
 export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
@@ -26,6 +29,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   userId,
   workouts: initialWorkouts,
   onSaveWorkouts,
+  presentation = 'modal',
 }) => {
   const [workouts, setWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>(() => 
     JSON.parse(JSON.stringify(initialWorkouts || []))
@@ -55,6 +59,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   if (!isOpen) return null;
 
   const currentWorkout = workouts[selectedWorkoutIndex];
+  const isPage = presentation === 'page';
 
   // Routine management
   const handleAddWorkoutDay = () => {
@@ -112,6 +117,17 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
     ));
     setIsSearchPickerOpen(false);
     setEditingExerciseId(newExId);
+  };
+
+  const handleAddExerciseFromCatalog = (pickedEx: CatalogExercise) => {
+    handleAddExerciseFromPicker({
+      id: pickedEx.id,
+      name: pickedEx.name,
+      type: pickedEx.type,
+      targetSets: pickedEx.defaultSets,
+      targetRepMin: pickedEx.defaultRepMin,
+      targetRepMax: pickedEx.defaultRepMax,
+    });
   };
 
   const handleAddExercise = () => {
@@ -185,13 +201,15 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   };
 
   return (
-    <div 
-      onClick={onClose}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md"
+    <div
+      onClick={isPage ? undefined : onClose}
+      className={isPage ? 'w-full' : 'fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-3 backdrop-blur-md sm:p-4'}
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="bg-[#111111] border border-[#222222] rounded-[24px] w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl relative"
+        className={isPage
+          ? 'relative flex w-full flex-col overflow-hidden rounded-[24px] border border-[#222222] bg-[#111111] shadow-2xl'
+          : 'relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[24px] border border-[#222222] bg-[#111111] shadow-2xl'}
       >
         
         {/* Header */}
@@ -327,6 +345,15 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
           )}
 
         </div>
+
+        {isPage && (
+          <div className="px-4 pb-5 sm:px-6">
+            <ExerciseCatalogOverview
+              selectedExerciseIds={new Set(workouts.flatMap((workout) => workout.exercises.map((exercise) => exercise.id)))}
+              onAddExercise={handleAddExerciseFromCatalog}
+            />
+          </div>
+        )}
 
         {/* Footer Actions */}
         <div className="p-4 sm:p-5 border-t border-[#222] bg-[#141414] flex items-center justify-between gap-3">

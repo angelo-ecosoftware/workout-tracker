@@ -87,6 +87,7 @@ export const RoutineRouteView: React.FC<RoutineRouteViewProps> = ({ userId, rout
           onClose={() => onNavigate(serializeRoute({ kind: 'routine', routineId: program.id, mode: 'view' }))}
           userId={userId}
           workouts={program.programData.workouts}
+          presentation="page"
           onSaveWorkouts={async (updatedWorkouts) => {
             await updateSavedRoutineProgram(userId, program.id, { workouts: updatedWorkouts });
             setProgram((current) => current ? { ...current, programData: { workouts: updatedWorkouts } } : current);

@@ -154,6 +154,24 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
     );
   }
 
+  if (routeMode === 'edit' && user) {
+    return (
+      <RoutineEditorModal
+        isOpen={true}
+        presentation="page"
+        onClose={() => onResourceRouteChange?.(activeWorkout ? `/workout/${encodeURIComponent(activeWorkout.id)}` : '/workouts')}
+        userId={user.uid}
+        workouts={workouts}
+        onSaveWorkouts={async (updatedWorkouts) => {
+          await saveWorkoutsAndExercises(user.uid, updatedWorkouts);
+          setWorkouts(updatedWorkouts);
+          await loadWorkflowState();
+          onResourceRouteChange?.(activeWorkout ? `/workout/${encodeURIComponent(activeWorkout.id)}` : '/workouts');
+        }}
+      />
+    );
+  }
+
   if (workouts.length === 0) {
     return (
       <div className="bg-[#111] border border-[#222] rounded-[24px] p-8 text-center shadow-xl space-y-4 relative">
