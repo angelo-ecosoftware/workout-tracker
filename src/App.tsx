@@ -6,11 +6,13 @@ import { Header } from './components/ui/Header.tsx';
 import { CoachViewAsBanner } from './components/coach/CoachViewAsBanner.tsx';
 import { CoachInviteAcceptModal } from './components/modals/CoachInviteAcceptModal.tsx';
 import { fetchInviteByCode } from './lib/db/roles.ts';
+import { initializeUser } from './lib/db/users.ts';
 import { CoachAthleteLink } from './models.ts';
 import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
 import { isGoogleAuthUrl, sanitizeAuthenticatedSession } from './utils/authUrl.ts';
 import { Dumbbell, Flame, History, Layers3, Loader2, ShieldCheck, Utensils } from 'lucide-react';
 import { ExerciseCatalogOverview } from './components/routine/ExerciseCatalogOverview.tsx';
+import { OnboardingModal } from './components/onboarding/OnboardingModal.tsx';
 import { useRouteContinuity } from './hooks/useRouteContinuity.ts';
 import {
   CanonicalRoute,
@@ -103,6 +105,7 @@ const GymAppContent: React.FC = () => {
       : initialRoute;
   });
   const displayRoute = routeState.kind === 'profile' ? profileBackgroundRoute : routeState;
+  const [showOnboarding, setShowOnboarding] = useState(false);
   useRouteContinuity(user?.uid, displayRoute);
   const [publicSessionId, setPublicSessionId] = useState<string | null>(() => getPublicSessionIdFromUrl());
   const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => getCoachInviteCodeFromUrl());
@@ -141,6 +144,45 @@ const GymAppContent: React.FC = () => {
   const closeProfile = () => {
     navigateToRoute(serializeRoute(profileBackgroundRoute));
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!user) {
+      setShowOnboarding(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    initializeUser(user.uid, user.email, user.displayName)
+      .then((profile) => {
+        if (cancelled) return;
+        let deferredLocally = false;
+        try {
+          deferredLocally = localStorage.getItem(`onboarding_deferred_${user.uid}`) === 'true';
+        } catch {}
+        const legacyProfileExists = Boolean(
+          profile.metrics ||
+          profile.fitnessLevel ||
+          profile.trainingLocation ||
+          profile.heightCm ||
+          profile.weightKg
+        );
+        setShowOnboarding(
+          !deferredLocally &&
+          profile.onboardingStatus !== 'completed' &&
+          profile.onboardingStatus !== 'deferred' &&
+          !(profile.onboardingStatus === 'not_started' && legacyProfileExists)
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setShowOnboarding(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   // Default admins to admin tab
   useEffect(() => {
@@ -360,6 +402,11 @@ const GymAppContent: React.FC = () => {
         profileOpen={routeState.kind === 'profile'}
         onProfileOpen={openProfile}
         onProfileClose={closeProfile}
+      />
+      <OnboardingModal
+        isOpen={showOnboarding}
+        userId={user.uid}
+        onComplete={() => setShowOnboarding(false)}
       />
 
       <main className="max-w-4xl mx-auto px-4 py-8">

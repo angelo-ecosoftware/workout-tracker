@@ -129,6 +129,13 @@ export async function initializeUser(userId: string, email?: string, name?: stri
     weightKg: resolvedWeight,
     fitnessLevel: data.fitness_level || data.metrics?.fitnessLevel,
     trainingLocation: data.training_location || data.metrics?.trainingLocation,
+    onboardingStatus: data.onboarding_status || 'not_started',
+    onboardingCompletedAt: data.onboarding_completed_at || undefined,
+    onboardingVersion: data.onboarding_version || undefined,
+    trainingDays: data.training_days || [],
+    sessionDurationMinutes: data.session_duration_minutes || undefined,
+    goals: data.goals || [],
+    injuriesNotes: data.injuries_notes || undefined,
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
     maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
@@ -137,6 +144,73 @@ export async function initializeUser(userId: string, email?: string, name?: stri
       ? resolvedMetrics
       : (resolvedWeight ? { weight: resolvedWeight, height: resolvedHeight } : undefined),
   } as UserProfile;
+}
+
+export interface OnboardingProfileData {
+  trainingDays: string[];
+  sessionDurationMinutes: 30 | 60 | 90 | 120;
+  fitnessLevel: UserProfile['fitnessLevel'];
+  trainingLocation: UserProfile['trainingLocation'];
+  goals: string[];
+  dateOfBirth?: string;
+  gender?: UserProfile['gender'];
+  heightCm?: number;
+  weightKg?: number;
+  bodyType?: UserMetrics['somatotype'];
+  injuriesNotes?: string;
+}
+
+export async function saveOnboardingProfile(
+  userId: string,
+  profile: OnboardingProfileData,
+  status: 'completed' | 'deferred' = 'completed'
+): Promise<void> {
+  const updatedAt = new Date().toISOString();
+  const completedAt = status === 'completed' ? updatedAt : null;
+  setLocalStorageItem(`onboarding_profile_${userId}`, JSON.stringify({
+    ...profile,
+    onboardingStatus: status,
+    onboardingCompletedAt: completedAt,
+  }));
+  setLocalStorageItem(`onboarding_deferred_${userId}`, status === 'deferred' ? 'true' : 'false');
+
+  const updatePayload: Record<string, unknown> = {
+    training_days: profile.trainingDays,
+    session_duration_minutes: profile.sessionDurationMinutes,
+    fitness_level: profile.fitnessLevel,
+    training_location: profile.trainingLocation,
+    goals: profile.goals,
+    date_of_birth: profile.dateOfBirth || null,
+    gender: profile.gender || null,
+    injuries_notes: profile.injuriesNotes || null,
+    onboarding_status: status,
+    onboarding_version: 1,
+    onboarding_completed_at: completedAt,
+    updated_at: updatedAt,
+  };
+  if (profile.heightCm) updatePayload.height_cm = profile.heightCm;
+  if (profile.weightKg) updatePayload.weight_kg = profile.weightKg;
+  if (profile.bodyType) updatePayload.body_type = profile.bodyType;
+
+  const { error } = await supabase.from('users').update(updatePayload).eq('user_id', userId);
+  if (error) {
+    console.warn('Could not save typed onboarding profile:', error.message);
+    const legacyPayload = {
+      metrics: {
+        trainingDays: profile.trainingDays,
+        sessionDurationMinutes: profile.sessionDurationMinutes,
+        fitnessLevel: profile.fitnessLevel,
+        trainingLocation: profile.trainingLocation,
+        goals: profile.goals,
+        height: profile.heightCm,
+        weight: profile.weightKg,
+        somatotype: profile.bodyType,
+        bodyMeasurementsNotes: profile.injuriesNotes,
+      },
+      updated_at: updatedAt,
+    };
+    await supabase.from('users').update(legacyPayload).eq('user_id', userId);
+  }
 }
 
 export async function saveUserMetrics(userId: string, metrics: UserMetrics) {

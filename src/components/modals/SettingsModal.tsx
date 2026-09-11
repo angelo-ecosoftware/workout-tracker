@@ -23,7 +23,7 @@ import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { SavedRoutinesLibraryModal } from './SavedRoutinesLibraryModal.tsx';
 import { PrivacySettingsModal } from '../settings/PrivacySettingsModal.tsx';
 import { CoachAccountModal } from './CoachAccountModal.tsx';
-import { WelcomeModal } from './WelcomeModal.tsx';
+import { OnboardingModal } from '../onboarding/OnboardingModal.tsx';
 import { RoutineOnboardingModal } from './RoutineOnboardingModal.tsx';
 import { ComplianceDossierModal } from '../settings/ComplianceDossierModal.tsx';
 import { DeleteAccountModal } from '../settings/DeleteAccountModal.tsx';
@@ -791,13 +791,12 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         />
       )}
 
-      {/* Re-Launchable Onboarding / Explore App Wizard */}
+      {/* Re-launchable onboarding profile */}
       {isOnboardingOpen && (
-        <WelcomeModal
+        <OnboardingModal
           isOpen={isOnboardingOpen}
           userId={user.uid}
-          onClose={() => setIsOnboardingOpen(false)}
-          onCompletedOnboarding={() => {
+          onComplete={() => {
             setIsOnboardingOpen(false);
           }}
         />
