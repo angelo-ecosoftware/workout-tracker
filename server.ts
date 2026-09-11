@@ -9,6 +9,7 @@ import barcodeLookupHandler from "./api/barcode-lookup.js";
 import groceryListHandler from "./api/grocery-list.js";
 import reportMissingProductHandler from "./api/report-missing-product.js";
 import blockIpHandler from "./api/block-ip.js";
+import exerciseThumbnailHandler from "./api/exercise-thumbnail.js";
 
 dotenv.config();
 
@@ -54,6 +55,11 @@ async function startServer() {
   };
 
   app.all("/api/block-ip", handleBlockIp);
+
+  // API 6b: Cached static first-frame thumbnails for exercise catalog GIFs
+  app.get("/api/exercise-thumbnail", (req, res) => {
+    return exerciseThumbnailHandler(req as any, res as any);
+  });
 
   // API 7: Master Exercises Catalog Database Proxy
   app.get("/api/exercises", async (_req, res) => {

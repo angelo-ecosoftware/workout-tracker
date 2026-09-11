@@ -11,7 +11,22 @@ interface ExerciseCatalogOverviewProps {
 
 const ExerciseCatalogImage: React.FC<{ exercise: CatalogExercise }> = ({ exercise }) => {
   const [failed, setFailed] = useState(false);
-  const imageUrl = exercise.images?.[0] || getExerciseThumbnailSync(exercise.name, exercise.id);
+  const sourceUrl = exercise.images?.[0] || getExerciseThumbnailSync(exercise.name, exercise.id);
+  const isExerciseDbGif = sourceUrl?.startsWith('https://static.exercisedb.dev/media/') && sourceUrl.endsWith('.gif');
+  const [imageUrl, setImageUrl] = useState(
+    isExerciseDbGif && sourceUrl
+      ? `/api/exercise-thumbnail?src=${encodeURIComponent(sourceUrl)}`
+      : sourceUrl
+  );
+
+  useEffect(() => {
+    setFailed(false);
+    setImageUrl(
+      isExerciseDbGif && sourceUrl
+        ? `/api/exercise-thumbnail?src=${encodeURIComponent(sourceUrl)}`
+        : sourceUrl
+    );
+  }, [isExerciseDbGif, sourceUrl]);
 
   if (!imageUrl || failed) {
     return (
@@ -26,7 +41,14 @@ const ExerciseCatalogImage: React.FC<{ exercise: CatalogExercise }> = ({ exercis
       src={imageUrl}
       alt={`${exercise.name} exercise demonstration`}
       loading="lazy"
-      onError={() => setFailed(true)}
+      decoding="async"
+      onError={() => {
+        if (imageUrl !== sourceUrl && sourceUrl) {
+          setImageUrl(sourceUrl);
+          return;
+        }
+        setFailed(true);
+      }}
       className="h-full w-full object-cover"
     />
   );
