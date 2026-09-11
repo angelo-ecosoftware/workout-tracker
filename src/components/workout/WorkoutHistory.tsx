@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext.tsx';
 import {
   fetchWorkoutHistory,
   fetchSetsForSession,
+  createPublicSessionShare,
   deleteSessions,
   updateSessionDate,
   updateSessionNotes,
@@ -83,9 +84,15 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
   };
 
   const handleShareSession = async (session: PopulatedSession) => {
-    const shareUrl = `${window.location.origin}${window.location.pathname}?session=${session.id}`;
-    
     try {
+      const privacy = user?.uid ? await fetchUserPrivacySettings(user.uid) : null;
+      const shareToken = await createPublicSessionShare(
+        session.id,
+        session.photos,
+        privacy?.sharePhotos === true
+      );
+      const shareUrl = `${window.location.origin}${window.location.pathname}?session=${shareToken}`;
+
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(shareUrl);
       } else {
@@ -103,8 +110,8 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
       setCopiedSessionId(session.id);
       setTimeout(() => setCopiedSessionId(null), 3000);
     } catch (err) {
-      console.warn("Clipboard copy failed, using prompt fallback", err);
-      window.prompt("Copy this public workout link:", shareUrl);
+      console.error("Public session share failed", err);
+      alert(err instanceof Error ? err.message : "Could not create a secure public share link.");
     }
   };
 

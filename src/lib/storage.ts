@@ -3,12 +3,13 @@ import { compressWorkoutImage } from '../utils/imageCompressor.ts';
 
 export const PRIMARY_STORAGE_BUCKET = 'workout-media';
 export const LEGACY_STORAGE_BUCKET = 'media';
+export const STORAGE_REFERENCE_PREFIX = 'storage://';
 
 /**
  * Uploads a file to Supabase Storage 'workout-media' bucket with client-side muscle definition compression
  * and organized year/month date partitioning.
- * Bucket endpoint: https://khvnlmzhymocnvdnptci.storage.supabase.co/storage/v1/s3
- * Public URL format: https://khvnlmzhymocnvdnptci.supabase.co/storage/v1/object/public/workout-media/...
+ * Private media is stored as a bucket-qualified reference. The browser obtains
+ * a short-lived signed URL only after Supabase authenticates the owner.
  */
 export async function uploadWorkoutPhoto(
   userId: string,
@@ -69,12 +70,7 @@ export async function uploadWorkoutPhoto(
     throw new Error('Photo upload failed: no upload data returned');
   }
 
-  // Retrieve public URL
-  const { data: urlData } = supabase.storage
-    .from(activeBucket)
-    .getPublicUrl(data.path);
-
-  return urlData.publicUrl;
+  return `${STORAGE_REFERENCE_PREFIX}${activeBucket}/${data.path}`;
 }
 
 /**
@@ -87,6 +83,17 @@ export function extractStorageInfoFromUrl(url: string): { bucket: string; path: 
   if (!url) return null;
 
   const supportedBuckets = [PRIMARY_STORAGE_BUCKET, 'workout-logs', LEGACY_STORAGE_BUCKET];
+
+  if (url.startsWith(STORAGE_REFERENCE_PREFIX)) {
+    const reference = url.slice(STORAGE_REFERENCE_PREFIX.length);
+    const separator = reference.indexOf('/');
+    if (separator > 0 && separator < reference.length - 1) {
+      const bucket = reference.slice(0, separator);
+      if (supportedBuckets.includes(bucket)) {
+        return { bucket, path: decodeURIComponent(reference.slice(separator + 1)) };
+      }
+    }
+  }
 
   for (const b of supportedBuckets) {
     const marker = `/storage/v1/object/public/${b}/`;
@@ -114,6 +121,45 @@ export function extractStorageInfoFromUrl(url: string): { bucket: string; path: 
   }
 
   return null;
+}
+
+/**
+ * Resolves a private owner photo to a short-lived URL for the authenticated UI.
+ * Existing public URL rows are intentionally accepted as legacy references and
+ * are converted to the same owner-checked signed URL flow.
+ */
+export async function getWorkoutPhotoUrl(photoReference: string): Promise<string | null> {
+  const info = extractStorageInfoFromUrl(photoReference);
+  if (!info) return null;
+
+  const { data, error } = await supabase.storage
+    .from(info.bucket)
+    .createSignedUrl(info.path, 60 * 60);
+
+  if (error || !data?.signedUrl) {
+    return null;
+  }
+
+  return data.signedUrl;
+}
+
+/**
+ * Creates a time-limited URL for a photo intentionally included in a public
+ * session share. The caller must already be authenticated as the photo owner.
+ */
+export async function createSharedPhotoUrl(photoReference: string): Promise<string | null> {
+  const info = extractStorageInfoFromUrl(photoReference);
+  if (!info) return null;
+
+  const { data, error } = await supabase.storage
+    .from(info.bucket)
+    .createSignedUrl(info.path, 60 * 60 * 24 * 7);
+
+  if (error || !data?.signedUrl) {
+    return null;
+  }
+
+  return data.signedUrl;
 }
 
 /**

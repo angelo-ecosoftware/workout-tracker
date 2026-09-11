@@ -6,8 +6,8 @@ import {
   updateSessionNotes,
   updateSessionPhotos,
   deleteSessions,
-  fetchPublicWorkoutSession,
 } from '../../../src/lib/db/sessions.ts';
+import { fetchPublicWorkoutSession } from '../../../src/lib/db/publicSessionSharing.ts';
 import { WorkoutSet } from '../../../src/models.ts';
 
 // -----------------------------------------------------------------------------
@@ -159,6 +159,35 @@ vi.mock('../../../src/lib/supabase.ts', () => {
   return {
     supabase: {
       from: vi.fn((table: string) => createQueryBuilder(table)),
+      rpc: vi.fn((functionName: string) => {
+        if (functionName === 'get_public_session_by_token') {
+          return Promise.resolve({
+            data: {
+              session: {
+                id: 'sess_heavy_squat_01',
+                status: 'completed',
+                completedAt: '2026-09-03T10:30:00.000Z',
+                sleepHours: 8,
+                energyScore: 7,
+              },
+              workout: { id: 'w_leg_day', name: 'Leg Day' },
+              exercises: [{ id: 'ex_squat', name: 'Back Squat', type: 'strength' }],
+              sets: [
+                {
+                  id: 'set_1',
+                  exerciseId: 'ex_squat',
+                  setNumber: 1,
+                  weight: 140,
+                  reps: 5,
+                },
+              ],
+              photos: [],
+            },
+            error: null,
+          });
+        }
+        return Promise.resolve({ data: null, error: { message: 'Unexpected RPC' } });
+      }),
     },
   };
 });
@@ -184,7 +213,7 @@ describe('Entities: Completed Workout Sessions & Logged Sets (sessions, sets) - 
   describe('1. CREATE / INSERT Operations', () => {
     it('200 OK / 201 Created: Records a new completed session with associated workout sets', () => {
       mockSessionsTable.push({
-        id: sampleSessionId,
+                    id: 'sess_heavy_squat_01',
         user_id: userId,
         workout_id: 'w_leg_day',
         status: 'completed',
@@ -240,23 +269,14 @@ describe('Entities: Completed Workout Sessions & Logged Sets (sessions, sets) - 
       expect(sets[1].weight).toBe(150);
     });
 
-    it('200 OK: Public session includes exercise metadata and body-log metrics', async () => {
-      mockWorkoutsTable.push({ id: 'w_leg_day', name: 'Leg Day' });
-      mockExercisesTable.push({ id: 'ex_squat', name: 'Back Squat', type: 'strength' });
-      mockUsersTable.push({ user_id: userId, name: 'Athlete' });
-      mockBodyLogsTable.push({
-        user_id: userId,
-        log_date: '2026-09-03',
-        weight_kg: 82.5,
-        calculated_bmi: 24.9,
-      });
-
-      const result = await fetchPublicWorkoutSession(sampleSessionId);
+    it('200 OK: Public session uses an opaque token and excludes private projection fields', async () => {
+      const result = await fetchPublicWorkoutSession('opaque-share-token');
 
       expect(result?.workoutName).toBe('Leg Day');
-      expect(result?.athleteName).toBe('Athlete');
-      expect(result?.bodyWeightKg).toBe(82.5);
-      expect(result?.calculatedBmi).toBe(24.9);
+      expect(result?.bodyWeightKg).toBeNull();
+      expect(result?.calculatedBmi).toBeNull();
+      expect(result?.session.notes).toBeNull();
+      expect(result?.session.coachNotes).toBeNull();
       expect(result?.sets[0].exerciseName).toBe('Back Squat');
       expect(result?.sets[0].type).toBe('strength');
     });

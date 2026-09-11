@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Camera, FolderOpen, Loader2, Trash2 } from 'lucide-react';
+import { getWorkoutPhotoUrl } from '../../../lib/storage.ts';
 
 interface SessionPhotosSectionProps {
   sessionId: string;
@@ -18,6 +19,27 @@ export const SessionPhotosSection: React.FC<SessionPhotosSectionProps> = ({
 }) => {
   const photoList = photos || [];
   const isUploading = uploadingSessionId === sessionId;
+  const [resolvedPhotos, setResolvedPhotos] = useState<Array<{ index: number; url: string }>>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    Promise.all(
+      photoList.map(async (photo, index) => ({
+        index,
+        url: await getWorkoutPhotoUrl(photo),
+      }))
+    ).then((resolved) => {
+      if (cancelled) return;
+      setResolvedPhotos(
+        resolved.filter((photo): photo is { index: number; url: string } => Boolean(photo.url))
+      );
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [photos]);
 
   return (
     <div className="mb-6 p-3.5 bg-[#161616] border border-[#2a2a2a] rounded-xl text-xs">
@@ -57,9 +79,9 @@ export const SessionPhotosSection: React.FC<SessionPhotosSectionProps> = ({
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-        {photoList.map((photoUrl, idx) => (
+        {resolvedPhotos.map(({ index, url: photoUrl }) => (
           <div
-            key={idx}
+            key={index}
             className="relative group aspect-square rounded-xl overflow-hidden border border-[#333] bg-[#1a1a1a]"
           >
             <a
@@ -71,7 +93,7 @@ export const SessionPhotosSection: React.FC<SessionPhotosSectionProps> = ({
             >
               <img
                 src={photoUrl}
-                alt={`Progress photo ${idx + 1}`}
+                alt={`Progress photo ${index + 1}`}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                 loading="lazy"
               />
@@ -80,7 +102,7 @@ export const SessionPhotosSection: React.FC<SessionPhotosSectionProps> = ({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onDeletePhoto(sessionId, idx);
+                onDeletePhoto(sessionId, index);
               }}
               className="absolute top-1 right-1 p-1 rounded-lg bg-black/80 hover:bg-red-600 text-white transition-colors cursor-pointer opacity-85"
               title="Remove photo"

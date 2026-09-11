@@ -33,13 +33,14 @@ export async function updateSessionNotes(sessionId: string, notes: string | null
 }
 
 export async function updateSessionCoachNotes(sessionId: string, coachNotes: string | null, coachName?: string | null) {
-  const payload: Record<string, any> = { coach_notes: coachNotes || null };
-  if (coachName) payload.coach_name = coachName;
+  const { error } = await supabase.rpc('update_session_coach_notes', {
+    p_session_id: sessionId,
+    p_coach_notes: coachNotes || null,
+  });
 
-  await supabase
-    .from('sessions')
-    .update(payload)
-    .eq('id', sessionId);
+  if (error) {
+    throw new Error(error.message);
+  }
 }
 
 export async function markSessionAsReviewed(
@@ -47,21 +48,19 @@ export async function markSessionAsReviewed(
   coachId: string,
   coachName?: string | null
 ): Promise<{ reviewedAt: Date; coachName?: string | null }> {
-  const now = new Date();
-  const payload: Record<string, any> = {
-    reviewed_at: now.toISOString(),
-    reviewed_by_coach_id: coachId,
-  };
-  if (coachName) {
-    payload.reviewed_by_coach_name = coachName;
+  const { data, error } = await supabase.rpc('mark_session_reviewed', {
+    p_session_id: sessionId,
+  });
+
+  if (error) {
+    throw new Error(error.message);
   }
 
-  await supabase
-    .from('sessions')
-    .update(payload)
-    .eq('id', sessionId);
-
-  return { reviewedAt: now, coachName };
+  const result = data as { reviewedAt?: string; coachName?: string | null } | null;
+  return {
+    reviewedAt: result?.reviewedAt ? new Date(result.reviewedAt) : new Date(),
+    coachName: result?.coachName || undefined,
+  };
 }
 
 export async function updateSessionPhotos(sessionId: string, photos: string[]) {
@@ -211,94 +210,6 @@ export async function fetchSetsForSession(sessionId: string) {
     restSeconds: set.rest_seconds != null ? parseInt(String(set.rest_seconds), 10) : null,
     loggedAt: set.logged_at ? new Date(set.logged_at) : new Date(),
   })) as WorkoutSet[];
-}
-
-export async function fetchPublicWorkoutSession(sessionId: string): Promise<{
-  session: any;
-  workoutName: string;
-  athleteName?: string;
-  bodyWeightKg?: number | null;
-  calculatedBmi?: number | null;
-  sets: (WorkoutSet & { exerciseName: string; type: 'strength' | 'timed' })[];
-} | null> {
-  try {
-    const { data, error } = await supabase
-      .from('sessions')
-      .select('*')
-      .eq('id', sessionId)
-      .single();
-    if (error || !data) return null;
-
-    const sessionRow = data as DbSessionRow;
-    const [workoutRes, exercisesRes, setsRes, userRes] = await Promise.all([
-      supabase.from('workouts').select('*').eq('id', sessionRow.workout_id).single(),
-      supabase.from('exercises').select('*'),
-      supabase.from('sets').select('*').eq('session_id', sessionId).order('set_number', { ascending: true }),
-      supabase.from('users').select('*').eq('user_id', sessionRow.user_id).single(),
-    ]);
-    const exercises = new Map(((exercisesRes.data as Array<{ id: string; name: string; type?: string }>) || [])
-      .map((exercise) => [String(exercise.id), exercise]));
-
-    let bodyWeightKg: number | null = null;
-    let calculatedBmi: number | null = null;
-    if (sessionRow.completed_at) {
-      const date = new Date(sessionRow.completed_at);
-      const logDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-      const { data: bodyLog } = await supabase
-        .from('body_logs')
-        .select('*')
-        .eq('user_id', sessionRow.user_id)
-        .eq('log_date', logDate)
-        .single();
-      if (bodyLog) {
-        bodyWeightKg = Number(bodyLog.weight_kg);
-        calculatedBmi = bodyLog.calculated_bmi ? Number(bodyLog.calculated_bmi) : null;
-      }
-    }
-
-    const sets = ((setsRes.data as DbSetRow[]) || []).map((set) => {
-      const exercise = exercises.get(String(set.exercise_id));
-      return {
-        id: String(set.id),
-        sessionId: String(set.session_id),
-        userId: String(set.user_id),
-        exerciseId: String(set.exercise_id),
-        setNumber: set.set_number,
-        weight: set.weight != null ? Number(set.weight) : null,
-        reps: set.reps != null ? Number(set.reps) : null,
-        durationSeconds: set.duration_seconds != null ? Number(set.duration_seconds) : null,
-        startedAt: set.started_at ? new Date(set.started_at) : null,
-        completedAt: set.completed_at ? new Date(set.completed_at) : null,
-        restSeconds: set.rest_seconds != null ? Number(set.rest_seconds) : null,
-        loggedAt: set.logged_at ? new Date(set.logged_at) : new Date(),
-        exerciseName: exercise?.name || 'Exercise',
-        type: exercise?.type === 'timed' ? 'timed' : 'strength',
-      } as WorkoutSet & { exerciseName: string; type: 'strength' | 'timed' };
-    });
-
-    return {
-      session: {
-        id: String(sessionRow.id),
-        userId: String(sessionRow.user_id),
-        workoutId: String(sessionRow.workout_id),
-        status: sessionRow.status === 'completed' ? 'completed' : 'in_progress',
-        startedAt: sessionRow.started_at ? new Date(sessionRow.started_at) : new Date(),
-        completedAt: sessionRow.completed_at ? new Date(sessionRow.completed_at) : null,
-        sleepHours: sessionRow.sleep_hours != null ? Number(sessionRow.sleep_hours) : null,
-        energyScore: sessionRow.energy_score != null ? Number(sessionRow.energy_score) : null,
-        notes: sessionRow.notes || null,
-        photos: Array.isArray(sessionRow.photos) ? sessionRow.photos : (sessionRow.photos ? [sessionRow.photos] : null),
-      },
-      workoutName: workoutRes.data?.name || 'Workout Session',
-      athleteName: userRes.data?.name || userRes.data?.email?.split('@')[0] || 'Athlete',
-      bodyWeightKg,
-      calculatedBmi,
-      sets,
-    };
-  } catch (error) {
-    console.error('Error fetching public workout session:', error);
-    return null;
-  }
 }
 
 export async function fetchAllSetsForUser(userId: string) {

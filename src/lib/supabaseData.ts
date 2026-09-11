@@ -258,10 +258,13 @@ export {
   deleteSessions,
   fetchWorkoutHistory,
   fetchSetsForSession,
-  fetchPublicWorkoutSession,
   fetchAllSetsForUser,
   logSessionCompletion,
 } from './db/sessions.ts';
+export {
+  createPublicSessionShare,
+  fetchPublicWorkoutSession,
+} from './db/publicSessionSharing.ts';
 export {
   exportAllLogs,
   deleteAllLogs,

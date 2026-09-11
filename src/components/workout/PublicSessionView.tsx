@@ -1,14 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { fetchPublicWorkoutSession } from '../../lib/supabaseData.ts';
 import { Session, WorkoutSet } from '../../models.ts';
-import { Activity, Calendar, Clock, Loader2, Dumbbell, Flame, Scale, FileText, Camera, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Activity, Calendar, Clock, Loader2, Dumbbell, Flame, Camera, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react';
 
 interface PublicWorkoutData {
   session: Session;
   workoutName: string;
-  athleteName?: string;
-  bodyWeightKg?: number | null;
-  calculatedBmi?: number | null;
   sets: (WorkoutSet & { exerciseName: string; type: 'strength' | 'timed' })[];
 }
 
@@ -86,7 +83,7 @@ export const PublicSessionView: React.FC<PublicSessionViewProps> = ({ sessionId,
     );
   }
 
-  const { session, workoutName, athleteName, bodyWeightKg, calculatedBmi, sets } = data;
+  const { session, workoutName, sets } = data;
 
   // Calculate volume stats
   const totalVolumeKg = sets.reduce((sum, s) => sum + ((s.weight || 0) * (s.reps || 0)), 0);
@@ -117,7 +114,7 @@ export const PublicSessionView: React.FC<PublicSessionViewProps> = ({ sessionId,
               WORKOUT LOG
             </span>
             <span className="text-[10px] font-mono text-gray-400">
-              Shared by {athleteName}
+              Shared workout
             </span>
           </div>
         </div>
@@ -165,7 +162,7 @@ export const PublicSessionView: React.FC<PublicSessionViewProps> = ({ sessionId,
         </div>
 
         {/* Quick Summary Stats Grid */}
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-2 gap-2.5">
           <div className="bg-[#161616] border border-[#262626] rounded-xl p-3 text-center space-y-0.5">
             <span className="text-[9px] font-mono uppercase font-bold text-gray-400 block">Total Volume</span>
             <span className="text-lg font-display font-black text-white block">
@@ -182,27 +179,7 @@ export const PublicSessionView: React.FC<PublicSessionViewProps> = ({ sessionId,
             <span className="text-[9px] font-mono text-gray-500">{totalReps > 0 ? `${totalReps} total reps` : 'Active sets'}</span>
           </div>
 
-          <div className="bg-[#161616] border border-[#262626] rounded-xl p-3 text-center space-y-0.5">
-            <span className="text-[9px] font-mono uppercase font-bold text-gray-400 block">Bodyweight</span>
-            <span className="text-lg font-display font-black text-white block">
-              {bodyWeightKg ? `${bodyWeightKg} kg` : '—'}
-            </span>
-            <span className="text-[9px] font-mono text-gray-500">{calculatedBmi ? `BMI ${calculatedBmi}` : 'Session weight'}</span>
-          </div>
         </div>
-
-        {/* Workout Notes */}
-        {session.notes && (
-          <div className="p-4 bg-[#161616] border border-[#2a2a2a] rounded-xl text-xs space-y-1.5">
-            <div className="flex items-center gap-1.5 text-[#C0FF00] font-mono text-[10px] font-bold uppercase">
-              <FileText className="w-3.5 h-3.5" />
-              <span>Workout Notes</span>
-            </div>
-            <p className="text-gray-300 font-sans leading-relaxed whitespace-pre-wrap">
-              {session.notes}
-            </p>
-          </div>
-        )}
 
         {/* Progress Photos */}
         {session.photos && session.photos.length > 0 && (
