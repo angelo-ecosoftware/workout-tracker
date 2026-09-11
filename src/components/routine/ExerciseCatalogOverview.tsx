@@ -9,6 +9,29 @@ interface ExerciseCatalogOverviewProps {
   onAddExercise?: (exercise: CatalogExercise) => void;
 }
 
+const ExerciseCatalogImage: React.FC<{ exercise: CatalogExercise }> = ({ exercise }) => {
+  const [failed, setFailed] = useState(false);
+  const imageUrl = exercise.images?.[0] || getExerciseThumbnailSync(exercise.name, exercise.id);
+
+  if (!imageUrl || failed) {
+    return (
+      <div className="flex h-full w-full items-center justify-center text-[#C0FF00]/70">
+        <Dumbbell className="h-6 w-6" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={`${exercise.name} exercise demonstration`}
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="h-full w-full object-cover"
+    />
+  );
+};
+
 const PAGE_SIZES = [5, 10, 25, 50, 100];
 const MUSCLE_FILTERS = ['All muscles', 'Arms', 'Back', 'Cardio', 'Chest', 'Core', 'Full Body', 'Legs', 'Shoulders'];
 
@@ -125,7 +148,6 @@ export const ExerciseCatalogOverview: React.FC<ExerciseCatalogOverviewProps> = (
           <div>
             {items.map((exercise) => {
               const added = selectedExerciseIds.has(exercise.id);
-              const imageUrl = exercise.images?.[0] || getExerciseThumbnailSync(exercise.name, exercise.id);
               return (
                 <div
                   key={exercise.id}
@@ -135,18 +157,7 @@ export const ExerciseCatalogOverview: React.FC<ExerciseCatalogOverviewProps> = (
                 >
                   <div className="flex items-center gap-3">
                     <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#333] bg-[#0b0b0b] shadow-[0_0_16px_rgba(192,255,0,0.08)]">
-                      {imageUrl ? (
-                        <img
-                          src={imageUrl}
-                          alt={`${exercise.name} exercise demonstration`}
-                          loading="lazy"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-[#C0FF00]/70">
-                          <Dumbbell className="h-6 w-6" />
-                        </div>
-                      )}
+                      <ExerciseCatalogImage exercise={exercise} />
                     </div>
                     <div>
                       <p className="text-sm font-bold text-white">{exercise.name}</p>
