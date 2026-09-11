@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Pencil, Bookmark } from 'lucide-react';
+import { Loader2, Bookmark } from 'lucide-react';
 import { SavedRoutineProgram } from '../../models.ts';
 import { fetchSavedRoutineProgramById, fetchSavedRoutinePrograms, updateSavedRoutineProgram } from '../../lib/db/routineLibrary.ts';
 import { RoutineEditorModal } from '../modals/RoutineEditorModal.tsx';
@@ -57,34 +57,12 @@ export const RoutineRouteView: React.FC<RoutineRouteViewProps> = ({ userId, rout
   }
 
   if (route.kind === 'routine' && program) {
-    const isEditor = route.mode === 'editor';
+    const isEditor = true;
     return (
       <div className="space-y-4">
-        <button type="button" onClick={() => onNavigate('/routines')} className="text-[#C0FF00] font-mono text-xs uppercase">
-          ← All routines
-        </button>
-        <div className="bg-[#111] border border-[#222] rounded-[24px] p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[10px] text-[#C0FF00] font-mono uppercase tracking-widest">Saved routine program</p>
-              <h2 className="text-xl font-display font-black text-white mt-1">{program.title}</h2>
-              {program.description && <p className="text-sm text-gray-400 mt-2">{program.description}</p>}
-              <p className="text-xs text-gray-500 font-mono mt-3">{program.programData.workouts.length} workout day(s)</p>
-            </div>
-            {!isEditor && (
-              <button
-                type="button"
-                onClick={() => onNavigate(serializeRoute({ kind: 'routine', routineId: program.id, mode: 'editor' }))}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-[#C0FF00] text-black text-xs font-bold"
-              >
-                <Pencil className="w-3.5 h-3.5" /> Edit
-              </button>
-            )}
-          </div>
-        </div>
         <RoutineEditorModal
           isOpen={isEditor}
-          onClose={() => onNavigate(serializeRoute({ kind: 'routine', routineId: program.id, mode: 'view' }))}
+          onClose={() => onNavigate('/routines')}
           userId={userId}
           workouts={program.programData.workouts}
           presentation="page"
@@ -115,7 +93,7 @@ export const RoutineRouteView: React.FC<RoutineRouteViewProps> = ({ userId, rout
             <button
               type="button"
               key={item.id}
-              onClick={() => onNavigate(serializeRoute({ kind: 'routine', routineId: item.id, mode: 'view' }))}
+              onClick={() => onNavigate(serializeRoute({ kind: 'routine', routineId: item.id, mode: 'editor' }))}
               className="text-left bg-[#111] border border-[#222] hover:border-[#C0FF00]/50 rounded-2xl p-4"
             >
               <span className="font-bold text-white">{item.title}</span>

@@ -363,11 +363,11 @@ const GymAppContent: React.FC = () => {
             />
           ) : (
             <>
-              <div className="flex bg-[#111] border border-[#222] rounded-full p-1 w-full max-w-xl mx-auto mb-8 font-sans flex-wrap gap-1">
+              <div className="flex bg-[#111] border border-[#222] rounded-full p-1 w-full max-w-xl mx-auto mb-8 font-sans flex-nowrap gap-1 overflow-x-auto scrollbar-none">
                 {!inspectingClient && (
                   <button
                     onClick={() => setActiveTab('tracker')}
-                    className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                    className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
                       getCollectionForRoute(routeState) === 'workouts' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                     }`}
                   >
@@ -377,7 +377,7 @@ const GymAppContent: React.FC = () => {
                 {!inspectingClient && (
                   <button
                     onClick={() => navigateToRoute('/routines')}
-                    className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                    className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
                       getCollectionForRoute(routeState) === 'routines' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                     }`}
                   >
@@ -387,7 +387,7 @@ const GymAppContent: React.FC = () => {
                 {!inspectingClient && (
                   <button
                     onClick={() => navigateToRoute('/exercises')}
-                    className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                    className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
                       getCollectionForRoute(routeState) === 'exercises' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                     }`}
                   >
@@ -396,7 +396,7 @@ const GymAppContent: React.FC = () => {
                 )}
                 <button
                   onClick={() => setActiveTab('history')}
-                  className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                  className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
                     getCollectionForRoute(routeState) === 'logbook' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                   }`}
                 >
@@ -404,7 +404,7 @@ const GymAppContent: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setActiveTab('insights')}
-                  className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                  className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
                     routeState.kind === 'section' && routeState.section === 'insights' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                   }`}
                 >
@@ -412,7 +412,7 @@ const GymAppContent: React.FC = () => {
                 </button>
                 <button
                   onClick={() => setActiveTab('dietary')}
-                  className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                  className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
                     routeState.kind === 'section' && routeState.section === 'dietary' ? 'bg-[#00ade6] text-black shadow-md' : 'text-gray-400 hover:text-white'
                   }`}
                 >
@@ -421,7 +421,7 @@ const GymAppContent: React.FC = () => {
                 {isAdmin && !inspectingClient && (
                   <button
                     onClick={() => setActiveTab('admin')}
-                    className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                    className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
                       routeState.kind === 'section' && routeState.section === 'admin' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-purple-400 hover:text-purple-300'
                     }`}
                   >
