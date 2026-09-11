@@ -19,6 +19,8 @@
 
 /* Driver.js onboarding theme */
 .driver-popover.kinisia-driver-popover {
+  position: fixed !important;
+  z-index: 110 !important;
   width: min(348px, calc(100vw - 24px));
   max-width: min(348px, calc(100vw - 24px));
   border: 1px solid #3a3a3a;
