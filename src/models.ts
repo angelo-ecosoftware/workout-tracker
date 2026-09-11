@@ -7,15 +7,24 @@ export interface LastSetSummary {
   lastSessionId: string;
 }
 
-export type Somatotype = 'ectomorph' | 'mesomorph' | 'endomorph';
+export type Somatotype = 'ectomorph' | 'mesomorph' | 'endomorph' | 'not_specified';
+export type FitnessLevel =
+  | 'absolute_beginner'
+  | 'beginner'
+  | 'rookie'
+  | 'intermediate'
+  | 'amateur'
+  | 'professional_athlete'
+  /** Legacy value retained so existing records can be read safely. */
+  | 'advanced';
 
 export interface UserMetrics {
   dateOfBirth?: string; // YYYY-MM-DD
   height?: number; // cm
   weight?: number; // kg
   gender?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
-  somatotype?: Somatotype; // Ectomorph, Mesomorph, Endomorph
-  fitnessLevel?: 'beginner' | 'intermediate' | 'advanced';
+  somatotype?: Somatotype; // Optional body type; never required for recommendations
+  fitnessLevel?: FitnessLevel;
   goals?: string[]; // Multiple standard goals selected
   trainingLocation?: 'gym' | 'home' | 'hybrid';
   bodyMeasurementsNotes?: string; // Freeform notes
@@ -45,7 +54,7 @@ export interface UserProfile {
   gender?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
   heightCm?: number;
   weightKg?: number;
-  fitnessLevel?: 'beginner' | 'intermediate' | 'advanced';
+  fitnessLevel?: FitnessLevel;
   trainingLocation?: 'gym' | 'home' | 'hybrid';
   lastCompletedWorkoutOrder: number;
   maxWorkoutOrder: number;

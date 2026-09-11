@@ -8,12 +8,16 @@ import { UserMetrics, Workout } from '../../models.ts';
 import { initializeUser, fetchWorkoutsData } from '../../lib/supabaseData.ts';
 
 interface HeaderProps {
-  profileOpen: boolean;
-  onProfileOpen: () => void;
-  onProfileClose: () => void;
+  profileOpen?: boolean;
+  onProfileOpen?: () => void;
+  onProfileClose?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ profileOpen, onProfileOpen, onProfileClose }) => {
+export const Header: React.FC<HeaderProps> = ({
+  profileOpen = false,
+  onProfileOpen = () => {},
+  onProfileClose = () => {},
+}) => {
   const { user, isAdmin } = useAuth();
   const { isOnline, pendingSyncCount, triggerManualSync } = usePWA();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);

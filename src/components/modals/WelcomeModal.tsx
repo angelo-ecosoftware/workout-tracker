@@ -18,9 +18,12 @@ const GOAL_OPTIONS = [
 ];
 
 const EXPERIENCE_OPTIONS: Array<{ level: UserMetrics['fitnessLevel']; label: string; desc: string }> = [
-  { level: 'beginner', label: 'Beginner', desc: '< 1 year lifting, learning form & cues' },
-  { level: 'intermediate', label: 'Intermediate', desc: '1–3 years consistent progressive overload' },
-  { level: 'advanced', label: 'Advanced', desc: '3+ years structured periodization & heavy loads' },
+  { level: 'absolute_beginner', label: 'Absolute beginner', desc: 'New to structured training' },
+  { level: 'beginner', label: 'Beginner', desc: 'Learning form and consistency' },
+  { level: 'rookie', label: 'Rookie', desc: 'Building a reliable training base' },
+  { level: 'intermediate', label: 'Intermediate', desc: 'Consistent progressive training' },
+  { level: 'amateur', label: 'Amateur', desc: 'Experienced recreational trainee' },
+  { level: 'professional_athlete', label: 'Professional athlete', desc: 'High-performance or competitive training' },
 ];
 
 const LOCATION_OPTIONS: Array<{ loc: UserMetrics['trainingLocation']; label: string; desc: string }> = [
@@ -39,7 +42,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
   const [selectedGoals, setSelectedGoals] = useState<string[]>(['Build Muscle (Hypertrophy)']);
   const [fitnessLevel, setFitnessLevel] = useState<UserMetrics['fitnessLevel']>('intermediate');
   const [trainingLocation, setTrainingLocation] = useState<UserMetrics['trainingLocation']>('gym');
-  const [somatotype, setSomatotype] = useState<Somatotype>('mesomorph');
+  const [somatotype, setSomatotype] = useState<Somatotype>('not_specified');
   const [weightKg, setWeightKg] = useState<string>('80');
   const [heightCm, setHeightCm] = useState<string>('180');
   const [isSaving, setIsSaving] = useState(false);
@@ -310,18 +313,19 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({
               <div className="bg-[#141414] border border-[#262626] rounded-2xl p-3.5 space-y-2">
                 <label className="text-[10px] uppercase font-bold text-gray-400 flex items-center justify-between">
                   <span className="flex items-center gap-1">
-                    <User className="w-3 h-3 text-[#C0FF00]" /> Body Type (Somatotype)
+                    <User className="w-3 h-3 text-[#C0FF00]" /> Body Type (optional)
                   </span>
                   <span className="text-[#C0FF00] font-mono font-bold uppercase text-[9px] bg-[#C0FF00]/10 border border-[#C0FF00]/25 px-2 py-0.5 rounded">
                     {somatotype}
                   </span>
                 </label>
 
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                   {[
                     { id: 'ectomorph' as Somatotype, label: 'Ectomorph', sub: 'Lean / Fast' },
                     { id: 'mesomorph' as Somatotype, label: 'Mesomorph', sub: 'Athletic' },
                     { id: 'endomorph' as Somatotype, label: 'Endomorph', sub: 'Solid / Power' },
+                    { id: 'not_specified' as Somatotype, label: 'Not specified', sub: 'Optional' },
                   ].map((st) => {
                     const isSelected = somatotype === st.id;
                     return (

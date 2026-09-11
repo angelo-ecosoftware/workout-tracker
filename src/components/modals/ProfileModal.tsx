@@ -30,8 +30,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [height, setHeight] = useState<string>(initialMetrics?.height ? initialMetrics.height.toString() : '');
   const [weight, setWeight] = useState<string>(initialMetrics?.weight ? initialMetrics.weight.toString() : '');
   const [gender, setGender] = useState<UserMetrics['gender']>(initialMetrics?.gender || 'prefer_not_to_say');
-  const [somatotype, setSomatotype] = useState<UserMetrics['somatotype']>(initialMetrics?.somatotype || 'mesomorph');
-  const [fitnessLevel, setFitnessLevel] = useState<UserMetrics['fitnessLevel']>(initialMetrics?.fitnessLevel || 'intermediate');
+  const [somatotype, setSomatotype] = useState<UserMetrics['somatotype']>(initialMetrics?.somatotype || 'not_specified');
+  const [fitnessLevel, setFitnessLevel] = useState<UserMetrics['fitnessLevel']>(initialMetrics?.fitnessLevel === 'advanced' ? 'amateur' : (initialMetrics?.fitnessLevel || 'intermediate'));
   const [selectedGoals, setSelectedGoals] = useState<string[]>(initialMetrics?.goals || ['Build Muscle (Hypertrophy)']);
   const [location, setLocation] = useState<UserMetrics['trainingLocation']>(initialMetrics?.trainingLocation || 'gym');
   const [bodyNotes, setBodyNotes] = useState(initialMetrics?.bodyMeasurementsNotes || '');
@@ -60,8 +60,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         setHeight(effectiveMetrics.height ? effectiveMetrics.height.toString() : '');
         setWeight(effectiveMetrics.weight ? effectiveMetrics.weight.toString() : '');
         setGender(effectiveMetrics.gender || 'prefer_not_to_say');
-        setSomatotype(effectiveMetrics.somatotype || 'mesomorph');
-        setFitnessLevel(effectiveMetrics.fitnessLevel || 'intermediate');
+        setSomatotype(effectiveMetrics.somatotype || 'not_specified');
+        setFitnessLevel(effectiveMetrics.fitnessLevel === 'advanced' ? 'amateur' : (effectiveMetrics.fitnessLevel || 'intermediate'));
         setSelectedGoals(effectiveMetrics.goals || ['Build Muscle (Hypertrophy)']);
         setLocation(effectiveMetrics.trainingLocation || 'gym');
         setBodyNotes(effectiveMetrics.bodyMeasurementsNotes || '');
@@ -292,7 +292,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   Fitness Level
                 </label>
                 <div className="grid grid-cols-3 gap-1 mt-1">
-                  {(['beginner', 'intermediate', 'advanced'] as const).map((lvl) => (
+                  {([
+                    ['absolute_beginner', 'Absolute'],
+                    ['beginner', 'Beginner'],
+                    ['rookie', 'Rookie'],
+                    ['intermediate', 'Intermediate'],
+                    ['amateur', 'Amateur'],
+                    ['professional_athlete', 'Pro athlete'],
+                  ] as const).map(([lvl, label]) => (
                     <button
                       key={lvl}
                       type="button"
@@ -303,7 +310,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                           : 'bg-[#111] text-gray-400 border border-[#333] hover:border-gray-500'
                       }`}
                     >
-                      {lvl.slice(0, 5)}
+                      {label}
                     </button>
                   ))}
                 </div>

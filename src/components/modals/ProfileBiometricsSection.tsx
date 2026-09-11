@@ -53,6 +53,12 @@ export const ProfileBiometricsSection: React.FC<ProfileBiometricsSectionProps> =
       description: 'Naturally solid, broad build, slower metabolism',
       trait: 'High Strength • Easy Bulk',
     },
+    {
+      type: 'not_specified',
+      label: 'Not specified',
+      description: 'Skip body-type assumptions and personalize by goals',
+      trait: 'Optional • Generalized',
+    },
   ];
 
   return (
@@ -138,11 +144,11 @@ export const ProfileBiometricsSection: React.FC<ProfileBiometricsSectionProps> =
         </div>
       </div>
 
-      {/* Somatotype / Body Type Selector */}
+      {/* Optional body type selector */}
       <div className="bg-[#181818] border border-[#2a2a2a] rounded-xl p-3 space-y-2">
         <label className="text-[10px] uppercase font-bold text-gray-400 flex items-center justify-between">
           <span className="flex items-center gap-1">
-            <User className="w-3 h-3 text-[#C0FF00]" /> Body Type (Somatotype)
+            <User className="w-3 h-3 text-[#C0FF00]" /> Body Type (optional)
           </span>
           {somatotype && (
             <span className="text-[#C0FF00] font-mono font-bold uppercase text-[9px] bg-[#C0FF00]/10 border border-[#C0FF00]/25 px-2 py-0.5 rounded">
@@ -151,7 +157,7 @@ export const ProfileBiometricsSection: React.FC<ProfileBiometricsSectionProps> =
           )}
         </label>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
           {SOMATOTYPE_OPTIONS.map((item) => {
             const isSelected = somatotype === item.type;
             return (

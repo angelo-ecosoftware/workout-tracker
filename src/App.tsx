@@ -328,7 +328,11 @@ const GymAppContent: React.FC = () => {
   if (isAdmin) {
     return (
       <div className="min-h-screen bg-[#050505] text-[#f3f4f6] pb-16">
-        <Header />
+        <Header
+          profileOpen={routeState.kind === 'profile'}
+          onProfileOpen={openProfile}
+          onProfileClose={closeProfile}
+        />
         <main className="max-w-7xl mx-auto px-4 py-8">
           <Suspense fallback={loadingSpinner}>
             <AdminPortalView />

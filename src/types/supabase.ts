@@ -452,6 +452,7 @@ export type Database = {
       }
       users: {
         Row: {
+          body_type: string | null
           created_at: string | null
           date_of_birth: string | null
           email: string
@@ -470,6 +471,7 @@ export type Database = {
           weight_kg: number | null
         }
         Insert: {
+          body_type?: string | null
           created_at?: string | null
           date_of_birth?: string | null
           email: string
@@ -488,6 +490,7 @@ export type Database = {
           weight_kg?: number | null
         }
         Update: {
+          body_type?: string | null
           created_at?: string | null
           date_of_birth?: string | null
           email?: string

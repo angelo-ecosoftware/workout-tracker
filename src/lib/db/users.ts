@@ -113,6 +113,11 @@ export async function initializeUser(userId: string, email?: string, name?: stri
 
   const resolvedWeight = data.weight_kg != null ? Number(data.weight_kg) : (data.metrics?.weight != null ? Number(data.metrics.weight) : (localMetrics?.weight || latestCachedWeight));
   const resolvedHeight = data.height_cm != null ? Number(data.height_cm) : (data.metrics?.height != null ? Number(data.metrics.height) : localMetrics?.height);
+  const resolvedMetrics: UserMetrics = {
+    ...(localMetrics || {}),
+    ...(data.metrics || {}),
+    somatotype: data.body_type || data.metrics?.somatotype || localMetrics?.somatotype,
+  };
 
   return {
     userId: data.user_id || userId,
@@ -128,7 +133,9 @@ export async function initializeUser(userId: string, email?: string, name?: stri
     maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
     createdAt: data.created_at ? new Date(data.created_at) : new Date(),
-    metrics: data.metrics || localMetrics || (resolvedWeight ? { weight: resolvedWeight, height: resolvedHeight } : undefined),
+    metrics: Object.keys(resolvedMetrics).length > 0
+      ? resolvedMetrics
+      : (resolvedWeight ? { weight: resolvedWeight, height: resolvedHeight } : undefined),
   } as UserProfile;
 }
 
@@ -150,12 +157,14 @@ export async function saveUserMetrics(userId: string, metrics: UserMetrics) {
     if (metrics.weight) updatePayload.weight_kg = metrics.weight;
     if (metrics.fitnessLevel) updatePayload.fitness_level = metrics.fitnessLevel;
     if (metrics.trainingLocation) updatePayload.training_location = metrics.trainingLocation;
+    if (metrics.somatotype) updatePayload.body_type = metrics.somatotype;
     updatePayload.updated_at = new Date().toISOString();
 
     const { error } = await supabase.from('users').update(updatePayload).eq('user_id', userId);
     if (error) {
       // Preserve compatibility with deployments missing newer explicit columns.
-      await supabase.from('users').update({ metrics }).eq('user_id', userId);
+      const { body_type: _bodyType, ...legacyPayload } = updatePayload;
+      await supabase.from('users').update(legacyPayload).eq('user_id', userId);
     }
   } catch (err) {
     console.warn('Supabase update metrics failed:', err);

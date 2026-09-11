@@ -149,7 +149,7 @@ describe('ProfileModal Component (Dynamic Behavioral Suite)', () => {
     expect(screen.queryByPlaceholderText(/182/i)).not.toBeInTheDocument();
   });
 
-  it('allows selecting body type (ectomorph, mesomorph, endomorph) under biometrics', async () => {
+  it('allows selecting an optional body type under biometrics', async () => {
     const user = userEvent.setup();
     const onMetricsUpdated = vi.fn();
 
@@ -162,7 +162,7 @@ describe('ProfileModal Component (Dynamic Behavioral Suite)', () => {
       />
     );
 
-    expect(screen.getByText(/body type \(somatotype\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/body type \(optional\)/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /ectomorph/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /mesomorph/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /endomorph/i })).toBeInTheDocument();
