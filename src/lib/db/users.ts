@@ -107,6 +107,8 @@ export async function initializeUser(userId: string, email?: string, name?: stri
 
   const localMetricsRaw = getLocalStorageItem(`user_metrics_${userId}`);
   const localMetrics = localMetricsRaw ? JSON.parse(localMetricsRaw) : undefined;
+  const localOnboardingRaw = getLocalStorageItem(`onboarding_profile_${userId}`);
+  const localOnboarding = localOnboardingRaw ? JSON.parse(localOnboardingRaw) : undefined;
   const rawBodyLogs = getLocalStorageItem(`body_logs_${userId}`);
   const cachedLogs: BodyMeasurementLog[] = rawBodyLogs ? JSON.parse(rawBodyLogs) : [];
   const latestCachedWeight = cachedLogs.length > 0 ? cachedLogs[cachedLogs.length - 1].weightKg : undefined;
@@ -116,9 +118,11 @@ export async function initializeUser(userId: string, email?: string, name?: stri
   const resolvedMetrics: UserMetrics = {
     ...(localMetrics || {}),
     ...(data.metrics || {}),
-    trainingDays: data.training_days?.length ? data.training_days : data.metrics?.trainingDays || localMetrics?.trainingDays,
-    sessionDurationMinutes: data.session_duration_minutes || data.metrics?.sessionDurationMinutes || localMetrics?.sessionDurationMinutes,
-    injuriesNotes: data.injuries_notes || data.metrics?.injuriesNotes || data.metrics?.bodyMeasurementsNotes || localMetrics?.injuriesNotes || localMetrics?.bodyMeasurementsNotes,
+    dateOfBirth: data.date_of_birth || data.metrics?.dateOfBirth || localMetrics?.dateOfBirth || localOnboarding?.dateOfBirth,
+    gender: data.gender || data.metrics?.gender || localMetrics?.gender || localOnboarding?.gender,
+    trainingDays: data.training_days?.length ? data.training_days : data.metrics?.trainingDays || localMetrics?.trainingDays || localOnboarding?.trainingDays,
+    sessionDurationMinutes: data.session_duration_minutes || data.metrics?.sessionDurationMinutes || localMetrics?.sessionDurationMinutes || localOnboarding?.sessionDurationMinutes,
+    injuriesNotes: data.injuries_notes || data.metrics?.injuriesNotes || data.metrics?.bodyMeasurementsNotes || localMetrics?.injuriesNotes || localMetrics?.bodyMeasurementsNotes || localOnboarding?.injuriesNotes,
   };
   const resolvedBodyType = data.body_type || data.metrics?.somatotype || localMetrics?.somatotype;
   if (resolvedBodyType) resolvedMetrics.somatotype = resolvedBodyType;
@@ -127,19 +131,19 @@ export async function initializeUser(userId: string, email?: string, name?: stri
     userId: data.user_id || userId,
     email: data.email || resolvedEmail,
     name: data.name || resolvedName,
-    dateOfBirth: data.date_of_birth || data.metrics?.dateOfBirth,
-    gender: data.gender || data.metrics?.gender,
-    heightCm: resolvedHeight,
-    weightKg: resolvedWeight,
-    fitnessLevel: data.fitness_level || data.metrics?.fitnessLevel,
-    trainingLocation: data.training_location || data.metrics?.trainingLocation,
+    dateOfBirth: data.date_of_birth || data.metrics?.dateOfBirth || localMetrics?.dateOfBirth || localOnboarding?.dateOfBirth,
+    gender: data.gender || data.metrics?.gender || localMetrics?.gender || localOnboarding?.gender,
+    heightCm: resolvedHeight || localOnboarding?.heightCm,
+    weightKg: resolvedWeight || localOnboarding?.weightKg,
+    fitnessLevel: data.fitness_level || data.metrics?.fitnessLevel || localMetrics?.fitnessLevel || localOnboarding?.fitnessLevel,
+    trainingLocation: data.training_location || data.metrics?.trainingLocation || localMetrics?.trainingLocation || localOnboarding?.trainingLocation,
     onboardingStatus: data.onboarding_status || 'not_started',
     onboardingCompletedAt: data.onboarding_completed_at || undefined,
     onboardingVersion: data.onboarding_version || undefined,
     trainingDays: data.training_days?.length ? data.training_days : data.metrics?.trainingDays || localMetrics?.trainingDays || [],
-    sessionDurationMinutes: data.session_duration_minutes || undefined,
-    goals: data.goals?.length ? data.goals : data.metrics?.goals || localMetrics?.goals || [],
-    injuriesNotes: data.injuries_notes || undefined,
+    sessionDurationMinutes: data.session_duration_minutes || data.metrics?.sessionDurationMinutes || localMetrics?.sessionDurationMinutes || localOnboarding?.sessionDurationMinutes || undefined,
+    goals: data.goals?.length ? data.goals : data.metrics?.goals || localMetrics?.goals || localOnboarding?.goals || [],
+    injuriesNotes: data.injuries_notes || data.metrics?.injuriesNotes || data.metrics?.bodyMeasurementsNotes || localMetrics?.injuriesNotes || localMetrics?.bodyMeasurementsNotes || localOnboarding?.injuriesNotes || undefined,
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
     maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
