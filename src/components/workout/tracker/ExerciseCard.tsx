@@ -162,13 +162,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
                 }}
                 title={`Open form guide for ${displayName}`}
                 aria-label={`Open form guide for ${displayName}`}
-                className="w-12 h-12 sm:w-13 sm:h-13 rounded-2xl bg-[#161616] border border-[#2a2a2a] hover:border-[#C0FF00]/60 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer transition-all shadow-md group/thumb"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-[#161616] border border-[#2a2a2a] hover:border-[#C0FF00]/60 overflow-hidden shrink-0 flex items-center justify-center cursor-pointer transition-all shadow-md group/thumb"
               >
                 {gifUrl && !imgError ? (
                   <img
                     src={gifUrl}
                     alt={displayName}
-                    className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform"
+                    className="w-full h-full object-contain group-hover/thumb:scale-105 transition-transform"
                     onError={() => setImgError(true)}
                     loading="lazy"
                   />
