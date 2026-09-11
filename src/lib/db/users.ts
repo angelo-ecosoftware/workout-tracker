@@ -218,12 +218,16 @@ export async function saveOnboardingProfile(
   if (error) {
     console.warn('Could not save typed onboarding profile:', error.message);
     const legacyPayload = {
+      date_of_birth: profile.dateOfBirth || null,
+      gender: profile.gender || null,
       metrics: {
         trainingDays: profile.trainingDays,
         sessionDurationMinutes: profile.sessionDurationMinutes,
         fitnessLevel: profile.fitnessLevel,
         trainingLocation: profile.trainingLocation,
         goals: profile.goals,
+        dateOfBirth: profile.dateOfBirth,
+        gender: profile.gender,
         height: profile.heightCm,
         weight: profile.weightKg,
         somatotype: profile.bodyType,
