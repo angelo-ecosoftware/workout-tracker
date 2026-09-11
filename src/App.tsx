@@ -23,7 +23,6 @@ import {
 // LAZY LOADED COMPONENTS: Downloaded only when rendered
 const WorkoutDayTracker = lazy(() => import('./components/workout/WorkoutDayTracker.tsx').then(m => ({ default: m.WorkoutDayTracker })));
 const WorkoutHistory = lazy(() => import('./components/workout/WorkoutHistory.tsx').then(m => ({ default: m.WorkoutHistory })));
-const InsightsView = lazy(() => import('./components/insights/InsightsView.tsx').then(m => ({ default: m.InsightsView })));
 const DietaryView = lazy(() => import('./components/dietary/DietaryView.tsx').then(m => ({ default: m.DietaryView })));
 const PublicSessionView = lazy(() => import('./components/workout/PublicSessionView.tsx').then(m => ({ default: m.PublicSessionView })));
 const CoachPortalView = lazy(() => import('./components/coach/CoachPortalView.tsx').then(m => ({ default: m.CoachPortalView })));
@@ -63,7 +62,7 @@ function getCoachInviteCodeFromUrl(): string | null {
   return null;
 }
 
-type TabType = 'tracker' | 'history' | 'insights' | 'dietary' | 'coach' | 'admin';
+type TabType = 'tracker' | 'history' | 'dietary' | 'coach' | 'admin';
 
 function getInitialTab(): TabType {
   try {
@@ -74,7 +73,6 @@ function getInitialTab(): TabType {
     if (route.kind === 'section') {
       if (route.section === 'admin') return 'admin';
       if (route.section === 'coach') return 'coach';
-      if (route.section === 'insights') return 'insights';
       if (route.section === 'dietary') return 'dietary';
     }
     if (getCollectionForRoute(route) === 'logbook') return 'history';
@@ -82,7 +80,7 @@ function getInitialTab(): TabType {
 
     if (typeof localStorage !== 'undefined') {
       const stored = localStorage.getItem('workout_tracker_active_tab') as TabType;
-      if (stored && ['tracker', 'history', 'insights', 'dietary', 'coach', 'admin'].includes(stored)) {
+      if (stored && ['tracker', 'history', 'dietary', 'coach', 'admin'].includes(stored)) {
         return stored;
       }
     }
@@ -148,7 +146,7 @@ const GymAppContent: React.FC = () => {
           ? { kind: 'collection', collection: 'workouts' }
           : tab === 'history'
             ? { kind: 'collection', collection: 'logbook' }
-            : { kind: 'section', section: tab as 'insights' | 'dietary' | 'coach' | 'admin' };
+            : { kind: 'section', section: tab as 'dietary' | 'coach' | 'admin' };
       window.history.pushState(null, '', serializeRoute(nextRoute));
       setRouteState(nextRoute);
     } catch {
@@ -403,14 +401,6 @@ const GymAppContent: React.FC = () => {
                   Log Book
                 </button>
                 <button
-                  onClick={() => setActiveTab('insights')}
-                  className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-                    routeState.kind === 'section' && routeState.section === 'insights' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Insights
-                </button>
-                <button
                   onClick={() => setActiveTab('dietary')}
                   className={`flex-1 min-w-max whitespace-nowrap px-3 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
                     routeState.kind === 'section' && routeState.section === 'dietary' ? 'bg-[#00ade6] text-black shadow-md' : 'text-gray-400 hover:text-white'
@@ -463,7 +453,6 @@ const GymAppContent: React.FC = () => {
                 {getCollectionForRoute(routeState) === 'exercises' && user && (
                   <ExerciseCatalogOverview selectedExerciseIds={new Set()} />
                 )}
-                {routeState.kind === 'section' && routeState.section === 'insights' && <InsightsView userId={inspectingClient?.athleteId} />}
                 {routeState.kind === 'section' && routeState.section === 'dietary' && <DietaryView userId={inspectingClient?.athleteId} />}
                 {isAdmin && routeState.kind === 'section' && routeState.section === 'admin' && <AdminPortalView />}
               </div>

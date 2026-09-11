@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SessionEngine, SetLogger, ProgressionEngine } from '../../../src/engine.ts';
 import { UserProfile, Workout, Exercise } from '../../../src/models.ts';
-import { calculateInsights, calculateExerciseProgression } from '../../../src/lib/insightsEngine.ts';
 import { compressWorkoutImage } from '../../../src/utils/imageCompressor.ts';
 
 describe('End-to-End Happy Path Tests: All Forms & Tracking Cases', () => {
@@ -215,80 +214,6 @@ describe('End-to-End Happy Path Tests: All Forms & Tracking Cases', () => {
       expect(suggestion.type).toBe('reps');
       expect(suggestion.suggestedWeight).toBe(80);
       expect(suggestion.suggestedReps).toBe(10); // 9 + 1 rep
-    });
-  });
-
-  /* -------------------------------------------------------------
-   * Form 6: Insights & 90-Day Analytics Engine
-   * ------------------------------------------------------------- */
-  describe('Form 6: 90-Day Log Book Insights & Heatmaps', () => {
-    it('aggregates completed sessions, tonnage volume, and workout streaks', () => {
-      const mockSessions = [
-        {
-          id: 's1',
-          userId: testUser.userId,
-          workoutId: 'w_1',
-          status: 'completed' as const,
-          startedAt: new Date(Date.now() - 86400000 * 2),
-          completedAt: new Date(Date.now() - 86400000 * 2 + 3600000),
-          notes: 'Great chest pump',
-          photos: ['https://example.com/photo1.webp'],
-        },
-        {
-          id: 's2',
-          userId: testUser.userId,
-          workoutId: 'w_2',
-          status: 'completed' as const,
-          startedAt: new Date(Date.now() - 86400000),
-          completedAt: new Date(Date.now() - 86400000 + 3600000),
-          notes: null,
-          photos: null,
-        },
-      ];
-
-      const mockSets = [
-        { id: '1', sessionId: 's1', userId: testUser.userId, exerciseId: 'ex_bench', setNumber: 1, weight: 80, reps: 10, durationSeconds: null, startedAt: null, completedAt: null, restSeconds: 60, loggedAt: new Date() },
-        { id: '2', sessionId: 's1', userId: testUser.userId, exerciseId: 'ex_bench', setNumber: 2, weight: 80, reps: 10, durationSeconds: null, startedAt: null, completedAt: null, restSeconds: 60, loggedAt: new Date() },
-        { id: '3', sessionId: 's2', userId: testUser.userId, exerciseId: 'ex_pushup', setNumber: 1, weight: 0, reps: 20, durationSeconds: null, startedAt: null, completedAt: null, restSeconds: 60, loggedAt: new Date() },
-      ];
-
-      const workoutMap = new Map(sampleWorkouts.map((w) => [w.id, w.name]));
-      const insights = calculateInsights(mockSessions, mockSets, sampleExercises, workoutMap);
-      expect(insights.totalCompletedSessions).toBe(2);
-      expect(insights.totalVolumeKg).toBe(1600); // 80*10 + 80*10 = 1600kg
-      expect(insights.heatmapDays.length).toBeGreaterThanOrEqual(90);
-    });
-
-    it('computes progression curve for individual exercise drill-down', () => {
-      const mockSessions = [
-        {
-          id: 's1',
-          userId: testUser.userId,
-          workoutId: 'w_1',
-          status: 'completed' as const,
-          startedAt: new Date(Date.now() - 86400000 * 5),
-          completedAt: new Date(Date.now() - 86400000 * 5 + 3600000),
-        },
-        {
-          id: 's2',
-          userId: testUser.userId,
-          workoutId: 'w_1',
-          status: 'completed' as const,
-          startedAt: new Date(Date.now() - 86400000 * 1),
-          completedAt: new Date(Date.now() - 86400000 * 1 + 3600000),
-        },
-      ];
-
-      const mockSets = [
-        { id: '1', sessionId: 's1', userId: testUser.userId, exerciseId: 'ex_bench', setNumber: 1, weight: 80, reps: 8, durationSeconds: null, startedAt: null, completedAt: null, restSeconds: null, loggedAt: new Date() },
-        { id: '2', sessionId: 's2', userId: testUser.userId, exerciseId: 'ex_bench', setNumber: 1, weight: 85, reps: 8, durationSeconds: null, startedAt: null, completedAt: null, restSeconds: null, loggedAt: new Date() },
-      ];
-
-      const curve = calculateExerciseProgression('ex_bench', mockSessions, mockSets, sampleExercises);
-      expect(curve?.exerciseName).toBe('Barbell Bench Press');
-      expect(curve?.dataPoints.length).toBe(2);
-      expect(curve?.allTimePrWeightKg).toBe(85);
-      expect(curve?.allTimePr1RMKg).toBeGreaterThan(100);
     });
   });
 

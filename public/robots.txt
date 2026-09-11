@@ -6,7 +6,6 @@ Disallow: /dashboard/*
 Disallow: /app/*
 Disallow: /tracker/*
 Disallow: /history/*
-Disallow: /insights/*
 Disallow: /dietary/*
 Disallow: /coach/*
 Disallow: /admin/*
@@ -20,7 +19,6 @@ Disallow: /dashboard/*
 Disallow: /app/*
 Disallow: /tracker/*
 Disallow: /history/*
-Disallow: /insights/*
 Disallow: /dietary/*
 Disallow: /coach/*
 Disallow: /admin/*

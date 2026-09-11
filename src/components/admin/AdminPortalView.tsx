@@ -497,14 +497,6 @@ export const AdminPortalView: React.FC = () => {
                 </tr>
 
                 <tr>
-                  <td className="py-3 px-3 font-bold text-white">Performance Insights & Analytics</td>
-                  <td className="py-3 px-3 text-gray-400">/#insights</td>
-                  <td className="py-3 px-3 text-center text-emerald-400 font-bold"><Check className="w-4 h-4 mx-auto stroke-[3]" /></td>
-                  <td className="py-3 px-3 text-center text-emerald-400 font-bold"><Check className="w-4 h-4 mx-auto stroke-[3]" /></td>
-                  <td className="py-3 px-3 text-center text-emerald-400 font-bold"><Check className="w-4 h-4 mx-auto stroke-[3]" /></td>
-                </tr>
-
-                <tr>
                   <td className="py-3 px-3 font-bold text-white">Macro & Dietary Journal</td>
                   <td className="py-3 px-3 text-gray-400">/#dietary</td>
                   <td className="py-3 px-3 text-center text-emerald-400 font-bold"><Check className="w-4 h-4 mx-auto stroke-[3]" /></td>

@@ -1,4 +1,4 @@
-export type AppSection = 'workouts' | 'routines' | 'exercises' | 'logbook' | 'insights' | 'dietary' | 'coach' | 'admin';
+export type AppSection = 'workouts' | 'routines' | 'exercises' | 'logbook' | 'dietary' | 'coach' | 'admin';
 
 export type CanonicalRoute =
   | { kind: 'collection'; collection: 'workouts' | 'routines' | 'exercises' | 'logbook' }
@@ -22,8 +22,6 @@ const LEGACY_HASH_SECTIONS: Record<string, CanonicalRoute> = {
   '#/history': { kind: 'collection', collection: 'logbook' },
   '#logbook': { kind: 'collection', collection: 'logbook' },
   '#/logbook': { kind: 'collection', collection: 'logbook' },
-  '#insights': { kind: 'section', section: 'insights' },
-  '#/insights': { kind: 'section', section: 'insights' },
   '#dietary': { kind: 'section', section: 'dietary' },
   '#/dietary': { kind: 'section', section: 'dietary' },
   '#food': { kind: 'section', section: 'dietary' },
@@ -66,7 +64,6 @@ export function parseCanonicalPath(pathname: string): CanonicalRoute | null {
   if (path === '/logbook') return { kind: 'collection', collection: 'logbook' };
   if (path === '/') return { kind: 'home' };
   if (path === '/login' || path === '/signin') return { kind: 'login' };
-  if (path === '/insights') return { kind: 'section', section: 'insights' };
   if (path === '/dietary' || path === '/food') return { kind: 'section', section: 'dietary' };
   if (path === '/coach' || path === '/roster') return { kind: 'section', section: 'coach' };
   if (path === '/admin') return { kind: 'section', section: 'admin' };

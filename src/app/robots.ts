@@ -13,7 +13,6 @@ export default function robots(): MetadataRoute.Robots {
     '/app/*',
     '/tracker/*',
     '/history/*',
-    '/insights/*',
     '/dietary/*',
     '/coach/*',
     '/admin/*',
