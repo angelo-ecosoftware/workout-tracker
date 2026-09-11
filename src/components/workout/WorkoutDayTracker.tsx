@@ -198,13 +198,19 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
           </p>
         </div>
 
-        <div className="pt-2">
+        <div className="flex flex-wrap justify-center gap-2 pt-2">
           <button
             type="button"
             onClick={() => setIsRoutineEditorOpen(true)}
             className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#C0FF00] hover:bg-[#a6dc00] text-black font-display font-black italic uppercase text-xs tracking-wider transition-all shadow-[0_0_20px_rgba(192,255,0,0.2)] cursor-pointer"
           >
             <Settings className="w-4 h-4" /> Configure your routine now
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-xl border border-[#333] bg-[#181818] px-5 py-3 font-display text-xs font-black italic uppercase tracking-wider text-gray-300 transition-all"
+          >
+            Generate a workout
           </button>
         </div>
 
