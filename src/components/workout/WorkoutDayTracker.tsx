@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext.tsx";
 import { Exercise } from "../../models.ts";
 import { saveWorkoutsAndExercises } from "../../lib/supabaseData.ts";
@@ -17,7 +17,17 @@ import { ActiveWorkoutHeaderBar } from "./tracker/ActiveWorkoutHeaderBar.tsx";
 import { FinishWorkoutModal } from "./tracker/FinishWorkoutModal.tsx";
 import { SetPraiseToast } from "./tracker/SetPraiseToast.tsx";
 
-export const WorkoutDayTracker: React.FC = () => {
+interface WorkoutDayTrackerProps {
+  routeWorkoutId?: string | null;
+  routeMode?: 'view' | 'info' | 'edit';
+  onResourceRouteChange?: (path: string) => void;
+}
+
+export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
+  routeWorkoutId = null,
+  routeMode = 'view',
+  onResourceRouteChange,
+}) => {
   const { user } = useAuth();
   const {
     workouts,
@@ -85,7 +95,29 @@ export const WorkoutDayTracker: React.FC = () => {
     handleTextChange,
     getProgressionAdvice,
     handleLogWorkout,
-  } = useWorkoutSession(user);
+  } = useWorkoutSession(user, routeWorkoutId);
+  const [routeError, setRouteError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (loading || !routeWorkoutId) return;
+    const routedWorkout = workouts.find((workout) => workout.id === routeWorkoutId);
+    if (!routedWorkout) {
+      setRouteError('Workout not found or unavailable.');
+      return;
+    }
+    setRouteError(null);
+    if (activeWorkout?.id !== routedWorkout.id) setActiveWorkout(routedWorkout);
+    if (routeMode === 'edit' && !isRoutineEditorOpen) setIsRoutineEditorOpen(true);
+  }, [
+    loading,
+    routeWorkoutId,
+    routeMode,
+    workouts,
+    activeWorkout?.id,
+    isRoutineEditorOpen,
+    setActiveWorkout,
+    setIsRoutineEditorOpen,
+  ]);
 
   if (loading) {
     return (
@@ -94,6 +126,21 @@ export const WorkoutDayTracker: React.FC = () => {
         <span className="font-mono text-xs text-gray-400 uppercase tracking-widest font-semibold">
           Hydrating session metrics...
         </span>
+      </div>
+    );
+  }
+
+  if (routeError) {
+    return (
+      <div className="bg-[#111] border border-red-900/50 rounded-[24px] p-8 text-center">
+        <p className="text-red-400 font-mono text-sm">{routeError}</p>
+        <button
+          type="button"
+          onClick={() => onResourceRouteChange?.('/workouts')}
+          className="mt-4 text-[#C0FF00] font-mono text-xs uppercase"
+        >
+          Back to workouts
+        </button>
       </div>
     );
   }
@@ -136,7 +183,10 @@ export const WorkoutDayTracker: React.FC = () => {
         {user && (
           <RoutineEditorModal
             isOpen={isRoutineEditorOpen}
-            onClose={() => setIsRoutineEditorOpen(false)}
+            onClose={() => {
+              setIsRoutineEditorOpen(false);
+              onResourceRouteChange?.(activeWorkout ? `/workout/${encodeURIComponent(activeWorkout.id)}` : '/workouts');
+            }}
             userId={user.uid}
             workouts={workouts}
             onSaveWorkouts={async (updatedWorkouts) => {
@@ -152,7 +202,51 @@ export const WorkoutDayTracker: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div
+      className="space-y-6"
+      data-resource-type={routeWorkoutId ? 'workout' : undefined}
+      data-resource-id={routeWorkoutId || undefined}
+    >
+      {routeWorkoutId && (
+        <div className="flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => onResourceRouteChange?.('/workouts')}
+            className="text-[#C0FF00] font-mono text-xs uppercase"
+          >
+            ← All workouts
+          </button>
+          <div className="flex items-center gap-2">
+            {routeMode === 'view' && (
+              <button
+                type="button"
+                onClick={() => onResourceRouteChange?.(`/workout/${encodeURIComponent(routeWorkoutId)}/info`)}
+                className="px-3 py-1.5 rounded-lg border border-[#333] text-gray-300 text-xs font-mono"
+              >
+                Info
+              </button>
+            )}
+            {routeMode === 'info' && (
+              <button
+                type="button"
+                onClick={() => onResourceRouteChange?.(`/workout/${encodeURIComponent(routeWorkoutId)}`)}
+                className="px-3 py-1.5 rounded-lg border border-[#333] text-gray-300 text-xs font-mono"
+              >
+                Close info
+              </button>
+            )}
+            {routeMode !== 'edit' && (
+              <button
+                type="button"
+                onClick={() => onResourceRouteChange?.(`/workout/${encodeURIComponent(routeWorkoutId)}/edit`)}
+                className="px-3 py-1.5 rounded-lg bg-[#C0FF00] text-black text-xs font-bold"
+              >
+                Edit
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       <WelcomeModal
         isOpen={showWelcomeModal}
         userId={user?.uid}
@@ -181,8 +275,14 @@ export const WorkoutDayTracker: React.FC = () => {
         onSelectWorkout={(w) => {
           setActiveWorkout(w);
           setErrorMsg(null);
+          onResourceRouteChange?.(`/workout/${encodeURIComponent(w.id)}`);
         }}
-        onOpenRoutineEditor={() => setIsRoutineEditorOpen(true)}
+        onOpenRoutineEditor={() => {
+          setIsRoutineEditorOpen(true);
+          if (activeWorkout) {
+            onResourceRouteChange?.(`/workout/${encodeURIComponent(activeWorkout.id)}/edit`);
+          }
+        }}
       />
 
       {activeWorkout && (
@@ -423,7 +523,10 @@ export const WorkoutDayTracker: React.FC = () => {
       {user && (
         <RoutineEditorModal
           isOpen={isRoutineEditorOpen}
-          onClose={() => setIsRoutineEditorOpen(false)}
+          onClose={() => {
+            setIsRoutineEditorOpen(false);
+            onResourceRouteChange?.(activeWorkout ? `/workout/${encodeURIComponent(activeWorkout.id)}` : '/workouts');
+          }}
           userId={user.uid}
           workouts={workouts}
           onSaveWorkouts={async (updatedWorkouts) => {

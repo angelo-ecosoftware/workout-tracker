@@ -11,6 +11,14 @@ import { CoachAthleteLink } from './models.ts';
 import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
 import { isGoogleAuthUrl, sanitizeAuthenticatedSession } from './utils/authUrl.ts';
 import { Loader2 } from 'lucide-react';
+import { useRouteContinuity } from './hooks/useRouteContinuity.ts';
+import {
+  CanonicalRoute,
+  getCollectionForRoute,
+  migrateLegacyLocation,
+  parseLocation,
+  serializeRoute,
+} from './appRouting.ts';
 
 // LAZY LOADED COMPONENTS: Downloaded only when rendered
 const WorkoutDayTracker = lazy(() => import('./components/workout/WorkoutDayTracker.tsx').then(m => ({ default: m.WorkoutDayTracker })));
@@ -22,6 +30,7 @@ const CoachPortalView = lazy(() => import('./components/coach/CoachPortalView.ts
 const AdminPortalView = lazy(() => import('./components/admin/AdminPortalView.tsx').then(m => ({ default: m.AdminPortalView })));
 const LandingPage = lazy(() => import('./components/landing/LandingPage.tsx').then(m => ({ default: m.LandingPage })));
 const LoginScreen = lazy(() => import('./components/auth/LoginScreen.tsx').then(m => ({ default: m.LoginScreen })));
+const RoutineRouteView = lazy(() => import('./components/routine/RoutineRouteView.tsx').then(m => ({ default: m.RoutineRouteView })));
 
 // Helper functions for URL parsing
 function getPublicSessionIdFromUrl(): string | null {
@@ -58,13 +67,18 @@ type TabType = 'tracker' | 'history' | 'insights' | 'dietary' | 'coach' | 'admin
 
 function getInitialTab(): TabType {
   try {
-    const hash = (typeof window !== 'undefined' ? window.location.hash : '').toLowerCase();
-    if (hash.includes('admin')) return 'admin';
-    if (hash.includes('coach') || hash.includes('roster')) return 'coach';
-    if (hash.includes('history') || hash.includes('logbook')) return 'history';
-    if (hash.includes('insights')) return 'insights';
-    if (hash.includes('dietary')) return 'dietary';
-    if (hash.includes('tracker') || hash.includes('session')) return 'tracker';
+    const route = parseLocation(
+      typeof window !== 'undefined' ? window.location.pathname : '/',
+      typeof window !== 'undefined' ? window.location.hash : ''
+    );
+    if (route.kind === 'section') {
+      if (route.section === 'admin') return 'admin';
+      if (route.section === 'coach') return 'coach';
+      if (route.section === 'insights') return 'insights';
+      if (route.section === 'dietary') return 'dietary';
+    }
+    if (getCollectionForRoute(route) === 'logbook') return 'history';
+    if (getCollectionForRoute(route) === 'workouts') return 'tracker';
 
     if (typeof localStorage !== 'undefined') {
       const stored = localStorage.getItem('workout_tracker_active_tab') as TabType;
@@ -81,6 +95,10 @@ function getInitialTab(): TabType {
 const GymAppContent: React.FC = () => {
   const { user, loading, token, isCoach, isAdmin, specialty } = useAuth();
   const [activeTab, setActiveTabState] = useState<TabType>(() => getInitialTab());
+  const [routeState, setRouteState] = useState<CanonicalRoute>(() =>
+    parseLocation(window.location.pathname, window.location.hash)
+  );
+  useRouteContinuity(user?.uid, routeState);
   const [publicSessionId, setPublicSessionId] = useState<string | null>(() => getPublicSessionIdFromUrl());
   const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => getCoachInviteCodeFromUrl());
   const [coachInviteData, setCoachInviteData] = useState<CoachAthleteLink | null>(null);
@@ -91,17 +109,8 @@ const GymAppContent: React.FC = () => {
 
   const isLoginRoute = () => {
     if (typeof window === 'undefined') return false;
-    const hash = window.location.hash.toLowerCase();
-    const search = window.location.search.toLowerCase();
-    const pathname = window.location.pathname.toLowerCase();
-    return (
-      pathname.includes('/login') ||
-      pathname.includes('/signin') ||
-      pathname.includes('/admin') ||
-      hash.includes('login') ||
-      hash.includes('admin') ||
-      search.includes('login')
-    );
+    const route = parseLocation(window.location.pathname, window.location.hash);
+    return route.kind === 'login' || (route.kind === 'section' && route.section === 'admin');
   };
 
   const [showLoginModal, setShowLoginModal] = useState<boolean>(() => isLoginRoute());
@@ -110,6 +119,12 @@ const GymAppContent: React.FC = () => {
     try {
       window.history.pushState(null, '', path);
     } catch {}
+    const nextRoute = parseLocation(window.location.pathname, window.location.hash);
+    setRouteState(nextRoute);
+    const collection = getCollectionForRoute(nextRoute);
+    if (collection === 'workouts') setActiveTabState('tracker');
+    if (collection === 'logbook') setActiveTabState('history');
+    if (nextRoute.kind === 'section') setActiveTabState(nextRoute.section as TabType);
     setShowLoginModal(isLoginRoute());
   };
 
@@ -132,7 +147,8 @@ const GymAppContent: React.FC = () => {
 
   // Default admins to admin tab
   useEffect(() => {
-    if (isAdmin && (!window.location.hash || window.location.hash === '#' || window.location.hash === '#tracker')) {
+    const currentRoute = parseLocation(window.location.pathname, window.location.hash);
+    if (isAdmin && (currentRoute.kind === 'home' || getCollectionForRoute(currentRoute) === 'workouts')) {
       const storedTab = localStorage.getItem('workout_tracker_active_tab');
       if (!storedTab || storedTab === 'tracker') {
         setActiveTab('admin');
@@ -144,19 +160,44 @@ const GymAppContent: React.FC = () => {
     setActiveTabState(tab);
     try {
       localStorage.setItem('workout_tracker_active_tab', tab);
-      if (window.location.hash !== `#${tab}`) {
-        window.history.replaceState(null, '', `#${tab}`);
-      }
+      const nextRoute: CanonicalRoute =
+        tab === 'tracker'
+          ? { kind: 'collection', collection: 'workouts' }
+          : tab === 'history'
+            ? { kind: 'collection', collection: 'logbook' }
+            : { kind: 'section', section: tab as 'insights' | 'dietary' | 'coach' | 'admin' };
+      window.history.pushState(null, '', serializeRoute(nextRoute));
+      setRouteState(nextRoute);
     } catch {
       // ignore
     }
   };
 
   useEffect(() => {
+    const legacyDestination = migrateLegacyLocation(window.location.pathname, window.location.hash);
+    if (legacyDestination) {
+      window.history.replaceState(
+        null,
+        '',
+        `${legacyDestination}${window.location.search}`
+      );
+      const migrated = parseLocation(window.location.pathname, '');
+      setRouteState(migrated);
+    }
+
     if (user) {
       try {
-        const currentHash = window.location.hash || '#tracker';
-        sanitizeAuthenticatedSession(currentHash);
+        const currentRoute = parseLocation(window.location.pathname, window.location.hash);
+        const targetPath =
+          currentRoute.kind === 'home' || currentRoute.kind === 'login'
+            ? serializeRoute({ kind: 'collection', collection: 'workouts' })
+            : serializeRoute(currentRoute);
+        sanitizeAuthenticatedSession(targetPath);
+        if (currentRoute.kind === 'home' || currentRoute.kind === 'login') {
+          window.history.replaceState(null, '', targetPath);
+          setRouteState({ kind: 'collection', collection: 'workouts' });
+          setActiveTabState('tracker');
+        }
       } catch {}
     }
 
@@ -164,25 +205,25 @@ const GymAppContent: React.FC = () => {
       setPublicSessionId(getPublicSessionIdFromUrl());
       setPendingInviteCode(getCoachInviteCodeFromUrl());
       const hash = window.location.hash.toLowerCase();
-      const pathname = window.location.pathname.toLowerCase();
+      const pathname = window.location.pathname;
+      const nextRoute = parseLocation(pathname, hash);
 
       setShowLoginModal(isLoginRoute());
+      setRouteState(nextRoute);
 
       if (user) {
-        if (!hash || hash === '#' || hash === '#/' || hash.includes('login') || pathname.includes('/login') || isGoogleAuthUrl()) {
-          const fallbackTab = (localStorage.getItem('workout_tracker_active_tab') as TabType) || 'tracker';
-          setActiveTabState(fallbackTab);
-          sanitizeAuthenticatedSession(`#${fallbackTab}`);
+        if (nextRoute.kind === 'home' || nextRoute.kind === 'login' || isGoogleAuthUrl()) {
+          const fallbackRoute: CanonicalRoute = { kind: 'collection', collection: 'workouts' };
+          setActiveTabState('tracker');
+          sanitizeAuthenticatedSession(serializeRoute(fallbackRoute));
           return;
         }
       }
 
-      if (pathname.includes('/admin') || hash.includes('admin')) setActiveTabState('admin');
-      else if (pathname.includes('/coach') || hash.includes('coach') || hash.includes('roster')) setActiveTabState('coach');
-      else if (pathname.includes('/history') || hash.includes('history') || hash.includes('logbook')) setActiveTabState('history');
-      else if (pathname.includes('/insights') || hash.includes('insights')) setActiveTabState('insights');
-      else if (pathname.includes('/dietary') || hash.includes('dietary')) setActiveTabState('dietary');
-      else if (pathname.includes('/tracker') || hash.includes('tracker')) setActiveTabState('tracker');
+      const collection = getCollectionForRoute(nextRoute);
+      if (collection === 'workouts') setActiveTabState('tracker');
+      if (collection === 'logbook') setActiveTabState('history');
+      if (nextRoute.kind === 'section') setActiveTabState(nextRoute.section as TabType);
     };
 
     const handleCustomTabSwitch: EventListener = (e: Event) => {
@@ -201,7 +242,7 @@ const GymAppContent: React.FC = () => {
       window.removeEventListener('hashchange', handlePopState);
       window.removeEventListener('switch_app_tab', handleCustomTabSwitch);
     };
-  }, [user, activeTab]);
+  }, [user]);
 
   useEffect(() => {
     const handleCoachModeChange = () => {
@@ -350,6 +391,16 @@ const GymAppContent: React.FC = () => {
                     Today's Session
                   </button>
                 )}
+                {!inspectingClient && (
+                  <button
+                    onClick={() => navigateToRoute('/routines')}
+                    className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
+                      getCollectionForRoute(routeState) === 'routines' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Routines
+                  </button>
+                )}
                 <button
                   onClick={() => setActiveTab('history')}
                   className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
@@ -387,11 +438,27 @@ const GymAppContent: React.FC = () => {
               </div>
 
               <div>
-                {!inspectingClient && activeTab === 'tracker' && <WorkoutDayTracker />}
-                {activeTab === 'history' && (
+                {!inspectingClient && getCollectionForRoute(routeState) === 'workouts' && (
+                  <WorkoutDayTracker
+                    routeWorkoutId={routeState.kind === 'workout' ? routeState.workoutId : null}
+                    routeMode={routeState.kind === 'workout' ? routeState.mode : 'view'}
+                    onResourceRouteChange={navigateToRoute}
+                  />
+                )}
+                {getCollectionForRoute(routeState) === 'logbook' && (
                   <WorkoutHistory
                     targetUserId={inspectingClient?.athleteId}
                     isReadOnlyClientMode={Boolean(inspectingClient)}
+                    routeSessionId={routeState.kind === 'logbook' ? routeState.logId : null}
+                    routeEditMode={routeState.kind === 'logbook' && routeState.mode === 'edit'}
+                    onResourceRouteChange={navigateToRoute}
+                  />
+                )}
+                {getCollectionForRoute(routeState) === 'routines' && user && (
+                  <RoutineRouteView
+                    userId={user.uid}
+                    route={routeState.kind === 'routine' ? routeState : { kind: 'collection', collection: 'routines' }}
+                    onNavigate={navigateToRoute}
                   />
                 )}
                 {activeTab === 'insights' && <InsightsView userId={inspectingClient?.athleteId} />}

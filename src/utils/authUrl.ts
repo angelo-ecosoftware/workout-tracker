@@ -52,7 +52,8 @@ export function sanitizeAuthenticatedSession(targetHash = '#tracker'): void {
       url.searchParams.delete(p);
     }
 
-    let cleanHash = targetHash || window.location.hash || '#tracker';
+    const isPathTarget = Boolean(targetHash && targetHash.startsWith('/'));
+    let cleanHash = isPathTarget ? '' : (targetHash || window.location.hash || '#tracker');
     if (
       cleanHash.includes('access_token') ||
       cleanHash.includes('refresh_token') ||
@@ -62,13 +63,14 @@ export function sanitizeAuthenticatedSession(targetHash = '#tracker'): void {
       cleanHash = '#tracker';
     }
 
-    if (!cleanHash.startsWith('#')) {
+    if (cleanHash && !cleanHash.startsWith('#')) {
       cleanHash = `#${cleanHash}`;
     }
 
     const cleanQuery = url.searchParams.toString();
     const cleanSearch = cleanQuery ? `?${cleanQuery}` : '';
-    const cleanUrl = `${url.pathname}${cleanSearch}${cleanHash}`;
+    const cleanPath = isPathTarget ? targetHash : url.pathname;
+    const cleanUrl = `${cleanPath}${cleanSearch}${cleanHash}`;
 
     window.history.replaceState({ appState: 'authenticated' }, '', cleanUrl);
   } catch (e) {

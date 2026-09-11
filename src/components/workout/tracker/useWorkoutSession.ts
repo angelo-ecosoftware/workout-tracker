@@ -3,6 +3,7 @@ import { AuthUser } from '../../../context/AuthContext.tsx';
 import { Workout, Exercise, UserProfile } from '../../../models.ts';
 import {
   fetchWorkoutsData,
+  fetchWorkoutById,
   getUserProgressState,
   fetchWorkoutHistory,
   logSessionCompletion,
@@ -26,11 +27,16 @@ import {
   sanitizeWorkoutInputValue,
   WorkoutSessionInputs,
 } from './workoutSessionCalculations.ts';
-import { createWorkoutDraftPayload, getWorkoutDraftKey } from './workoutSessionDraft.ts';
+import {
+  createWorkoutDraftPayload,
+  getSelectedWorkoutKey,
+  getWorkoutDraftKey,
+  parseWorkoutDraft,
+} from './workoutSessionDraft.ts';
 
-export function useWorkoutSession(user: AuthUser | null) {
+export function useWorkoutSession(user: AuthUser | null, requestedWorkoutId?: string | null) {
   const [workouts, setWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
-  const [activeWorkout, setActiveWorkout] = useState<(Workout & { exercises: Exercise[] }) | null>(null);
+  const [activeWorkout, setActiveWorkoutState] = useState<(Workout & { exercises: Exercise[] }) | null>(null);
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [lastSessionDay, setLastSessionDay] = useState<number | null>(null);
@@ -44,6 +50,23 @@ export function useWorkoutSession(user: AuthUser | null) {
   const [celebrationSummary, setCelebrationSummary] = useState<WorkoutSummaryCelebration | null>(null);
   const [historySessions, setHistorySessions] = useState<{ id?: string; completedAt?: Date | null; startedAt?: Date; status?: string }[]>([]);
   const [skippedExerciseIds, setSkippedExerciseIds] = useState<Set<string>>(new Set());
+  const hydrationGenerationRef = useRef(0);
+  const currentUserIdRef = useRef<string | null>(user?.uid ?? null);
+  const activeWorkoutIdRef = useRef<string | null>(null);
+  currentUserIdRef.current = user?.uid ?? null;
+  activeWorkoutIdRef.current = activeWorkout?.id ?? null;
+
+  const setActiveWorkout = (nextWorkout: (Workout & { exercises: Exercise[] }) | null) => {
+    setActiveWorkoutState(nextWorkout);
+    if (nextWorkout && user?.uid) {
+      const key = getSelectedWorkoutKey(user.uid);
+      if (key) {
+        try {
+          localStorage.setItem(key, nextWorkout.id);
+        } catch {}
+      }
+    }
+  };
 
   // P1.3: Auto-start rest timer state when a set row is checked off
   const [autoRestTimer, setAutoRestTimer] = useState<{
@@ -378,6 +401,12 @@ export function useWorkoutSession(user: AuthUser | null) {
   };
 
   const loadWorkflowState = async () => {
+    const hydrationGeneration = ++hydrationGenerationRef.current;
+    const hydrationUserId = user?.uid ?? null;
+    const isCurrentHydration = () =>
+      hydrationGenerationRef.current === hydrationGeneration &&
+      currentUserIdRef.current === hydrationUserId;
+
     try {
       setLoading(true);
       setErrorMsg(null);
@@ -387,10 +416,18 @@ export function useWorkoutSession(user: AuthUser | null) {
       await seedTemplatesIfMissing(user.uid);
 
       const [wData, userProgress, historyLogs] = await Promise.all([
-        fetchWorkoutsData(user.uid),
+        requestedWorkoutId ? fetchWorkoutById(user.uid, requestedWorkoutId) : fetchWorkoutsData(user.uid),
         getUserProgressState(user.uid),
         fetchWorkoutHistory(user.uid).catch(() => []),
       ]);
+
+      if (!isCurrentHydration()) return;
+      if (!wData) {
+        setWorkouts([]);
+        setActiveWorkoutState(null);
+        setErrorMsg('Workout not found or unavailable.');
+        return;
+      }
 
       const progressState = userProgress.profile;
       setWorkouts(wData.combinedWorkouts);
@@ -419,8 +456,15 @@ export function useWorkoutSession(user: AuthUser | null) {
         setLastSessionDay(null);
       }
 
+      let selectedWorkoutId: string | null = null;
+      try {
+        const selectedKey = getSelectedWorkoutKey(user.uid);
+        selectedWorkoutId = selectedKey ? localStorage.getItem(selectedKey) : null;
+      } catch {}
       const targetW =
-        wData.combinedWorkouts.find((w) => w.order === computedNextDay) || wData.combinedWorkouts[0];
+        (selectedWorkoutId && wData.combinedWorkouts.find((w) => w.id === selectedWorkoutId)) ||
+        wData.combinedWorkouts.find((w) => w.order === computedNextDay) ||
+        wData.combinedWorkouts[0];
       setActiveWorkout(targetW || null);
     } catch (err: unknown) {
       console.error('loadWorkflowState ERROR:', err);
@@ -431,13 +475,23 @@ export function useWorkoutSession(user: AuthUser | null) {
   };
 
   useEffect(() => {
+    ++hydrationGenerationRef.current;
     if (user) {
       loadWorkflowState();
+    } else {
+      setWorkouts([]);
+      setActiveWorkoutState(null);
+      setUserProfile(null);
+      setHistorySessions([]);
+      setLoading(false);
     }
-  }, [user]);
+  }, [user, requestedWorkoutId]);
 
   useEffect(() => {
     if (!activeWorkout || !userProfile || !user) return;
+    const effectUserId = user.uid;
+    const effectWorkoutId = activeWorkout.id;
+    let cancelled = false;
 
     // Collapsed by default; restore previous exercise expand state if explicitly saved by user
     try {
@@ -451,7 +505,14 @@ export function useWorkoutSession(user: AuthUser | null) {
       setExpandedExerciseId(null);
     }
 
-    loadDraftPhotosFromStorage(user.uid, activeWorkout.id).then((restoredFiles) => {
+    loadDraftPhotosFromStorage(effectUserId, effectWorkoutId).then((restoredFiles) => {
+      if (
+        cancelled ||
+        currentUserIdRef.current !== effectUserId ||
+        activeWorkoutIdRef.current !== effectWorkoutId
+      ) {
+        return;
+      }
       if (restoredFiles && restoredFiles.length > 0) {
         setSelectedPhotos(restoredFiles);
         setPhotoPreviews((prev) => {
@@ -474,19 +535,23 @@ export function useWorkoutSession(user: AuthUser | null) {
         try {
           const rawDraft = localStorage.getItem(draftKey);
           if (rawDraft) {
-            const parsedDraft = JSON.parse(rawDraft);
-            if (parsedDraft.skippedExerciseIds && Array.isArray(parsedDraft.skippedExerciseIds)) {
-              setSkippedExerciseIds(new Set(parsedDraft.skippedExerciseIds));
+            const parsedDraft = parseWorkoutDraft(rawDraft);
+            const matchingDraft =
+              parsedDraft && (!parsedDraft.workoutId || parsedDraft.workoutId === activeWorkout.id)
+                ? parsedDraft
+                : null;
+            if (matchingDraft?.skippedExerciseIds && Array.isArray(matchingDraft.skippedExerciseIds)) {
+              setSkippedExerciseIds(new Set(matchingDraft.skippedExerciseIds));
             }
-            if (parsedDraft && parsedDraft.inputs && Object.keys(parsedDraft.inputs).length > 0) {
-              setInputs(parsedDraft.inputs);
-              if (parsedDraft.sessionDate) setSessionDate(parsedDraft.sessionDate);
-              if (parsedDraft.sleepHours != null) setSleepHours(parsedDraft.sleepHours);
-              if (parsedDraft.energyScore != null) setEnergyScore(parsedDraft.energyScore);
-              if (parsedDraft.notes != null) setSessionNotes(parsedDraft.notes);
-              if (parsedDraft.bodyWeightKg != null) setBodyWeightKg(String(parsedDraft.bodyWeightKg));
-              if (parsedDraft.savedAt) {
-                const dateObj = new Date(parsedDraft.savedAt);
+            if (matchingDraft?.inputs && Object.keys(matchingDraft.inputs).length > 0) {
+              setInputs(matchingDraft.inputs);
+              if (matchingDraft.sessionDate) setSessionDate(matchingDraft.sessionDate);
+              if (matchingDraft.sleepHours != null) setSleepHours(matchingDraft.sleepHours);
+              if (matchingDraft.energyScore != null) setEnergyScore(matchingDraft.energyScore);
+              if (matchingDraft.notes != null) setSessionNotes(matchingDraft.notes);
+              if (matchingDraft.bodyWeightKg != null) setBodyWeightKg(String(matchingDraft.bodyWeightKg));
+              if (matchingDraft.savedAt) {
+                const dateObj = new Date(matchingDraft.savedAt);
                 setLastAutoSavedTime(
                   dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
                 );
@@ -545,6 +610,9 @@ export function useWorkoutSession(user: AuthUser | null) {
     };
 
     prepopulateInputs();
+    return () => {
+      cancelled = true;
+    };
   }, [activeWorkout, userProfile]);
 
   const updateInputValue = (

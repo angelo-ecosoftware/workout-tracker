@@ -89,6 +89,48 @@ export async function fetchWorkoutsData(userId?: string) {
   return { combinedWorkouts, workoutsList, exercisesList };
 }
 
+export async function fetchWorkoutById(userId: string, workoutId: string) {
+  const { data: workoutData, error: workoutError } = await supabase
+    .from('workouts')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('id', workoutId)
+    .maybeSingle();
+  if (workoutError || !workoutData) return null;
+
+  const row = workoutData as DbWorkoutRow;
+  const { data: junctionData } = await supabase
+    .from('workout_exercises')
+    .select('workout_id, exercise_id, position')
+    .eq('user_id', userId)
+    .eq('workout_id', workoutId)
+    .order('position', { ascending: true });
+  const ids = ((junctionData as DbWorkoutExerciseRow[]) || []).map((item) => item.exercise_id);
+  const exerciseIds = ids.length ? ids : (Array.isArray(row.exercise_ids) ? row.exercise_ids : []);
+  const { data: exerciseData } = exerciseIds.length
+    ? await supabase.from('exercises').select('*').eq('user_id', userId).in('id', exerciseIds)
+    : { data: [] };
+  const exercises: Exercise[] = ((exerciseData as (DbExerciseRow & { custom_cues?: unknown })[]) || []).map((item) => ({
+    id: String(item.id),
+    name: item.name,
+    type: (item.type === 'timed' ? 'timed' : 'strength') as 'strength' | 'timed',
+    targetSets: item.target_sets ?? 3,
+    targetRepMin: item.target_rep_min ?? 8,
+    targetRepMax: item.target_rep_max ?? 12,
+    customCues: item.custom_cues || undefined,
+  }));
+  const workout = {
+    id: String(row.id),
+    name: row.name,
+    order: row.order ?? row.day_number ?? 0,
+    exerciseIds,
+    exercises: exerciseIds
+      .map((id) => exercises.find((exercise) => exercise.id === id))
+      .filter((exercise): exercise is Exercise => Boolean(exercise)),
+  };
+  return { combinedWorkouts: [workout], workoutsList: [workout], exercisesList: exercises };
+}
+
 export async function saveWorkoutsAndExercises(
   userId: string,
   updatedWorkouts: (Workout & { exercises: Exercise[] })[]

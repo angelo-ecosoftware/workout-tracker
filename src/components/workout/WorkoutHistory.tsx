@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import {
   fetchWorkoutHistory,
+  fetchSessionById,
   fetchSetsForSession,
   createPublicSessionShare,
   deleteSessions,
@@ -23,9 +24,18 @@ import { ConfirmModal } from '../ui/ConfirmModal.tsx';
 import { PopulatedSession, SessionDetailCard } from './history/SessionDetailCard.tsx';
 import { SessionGridCard } from './history/SessionGridCard.tsx';
 
-export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientMode?: boolean }> = ({
+export const WorkoutHistory: React.FC<{
+  targetUserId?: string;
+  isReadOnlyClientMode?: boolean;
+  routeSessionId?: string | null;
+  routeEditMode?: boolean;
+  onResourceRouteChange?: (path: string) => void;
+}> = ({
   targetUserId,
   isReadOnlyClientMode = false,
+  routeSessionId = null,
+  routeEditMode = false,
+  onResourceRouteChange,
 }) => {
   const { user, loading: authLoading } = useAuth();
   const activeUserId = targetUserId || user?.uid;
@@ -67,9 +77,11 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const [activePhotoUploadSessionId, setActivePhotoUploadSessionId] = useState<string | null>(null);
+  const [routeError, setRouteError] = useState<string | null>(null);
 
   const handleOpenSession = async (session: PopulatedSession) => {
     setExpandedSessionId(session.id);
+    onResourceRouteChange?.(`/logbook/${encodeURIComponent(session.id)}`);
     const isCoachInspectingAthlete = Boolean(user && activeUserId && activeUserId !== user.uid);
     if (isCoachInspectingAthlete && !session.reviewedAt && user && allowReviewReceipts) {
       try {
@@ -118,6 +130,7 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
   const startEditingNotes = (session: PopulatedSession) => {
     setEditingNotesSessionId(session.id);
     setEditingNotesValue(session.notes || "");
+    onResourceRouteChange?.(`/logbook/${encodeURIComponent(session.id)}/edit`);
   };
 
   const saveNotesEdit = async (sessionId: string) => {
@@ -130,6 +143,7 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
         prev.map(s => (s.id === sessionId ? { ...s, notes: cleanNotes } : s))
       );
       setEditingNotesSessionId(null);
+      onResourceRouteChange?.(`/logbook/${encodeURIComponent(sessionId)}`);
     } catch (err) {
       console.error("Failed to update notes:", err);
       alert("Failed to update notes.");
@@ -141,6 +155,7 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
   const cancelNotesEdit = () => {
     setEditingNotesSessionId(null);
     setEditingNotesValue("");
+    if (routeSessionId) onResourceRouteChange?.(`/logbook/${encodeURIComponent(routeSessionId)}`);
   };
 
   const startEditingCoachNotes = (session: PopulatedSession) => {
@@ -408,7 +423,9 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
         setErrorMsg(null);
         
         const [historySessions, workoutsData, userProfileData, historicalBodyLogs, viewerPrivacy, athletePrivacy] = await Promise.all([
-          fetchWorkoutHistory(activeUserId),
+          routeSessionId
+            ? fetchSessionById(activeUserId, routeSessionId).then((session) => session ? [session] : [])
+            : fetchWorkoutHistory(activeUserId),
           fetchWorkoutsData(activeUserId),
           initializeUser(activeUserId),
           fetchBodyMeasurementLogs(activeUserId),
@@ -484,7 +501,21 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
     }
     
     loadHistory();
-  }, [user, authLoading]);
+  }, [user, authLoading, routeSessionId, activeUserId]);
+
+  useEffect(() => {
+    if (!routeSessionId || loading) return;
+    const session = sessions.find((candidate) => candidate.id === routeSessionId);
+    if (!session) {
+      setRouteError('Session not found or unavailable.');
+      return;
+    }
+    setRouteError(null);
+    setExpandedSessionId(routeSessionId);
+    if (routeEditMode && !isReadOnlyClientMode) {
+      startEditingNotes(session);
+    }
+  }, [routeSessionId, routeEditMode, loading, sessions, isReadOnlyClientMode]);
 
   if (loading) {
     return (
@@ -501,6 +532,21 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
         <Activity className="w-8 h-8 text-red-500 mx-auto mb-3" />
         <h3 className="text-red-500 font-display font-medium text-lg mb-2">Error Loading History</h3>
         <p className="text-red-400 font-sans text-sm">{errorMsg}</p>
+      </div>
+    );
+  }
+
+  if (routeError) {
+    return (
+      <div className="bg-[#111] border border-red-900/50 rounded-[24px] p-8 text-center">
+        <p className="text-red-400 font-mono text-sm">{routeError}</p>
+        <button
+          type="button"
+          onClick={() => onResourceRouteChange?.('/logbook')}
+          className="mt-4 text-[#C0FF00] font-mono text-xs uppercase"
+        >
+          Back to logbook
+        </button>
       </div>
     );
   }
@@ -553,9 +599,12 @@ export const WorkoutHistory: React.FC<{ targetUserId?: string; isReadOnlyClientM
       </div>
       
       {expandedSessionId ? (
-        <div>
+        <div data-resource-type="logbook" data-resource-id={expandedSessionId}>
           <button 
-            onClick={() => setExpandedSessionId(null)}
+            onClick={() => {
+              setExpandedSessionId(null);
+              onResourceRouteChange?.('/logbook');
+            }}
             className="mb-4 text-[#C0FF00] font-sans font-bold text-sm flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
             <ChevronLeft className="w-5 h-5" />

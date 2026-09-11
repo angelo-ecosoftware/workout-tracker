@@ -247,6 +247,7 @@ export { logDailyBodyWeight, fetchBodyMeasurementLogs } from './db/biometrics.ts
 export {
   seedTemplatesIfMissing,
   fetchWorkoutsData,
+  fetchWorkoutById,
   saveWorkoutsAndExercises,
 } from './db/workouts.ts';
 export {
@@ -257,6 +258,7 @@ export {
   updateSessionPhotos,
   deleteSessions,
   fetchWorkoutHistory,
+  fetchSessionById,
   fetchSetsForSession,
   fetchAllSetsForUser,
   logSessionCompletion,

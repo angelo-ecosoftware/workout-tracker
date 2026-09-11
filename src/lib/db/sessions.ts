@@ -187,6 +187,34 @@ export async function fetchWorkoutHistory(userId: string): Promise<Session[]> {
   })) as Session[];
 }
 
+export async function fetchSessionById(userId: string, sessionId: string): Promise<Session | null> {
+  const { data, error } = await supabase
+    .from('sessions')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('id', sessionId)
+    .maybeSingle();
+  if (error || !data) return null;
+  const s = data as DbSessionRow;
+  return {
+    id: String(s.id),
+    userId: s.user_id,
+    workoutId: s.workout_id,
+    status: s.status || 'in_progress',
+    completedAt: s.completed_at ? new Date(s.completed_at) : null,
+    sleepHours: s.sleep_hours != null ? Number(s.sleep_hours) : undefined,
+    energyScore: s.energy_score != null ? Number(s.energy_score) : undefined,
+    notes: s.notes || undefined,
+    startedAt: s.started_at ? new Date(s.started_at) : new Date(),
+    coachNotes: s.coach_notes || null,
+    coachName: s.coach_name || null,
+    reviewedAt: s.reviewed_at ? new Date(s.reviewed_at) : null,
+    reviewedByCoachId: s.reviewed_by_coach_id || null,
+    reviewedByCoachName: s.reviewed_by_coach_name || null,
+    photos: Array.isArray(s.photos) ? s.photos : (s.photos ? [s.photos] : null),
+  } as Session;
+}
+
 export async function fetchSetsForSession(sessionId: string) {
   const { data, error } = await supabase
     .from('sets')
