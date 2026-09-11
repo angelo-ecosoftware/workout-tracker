@@ -5,6 +5,7 @@ import { saveWorkoutsAndExercises } from "../../lib/supabaseData.ts";
 import { Loader2, Plus, Settings } from "lucide-react";
 import { RoutineEditorModal } from "../modals/RoutineEditorModal.tsx";
 import { WelcomeModal } from "../modals/WelcomeModal.tsx";
+import { GeminiHelloModal } from "../modals/GeminiHelloModal.tsx";
 import { RoutineSplitSelector } from "./tracker/RoutineSplitSelector.tsx";
 import { RecoveryAndReadinessCard } from "./tracker/RecoveryAndReadinessCard.tsx";
 import { ExerciseCard } from "./tracker/ExerciseCard.tsx";
@@ -33,6 +34,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
   onResourceRouteChange,
 }) => {
   const { user } = useAuth();
+  const [isGeminiModalOpen, setIsGeminiModalOpen] = useState(false);
   const {
     workouts,
     setWorkouts,
@@ -208,11 +210,17 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
           </button>
           <button
             type="button"
+            onClick={() => setIsGeminiModalOpen(true)}
             className="inline-flex items-center gap-2 rounded-xl border border-[#333] bg-[#181818] px-5 py-3 font-display text-xs font-black italic uppercase tracking-wider text-gray-300 transition-all"
           >
             Generate a workout
           </button>
         </div>
+
+        <GeminiHelloModal
+          isOpen={isGeminiModalOpen}
+          onClose={() => setIsGeminiModalOpen(false)}
+        />
 
         {user && (
           <RoutineEditorModal
