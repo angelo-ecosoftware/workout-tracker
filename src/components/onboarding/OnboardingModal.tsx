@@ -64,11 +64,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    const previousBodyOverflow = document.body.style.overflow;
-    const previousHtmlOverflow = document.documentElement.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-
     initializeUser(userId)
       .then((savedProfile) => {
         setDays(savedProfile.trainingDays || []);
@@ -86,11 +81,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
       .catch(() => {
         // New users have no saved onboarding values yet.
       });
-
-    return () => {
-      document.body.style.overflow = previousBodyOverflow;
-      document.documentElement.style.overflow = previousHtmlOverflow;
-    };
   }, [isOpen, userId]);
 
   useEffect(() => {
@@ -183,7 +173,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/85 p-3 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
       <div className="relative flex max-h-[94vh] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-[#2b2b2b] bg-[#111] shadow-2xl">
         {stage === 'welcome' && (
-          <div className="overscroll-contain overflow-y-auto p-6 sm:p-9">
+          <div className="overflow-y-auto p-6 sm:p-9">
             <div className="flex items-center gap-2 text-[#C0FF00]">
               <Sparkles className="h-5 w-5" aria-hidden="true" />
               <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em]">First-time setup</span>
@@ -213,7 +203,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         )}
 
         {stage === 'form' && (
-          <div className="overscroll-contain overflow-y-auto p-5 sm:p-8">
+          <div className="overflow-y-auto p-5 sm:p-8">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <span className="font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-[#C0FF00]">Your onboarding profile</span>
