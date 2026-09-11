@@ -10,6 +10,7 @@ interface RoutineExerciseItemProps {
   totalExercises: number;
   onToggleEdit: () => void;
   onMove: (direction: 'up' | 'down') => void;
+  onReorder: (fromIndex: number, toIndex: number) => void;
   onUpdate: (updates: Partial<Exercise>) => void;
   onDelete: () => void;
   onViewDetails?: () => void;
@@ -22,6 +23,7 @@ export const RoutineExerciseItem: React.FC<RoutineExerciseItemProps> = ({
   totalExercises,
   onToggleEdit,
   onMove,
+  onReorder,
   onUpdate,
   onDelete,
   onViewDetails,
@@ -29,7 +31,26 @@ export const RoutineExerciseItem: React.FC<RoutineExerciseItemProps> = ({
   const hasCompoundWarning = isCompoundExerciseName(exercise.name);
 
   return (
-    <div className="bg-[#111111] border border-[#222222] rounded-xl p-3 space-y-2.5 transition-all">
+    <div
+      draggable={!isEditing}
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', String(index));
+      }}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        const fromIndex = Number(event.dataTransfer.getData('text/plain'));
+        if (Number.isInteger(fromIndex) && fromIndex !== index) {
+          onReorder(fromIndex, index);
+        }
+      }}
+      className="bg-[#111111] border border-[#222222] rounded-xl p-3 space-y-2.5 transition-all cursor-grab active:cursor-grabbing"
+      title={isEditing ? undefined : 'Drag to reorder exercise'}
+    >
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <span className="w-5 h-5 rounded bg-[#1a1a1a] text-[10px] font-mono font-bold text-gray-400 flex items-center justify-center shrink-0">

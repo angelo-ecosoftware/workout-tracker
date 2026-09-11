@@ -150,6 +150,20 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
     ));
   };
 
+  const handleReorderExercise = (fromIndex: number, toIndex: number) => {
+    if (!currentWorkout || fromIndex < 0 || toIndex < 0 || fromIndex >= currentWorkout.exercises.length || toIndex >= currentWorkout.exercises.length) {
+      return;
+    }
+    const list = [...currentWorkout.exercises];
+    const [movedExercise] = list.splice(fromIndex, 1);
+    list.splice(toIndex, 0, movedExercise);
+    setWorkouts(prev => prev.map((w, idx) =>
+      idx === selectedWorkoutIndex
+        ? { ...w, exercises: list, exerciseIds: list.map((exercise) => exercise.id) }
+        : w
+    ));
+  };
+
   const handleUpdateExercise = (exId: string, updates: Partial<Exercise>) => {
     if (!currentWorkout) return;
     const updatedExercises = currentWorkout.exercises.map(e => 
@@ -305,6 +319,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                         totalExercises={currentWorkout.exercises.length}
                         onToggleEdit={() => setEditingExerciseId(editingExerciseId === ex.id ? null : ex.id)}
                         onMove={(dir) => handleMoveExercise(exIdx, dir)}
+                        onReorder={handleReorderExercise}
                         onUpdate={(updates) => handleUpdateExercise(ex.id, updates)}
                         onDelete={() => handleDeleteExercise(ex.id)}
                         onViewDetails={() => setDetailExercise({ id: ex.id, name: ex.name })}
