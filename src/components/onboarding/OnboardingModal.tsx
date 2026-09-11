@@ -10,7 +10,6 @@ interface OnboardingModalProps {
   isOpen: boolean;
   userId: string;
   onComplete: () => void;
-  presentation?: 'modal' | 'page';
 }
 
 const DAYS = [
@@ -46,7 +45,6 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   isOpen,
   userId,
   onComplete,
-  presentation = 'modal',
 }) => {
   const [stage, setStage] = useState<'welcome' | 'form' | 'saving' | 'confirmSkip'>('welcome');
   const [goals, setGoals] = useState<string[]>([]);
@@ -216,7 +214,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   };
 
   return (
-    <div className={presentation === 'page' ? 'min-h-screen w-full bg-[#050505] p-3 sm:p-6' : 'fixed inset-0 z-[90] flex items-center justify-center bg-black/85 p-3 backdrop-blur-md'} role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/85 p-3 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
       <div className="relative flex max-h-[94vh] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-[#2b2b2b] bg-[#111] shadow-2xl">
         {stage === 'welcome' && (
           <div className="overflow-y-auto p-6 sm:p-9">

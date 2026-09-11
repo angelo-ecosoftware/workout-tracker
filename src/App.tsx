@@ -389,20 +389,6 @@ const GymAppContent: React.FC = () => {
     );
   }
 
-  if (routeState.kind === 'onboarding') {
-    return (
-      <OnboardingModal
-        isOpen
-        userId={user.uid}
-        presentation="page"
-        onComplete={() => {
-          setShowOnboarding(false);
-          navigateToRoute('/workouts');
-        }}
-      />
-    );
-  }
-
   if (isAdmin) {
     return (
       <div className="min-h-screen bg-[#050505] text-[#f3f4f6] pb-16">
@@ -440,7 +426,7 @@ const GymAppContent: React.FC = () => {
         onProfileClose={closeProfile}
       />
       <OnboardingModal
-        isOpen={showOnboarding}
+        isOpen={showOnboarding || routeState.kind === 'onboarding'}
         userId={user.uid}
         onComplete={() => {
           setShowOnboarding(false);
