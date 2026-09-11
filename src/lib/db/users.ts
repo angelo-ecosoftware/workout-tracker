@@ -168,6 +168,14 @@ export interface OnboardingProfileData {
   injuriesNotes?: string;
 }
 
+export function saveOnboardingDraft(userId: string, profile: Partial<OnboardingProfileData>): void {
+  setLocalStorageItem(`onboarding_profile_${userId}`, JSON.stringify({
+    ...profile,
+    onboardingStatus: 'in_progress',
+    onboardingCompletedAt: null,
+  }));
+}
+
 export async function saveOnboardingProfile(
   userId: string,
   profile: OnboardingProfileData,

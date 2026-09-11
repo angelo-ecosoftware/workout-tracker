@@ -7,6 +7,7 @@ export type CanonicalRoute =
   | { kind: 'routine'; routineId: string; mode: 'view' | 'editor' }
   | { kind: 'logbook'; logId: string; mode: 'view' | 'edit' }
   | { kind: 'section'; section: Exclude<AppSection, 'workouts' | 'routines' | 'exercises' | 'logbook'> }
+  | { kind: 'onboarding' }
   | { kind: 'profile' }
   | { kind: 'home' | 'login' };
 
@@ -69,6 +70,7 @@ export function parseCanonicalPath(pathname: string): CanonicalRoute | null {
   if (path === '/coach' || path === '/roster') return { kind: 'section', section: 'coach' };
   if (path === '/admin') return { kind: 'section', section: 'admin' };
   if (path === '/profile') return { kind: 'profile' };
+  if (path === '/onboarding') return { kind: 'onboarding' };
 
   const segments = path.split('/').filter(Boolean);
   const id = parseResourceId(segments[1]);
@@ -145,6 +147,8 @@ export function serializeRoute(route: CanonicalRoute): string {
       return `/logbook/${encodeURIComponent(route.logId)}${route.mode === 'view' ? '' : '/edit'}`;
     case 'profile':
       return '/profile';
+    case 'onboarding':
+      return '/onboarding';
   }
 }
 

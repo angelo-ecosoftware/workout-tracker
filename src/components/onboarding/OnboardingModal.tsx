@@ -3,13 +3,14 @@ import { Check, ChevronRight, CircleHelp, Loader2, ShieldCheck, Sparkles, X } fr
 import { driver, type Driver } from 'driver.js';
 import 'driver.js/dist/driver.css';
 import { FitnessLevel, Somatotype, UserProfile } from '../../models.ts';
-import { initializeUser, OnboardingProfileData, saveOnboardingProfile } from '../../lib/db/users.ts';
+import { initializeUser, OnboardingProfileData, saveOnboardingDraft, saveOnboardingProfile } from '../../lib/db/users.ts';
 import { ONBOARDING_GOALS } from '../modals/ProfileGoalsSection.tsx';
 
 interface OnboardingModalProps {
   isOpen: boolean;
   userId: string;
   onComplete: () => void;
+  presentation?: 'modal' | 'page';
 }
 
 const DAYS = [
@@ -45,6 +46,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   isOpen,
   userId,
   onComplete,
+  presentation = 'modal',
 }) => {
   const [stage, setStage] = useState<'welcome' | 'form' | 'saving' | 'confirmSkip'>('welcome');
   const [goals, setGoals] = useState<string[]>([]);
@@ -61,11 +63,36 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const driverRef = useRef<Driver | null>(null);
   const tourStartedRef = useRef(false);
+  const draftHydratedRef = useRef(false);
 
   useEffect(() => {
     if (!isOpen) return;
+    draftHydratedRef.current = false;
+
+    let localDraft: Partial<OnboardingProfileData> | null = null;
+    try {
+      const rawDraft = localStorage.getItem(`onboarding_profile_${userId}`);
+      localDraft = rawDraft ? JSON.parse(rawDraft) : null;
+    } catch {}
+
+    if (localDraft) {
+      setDays(localDraft.trainingDays || []);
+      setDuration(localDraft.sessionDurationMinutes || null);
+      setLevel(localDraft.fitnessLevel);
+      setLocation(localDraft.trainingLocation);
+      setGoals(localDraft.goals || []);
+      setDateOfBirth(localDraft.dateOfBirth || '');
+      setGender(localDraft.gender || 'prefer_not_to_say');
+      setHeight(localDraft.heightCm?.toString() || '');
+      setWeight(localDraft.weightKg?.toString() || '');
+      setBodyType(localDraft.bodyType || 'not_specified');
+      setInjuries(localDraft.injuriesNotes || '');
+      draftHydratedRef.current = true;
+    }
+
     initializeUser(userId)
       .then((savedProfile) => {
+        if (localDraft) return;
         setDays(savedProfile.trainingDays || []);
         setDuration(savedProfile.sessionDurationMinutes || null);
         setLevel(savedProfile.fitnessLevel === 'advanced' ? 'amateur' : savedProfile.fitnessLevel);
@@ -77,11 +104,30 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
         setWeight(savedProfile.weightKg?.toString() || savedProfile.metrics?.weight?.toString() || '');
         setBodyType(savedProfile.metrics?.somatotype || 'not_specified');
         setInjuries(savedProfile.injuriesNotes || savedProfile.metrics?.bodyMeasurementsNotes || '');
+        draftHydratedRef.current = true;
       })
       .catch(() => {
         // New users have no saved onboarding values yet.
+        draftHydratedRef.current = true;
       });
   }, [isOpen, userId]);
+
+  useEffect(() => {
+    if (!isOpen || !draftHydratedRef.current) return;
+    saveOnboardingDraft(userId, {
+      trainingDays: days,
+      sessionDurationMinutes: duration || undefined,
+      fitnessLevel: level,
+      trainingLocation: location,
+      goals,
+      dateOfBirth: dateOfBirth || undefined,
+      gender,
+      heightCm: height ? Number(height) : undefined,
+      weightKg: weight ? Number(weight) : undefined,
+      bodyType,
+      injuriesNotes: injuries || undefined,
+    });
+  }, [isOpen, userId, days, duration, level, location, goals, dateOfBirth, gender, height, weight, bodyType, injuries]);
 
   useEffect(() => {
     if (!isOpen || stage !== 'form' || tourStartedRef.current) return;
@@ -170,7 +216,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/85 p-3 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+    <div className={presentation === 'page' ? 'min-h-screen w-full bg-[#050505] p-3 sm:p-6' : 'fixed inset-0 z-[90] flex items-center justify-center bg-black/85 p-3 backdrop-blur-md'} role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
       <div className="relative flex max-h-[94vh] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-[#2b2b2b] bg-[#111] shadow-2xl">
         {stage === 'welcome' && (
           <div className="overflow-y-auto p-6 sm:p-9">

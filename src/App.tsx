@@ -187,12 +187,15 @@ const GymAppContent: React.FC = () => {
           profile.heightCm ||
           profile.weightKg
         );
-        setShowOnboarding(
+        const shouldShowOnboarding =
           !deferredLocally &&
           profile.onboardingStatus !== 'completed' &&
           profile.onboardingStatus !== 'deferred' &&
-          !(profile.onboardingStatus === 'not_started' && legacyProfileExists)
-        );
+          !(profile.onboardingStatus === 'not_started' && legacyProfileExists);
+        setShowOnboarding(shouldShowOnboarding);
+        if (shouldShowOnboarding && routeState.kind !== 'onboarding') {
+          navigateToRoute('/onboarding');
+        }
       })
       .catch(() => {
         if (!cancelled) setShowOnboarding(false);
@@ -201,7 +204,7 @@ const GymAppContent: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, routeState.kind]);
 
   // Default admins to admin tab
   useEffect(() => {
@@ -386,6 +389,20 @@ const GymAppContent: React.FC = () => {
     );
   }
 
+  if (routeState.kind === 'onboarding') {
+    return (
+      <OnboardingModal
+        isOpen
+        userId={user.uid}
+        presentation="page"
+        onComplete={() => {
+          setShowOnboarding(false);
+          navigateToRoute('/workouts');
+        }}
+      />
+    );
+  }
+
   if (isAdmin) {
     return (
       <div className="min-h-screen bg-[#050505] text-[#f3f4f6] pb-16">
@@ -425,7 +442,10 @@ const GymAppContent: React.FC = () => {
       <OnboardingModal
         isOpen={showOnboarding}
         userId={user.uid}
-        onComplete={() => setShowOnboarding(false)}
+        onComplete={() => {
+          setShowOnboarding(false);
+          navigateToRoute('/workouts');
+        }}
       />
 
       <main className="w-full min-w-0 max-w-4xl mx-auto px-4 py-8">
