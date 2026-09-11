@@ -9,7 +9,6 @@
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "generate:exercise-thumbnails": "tsx scripts/generateExerciseThumbnails.ts",
     "scrape:plus": "tsx scripts/scrapers/scrapePlusCatalog.ts",
     "scrape:dirk": "tsx scripts/scrapers/scrapeDirkDietFitness50.ts",
     "scrape:jumbo": "tsx scripts/scrapers/scrapeJumboDietFitness50.ts",
