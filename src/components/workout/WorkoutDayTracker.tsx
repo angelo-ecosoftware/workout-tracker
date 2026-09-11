@@ -19,12 +19,14 @@ import { SetPraiseToast } from "./tracker/SetPraiseToast.tsx";
 
 interface WorkoutDayTrackerProps {
   routeWorkoutId?: string | null;
+  routeExerciseId?: string | null;
   routeMode?: 'view' | 'info' | 'edit';
   onResourceRouteChange?: (path: string) => void;
 }
 
 export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
   routeWorkoutId = null,
+  routeExerciseId = null,
   routeMode = 'view',
   onResourceRouteChange,
 }) => {
@@ -105,12 +107,17 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
       setRouteError('Workout not found or unavailable.');
       return;
     }
+    if (routeExerciseId && !routedWorkout.exercises.some((exercise) => exercise.id === routeExerciseId)) {
+      setRouteError('Exercise not found or unavailable.');
+      return;
+    }
     setRouteError(null);
     if (activeWorkout?.id !== routedWorkout.id) setActiveWorkout(routedWorkout);
     if (routeMode === 'edit' && !isRoutineEditorOpen) setIsRoutineEditorOpen(true);
   }, [
     loading,
     routeWorkoutId,
+    routeExerciseId,
     routeMode,
     workouts,
     activeWorkout?.id,
@@ -385,7 +392,9 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
             {(() => {
               // In sequential set mode, only show 1 exercise: the current active exercise in order
               let exercisesToDisplay = activeWorkout.exercises;
-              if (isSequentialSetMode) {
+              if (routeExerciseId) {
+                exercisesToDisplay = activeWorkout.exercises.filter((ex) => ex.id === routeExerciseId);
+              } else if (isSequentialSetMode) {
                 // Find first non-skipped exercise that has at least one uncompleted set
                 const activeEx = activeWorkout.exercises.find((ex) => {
                   if (skippedExerciseIds.has(ex.id)) return false;
@@ -414,7 +423,22 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
                     isExpanded={isExpanded}
                     isSkipped={skippedExerciseIds.has(ex.id)}
                     isSequentialSetMode={isSequentialSetMode}
+                    routeExerciseId={routeExerciseId}
                     advice={advice}
+                    onOpenGuide={
+                      routeWorkoutId
+                        ? (exerciseId) => {
+                            onResourceRouteChange?.(
+                              `/workout/${encodeURIComponent(routeWorkoutId)}/exercise/${encodeURIComponent(exerciseId)}/info`
+                            );
+                          }
+                        : undefined
+                    }
+                    onCloseGuide={
+                      routeWorkoutId
+                        ? () => onResourceRouteChange?.(`/workout/${encodeURIComponent(routeWorkoutId)}`)
+                        : undefined
+                    }
                     onToggleExpand={() => {
                       const nextId = isExpanded ? null : ex.id;
                       setExpandedExerciseId(nextId);

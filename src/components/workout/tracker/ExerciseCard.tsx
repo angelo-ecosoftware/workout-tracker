@@ -27,9 +27,12 @@ interface ExerciseCardProps {
   isExpanded: boolean;
   isSkipped?: boolean;
   isSequentialSetMode?: boolean;
+  routeExerciseId?: string | null;
   advice: { action: 'increase' | 'keep' | 'deload'; details: string };
   onToggleExpand: () => void;
   onToggleSkip?: (exerciseId: string) => void;
+  onOpenGuide?: (exerciseId: string) => void;
+  onCloseGuide?: () => void;
   onUpdateInput: (
     key: string,
     field: 'weight' | 'reps' | 'durationSeconds' | 'difficulty',
@@ -50,14 +53,33 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
   isExpanded,
   isSkipped = false,
   isSequentialSetMode = false,
+  routeExerciseId = null,
   advice,
   onToggleExpand,
   onToggleSkip,
+  onOpenGuide,
+  onCloseGuide,
   onUpdateInput,
   onTextInput,
   onToggleCompleted,
 }) => {
   const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const isGuideRouteOpen = routeExerciseId === exercise.id;
+  const guideIsOpen = onOpenGuide ? isGuideRouteOpen : isGuideOpen;
+  const openGuide = () => {
+    if (onOpenGuide) {
+      onOpenGuide(exercise.id);
+    } else {
+      setIsGuideOpen(true);
+    }
+  };
+  const closeGuide = () => {
+    if (onCloseGuide) {
+      onCloseGuide();
+    } else {
+      setIsGuideOpen(false);
+    }
+  };
   const [gifUrl, setGifUrl] = useState<string | null>(() =>
     getExerciseThumbnailSync(exercise.name, exercise.id)
   );
@@ -127,12 +149,12 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
                 tabIndex={0}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setIsGuideOpen(true);
+                  openGuide();
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.stopPropagation();
-                    setIsGuideOpen(true);
+                    openGuide();
                   }
                 }}
                 title={`Open form guide for ${displayName}`}
@@ -172,12 +194,12 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
                     tabIndex={0}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setIsGuideOpen(true);
+                      openGuide();
                     }}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.stopPropagation();
-                        setIsGuideOpen(true);
+                        openGuide();
                       }
                     }}
                     title={`View guide & muscle anatomy for ${displayName}`}
@@ -364,12 +386,12 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
       )}
 
       <ExerciseGuideDrawer
-        isOpen={isGuideOpen}
+        isOpen={guideIsOpen}
         exerciseName={displayName}
         exerciseId={exercise.id}
         userId={userProfile?.userId}
         initialCustomCues={exercise.customCues}
-        onClose={() => setIsGuideOpen(false)}
+        onClose={closeGuide}
       />
     </div>
   );

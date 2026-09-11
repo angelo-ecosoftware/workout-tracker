@@ -3,6 +3,7 @@ export type AppSection = 'workouts' | 'routines' | 'logbook' | 'insights' | 'die
 export type CanonicalRoute =
   | { kind: 'collection'; collection: 'workouts' | 'routines' | 'logbook' }
   | { kind: 'workout'; workoutId: string; mode: 'view' | 'info' | 'edit' }
+  | { kind: 'workoutExercise'; workoutId: string; exerciseId: string }
   | { kind: 'routine'; routineId: string; mode: 'view' | 'editor' }
   | { kind: 'logbook'; logId: string; mode: 'view' | 'edit' }
   | { kind: 'section'; section: Exclude<AppSection, 'workouts' | 'routines' | 'logbook'> }
@@ -71,6 +72,17 @@ export function parseCanonicalPath(pathname: string): CanonicalRoute | null {
 
   const segments = path.split('/').filter(Boolean);
   const id = parseResourceId(segments[1]);
+  const childId = parseResourceId(segments[3]);
+  if (
+    segments[0] === 'workout' &&
+    id &&
+    segments[2] === 'exercise' &&
+    childId &&
+    segments[4] === 'info' &&
+    segments.length === 5
+  ) {
+    return { kind: 'workoutExercise', workoutId: id, exerciseId: childId };
+  }
   if (segments[0] === 'workout' && id && segments.length <= 3) {
     const mode = segments[2];
     if (!mode) return { kind: 'workout', workoutId: id, mode: 'view' };
@@ -125,6 +137,8 @@ export function serializeRoute(route: CanonicalRoute): string {
       return `/${route.collection}`;
     case 'workout':
       return `/workout/${encodeURIComponent(route.workoutId)}${route.mode === 'view' ? '' : `/${route.mode}`}`;
+    case 'workoutExercise':
+      return `/workout/${encodeURIComponent(route.workoutId)}/exercise/${encodeURIComponent(route.exerciseId)}/info`;
     case 'routine':
       return `/routine/${encodeURIComponent(route.routineId)}${route.mode === 'view' ? '' : '/editor'}`;
     case 'logbook':
@@ -145,6 +159,7 @@ export function migrateLegacyLocation(pathname: string, hash = ''): string | nul
 
 export function isResourceRoute(route: CanonicalRoute): route is
   | Extract<CanonicalRoute, { kind: 'workout' }>
+  | Extract<CanonicalRoute, { kind: 'workoutExercise' }>
   | Extract<CanonicalRoute, { kind: 'routine' }>
   | Extract<CanonicalRoute, { kind: 'logbook' }> {
   return route.kind === 'workout' || route.kind === 'routine' || route.kind === 'logbook';
@@ -153,6 +168,7 @@ export function isResourceRoute(route: CanonicalRoute): route is
 export function getCollectionForRoute(route: CanonicalRoute): AppSection | null {
   if (route.kind === 'collection') return route.collection;
   if (route.kind === 'workout') return 'workouts';
+  if (route.kind === 'workoutExercise') return 'workouts';
   if (route.kind === 'routine') return 'routines';
   if (route.kind === 'logbook') return 'logbook';
   return route.kind === 'section' ? route.section : null;

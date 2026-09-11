@@ -440,7 +440,12 @@ const GymAppContent: React.FC = () => {
               <div>
                 {!inspectingClient && getCollectionForRoute(routeState) === 'workouts' && (
                   <WorkoutDayTracker
-                    routeWorkoutId={routeState.kind === 'workout' ? routeState.workoutId : null}
+                    routeWorkoutId={
+                      routeState.kind === 'workout' || routeState.kind === 'workoutExercise'
+                        ? routeState.workoutId
+                        : null
+                    }
+                    routeExerciseId={routeState.kind === 'workoutExercise' ? routeState.exerciseId : null}
                     routeMode={routeState.kind === 'workout' ? routeState.mode : 'view'}
                     onResourceRouteChange={navigateToRoute}
                   />
