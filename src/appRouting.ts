@@ -60,7 +60,7 @@ function parseResourceId(segment: string | undefined): string | null {
 
 export function parseCanonicalPath(pathname: string): CanonicalRoute | null {
   const path = normalizePath(pathname);
-  if (path === '/workouts') return { kind: 'collection', collection: 'workouts' };
+  if (path === '/sessions' || path === '/workouts') return { kind: 'collection', collection: 'workouts' };
   if (path === '/routines') return { kind: 'collection', collection: 'routines' };
   if (path === '/exercises') return { kind: 'collection', collection: 'exercises' };
   if (path === '/logbook') return { kind: 'collection', collection: 'logbook' };
@@ -136,7 +136,7 @@ export function serializeRoute(route: CanonicalRoute): string {
     case 'section':
       return `/${route.section}`;
     case 'collection':
-      return `/${route.collection}`;
+      return route.collection === 'workouts' ? '/sessions' : `/${route.collection}`;
     case 'workout':
       return `/workout/${encodeURIComponent(route.workoutId)}${route.mode === 'view' ? '' : `/${route.mode}`}`;
     case 'workoutExercise':

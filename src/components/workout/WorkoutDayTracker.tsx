@@ -142,7 +142,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
         <p className="text-red-400 font-mono text-sm">{routeError}</p>
         <button
           type="button"
-          onClick={() => onResourceRouteChange?.('/workouts')}
+          onClick={() => onResourceRouteChange?.('/sessions')}
           className="mt-4 text-[#C0FF00] font-mono text-xs uppercase"
         >
           Back to workouts
@@ -158,7 +158,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
         presentation="page"
         onClose={() => {
           setIsRoutineEditorOpen(false);
-          onResourceRouteChange?.(activeWorkout ? `/workout/${encodeURIComponent(activeWorkout.id)}` : '/workouts');
+          onResourceRouteChange?.(activeWorkout ? `/workout/${encodeURIComponent(activeWorkout.id)}` : '/sessions');
         }}
         userId={user.uid}
         workouts={workouts}
@@ -167,7 +167,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
           await saveWorkoutsAndExercises(user.uid, updatedWorkouts);
           setWorkouts(updatedWorkouts);
           await loadWorkflowState();
-          onResourceRouteChange?.(activeWorkout ? `/workout/${encodeURIComponent(activeWorkout.id)}` : '/workouts');
+          onResourceRouteChange?.(activeWorkout ? `/workout/${encodeURIComponent(activeWorkout.id)}` : '/sessions');
         }}
       />
     );
@@ -213,7 +213,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
             isOpen={isRoutineEditorOpen}
             onClose={() => {
               setIsRoutineEditorOpen(false);
-              onResourceRouteChange?.(activeWorkout ? `/workout/${encodeURIComponent(activeWorkout.id)}` : '/workouts');
+              onResourceRouteChange?.(activeWorkout ? `/workout/${encodeURIComponent(activeWorkout.id)}` : '/sessions');
             }}
             userId={user.uid}
             workouts={workouts}
@@ -239,7 +239,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
         <div>
           <button
             type="button"
-            onClick={() => onResourceRouteChange?.('/workouts')}
+            onClick={() => onResourceRouteChange?.('/sessions')}
             className="text-[#C0FF00] font-mono text-xs uppercase"
           >
             ← All workouts

@@ -430,7 +430,7 @@ const GymAppContent: React.FC = () => {
         userId={user.uid}
         onComplete={() => {
           setShowOnboarding(false);
-          navigateToRoute('/workouts');
+          navigateToRoute('/sessions');
         }}
       />
 
