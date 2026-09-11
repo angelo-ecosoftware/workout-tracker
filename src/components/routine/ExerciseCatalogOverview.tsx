@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Check, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Dumbbell, Search } from 'lucide-react';
 import { CatalogExercise } from '../../data/exerciseCatalog.ts';
 import { fetchCatalogExercisePage } from '../../lib/db/exerciseCatalog.ts';
+import { getExerciseThumbnailSync } from '../../lib/exerciseApiService.ts';
 
 interface ExerciseCatalogOverviewProps {
   selectedExerciseIds: Set<string>;
@@ -122,8 +123,9 @@ export const ExerciseCatalogOverview: React.FC<ExerciseCatalogOverviewProps> = (
           <div className="px-4 py-10 text-center text-xs font-mono text-gray-500">No exercises match these filters.</div>
         ) : (
           <div>
-            {items.map((exercise, index) => {
+            {items.map((exercise) => {
               const added = selectedExerciseIds.has(exercise.id);
+              const imageUrl = exercise.images?.[0] || getExerciseThumbnailSync(exercise.name, exercise.id);
               return (
                 <div
                   key={exercise.id}
@@ -132,7 +134,20 @@ export const ExerciseCatalogOverview: React.FC<ExerciseCatalogOverviewProps> = (
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className="w-7 shrink-0 text-[10px] font-mono text-gray-600">{(page - 1) * pageSize + index + 1}</span>
+                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-[#333] bg-[#0b0b0b] shadow-[0_0_16px_rgba(192,255,0,0.08)]">
+                      {imageUrl ? (
+                        <img
+                          src={imageUrl}
+                          alt={`${exercise.name} exercise demonstration`}
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[#C0FF00]/70">
+                          <Dumbbell className="h-6 w-6" />
+                        </div>
+                      )}
+                    </div>
                     <div>
                       <p className="text-sm font-bold text-white">{exercise.name}</p>
                       <p className="text-[10px] font-mono text-gray-500">{exercise.defaultSets} sets · {exercise.defaultRepMin}-{exercise.defaultRepMax} reps</p>
