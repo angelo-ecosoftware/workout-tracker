@@ -33,6 +33,8 @@ interface ExerciseGuideDrawerProps {
   exerciseId?: string;
   userId?: string;
   initialCustomCues?: CustomExerciseCues;
+  editMode?: boolean;
+  onEditModeChange?: (editing: boolean) => void;
   onClose: () => void;
 }
 
@@ -42,6 +44,8 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
   exerciseId,
   userId,
   initialCustomCues,
+  editMode,
+  onEditModeChange,
   onClose,
 }) => {
   const [activePhase, setActivePhase] = useState<'setup' | 'peak'>('setup');
@@ -77,6 +81,12 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
     }
   }, [initialCustomCues]);
 
+  useEffect(() => {
+    if (editMode !== undefined) {
+      setIsEditingCues(editMode);
+    }
+  }, [editMode, isOpen]);
+
   // Guarantee strictly single-exercise format without compound alternatives
   const singleExerciseName = useMemo(() => {
     return formatSingleExerciseName(exerciseName);
@@ -104,6 +114,10 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
   ];
 
   const handleToggleEdit = (targetSection?: 'motion' | 'biocues') => {
+    if (onEditModeChange) {
+      onEditModeChange(!isEditingCues);
+      return;
+    }
     if (!isEditingCues) {
       // Pre-fill existing defaults into customCues if empty so athlete directly modifies what is already there
       setCustomCues(prev => ({
@@ -588,7 +602,7 @@ export const ExerciseGuideDrawer: React.FC<ExerciseGuideDrawerProps> = ({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => setIsEditingCues(false)}
+                onClick={() => onEditModeChange ? onEditModeChange(false) : setIsEditingCues(false)}
                 className="w-1/3 py-3 px-3 rounded-xl bg-[#1c1c1c] hover:bg-[#242424] border border-[#333] text-gray-300 font-mono text-xs font-bold uppercase tracking-wider transition-colors cursor-pointer text-center"
               >
                 Cancel

@@ -446,6 +446,7 @@ const GymAppContent: React.FC = () => {
                         : null
                     }
                     routeExerciseId={routeState.kind === 'workoutExercise' ? routeState.exerciseId : null}
+                    routeExerciseMode={routeState.kind === 'workoutExercise' ? routeState.mode : null}
                     routeMode={routeState.kind === 'workout' ? routeState.mode : 'view'}
                     onResourceRouteChange={navigateToRoute}
                   />

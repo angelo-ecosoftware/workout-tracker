@@ -28,11 +28,13 @@ interface ExerciseCardProps {
   isSkipped?: boolean;
   isSequentialSetMode?: boolean;
   routeExerciseId?: string | null;
+  routeExerciseMode?: 'info' | 'edit' | null;
   advice: { action: 'increase' | 'keep' | 'deload'; details: string };
   onToggleExpand: () => void;
   onToggleSkip?: (exerciseId: string) => void;
   onOpenGuide?: (exerciseId: string) => void;
   onCloseGuide?: () => void;
+  onEditGuide?: (editing: boolean) => void;
   onUpdateInput: (
     key: string,
     field: 'weight' | 'reps' | 'durationSeconds' | 'difficulty',
@@ -54,11 +56,13 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
   isSkipped = false,
   isSequentialSetMode = false,
   routeExerciseId = null,
+  routeExerciseMode = null,
   advice,
   onToggleExpand,
   onToggleSkip,
   onOpenGuide,
   onCloseGuide,
+  onEditGuide,
   onUpdateInput,
   onTextInput,
   onToggleCompleted,
@@ -391,6 +395,8 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
         exerciseId={exercise.id}
         userId={userProfile?.userId}
         initialCustomCues={exercise.customCues}
+        editMode={isGuideRouteOpen ? routeExerciseMode === 'edit' : undefined}
+        onEditModeChange={onEditGuide}
         onClose={closeGuide}
       />
     </div>

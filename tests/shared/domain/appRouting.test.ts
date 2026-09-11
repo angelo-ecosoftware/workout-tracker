@@ -12,7 +12,7 @@ describe('canonical application routes', () => {
     ['/workout/w-1', { kind: 'workout', workoutId: 'w-1', mode: 'view' }],
     ['/workout/w-1/info', { kind: 'workout', workoutId: 'w-1', mode: 'info' }],
     ['/workout/w-1/edit', { kind: 'workout', workoutId: 'w-1', mode: 'edit' }],
-    ['/workout/w-1/exercise/e-1/info', { kind: 'workoutExercise', workoutId: 'w-1', exerciseId: 'e-1' }],
+    ['/workout/w-1/exercise/e-1/info', { kind: 'workoutExercise', workoutId: 'w-1', exerciseId: 'e-1', mode: 'info' }],
     ['/routines', { kind: 'collection', collection: 'routines' }],
     ['/routine/r-1', { kind: 'routine', routineId: 'r-1', mode: 'view' }],
     ['/routine/r-1/editor', { kind: 'routine', routineId: 'r-1', mode: 'editor' }],
@@ -32,8 +32,11 @@ describe('canonical application routes', () => {
 
   it('serializes canonical states without competing route forms', () => {
     expect(serializeRoute({ kind: 'workout', workoutId: 'w/1', mode: 'edit' })).toBe('/workout/w%2F1/edit');
-    expect(serializeRoute({ kind: 'workoutExercise', workoutId: 'w-1', exerciseId: 'e-1' })).toBe(
+    expect(serializeRoute({ kind: 'workoutExercise', workoutId: 'w-1', exerciseId: 'e-1', mode: 'info' })).toBe(
       '/workout/w-1/exercise/e-1/info'
+    );
+    expect(serializeRoute({ kind: 'workoutExercise', workoutId: 'w-1', exerciseId: 'e-1', mode: 'edit' })).toBe(
+      '/workout/w-1/exercise/e-1/edit'
     );
     expect(serializeRoute({ kind: 'routine', routineId: 'r-1', mode: 'view' })).toBe('/routine/r-1');
     expect(serializeRoute({ kind: 'logbook', logId: 's-1', mode: 'edit' })).toBe('/logbook/s-1/edit');

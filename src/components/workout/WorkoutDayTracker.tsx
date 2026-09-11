@@ -20,6 +20,7 @@ import { SetPraiseToast } from "./tracker/SetPraiseToast.tsx";
 interface WorkoutDayTrackerProps {
   routeWorkoutId?: string | null;
   routeExerciseId?: string | null;
+  routeExerciseMode?: 'info' | 'edit' | null;
   routeMode?: 'view' | 'info' | 'edit';
   onResourceRouteChange?: (path: string) => void;
 }
@@ -27,6 +28,7 @@ interface WorkoutDayTrackerProps {
 export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
   routeWorkoutId = null,
   routeExerciseId = null,
+  routeExerciseMode = null,
   routeMode = 'view',
   onResourceRouteChange,
 }) => {
@@ -425,6 +427,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
                     isSkipped={skippedExerciseIds.has(ex.id)}
                     isSequentialSetMode={isSequentialSetMode}
                     routeExerciseId={routeExerciseId}
+                    routeExerciseMode={routeExerciseMode}
                     advice={advice}
                     onOpenGuide={
                       guideRouteWorkoutId
@@ -438,6 +441,17 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
                     onCloseGuide={
                       guideRouteWorkoutId
                         ? () => onResourceRouteChange?.(`/workout/${encodeURIComponent(guideRouteWorkoutId)}`)
+                        : undefined
+                    }
+                    onEditGuide={
+                      guideRouteWorkoutId
+                        ? (editing) => {
+                            onResourceRouteChange?.(
+                              editing
+                                ? `/workout/${encodeURIComponent(guideRouteWorkoutId)}/exercise/${encodeURIComponent(ex.id)}/edit`
+                                : `/workout/${encodeURIComponent(guideRouteWorkoutId)}/exercise/${encodeURIComponent(ex.id)}/info`
+                            );
+                          }
                         : undefined
                     }
                     onToggleExpand={() => {

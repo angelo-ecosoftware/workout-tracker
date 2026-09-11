@@ -3,7 +3,7 @@ export type AppSection = 'workouts' | 'routines' | 'logbook' | 'insights' | 'die
 export type CanonicalRoute =
   | { kind: 'collection'; collection: 'workouts' | 'routines' | 'logbook' }
   | { kind: 'workout'; workoutId: string; mode: 'view' | 'info' | 'edit' }
-  | { kind: 'workoutExercise'; workoutId: string; exerciseId: string }
+  | { kind: 'workoutExercise'; workoutId: string; exerciseId: string; mode: 'info' | 'edit' }
   | { kind: 'routine'; routineId: string; mode: 'view' | 'editor' }
   | { kind: 'logbook'; logId: string; mode: 'view' | 'edit' }
   | { kind: 'section'; section: Exclude<AppSection, 'workouts' | 'routines' | 'logbook'> }
@@ -78,10 +78,10 @@ export function parseCanonicalPath(pathname: string): CanonicalRoute | null {
     id &&
     segments[2] === 'exercise' &&
     childId &&
-    segments[4] === 'info' &&
+    (segments[4] === 'info' || segments[4] === 'edit') &&
     segments.length === 5
   ) {
-    return { kind: 'workoutExercise', workoutId: id, exerciseId: childId };
+    return { kind: 'workoutExercise', workoutId: id, exerciseId: childId, mode: segments[4] };
   }
   if (segments[0] === 'workout' && id && segments.length <= 3) {
     const mode = segments[2];
@@ -138,7 +138,7 @@ export function serializeRoute(route: CanonicalRoute): string {
     case 'workout':
       return `/workout/${encodeURIComponent(route.workoutId)}${route.mode === 'view' ? '' : `/${route.mode}`}`;
     case 'workoutExercise':
-      return `/workout/${encodeURIComponent(route.workoutId)}/exercise/${encodeURIComponent(route.exerciseId)}/info`;
+      return `/workout/${encodeURIComponent(route.workoutId)}/exercise/${encodeURIComponent(route.exerciseId)}/${route.mode}`;
     case 'routine':
       return `/routine/${encodeURIComponent(route.routineId)}${route.mode === 'view' ? '' : '/editor'}`;
     case 'logbook':
