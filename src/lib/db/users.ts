@@ -116,8 +116,9 @@ export async function initializeUser(userId: string, email?: string, name?: stri
   const resolvedMetrics: UserMetrics = {
     ...(localMetrics || {}),
     ...(data.metrics || {}),
-    somatotype: data.body_type || data.metrics?.somatotype || localMetrics?.somatotype,
   };
+  const resolvedBodyType = data.body_type || data.metrics?.somatotype || localMetrics?.somatotype;
+  if (resolvedBodyType) resolvedMetrics.somatotype = resolvedBodyType;
 
   return {
     userId: data.user_id || userId,
