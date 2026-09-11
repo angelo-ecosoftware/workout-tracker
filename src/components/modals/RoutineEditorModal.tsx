@@ -3,7 +3,6 @@ import { Workout, Exercise } from '../../models.ts';
 import { 
   X, Trash2, Save, Layers, Check, AlertCircle, RefreshCw, Search, Bookmark
 } from 'lucide-react';
-import { ExerciseSearchPicker } from '../workout/ExerciseSearchPicker.tsx';
 import { ConfirmModal } from '../ui/ConfirmModal.tsx';
 import { RoutineDaySelector } from './RoutineDaySelector.tsx';
 import { RoutineExerciseItem } from './RoutineExerciseItem.tsx';
@@ -36,7 +35,6 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   );
   const [selectedWorkoutIndex, setSelectedWorkoutIndex] = useState<number>(0);
   const [editingExerciseId, setEditingExerciseId] = useState<string | null>(null);
-  const [isSearchPickerOpen, setIsSearchPickerOpen] = useState(false);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -95,43 +93,29 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
   };
 
   // Exercise management within current routine
-  const handleAddExerciseFromPicker = (pickedEx: Partial<Exercise>) => {
-    if (!currentWorkout) return;
-    const newExId = pickedEx.id || `ex_${Date.now()}`;
-    const newEx: Exercise = {
-      id: newExId,
-      name: formatSingleExerciseName(pickedEx.name || 'New Exercise'),
-      type: pickedEx.type || 'strength',
-      targetSets: pickedEx.targetSets || 3,
-      targetRepMin: pickedEx.targetRepMin || 8,
-      targetRepMax: pickedEx.targetRepMax || 12
-    };
-
-    const updatedExercises = [...currentWorkout.exercises, newEx];
-    const updatedIds = [...(currentWorkout.exerciseIds || []), newExId];
-
-    setWorkouts(prev => prev.map((w, idx) => 
-      idx === selectedWorkoutIndex 
-        ? { ...w, exercises: updatedExercises, exerciseIds: updatedIds }
-        : w
-    ));
-    setIsSearchPickerOpen(false);
-    setEditingExerciseId(newExId);
-  };
-
   const handleAddExerciseFromCatalog = (pickedEx: CatalogExercise) => {
-    handleAddExerciseFromPicker({
+    if (!currentWorkout) return;
+    const newEx: Exercise = {
       id: pickedEx.id,
-      name: pickedEx.name,
+      name: formatSingleExerciseName(pickedEx.name),
       type: pickedEx.type,
       targetSets: pickedEx.defaultSets,
       targetRepMin: pickedEx.defaultRepMin,
       targetRepMax: pickedEx.defaultRepMax,
-    });
+    };
+    const updatedExercises = [...currentWorkout.exercises, newEx];
+    const updatedIds = [...(currentWorkout.exerciseIds || []), newEx.id];
+
+    setWorkouts(prev => prev.map((w, idx) =>
+      idx === selectedWorkoutIndex
+        ? { ...w, exercises: updatedExercises, exerciseIds: updatedIds }
+        : w
+    ));
+    setEditingExerciseId(newEx.id);
   };
 
   const handleAddExercise = () => {
-    setIsSearchPickerOpen(true);
+    document.getElementById('routine-exercise-catalog')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleDeleteExercise = (exId: string) => {
@@ -306,15 +290,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                   </button>
                 </div>
 
-                {/* Exercise Search & Autocomplete Picker */}
-                {isSearchPickerOpen && (
-                  <ExerciseSearchPicker
-                    onSelectExercise={handleAddExerciseFromPicker}
-                    onClose={() => setIsSearchPickerOpen(false)}
-                  />
-                )}
-
-                {currentWorkout.exercises.length === 0 && !isSearchPickerOpen ? (
+                {currentWorkout.exercises.length === 0 ? (
                   <div className="text-center py-6 text-xs text-gray-500 font-mono border border-dashed border-[#262626] rounded-xl">
                     No exercises in this routine yet. Click "Find & Add Exercise" above.
                   </div>
@@ -347,7 +323,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
         </div>
 
         {isPage && (
-          <div className="px-4 pb-5 sm:px-6">
+          <div id="routine-exercise-catalog" className="px-4 pb-5 sm:px-6">
             <ExerciseCatalogOverview
               selectedExerciseIds={new Set(workouts.flatMap((workout) => workout.exercises.map((exercise) => exercise.id)))}
               onAddExercise={handleAddExerciseFromCatalog}
