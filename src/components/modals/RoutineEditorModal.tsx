@@ -259,6 +259,30 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
             onAddWorkoutDay={handleAddWorkoutDay}
           />
 
+          <div className="flex items-center justify-end gap-3">
+            {hasUnsavedChanges && (
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300">
+                Unsaved changes
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={handleSaveAll}
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 rounded-xl bg-[#C0FF00] px-4 py-2.5 text-black font-display font-black italic uppercase text-xs tracking-wider transition-all shadow-[0_0_20px_rgba(192,255,0,0.2)] hover:bg-[#a6dc00] disabled:opacity-50 cursor-pointer"
+            >
+              {isSaving ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5" /> Save Changes
+                </>
+              )}
+            </button>
+          </div>
+
           {/* Active Workout Details */}
           {currentWorkout ? (
             <div className="bg-[#161616] border border-[#262626] rounded-2xl p-4 space-y-4">
@@ -340,42 +364,6 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
             />
           </div>
         )}
-
-        {/* Footer Actions */}
-        <div className="sticky bottom-0 z-20 flex items-center justify-between gap-3 border-t border-[#222] bg-[#141414]/95 p-4 shadow-[0_-12px_24px_rgba(0,0,0,0.35)] backdrop-blur-md sm:p-5">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            className="px-4 py-2.5 rounded-xl border border-[#333] text-gray-400 hover:text-white font-mono text-xs font-bold transition-colors cursor-pointer"
-          >
-            Cancel
-          </button>
-          
-          <div className="flex items-center gap-3">
-            {hasUnsavedChanges && (
-              <span className="hidden text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300 sm:inline">
-                Unsaved changes
-              </span>
-            )}
-            <button
-            type="button"
-            onClick={handleSaveAll}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#C0FF00] hover:bg-[#a6dc00] text-black font-display font-black italic uppercase text-xs tracking-wider transition-all shadow-[0_0_20px_rgba(192,255,0,0.2)] disabled:opacity-50 cursor-pointer"
-          >
-            {isSaving ? (
-              <>
-                <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Saving...
-              </>
-            ) : (
-              <>
-                <Save className="w-3.5 h-3.5" /> Save Changes
-              </>
-            )}
-            </button>
-          </div>
-        </div>
 
       </div>
 
