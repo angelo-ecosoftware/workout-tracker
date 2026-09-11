@@ -131,25 +131,6 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
     if (editingExerciseId === exId) setEditingExerciseId(null);
   };
 
-  const handleMoveExercise = (index: number, direction: 'up' | 'down') => {
-    if (!currentWorkout) return;
-    const targetIdx = direction === 'up' ? index - 1 : index + 1;
-    if (targetIdx < 0 || targetIdx >= currentWorkout.exercises.length) return;
-
-    const list = [...currentWorkout.exercises];
-    const temp = list[index];
-    list[index] = list[targetIdx];
-    list[targetIdx] = temp;
-
-    const idList = list.map(e => e.id);
-
-    setWorkouts(prev => prev.map((w, idx) => 
-      idx === selectedWorkoutIndex 
-        ? { ...w, exercises: list, exerciseIds: idList }
-        : w
-    ));
-  };
-
   const handleReorderExercise = (fromIndex: number, toIndex: number) => {
     if (!currentWorkout || fromIndex < 0 || toIndex < 0 || fromIndex >= currentWorkout.exercises.length || toIndex >= currentWorkout.exercises.length) {
       return;
@@ -316,9 +297,7 @@ export const RoutineEditorModal: React.FC<RoutineEditorModalProps> = ({
                         exercise={ex}
                         index={exIdx}
                         isEditing={editingExerciseId === ex.id}
-                        totalExercises={currentWorkout.exercises.length}
                         onToggleEdit={() => setEditingExerciseId(editingExerciseId === ex.id ? null : ex.id)}
-                        onMove={(dir) => handleMoveExercise(exIdx, dir)}
                         onReorder={handleReorderExercise}
                         onUpdate={(updates) => handleUpdateExercise(ex.id, updates)}
                         onDelete={() => handleDeleteExercise(ex.id)}

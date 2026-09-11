@@ -1,15 +1,13 @@
 import React from 'react';
 import { Exercise, ExerciseType } from '../../models.ts';
-import { ChevronUp, ChevronDown, Edit3, Trash2, AlertCircle, Info } from 'lucide-react';
+import { Edit3, Trash2, AlertCircle, Info } from 'lucide-react';
 import { formatSingleExerciseName, isCompoundExerciseName } from '../../lib/exerciseSearch.ts';
 
 interface RoutineExerciseItemProps {
   exercise: Exercise;
   index: number;
   isEditing: boolean;
-  totalExercises: number;
   onToggleEdit: () => void;
-  onMove: (direction: 'up' | 'down') => void;
   onReorder: (fromIndex: number, toIndex: number) => void;
   onUpdate: (updates: Partial<Exercise>) => void;
   onDelete: () => void;
@@ -20,9 +18,7 @@ export const RoutineExerciseItem: React.FC<RoutineExerciseItemProps> = ({
   exercise,
   index,
   isEditing,
-  totalExercises,
   onToggleEdit,
-  onMove,
   onReorder,
   onUpdate,
   onDelete,
@@ -97,7 +93,7 @@ export const RoutineExerciseItem: React.FC<RoutineExerciseItemProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           {onViewDetails && isEditing && (
             <button
               type="button"
@@ -109,24 +105,16 @@ export const RoutineExerciseItem: React.FC<RoutineExerciseItemProps> = ({
               <Info className="w-3.5 h-3.5" />
             </button>
           )}
-          <button
-            type="button"
-            disabled={index === 0}
-            onClick={() => onMove('up')}
-            className="p-1 hover:bg-[#222] text-gray-400 hover:text-white disabled:opacity-30 rounded cursor-pointer"
-            title="Move up"
+          <div
+            className="flex h-9 w-9 shrink-0 cursor-grab flex-col items-center justify-center gap-1 rounded-lg border border-[#3a3a3a] bg-[#1a1a1a] shadow-inner active:cursor-grabbing"
+            role="img"
+            aria-label="Drag to reorder exercise"
+            title="Drag to reorder exercise"
           >
-            <ChevronUp className="w-3.5 h-3.5" />
-          </button>
-          <button
-            type="button"
-            disabled={index === totalExercises - 1}
-            onClick={() => onMove('down')}
-            className="p-1 hover:bg-[#222] text-gray-400 hover:text-white disabled:opacity-30 rounded cursor-pointer"
-            title="Move down"
-          >
-            <ChevronDown className="w-3.5 h-3.5" />
-          </button>
+            <span className="h-1 w-5 rounded-full bg-gray-500" />
+            <span className="h-1 w-5 rounded-full bg-gray-500" />
+            <span className="h-1 w-5 rounded-full bg-gray-500" />
+          </div>
           <button
             type="button"
             onClick={onToggleEdit}
