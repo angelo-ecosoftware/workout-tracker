@@ -235,7 +235,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
       data-resource-id={routeWorkoutId || undefined}
     >
       {routeWorkoutId && (
-        <div className="flex items-center justify-between gap-3">
+        <div>
           <button
             type="button"
             onClick={() => onResourceRouteChange?.('/workouts')}
@@ -243,35 +243,6 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
           >
             ← All workouts
           </button>
-          <div className="flex items-center gap-2">
-            {routeMode === 'view' && (
-              <button
-                type="button"
-                onClick={() => onResourceRouteChange?.(`/workout/${encodeURIComponent(routeWorkoutId)}/info`)}
-                className="px-3 py-1.5 rounded-lg border border-[#333] text-gray-300 text-xs font-mono"
-              >
-                Info
-              </button>
-            )}
-            {routeMode === 'info' && (
-              <button
-                type="button"
-                onClick={() => onResourceRouteChange?.(`/workout/${encodeURIComponent(routeWorkoutId)}`)}
-                className="px-3 py-1.5 rounded-lg border border-[#333] text-gray-300 text-xs font-mono"
-              >
-                Close info
-              </button>
-            )}
-            {routeMode !== 'edit' && (
-              <button
-                type="button"
-                onClick={() => onResourceRouteChange?.(`/workout/${encodeURIComponent(routeWorkoutId)}/edit`)}
-                className="px-3 py-1.5 rounded-lg bg-[#C0FF00] text-black text-xs font-bold"
-              >
-                Edit
-              </button>
-            )}
-          </div>
         </div>
       )}
       <WelcomeModal
