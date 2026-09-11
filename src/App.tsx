@@ -385,7 +385,7 @@ const GymAppContent: React.FC = () => {
                   <button
                     onClick={() => setActiveTab('tracker')}
                     className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-                      activeTab === 'tracker' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                      getCollectionForRoute(routeState) === 'workouts' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                     }`}
                   >
                     Today's Session
@@ -404,7 +404,7 @@ const GymAppContent: React.FC = () => {
                 <button
                   onClick={() => setActiveTab('history')}
                   className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-                    activeTab === 'history' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                    getCollectionForRoute(routeState) === 'logbook' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   Log Book
