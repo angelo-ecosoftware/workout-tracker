@@ -405,7 +405,7 @@ const GymAppContent: React.FC = () => {
                 <button
                   onClick={() => setActiveTab('insights')}
                   className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-                    activeTab === 'insights' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                    routeState.kind === 'section' && routeState.section === 'insights' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   Insights
@@ -413,7 +413,7 @@ const GymAppContent: React.FC = () => {
                 <button
                   onClick={() => setActiveTab('dietary')}
                   className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-                    activeTab === 'dietary' ? 'bg-[#00ade6] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                    routeState.kind === 'section' && routeState.section === 'dietary' ? 'bg-[#00ade6] text-black shadow-md' : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   Dietary
@@ -422,7 +422,7 @@ const GymAppContent: React.FC = () => {
                   <button
                     onClick={() => setActiveTab('admin')}
                     className={`flex-1 py-2 text-[11px] sm:text-xs uppercase tracking-wider font-bold rounded-full transition-all cursor-pointer ${
-                      activeTab === 'admin' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-purple-400 hover:text-purple-300'
+                      routeState.kind === 'section' && routeState.section === 'admin' ? 'bg-purple-500 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-purple-400 hover:text-purple-300'
                     }`}
                   >
                     Admin
@@ -463,9 +463,9 @@ const GymAppContent: React.FC = () => {
                 {getCollectionForRoute(routeState) === 'exercises' && user && (
                   <ExerciseCatalogOverview selectedExerciseIds={new Set()} />
                 )}
-                {activeTab === 'insights' && <InsightsView userId={inspectingClient?.athleteId} />}
-                {activeTab === 'dietary' && <DietaryView userId={inspectingClient?.athleteId} />}
-                {isAdmin && activeTab === 'admin' && <AdminPortalView />}
+                {routeState.kind === 'section' && routeState.section === 'insights' && <InsightsView userId={inspectingClient?.athleteId} />}
+                {routeState.kind === 'section' && routeState.section === 'dietary' && <DietaryView userId={inspectingClient?.athleteId} />}
+                {isAdmin && routeState.kind === 'section' && routeState.section === 'admin' && <AdminPortalView />}
               </div>
             </>
           )}
