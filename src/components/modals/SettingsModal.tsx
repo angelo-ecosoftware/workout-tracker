@@ -23,7 +23,6 @@ import { RoutineEditorModal } from './RoutineEditorModal.tsx';
 import { SavedRoutinesLibraryModal } from './SavedRoutinesLibraryModal.tsx';
 import { PrivacySettingsModal } from '../settings/PrivacySettingsModal.tsx';
 import { CoachAccountModal } from './CoachAccountModal.tsx';
-import { OnboardingModal } from '../onboarding/OnboardingModal.tsx';
 import { RoutineOnboardingModal } from './RoutineOnboardingModal.tsx';
 import { ComplianceDossierModal } from '../settings/ComplianceDossierModal.tsx';
 import { DeleteAccountModal } from '../settings/DeleteAccountModal.tsx';
@@ -66,7 +65,6 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
   const [isDossierOpen, setIsDossierOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isCoachAccountOpen, setIsCoachAccountOpen] = useState(false);
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
   const [isRoutineOnboardingOpen, setIsRoutineOnboardingOpen] = useState(false);
   const [userWorkouts, setUserWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
   const [loadingWorkouts, setLoadingWorkouts] = useState(false);
@@ -626,7 +624,11 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 {/* Profile Goals & Biometrics Onboarding Recalibration */}
                 <button
                   type="button"
-                  onClick={() => setIsOnboardingOpen(true)}
+                  onClick={() => {
+                    onClose();
+                    window.history.pushState({}, '', '/onboarding');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }}
                   className="flex items-center justify-between gap-3 w-full p-3.5 bg-[#161616] hover:bg-[#1f1f1f] border border-[#262626] hover:border-[#383838] rounded-xl text-left transition-all group cursor-pointer"
                 >
                   <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -788,17 +790,6 @@ export const SettingsModal: React.FC<Props> = ({ isOpen, onClose }) => {
         <CoachAccountModal
           isOpen={isCoachAccountOpen}
           onClose={() => setIsCoachAccountOpen(false)}
-        />
-      )}
-
-      {/* Re-launchable onboarding profile */}
-      {isOnboardingOpen && (
-        <OnboardingModal
-          isOpen={isOnboardingOpen}
-          userId={user.uid}
-          onComplete={() => {
-            setIsOnboardingOpen(false);
-          }}
         />
       )}
 
