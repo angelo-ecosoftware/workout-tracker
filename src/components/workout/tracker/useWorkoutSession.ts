@@ -238,12 +238,15 @@ export function useWorkoutSession(user: AuthUser | null, requestedWorkoutId?: st
     const handleSync = () => {
       loadWorkflowState();
     };
+    const handleOnboardingCompleted = () => setShowWelcomeModal(false);
 
     window.addEventListener('workout_session_deleted', handleSync);
     window.addEventListener('user_profile_updated', handleSync);
+    window.addEventListener('onboarding_completed', handleOnboardingCompleted);
     return () => {
       window.removeEventListener('workout_session_deleted', handleSync);
       window.removeEventListener('user_profile_updated', handleSync);
+      window.removeEventListener('onboarding_completed', handleOnboardingCompleted);
     };
   }, [user]);
 

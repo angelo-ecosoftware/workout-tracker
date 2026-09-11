@@ -242,7 +242,7 @@ export async function fetchAllCatalogExercises(): Promise<CatalogExercise[]> {
 // Re-export roles, coaching, privacy, and routine library APIs
 export * from './db/roles.ts';
 export { initializeUser } from './db/users.ts';
-export { saveUserMetrics } from './db/users.ts';
+export { saveUserMetrics, completeUserOnboarding } from './db/users.ts';
 export { logDailyBodyWeight, fetchBodyMeasurementLogs } from './db/biometrics.ts';
 export {
   seedTemplatesIfMissing,
