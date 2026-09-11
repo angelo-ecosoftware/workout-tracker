@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronUp, Zap, Dumbbell, Info, Ban } from 'lucide-react';
 import { Exercise, UserProfile } from '../../../models.ts';
-import { WgerExerciseInfo } from '../WgerExerciseInfo.tsx';
 import { ExerciseSetRow } from './ExerciseSetRow.tsx';
 import { ExerciseGuideDrawer } from '../ExerciseGuideDrawer.tsx';
 import { formatSingleExerciseName } from '../../../lib/exerciseSearch.ts';
@@ -291,8 +290,6 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
 
       {isExpanded && !isSkipped && (
         <>
-          <WgerExerciseInfo exerciseName={displayName} />
-
           {advice.action === 'keep' && cachedEx && (
             <div className="bg-[#1a1a1a] border border-[#333] text-gray-300 rounded-xl px-3 py-1.5 flex items-center gap-1.5 self-start">
               <span className="text-[10px] sm:text-xs font-mono uppercase tracking-wide text-gray-400">
