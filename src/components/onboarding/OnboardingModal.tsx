@@ -106,6 +106,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           popover: { title: popoverTitle, description },
         })),
         onPopoverRender: (popover) => {
+          popover.wrapper.classList.add('kinisia-driver-popover');
           if (popover.footerButtons.querySelector('[data-skip-onboarding]')) return;
           const skipButton = document.createElement('button');
           skipButton.type = 'button';
