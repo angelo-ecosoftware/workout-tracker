@@ -1,10 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Plus, Check, Dumbbell, Sparkles, X, Tag, Loader2, Info } from 'lucide-react';
-import { ExerciseSearchEngine } from '../../lib/exerciseSearch.ts';
+import React, { useState, useEffect } from 'react';
+import { Search, Plus, Dumbbell, Sparkles, X, Loader2, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CatalogExercise } from '../../data/exerciseCatalog.ts';
 import { Exercise } from '../../models.ts';
 import { getExerciseThumbnailSync } from '../../lib/exerciseApiService.ts';
-import { fetchAllCatalogExercises } from '../../lib/supabaseData.ts';
+import { fetchCatalogExercisePage } from '../../lib/db/exerciseCatalog.ts';
 import { ExerciseGuideDrawer } from './ExerciseGuideDrawer.tsx';
 
 interface ExerciseSearchPickerProps {
@@ -18,42 +17,36 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [dbLoadedCount, setDbLoadedCount] = useState<number>(() => ExerciseSearchEngine.count());
   const [isLoadingDb, setIsLoadingDb] = useState(false);
+  const [results, setResults] = useState<CatalogExercise[]>([]);
+  const [totalResults, setTotalResults] = useState(0);
+  const [pageSize, setPageSize] = useState(5);
+  const [page, setPage] = useState(1);
   const [detailExercise, setDetailExercise] = useState<{ id: string; name: string } | null>(null);
 
-  // Fetch full 1,500+ animated GIF exercise catalog from Supabase PostgreSQL database
   useEffect(() => {
-    let isMounted = true;
+    let cancelled = false;
     setIsLoadingDb(true);
-    fetchAllCatalogExercises()
-      .then((items) => {
-        if (isMounted && items && items.length > 0) {
-          setDbLoadedCount(items.length);
-        }
+    fetchCatalogExercisePage(page, pageSize, searchTerm, selectedCategory === 'All' ? '' : selectedCategory)
+      .then((result) => {
+        if (cancelled) return;
+        setResults(result.items);
+        setTotalResults(result.total);
       })
       .catch((err) => {
-        console.warn('Could not load database exercises:', err);
+        if (!cancelled) console.warn('Could not load database exercises:', err);
       })
       .finally(() => {
-        if (isMounted) setIsLoadingDb(false);
+        if (!cancelled) setIsLoadingDb(false);
       });
 
     return () => {
-      isMounted = false;
+      cancelled = true;
     };
-  }, []);
+  }, [page, pageSize, searchTerm, selectedCategory]);
 
-  const categories = useMemo(() => ExerciseSearchEngine.getCategories(), [dbLoadedCount]);
-
-  // Return ALL matching results without any slicing or artificial caps
-  const allSearchResults = useMemo(() => {
-    return ExerciseSearchEngine.search({
-      query: searchTerm,
-      category: selectedCategory === 'All' ? null : selectedCategory,
-      limit: null,
-    });
-  }, [searchTerm, selectedCategory, dbLoadedCount]);
+  const categories = ['All', 'Arms', 'Back', 'Cardio', 'Chest', 'Core', 'Full Body', 'Legs', 'Shoulders'];
+  const totalPages = Math.max(1, Math.ceil(totalResults / pageSize));
 
   const handlePickCatalogItem = (item: CatalogExercise) => {
     onSelectExercise({
@@ -78,6 +71,16 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
     });
   };
 
+  const updateSearch = (value: string) => {
+    setSearchTerm(value);
+    setPage(1);
+  };
+
+  const updateCategory = (value: string) => {
+    setSelectedCategory(value);
+    setPage(1);
+  };
+
   return (
     <div className="bg-[#141414] border border-[#2a2a2a] rounded-2xl p-4 space-y-3.5 shadow-xl animate-in fade-in duration-200">
       {/* Header */}
@@ -92,7 +95,7 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
             </span>
             <span className="text-[10px] font-mono font-bold bg-[#1a1a1a] text-[#C0FF00] border border-[#333] px-2 py-0.5 rounded-full flex items-center gap-1.5">
               {isLoadingDb && <Loader2 className="w-3 h-3 animate-spin text-[#C0FF00]" />}
-              <span>{allSearchResults.length} exercises (100% Animated GIFs)</span>
+              <span>{totalResults} exercises</span>
             </span>
           </div>
         </div>
@@ -112,7 +115,7 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
           type="text"
           autoFocus
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => updateSearch(e.target.value)}
           placeholder="Search by name ('brenk pres'), muscle ('lats', 'chest', 'quads')..."
           className="w-full bg-[#0d0d0d] border border-[#333] focus:border-[#C0FF00] rounded-xl pl-9 pr-4 py-2 text-xs font-mono text-white placeholder-gray-500 focus:outline-none transition-all"
         />
@@ -135,7 +138,7 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
             <button
               key={cat}
               type="button"
-              onClick={() => setSelectedCategory(cat)}
+              onClick={() => updateCategory(cat)}
               className={`px-2.5 py-1 rounded-lg shrink-0 font-bold uppercase tracking-wider transition-all cursor-pointer border ${
                 isSelected
                   ? 'bg-[#C0FF00] text-black border-[#C0FF00]'
@@ -150,8 +153,12 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
 
       {/* Results List - displays ALL exercises continuously without truncation */}
       <div className="max-h-[420px] sm:max-h-[480px] overflow-y-auto space-y-1.5 pr-1 scrollbar-thin">
-        {allSearchResults.length > 0 ? (
-          allSearchResults.map((item) => {
+        {isLoadingDb ? (
+          <div className="flex items-center justify-center py-8 text-xs font-mono text-gray-500">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin text-[#C0FF00]" /> Loading exercises...
+          </div>
+        ) : results.length > 0 ? (
+          results.map((item) => {
             const thumb = (item.images && item.images.length > 0)
               ? item.images[0]
               : getExerciseThumbnailSync(item.name, item.id);
@@ -234,7 +241,7 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
       </div>
 
       {/* Quick custom add fallback if results exist but user typed something specific */}
-      {searchTerm && allSearchResults.length > 0 && (
+      {searchTerm && results.length > 0 && (
         <div className="pt-2 border-t border-[#222] flex items-center justify-between">
           <span className="text-[10px] font-mono text-gray-500">Not in list?</span>
           <button
@@ -246,6 +253,32 @@ export const ExerciseSearchPicker: React.FC<ExerciseSearchPickerProps> = ({
           </button>
         </div>
       )}
+
+      <div className="flex items-center justify-between gap-3 border-t border-[#222] pt-3 text-[10px] font-mono text-gray-500">
+        <label className="flex items-center gap-2">
+          <span>Show</span>
+          <select
+            value={pageSize}
+            onChange={(event) => {
+              setPageSize(Number(event.target.value));
+              setPage(1);
+            }}
+            className="rounded-lg border border-[#333] bg-[#111] px-2 py-1 text-white"
+          >
+            {[5, 10, 25, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
+          </select>
+          <span>{Math.min((page - 1) * pageSize + 1, totalResults)}-{Math.min(page * pageSize, totalResults)} of {totalResults}</span>
+        </label>
+        <div className="flex items-center gap-1">
+          <button type="button" disabled={page === 1} onClick={() => setPage((current) => Math.max(1, current - 1))} className="rounded border border-[#333] p-1 disabled:opacity-30" aria-label="Previous exercise page">
+            <ChevronLeft className="h-3 w-3" />
+          </button>
+          <span>{page}/{totalPages}</span>
+          <button type="button" disabled={page === totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} className="rounded border border-[#333] p-1 disabled:opacity-30" aria-label="Next exercise page">
+            <ChevronRight className="h-3 w-3" />
+          </button>
+        </div>
+      </div>
 
       {/* Exercise Detail Guide Drawer */}
       {detailExercise && (

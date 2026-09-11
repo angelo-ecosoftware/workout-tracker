@@ -6,7 +6,6 @@ import { Header } from './components/ui/Header.tsx';
 import { CoachViewAsBanner } from './components/coach/CoachViewAsBanner.tsx';
 import { CoachInviteAcceptModal } from './components/modals/CoachInviteAcceptModal.tsx';
 import { fetchInviteByCode } from './lib/db/roles.ts';
-import { fetchAllCatalogExercises } from './lib/supabaseData.ts';
 import { CoachAthleteLink } from './models.ts';
 import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
 import { isGoogleAuthUrl, sanitizeAuthenticatedSession } from './utils/authUrl.ts';
@@ -128,23 +127,6 @@ const GymAppContent: React.FC = () => {
     if (nextRoute.kind === 'section') setActiveTabState(nextRoute.section as TabType);
     setShowLoginModal(isLoginRoute());
   };
-
-  // Deferred prefetch: wait until user is authenticated and main thread is idle
-  useEffect(() => {
-    if (!user) return;
-
-    if ('requestIdleCallback' in window) {
-      const handle = window.requestIdleCallback(() => {
-        fetchAllCatalogExercises().catch(() => {});
-      });
-      return () => window.cancelIdleCallback(handle);
-    } else {
-      const timer = setTimeout(() => {
-        fetchAllCatalogExercises().catch(() => {});
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [user]);
 
   // Default admins to admin tab
   useEffect(() => {

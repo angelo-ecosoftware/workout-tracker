@@ -115,7 +115,6 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
     }
     setRouteError(null);
     if (activeWorkout?.id !== routedWorkout.id) setActiveWorkout(routedWorkout);
-    if (routeMode === 'edit' && !isRoutineEditorOpen) setIsRoutineEditorOpen(true);
   }, [
     loading,
     routeWorkoutId,
@@ -123,9 +122,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
     routeMode,
     workouts,
     activeWorkout?.id,
-    isRoutineEditorOpen,
     setActiveWorkout,
-    setIsRoutineEditorOpen,
   ]);
 
   if (loading) {
@@ -159,7 +156,10 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
       <RoutineEditorModal
         isOpen={true}
         presentation="page"
-        onClose={() => onResourceRouteChange?.(activeWorkout ? `/workout/${encodeURIComponent(activeWorkout.id)}` : '/workouts')}
+        onClose={() => {
+          setIsRoutineEditorOpen(false);
+          onResourceRouteChange?.(activeWorkout ? `/workout/${encodeURIComponent(activeWorkout.id)}` : '/workouts');
+        }}
         userId={user.uid}
         workouts={workouts}
         onSaveWorkouts={async (updatedWorkouts) => {
@@ -576,24 +576,6 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
         </div>
       )}
 
-      {/* Routine Editor Modal (opens when clicking Edit on routine selector) */}
-      {user && (
-        <RoutineEditorModal
-          isOpen={isRoutineEditorOpen}
-          onClose={() => {
-            setIsRoutineEditorOpen(false);
-            onResourceRouteChange?.(activeWorkout ? `/workout/${encodeURIComponent(activeWorkout.id)}` : '/workouts');
-          }}
-          userId={user.uid}
-          workouts={workouts}
-          onSaveWorkouts={async (updatedWorkouts) => {
-            await saveWorkoutsAndExercises(user.uid, updatedWorkouts);
-            setWorkouts(updatedWorkouts);
-            setIsRoutineEditorOpen(false);
-            await loadWorkflowState();
-          }}
-        />
-      )}
     </div>
   );
 };
