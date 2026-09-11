@@ -190,6 +190,20 @@ export async function saveOnboardingProfile(
     onboarding_status: status,
     onboarding_version: 1,
     onboarding_completed_at: completedAt,
+    metrics: {
+      trainingDays: profile.trainingDays,
+      sessionDurationMinutes: profile.sessionDurationMinutes,
+      fitnessLevel: profile.fitnessLevel,
+      trainingLocation: profile.trainingLocation,
+      goals: profile.goals,
+      dateOfBirth: profile.dateOfBirth,
+      gender: profile.gender,
+      height: profile.heightCm,
+      weight: profile.weightKg,
+      somatotype: profile.bodyType,
+      injuriesNotes: profile.injuriesNotes,
+      bodyMeasurementsNotes: profile.injuriesNotes,
+    },
     updated_at: updatedAt,
   };
   if (profile.heightCm) updatePayload.height_cm = profile.heightCm;
@@ -245,8 +259,7 @@ export async function saveUserMetrics(userId: string, metrics: UserMetrics) {
     const { error } = await supabase.from('users').update(updatePayload).eq('user_id', userId);
     if (error) {
       // Preserve compatibility with deployments missing newer explicit columns.
-      const { body_type: _bodyType, ...legacyPayload } = updatePayload;
-      await supabase.from('users').update(legacyPayload).eq('user_id', userId);
+      await supabase.from('users').update({ metrics, updated_at: updatePayload.updated_at }).eq('user_id', userId);
     }
   } catch (err) {
     console.warn('Supabase update metrics failed:', err);
