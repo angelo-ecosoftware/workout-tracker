@@ -56,8 +56,6 @@ export interface UserProfile {
   weightKg?: number;
   fitnessLevel?: FitnessLevel;
   trainingLocation?: 'gym' | 'home' | 'hybrid';
-  onboardingCompletedAt?: string;
-  onboardingVersion?: number;
   lastCompletedWorkoutOrder: number;
   maxWorkoutOrder: number;
   lastSetSummaryPerExercise: Record<string, LastSetSummary>;

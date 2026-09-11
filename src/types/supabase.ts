@@ -465,8 +465,6 @@ export type Database = {
           max_workout_order: number | null
           metrics: Json | null
           name: string | null
-          onboarding_completed_at: string | null
-          onboarding_version: number | null
           training_location: string | null
           updated_at: string | null
           user_id: string
@@ -486,8 +484,6 @@ export type Database = {
           max_workout_order?: number | null
           metrics?: Json | null
           name?: string | null
-          onboarding_completed_at?: string | null
-          onboarding_version?: number | null
           training_location?: string | null
           updated_at?: string | null
           user_id: string
@@ -507,8 +503,6 @@ export type Database = {
           max_workout_order?: number | null
           metrics?: Json | null
           name?: string | null
-          onboarding_completed_at?: string | null
-          onboarding_version?: number | null
           training_location?: string | null
           updated_at?: string | null
           user_id?: string

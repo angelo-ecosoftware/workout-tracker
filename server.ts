@@ -10,7 +10,6 @@ import groceryListHandler from "./api/grocery-list.js";
 import reportMissingProductHandler from "./api/report-missing-product.js";
 import blockIpHandler from "./api/block-ip.js";
 import exerciseThumbnailHandler from "./api/exercise-thumbnail.js";
-import generateRoutineHandler from "./api/generate-routine.js";
 
 dotenv.config();
 
@@ -60,10 +59,6 @@ async function startServer() {
   // API 6b: Cached static first-frame thumbnails for exercise catalog GIFs
   app.get("/api/exercise-thumbnail", (req, res) => {
     return exerciseThumbnailHandler(req as any, res as any);
-  });
-
-  app.post("/api/generate-routine", (req, res) => {
-    return generateRoutineHandler(req as any, res as any);
   });
 
   // API 7: Master Exercises Catalog Database Proxy

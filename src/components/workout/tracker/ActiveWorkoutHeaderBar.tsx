@@ -118,7 +118,6 @@ export const ActiveWorkoutHeaderBar: React.FC<ActiveWorkoutHeaderBarProps> = ({
 
           <button
             type="button"
-            data-tour="start-workout"
             onClick={onStartWorkout}
             aria-label={`Start workout Day ${workoutOrder}: ${workoutName}`}
             className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2.5 px-6 py-3.5 min-h-[48px] rounded-2xl bg-[#C0FF00] hover:bg-[#b0f000] text-black font-display font-black text-xs uppercase tracking-wider transition-all duration-200 shadow-[0_0_20px_rgba(192,255,0,0.25)] hover:shadow-[0_0_30px_rgba(192,255,0,0.4)] cursor-pointer active:scale-98 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#C0FF00] focus-visible:ring-offset-2 focus-visible:ring-offset-[#121212]"

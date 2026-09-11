@@ -129,8 +129,6 @@ export async function initializeUser(userId: string, email?: string, name?: stri
     weightKg: resolvedWeight,
     fitnessLevel: data.fitness_level || data.metrics?.fitnessLevel,
     trainingLocation: data.training_location || data.metrics?.trainingLocation,
-    onboardingCompletedAt: data.onboarding_completed_at || undefined,
-    onboardingVersion: data.onboarding_version || undefined,
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
     maxWorkoutOrder: data.max_workout_order ?? 3,
     lastSetSummaryPerExercise: data.last_set_summary_per_exercise || {},
@@ -181,26 +179,5 @@ export async function saveUserMetrics(userId: string, metrics: UserMetrics) {
       source: 'profile',
       notes: metrics.bodyMeasurementsNotes,
     });
-  }
-}
-
-export async function completeUserOnboarding(userId: string, version = 1): Promise<void> {
-  const completedAt = new Date().toISOString();
-  setLocalStorageItem(`onboarding_completed_${userId}`, JSON.stringify({
-    completedAt,
-    version,
-  }));
-
-  const { error } = await supabase
-    .from('users')
-    .update({
-      onboarding_completed_at: completedAt,
-      onboarding_version: version,
-      updated_at: completedAt,
-    })
-    .eq('user_id', userId);
-
-  if (error) {
-    console.warn('Could not persist onboarding completion:', error.message);
   }
 }

@@ -6,13 +6,11 @@ import { Header } from './components/ui/Header.tsx';
 import { CoachViewAsBanner } from './components/coach/CoachViewAsBanner.tsx';
 import { CoachInviteAcceptModal } from './components/modals/CoachInviteAcceptModal.tsx';
 import { fetchInviteByCode } from './lib/db/roles.ts';
-import { initializeUser } from './lib/db/users.ts';
 import { CoachAthleteLink } from './models.ts';
 import { ErrorBoundary } from './components/ui/ErrorBoundary.tsx';
 import { isGoogleAuthUrl, sanitizeAuthenticatedSession } from './utils/authUrl.ts';
 import { Dumbbell, Flame, History, Layers3, Loader2, ShieldCheck, Utensils } from 'lucide-react';
 import { ExerciseCatalogOverview } from './components/routine/ExerciseCatalogOverview.tsx';
-import { NewUserOnboardingModal } from './components/onboarding/NewUserOnboardingModal.tsx';
 import { useRouteContinuity } from './hooks/useRouteContinuity.ts';
 import {
   CanonicalRoute,
@@ -105,7 +103,6 @@ const GymAppContent: React.FC = () => {
       : initialRoute;
   });
   const displayRoute = routeState.kind === 'profile' ? profileBackgroundRoute : routeState;
-  const [showNewUserOnboarding, setShowNewUserOnboarding] = useState(false);
   useRouteContinuity(user?.uid, displayRoute);
   const [publicSessionId, setPublicSessionId] = useState<string | null>(() => getPublicSessionIdFromUrl());
   const [pendingInviteCode, setPendingInviteCode] = useState<string | null>(() => getCoachInviteCodeFromUrl());
@@ -144,33 +141,6 @@ const GymAppContent: React.FC = () => {
   const closeProfile = () => {
     navigateToRoute(serializeRoute(profileBackgroundRoute));
   };
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!user) {
-      setShowNewUserOnboarding(false);
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    initializeUser(user.uid, user.email, user.displayName)
-      .then((profile) => {
-        if (cancelled) return;
-        let locallyCompleted = false;
-        try {
-          locallyCompleted = Boolean(localStorage.getItem(`onboarding_completed_${user.uid}`));
-        } catch {}
-        setShowNewUserOnboarding(!profile.onboardingCompletedAt && !locallyCompleted);
-      })
-      .catch(() => {
-        if (!cancelled) setShowNewUserOnboarding(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
 
   // Default admins to admin tab
   useEffect(() => {
@@ -391,14 +361,6 @@ const GymAppContent: React.FC = () => {
         onProfileOpen={openProfile}
         onProfileClose={closeProfile}
       />
-      <NewUserOnboardingModal
-        isOpen={showNewUserOnboarding}
-        userId={user.uid}
-        onComplete={() => {
-          setShowNewUserOnboarding(false);
-          navigateToRoute('/workouts');
-        }}
-      />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         <Suspense fallback={loadingSpinner}>
@@ -427,7 +389,6 @@ const GymAppContent: React.FC = () => {
                 {!inspectingClient && (
                   <button
                     onClick={() => setActiveTab('tracker')}
-                    data-tour="session-nav"
                     className={`flex-1 min-w-0 whitespace-nowrap px-1.5 sm:px-3 py-2 text-[9px] sm:text-xs uppercase tracking-tight sm:tracking-wider font-bold rounded-full transition-all cursor-pointer flex items-center justify-center gap-1 ${
                       getCollectionForRoute(displayRoute) === 'workouts' ? 'bg-[#C0FF00] text-black shadow-md' : 'text-gray-400 hover:text-white'
                     }`}
