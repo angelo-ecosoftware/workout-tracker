@@ -20,7 +20,15 @@ export async function fetchSavedRoutinePrograms(userId: string): Promise<SavedRo
       .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
-    if (error || !data || data.length === 0) return defaultPrograms;
+    if (error || !data || data.length === 0) {
+      const normalizedDefaults = defaultPrograms.length === 1 && !defaultPrograms[0].isActive
+        ? [{ ...defaultPrograms[0], isActive: true }]
+        : defaultPrograms;
+      if (normalizedDefaults.length === 1 && !defaultPrograms[0]?.isActive) {
+        setLocalStorageItem(`saved_programs_${userId}`, JSON.stringify(normalizedDefaults));
+      }
+      return normalizedDefaults;
+    }
 
     const resolved = ((data as DbSavedRoutineProgramRow[]) || []).map((d) => ({
       id: d.id,
@@ -33,8 +41,21 @@ export async function fetchSavedRoutinePrograms(userId: string): Promise<SavedRo
       createdAt: new Date(d.created_at || Date.now()),
       updatedAt: new Date(d.updated_at || Date.now()),
     }));
-    setLocalStorageItem(`saved_programs_${userId}`, JSON.stringify(resolved));
-    return resolved;
+    const normalized = resolved.length === 1 && !resolved[0].isActive
+      ? [{ ...resolved[0], isActive: true }]
+      : resolved;
+    if (normalized.length === 1 && !resolved[0].isActive) {
+      const { error: normalizeError } = await supabase
+        .from('saved_routine_programs')
+        .update({ is_active: true, updated_at: new Date().toISOString() })
+        .eq('id', normalized[0].id)
+        .eq('user_id', userId);
+      if (normalizeError) {
+        console.warn('Could not normalize the sole saved routine as active:', normalizeError.message);
+      }
+    }
+    setLocalStorageItem(`saved_programs_${userId}`, JSON.stringify(normalized));
+    return normalized;
   } catch {
     return defaultPrograms;
   }
@@ -129,16 +150,20 @@ export async function setActiveRoutineProgram(userId: string, programId: string)
   );
 
   try {
-    await supabase
+    const { error: deactivateError } = await supabase
       .from('saved_routine_programs')
       .update({ is_active: false })
       .eq('user_id', userId);
-    await supabase
+    if (deactivateError) throw new Error(deactivateError.message);
+
+    const { error: activateError } = await supabase
       .from('saved_routine_programs')
       .update({ is_active: true, updated_at: new Date().toISOString() })
-      .eq('id', programId);
-  } catch {
-    // ignore
+      .eq('id', programId)
+      .eq('user_id', userId);
+    if (activateError) throw new Error(activateError.message);
+  } catch (error) {
+    throw error instanceof Error ? error : new Error('Failed to activate routine program.');
   }
 }
 
