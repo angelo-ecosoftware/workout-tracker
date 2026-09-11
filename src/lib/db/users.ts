@@ -116,7 +116,7 @@ export async function initializeUser(userId: string, email?: string, name?: stri
   const resolvedMetrics: UserMetrics = {
     ...(localMetrics || {}),
     ...(data.metrics || {}),
-    trainingDays: data.training_days || data.metrics?.trainingDays || localMetrics?.trainingDays,
+    trainingDays: data.training_days?.length ? data.training_days : data.metrics?.trainingDays || localMetrics?.trainingDays,
     sessionDurationMinutes: data.session_duration_minutes || data.metrics?.sessionDurationMinutes || localMetrics?.sessionDurationMinutes,
     injuriesNotes: data.injuries_notes || data.metrics?.injuriesNotes || data.metrics?.bodyMeasurementsNotes || localMetrics?.injuriesNotes || localMetrics?.bodyMeasurementsNotes,
   };
@@ -136,9 +136,9 @@ export async function initializeUser(userId: string, email?: string, name?: stri
     onboardingStatus: data.onboarding_status || 'not_started',
     onboardingCompletedAt: data.onboarding_completed_at || undefined,
     onboardingVersion: data.onboarding_version || undefined,
-    trainingDays: data.training_days || [],
+    trainingDays: data.training_days?.length ? data.training_days : data.metrics?.trainingDays || localMetrics?.trainingDays || [],
     sessionDurationMinutes: data.session_duration_minutes || undefined,
-    goals: data.goals || [],
+    goals: data.goals?.length ? data.goals : data.metrics?.goals || localMetrics?.goals || [],
     injuriesNotes: data.injuries_notes || undefined,
     lastCompletedWorkoutOrder: data.last_completed_workout_order ?? 0,
     maxWorkoutOrder: data.max_workout_order ?? 3,
