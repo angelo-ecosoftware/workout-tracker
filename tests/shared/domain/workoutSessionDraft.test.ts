@@ -11,6 +11,16 @@ describe('workout draft continuity', () => {
     expect(getWorkoutDraftKey('user-a', 'workout-a')).not.toBe(getWorkoutDraftKey('user-a', 'workout-b'));
   });
 
+  it('does not expose one user’s stored draft to another user', () => {
+    const userADraftKey = getWorkoutDraftKey('user-a', 'workout-a')!;
+    const userBDraftKey = getWorkoutDraftKey('user-b', 'workout-a')!;
+    localStorage.clear();
+    localStorage.setItem(userADraftKey, JSON.stringify({ workoutId: 'workout-a', inputs: { secret: true } }));
+
+    expect(localStorage.getItem(userADraftKey)).toContain('"secret":true');
+    expect(localStorage.getItem(userBDraftKey)).toBeNull();
+  });
+
   it('accepts the current shape and ignores corrupt or unsupported versions', () => {
     const payload = createWorkoutDraftPayload(
       'workout-a',
