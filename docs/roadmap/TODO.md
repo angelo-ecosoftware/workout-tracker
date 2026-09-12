@@ -62,4 +62,71 @@ This document tracks identified architectural improvements, edge case handling, 
 - [ ] **Dietary Input Leading Zero (`0`) Input Bug Fix**
 - [ ] **Last Known Weight Set Auto-Population Review**
 - [ ] **Sleep Hours & Energy Level Persistence in Session History**
-- [ ] **Role-Based Access Control (Athlete / Coach / Admin)** 
+- [ ] **Role-Based Access Control (Athlete / Coach / Admin)**
+
+---
+
+## 6. Beginner Experience TODOs
+
+These items should improve the beginner journey without filling the active
+session screen with explanatory content.
+
+### Product TODOs
+
+- [ ] **Clear “What Do I Do Now?” Starting State**
+  - Show the current workout, estimated duration, and a clear `Start Here`
+    action.
+  - Example: `Today's workout: Upper Body A · Estimated time: 45 minutes`.
+
+- [ ] **Beginner-Safe Defaults**
+  - Provide a suggested starting weight.
+  - Provide suggested reps and rest time.
+  - Warn users not to increase weight too quickly.
+  - Keep clear form and safety cues available from the exercise guide.
+
+- [ ] **Guided First Workout**
+  - Guide a new user through starting a workout, opening an exercise guide,
+    entering weight and reps, completing a set, resting, and submitting.
+  - Keep this guidance in onboarding or a coach-mark flow rather than the
+    permanent session layout.
+
+- [ ] **Actionable Progression Explanations**
+  - Explain why progression is recommended.
+  - Example: `You completed all target reps with good control. Next time, try
+    adding 2.5 kg.`
+  - Make clear that progression is recommended, not mandatory.
+
+- [ ] **Clear Recovery Guidance**
+  - Explain whether training is appropriate based on previous workouts, sleep,
+    energy, soreness, and planned training days.
+  - Keep detailed explanations behind a recovery help/info action.
+
+- [ ] **Beginner-Friendly Empty States**
+  - Replace empty messages with a clear next action.
+  - Explain how to create a routine, log a first workout, or add a meal.
+
+- [ ] **Safety and Trust Information**
+  - Explain private data handling.
+  - Explain custom GIF ownership.
+  - Explain bodyweight visibility.
+  - Explain how shared routines work.
+  - Explain what happens when a workout is deleted.
+
+### FAQ-only content
+
+Only the basic terminology belongs in the FAQ instead of the active session
+page:
+
+- [ ] **What is a set?**
+- [ ] **What are reps?**
+- [ ] **What is rest time?**
+- [ ] **How heavy should I start?**
+- [ ] **When should I increase weight?**
+- [ ] **What does 1RM mean?**
+
+FAQ rules:
+
+- Do not place the full explanations permanently on the session page.
+- Link to the FAQ from relevant labels or help icons.
+- Use short contextual tooltips only when the user is likely to be confused.
+- Keep safety-critical form cues available directly in the exercise guide.
