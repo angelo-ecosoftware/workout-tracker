@@ -105,7 +105,10 @@ export async function deleteSessions(sessionIds: string[], userId?: string) {
     sessionDeleteQuery = sessionDeleteQuery.eq('user_id', userId);
   }
 
-  await sessionDeleteQuery;
+  const { error: sessionDeleteError } = await sessionDeleteQuery;
+  if (sessionDeleteError) {
+    throw new Error(`Could not delete workout session: ${sessionDeleteError.message}`);
+  }
 
   // Synchronize user's last_completed_workout_order with the latest remaining completed session
   let targetUserId = userId;
@@ -127,7 +130,7 @@ export async function deleteSessions(sessionIds: string[], userId?: string) {
     try {
       const { data: latestSession } = await supabase
         .from('sessions')
-        .select('workout_id, workouts(order)')
+        .select('workout_id, body_weight_kg, workouts(order)')
         .eq('user_id', targetUserId)
         .eq('status', 'completed')
         .not('completed_at', 'is', null)
@@ -144,6 +147,43 @@ export async function deleteSessions(sessionIds: string[], userId?: string) {
         .from('users')
         .update({ last_completed_workout_order: newOrder })
         .eq('user_id', targetUserId);
+
+      // The profile weight is a projection of the latest remaining weighted
+      // session. Reconcile it after deletion so a deleted session cannot keep
+      // supplying the profile's current kg value.
+      const { data: latestWeightedSession } = await supabase
+        .from('sessions')
+        .select('body_weight_kg')
+        .eq('user_id', targetUserId)
+        .eq('status', 'completed')
+        .not('completed_at', 'is', null)
+        .not('body_weight_kg', 'is', null)
+        .order('completed_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (latestWeightedSession?.body_weight_kg != null) {
+        const { data: userRow } = await supabase
+          .from('users')
+          .select('metrics')
+          .eq('user_id', targetUserId)
+          .maybeSingle();
+        const existingMetrics =
+          userRow?.metrics && typeof userRow.metrics === 'object' && !Array.isArray(userRow.metrics)
+            ? userRow.metrics
+            : {};
+
+        await supabase
+          .from('users')
+          .update({
+            weight_kg: Number(latestWeightedSession.body_weight_kg),
+            metrics: {
+              ...existingMetrics,
+              weight: Number(latestWeightedSession.body_weight_kg),
+            },
+          })
+          .eq('user_id', targetUserId);
+      }
 
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('workout_session_deleted'));
