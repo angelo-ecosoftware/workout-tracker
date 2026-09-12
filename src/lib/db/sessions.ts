@@ -316,7 +316,7 @@ export async function logSessionCompletion(
 
   if (existingSession) {
     console.log(`Session already logged for this completion timestamp (${existingSession.id}), skipping duplicate.`);
-    return;
+    return String(existingSession.id);
   }
 
   const sessionPayload: Record<string, any> = {
@@ -467,4 +467,6 @@ export async function logSessionCompletion(
       last_set_summary_per_exercise: updatedCache,
     })
     .eq('user_id', userId);
+
+  return sessionId;
 }

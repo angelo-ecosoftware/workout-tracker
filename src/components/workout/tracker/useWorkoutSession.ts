@@ -35,7 +35,11 @@ import {
   parseWorkoutDraft,
 } from './workoutSessionDraft.ts';
 
-export function useWorkoutSession(user: AuthUser | null, requestedWorkoutId?: string | null) {
+export function useWorkoutSession(
+  user: AuthUser | null,
+  requestedWorkoutId?: string | null,
+  onSessionSaved?: (sessionId: string) => void,
+) {
   const [workouts, setWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
   const [activeWorkout, setActiveWorkoutState] = useState<(Workout & { exercises: Exercise[] }) | null>(null);
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
@@ -743,6 +747,7 @@ export function useWorkoutSession(user: AuthUser | null, requestedWorkoutId?: st
       }
 
       let uploadedPhotoUrls: string[] = [];
+      let savedSessionId: string | undefined;
       if (selectedPhotos.length > 0 && user) {
         setIsUploadingPhotos(true);
         try {
@@ -755,7 +760,7 @@ export function useWorkoutSession(user: AuthUser | null, requestedWorkoutId?: st
       }
 
       try {
-        await logSessionCompletion(
+        savedSessionId = await logSessionCompletion(
           user.uid,
           activeWorkout.id,
           finalSetsPayload,
@@ -815,6 +820,9 @@ export function useWorkoutSession(user: AuthUser | null, requestedWorkoutId?: st
       setSuccessMsg(`Workout successfully saved! Next workout Day updated.`);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       await loadWorkflowState();
+      if (savedSessionId) {
+        onSessionSaved?.(savedSessionId);
+      }
 
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err: unknown) {

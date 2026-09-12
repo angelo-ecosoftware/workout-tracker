@@ -101,7 +101,11 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
     handleTextChange,
     getProgressionAdvice,
     handleLogWorkout,
-  } = useWorkoutSession(user, routeWorkoutId);
+  } = useWorkoutSession(
+    user,
+    routeWorkoutId,
+    (sessionId) => onResourceRouteChange?.(`/logbook/${encodeURIComponent(sessionId)}`),
+  );
   const [routeError, setRouteError] = useState<string | null>(null);
 
   useEffect(() => {
