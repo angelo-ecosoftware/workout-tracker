@@ -59,6 +59,8 @@ export function useWorkoutSession(
   const hydrationGenerationRef = useRef(0);
   const currentUserIdRef = useRef<string | null>(user?.uid ?? null);
   const activeWorkoutIdRef = useRef<string | null>(null);
+  const draftSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingDraftSaveRef = useRef<{ key: string; value: string } | null>(null);
   currentUserIdRef.current = user?.uid ?? null;
   activeWorkoutIdRef.current = activeWorkout?.id ?? null;
 
@@ -374,14 +376,40 @@ export function useWorkoutSession(
         curWeight ?? bodyWeightKg,
         curSkippedIds ?? Array.from(skippedExerciseIds)
       );
-      localStorage.setItem(key, JSON.stringify(payload));
-      setLastAutoSavedTime(
-        new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-      );
+      pendingDraftSaveRef.current = { key, value: JSON.stringify(payload) };
+      if (draftSaveTimeoutRef.current) {
+        clearTimeout(draftSaveTimeoutRef.current);
+      }
+      draftSaveTimeoutRef.current = setTimeout(() => {
+        const pendingSave = pendingDraftSaveRef.current;
+        if (!pendingSave) return;
+        localStorage.setItem(pendingSave.key, pendingSave.value);
+        pendingDraftSaveRef.current = null;
+        draftSaveTimeoutRef.current = null;
+        setLastAutoSavedTime(
+          new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+        );
+      }, 250);
     } catch (e) {
       console.warn('Could not save draft checkpoint to localStorage', e);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (draftSaveTimeoutRef.current) {
+        clearTimeout(draftSaveTimeoutRef.current);
+      }
+      const pendingSave = pendingDraftSaveRef.current;
+      if (pendingSave) {
+        try {
+          localStorage.setItem(pendingSave.key, pendingSave.value);
+        } catch {}
+      }
+      pendingDraftSaveRef.current = null;
+      draftSaveTimeoutRef.current = null;
+    };
+  }, []);
 
   const toggleSkipExercise = (exerciseId: string) => {
     setSkippedExerciseIds((prev) => {
@@ -408,6 +436,13 @@ export function useWorkoutSession(
   const clearDraftCheckpoint = async (workoutId?: string) => {
     const targetWkId = workoutId || activeWorkout?.id;
     const key = getDraftKey(targetWkId);
+    if (key && pendingDraftSaveRef.current?.key === key) {
+      pendingDraftSaveRef.current = null;
+      if (draftSaveTimeoutRef.current) {
+        clearTimeout(draftSaveTimeoutRef.current);
+        draftSaveTimeoutRef.current = null;
+      }
+    }
     if (key) {
       try {
         localStorage.removeItem(key);

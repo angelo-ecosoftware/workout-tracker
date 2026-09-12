@@ -128,6 +128,39 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
     expect(result.current.inputs['ex_bench-1']?.reps).toBe('10');
   });
 
+  it('debounces rapid draft writes into one final localStorage save', async () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+    const { result } = renderHook(() => useWorkoutSession(mockUser));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+    setItemSpy.mockClear();
+    vi.useFakeTimers();
+
+    try {
+      act(() => {
+        result.current.handleTextChange('ex_bench-1', 'weight', '100');
+        result.current.handleTextChange('ex_bench-1', 'weight', '105');
+      });
+
+      expect(setItemSpy).not.toHaveBeenCalled();
+
+      act(() => {
+        vi.advanceTimersByTime(250);
+      });
+
+      const draftWrites = setItemSpy.mock.calls.filter(([key]) =>
+        String(key).startsWith('workout_draft_')
+      );
+      expect(draftWrites).toHaveLength(1);
+      expect(JSON.parse(String(draftWrites[0][1])).inputs['ex_bench-1'].weight).toBe('105');
+    } finally {
+      vi.useRealTimers();
+      setItemSpy.mockRestore();
+    }
+  });
+
   it('expands and collapses exercise cards dynamically', async () => {
     const { result } = renderHook(() => useWorkoutSession(mockUser));
 
