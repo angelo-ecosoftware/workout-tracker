@@ -565,7 +565,8 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
           <WorkoutCompletionModal
             isOpen={Boolean(celebrationSummary)}
             summary={celebrationSummary}
-            onClose={() => {
+            onClose={() => setCelebrationSummary(null)}
+            onContinueToLogbook={() => {
               setCelebrationSummary(null);
               if (savedSessionId) {
                 onResourceRouteChange?.(`/logbook/${encodeURIComponent(savedSessionId)}`);

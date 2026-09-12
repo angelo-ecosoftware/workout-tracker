@@ -25,12 +25,14 @@ interface WorkoutCompletionModalProps {
   isOpen: boolean;
   summary: WorkoutSummaryCelebration | null;
   onClose: () => void;
+  onContinueToLogbook?: () => void;
 }
 
 export const WorkoutCompletionModal: React.FC<WorkoutCompletionModalProps> = ({
   isOpen,
   summary,
   onClose,
+  onContinueToLogbook,
 }) => {
   useEffect(() => {
     if (isOpen) {
@@ -172,7 +174,7 @@ export const WorkoutCompletionModal: React.FC<WorkoutCompletionModalProps> = ({
         {/* Close / Next Workout CTA */}
         <button
           type="button"
-          onClick={onClose}
+          onClick={onContinueToLogbook || onClose}
           className="w-full py-3.5 sm:py-4 px-6 bg-[#C0FF00] hover:bg-[#b0eb00] active:scale-[0.98] text-black rounded-2xl font-display font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_25px_rgba(192,255,0,0.3)] transition-all"
         >
           <span>Continue to Logbook</span>
