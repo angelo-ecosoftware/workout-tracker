@@ -22,6 +22,7 @@ import {
 } from '../../../utils/draftPhotoStorage.ts';
 import { WorkoutSummaryCelebration } from './WorkoutCompletionModal.tsx';
 import { getRandomPraise } from './SetPraiseToast.tsx';
+import { useWorkoutTimer } from './useWorkoutTimer.ts';
 import {
   buildWorkoutSetPayload,
   calculateWorkoutCelebrationSummary,
@@ -137,65 +138,19 @@ export function useWorkoutSession(
   };
 
   // Active Workout Session State (Fitness Online hybrid start & timer model)
-  const [isSessionActive, setIsSessionActive] = useState<boolean>(false);
-  const [sessionStartTime, setSessionStartTime] = useState<number | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+  const {
+    isActive: isSessionActive,
+    startTime: sessionStartTime,
+    elapsedSeconds,
+    start: startWorkoutTimer,
+    reset: resetWorkoutTimer,
+  } = useWorkoutTimer(activeWorkout?.id);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState<boolean>(false);
-
-  // Load session timer state when activeWorkout changes
-  useEffect(() => {
-    if (!activeWorkout) {
-      setIsSessionActive(false);
-      setSessionStartTime(null);
-      setElapsedSeconds(0);
-      return;
-    }
-
-    try {
-      const activeStored = localStorage.getItem(`workout_session_active_${activeWorkout.id}`);
-      const startTimeStored = localStorage.getItem(`workout_session_start_time_${activeWorkout.id}`);
-
-      if (activeStored === 'true' && startTimeStored) {
-        const startMs = parseInt(startTimeStored, 10);
-        if (!isNaN(startMs) && startMs > 0) {
-          setIsSessionActive(true);
-          setSessionStartTime(startMs);
-          setElapsedSeconds(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
-          return;
-        }
-      }
-    } catch {}
-
-    setIsSessionActive(false);
-    setSessionStartTime(null);
-    setElapsedSeconds(0);
-  }, [activeWorkout?.id]);
-
-  // Wall-clock resilient elapsed timer ticker
-  useEffect(() => {
-    if (!isSessionActive || !sessionStartTime) {
-      return;
-    }
-
-    const tick = () => {
-      setElapsedSeconds(Math.max(0, Math.floor((Date.now() - sessionStartTime) / 1000)));
-    };
-
-    tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
-  }, [isSessionActive, sessionStartTime]);
 
   const beginWorkout = () => {
     if (!activeWorkout) return;
-    const now = Date.now();
-    setIsSessionActive(true);
-    setSessionStartTime(now);
-    setElapsedSeconds(0);
-    try {
-      localStorage.setItem(`workout_session_active_${activeWorkout.id}`, 'true');
-      localStorage.setItem(`workout_session_start_time_${activeWorkout.id}`, String(now));
-    } catch {}
+    const now = startWorkoutTimer();
+    if (!now) return;
 
     // Track start timestamp on the first uncompleted set of the first non-skipped exercise
     const firstActiveExercise = activeWorkout.exercises.find((ex) => !skippedExerciseIds.has(ex.id));
@@ -237,13 +192,7 @@ export function useWorkoutSession(
 
   const handleCancelSession = () => {
     if (!activeWorkout) return;
-    setIsSessionActive(false);
-    setSessionStartTime(null);
-    setElapsedSeconds(0);
-    try {
-      localStorage.removeItem(`workout_session_active_${activeWorkout.id}`);
-      localStorage.removeItem(`workout_session_start_time_${activeWorkout.id}`);
-    } catch {}
+    resetWorkoutTimer();
   };
 
   // Sync settings when modified from SettingsModal
@@ -867,13 +816,7 @@ export function useWorkoutSession(
       setPhotoPreviews([]);
 
       if (activeWorkout) {
-        setIsSessionActive(false);
-        setSessionStartTime(null);
-        setElapsedSeconds(0);
-        try {
-          localStorage.removeItem(`workout_session_active_${activeWorkout.id}`);
-          localStorage.removeItem(`workout_session_start_time_${activeWorkout.id}`);
-        } catch {}
+        resetWorkoutTimer();
       }
       setIsFinishModalOpen(false);
 
@@ -1157,7 +1100,6 @@ export function useWorkoutSession(
     setSetPraiseToast,
     inputs,
     isSessionActive,
-    setIsSessionActive,
     sessionStartTime,
     elapsedSeconds,
     isFinishModalOpen,
