@@ -90,6 +90,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
     setDuplicateSessionWarning,
     celebrationSummary,
     setCelebrationSummary,
+    savedSessionId,
     autoRestTimer,
     setAutoRestTimer,
     historySessions,
@@ -106,7 +107,6 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
   } = useWorkoutSession(
     user,
     routeWorkoutId,
-    (sessionId) => onResourceRouteChange?.(`/logbook/${encodeURIComponent(sessionId)}`),
   );
   const [routeError, setRouteError] = useState<string | null>(null);
 
@@ -565,7 +565,12 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
           <WorkoutCompletionModal
             isOpen={Boolean(celebrationSummary)}
             summary={celebrationSummary}
-            onClose={() => setCelebrationSummary(null)}
+            onClose={() => {
+              setCelebrationSummary(null);
+              if (savedSessionId) {
+                onResourceRouteChange?.(`/logbook/${encodeURIComponent(savedSessionId)}`);
+              }
+            }}
           />
 
           {/* P1.3: Rest Timer Auto-Start & Vibration Buzz Drawer */}

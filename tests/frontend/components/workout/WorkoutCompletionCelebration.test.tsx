@@ -84,6 +84,23 @@ describe('P1.1: Workout Completion PR Celebration Modal', () => {
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
+  it('allows dismissing the summary without continuing to the logbook', async () => {
+    const user = userEvent.setup();
+    const handleClose = vi.fn();
+
+    render(
+      <WorkoutCompletionModal
+        isOpen={true}
+        summary={mockSummary}
+        onClose={handleClose}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: /close workout summary/i }));
+
+    expect(handleClose).toHaveBeenCalledTimes(1);
+  });
+
   it('renders encouraging consistency message when no new PRs are achieved', () => {
     const summaryNoPRs: WorkoutSummaryCelebration = {
       workoutName: 'Day 2: Lower Hypertrophy',

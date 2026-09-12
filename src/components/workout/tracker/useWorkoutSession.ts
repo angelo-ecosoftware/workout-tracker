@@ -39,7 +39,6 @@ import {
 export function useWorkoutSession(
   user: AuthUser | null,
   requestedWorkoutId?: string | null,
-  onSessionSaved?: (sessionId: string) => void,
 ) {
   const [workouts, setWorkouts] = useState<(Workout & { exercises: Exercise[] })[]>([]);
   const [activeWorkout, setActiveWorkoutState] = useState<(Workout & { exercises: Exercise[] }) | null>(null);
@@ -54,6 +53,7 @@ export function useWorkoutSession(
   const [isRoutineEditorOpen, setIsRoutineEditorOpen] = useState(false);
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [celebrationSummary, setCelebrationSummary] = useState<WorkoutSummaryCelebration | null>(null);
+  const [savedSessionId, setSavedSessionId] = useState<string | null>(null);
   const [historySessions, setHistorySessions] = useState<{ id?: string; completedAt?: Date | null; startedAt?: Date; status?: string }[]>([]);
   const [skippedExerciseIds, setSkippedExerciseIds] = useState<Set<string>>(new Set());
   const hydrationGenerationRef = useRef(0);
@@ -843,14 +843,11 @@ export function useWorkoutSession(
       setIsFinishModalOpen(false);
 
       // Trigger Celebration Modal
+      setSavedSessionId(savedSessionId);
       setCelebrationSummary(celebrationData);
       setSuccessMsg(`Workout successfully saved! Next workout Day updated.`);
       window.scrollTo({ top: 0, behavior: 'smooth' });
       await loadWorkflowState();
-      if (savedSessionId) {
-        onSessionSaved?.(savedSessionId);
-      }
-
       setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : 'Failed to log workout session details.');
@@ -1023,7 +1020,13 @@ export function useWorkoutSession(
         }
 
         // Trigger smart motivational praise toast if sequential set mode is enabled
-        if (isSequentialSetMode) {
+        const hasActiveOverlay =
+          isFinishModalOpen ||
+          unrealisticWarningConfig.isOpen ||
+          duplicateSessionWarning.isOpen ||
+          Boolean(celebrationSummary) ||
+          autoRestTimer.isOpen;
+        if (isSequentialSetMode && !hasActiveOverlay) {
           setSetPraiseToast({
             message: getRandomPraise(),
             exerciseName: targetExercise?.name,
@@ -1142,6 +1145,7 @@ export function useWorkoutSession(
     setDuplicateSessionWarning,
     celebrationSummary,
     setCelebrationSummary,
+    savedSessionId,
     autoRestTimer,
     setAutoRestTimer,
     historySessions,

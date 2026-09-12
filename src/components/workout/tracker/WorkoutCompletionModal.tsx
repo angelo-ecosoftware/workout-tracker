@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Trophy, Zap, Dumbbell, Award, ArrowRight, Flame } from 'lucide-react';
+import { Trophy, Zap, Dumbbell, Award, ArrowRight, Flame, X } from 'lucide-react';
 import { soundEffects } from '../../../utils/sound.ts';
 
 export interface ExercisePR {
@@ -52,6 +52,15 @@ export const WorkoutCompletionModal: React.FC<WorkoutCompletionModalProps> = ({
       <div className="relative w-full max-w-lg bg-[#0e0e0e] border border-[#2a2a2a] rounded-[28px] sm:rounded-[36px] p-6 sm:p-8 shadow-[0_0_80px_rgba(192,255,0,0.18)] overflow-hidden text-center flex flex-col items-center">
         {/* Glow ambient background highlight */}
         <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-72 h-72 bg-[#C0FF00]/15 rounded-full blur-[80px] pointer-events-none" />
+
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close workout summary"
+          className="absolute top-4 right-4 z-10 rounded-full p-2 text-gray-500 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+        >
+          <X className="w-5 h-5" />
+        </button>
 
         {/* Floating Trophy Icon with celebration ring */}
         <div className="relative mb-4 mt-2">
