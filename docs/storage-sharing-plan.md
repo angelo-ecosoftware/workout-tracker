@@ -10,6 +10,26 @@ Separate Kinisia data into clear ownership categories so that:
 - Completed sessions remain historically accurate.
 - Users can later share routines safely and cleanly.
 
+## Mandatory TODO checklist
+
+These are required product and engineering changes. They are not optional
+recommendations.
+
+- [ ] MUST scope active workout storage by `userId`.
+- [ ] MUST scope custom GIF storage by `userId`.
+- [ ] MUST keep standard catalog data separate from user-custom data.
+- [ ] MUST move large catalogs, GIFs, and photo blobs to IndexedDB.
+- [ ] MUST keep Supabase as the source of truth for account-owned data.
+- [ ] MUST preserve completed workout sessions as immutable snapshots.
+- [ ] MUST add routine versioning before routine sharing.
+- [ ] MUST make shared routines immutable published copies.
+- [ ] MUST prevent shared routines from exposing profile, bodyweight, history, or private notes.
+- [ ] MUST require explicit permission before sharing custom media.
+- [ ] MUST test account switching for drafts, timers, GIFs, routines, and body logs.
+- [ ] MUST complete each item using one change, one test, and one commit.
+
+An item may be checked only after its automatic test and manual test both pass.
+
 ## Core model
 
 ### 1. Catalog data
