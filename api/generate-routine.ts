@@ -78,6 +78,19 @@ const getGeminiKey = () =>
   || process.env.GOOGLE_GENERATIVE_AI_API_KEY
   || '';
 
+const getUserClient = (token: string) => {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const apiKey = process.env.SUPABASE_ANON_KEY
+    || process.env.VITE_SUPABASE_ANON_KEY
+    || process.env.SUPABASE_PUBLISHABLE_KEY
+    || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !apiKey) throw new Error('Supabase client configuration is missing');
+  return createClient(url, apiKey, {
+    auth: { persistSession: false },
+    global: { headers: { Authorization: `Bearer ${token}` } },
+  });
+};
+
 const getQuota = async (supabase: ReturnType<typeof getServiceClient>, userId: string, quotaDate: string) => {
   const { data } = await supabase
     .from('ai_routine_generation_quotas')
@@ -198,11 +211,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // #region agent log
   console.info('[routine-debug] authentication succeeded', { hasUserId: true });
   // #endregion
+  let userSupabase: ReturnType<typeof getServiceClient>;
+  try {
+    userSupabase = getUserClient(token);
+  } catch (error) {
+    return responseError(res, 500, error instanceof Error ? error.message : 'Supabase client configuration is missing');
+  }
   const quotaDate = new Date().toISOString().slice(0, 10);
-  const currentUsed = await getQuota(supabase, userId, quotaDate);
+  const currentUsed = await getQuota(userSupabase, userId, quotaDate);
   if (req.method === 'GET') return res.status(200).json({ quota: { used: currentUsed, limit: 'unlimited' } });
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profile, error: profileError } = await userSupabase
     .from('users')
     .select('fitness_level, goals, training_days, session_duration_minutes, training_location, injuries_notes')
     .eq('user_id', userId)
@@ -235,7 +254,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .update(stableStringify({ profileSnapshot, model, promptVersion: PROMPT_VERSION, catalogVersion: 'v1' }))
     .digest('hex');
 
-  const { data: cached } = await supabase
+  const { data: cached } = await userSupabase
     .from('ai_routine_generation_cache')
     .select('program_data, model, prompt_version, created_at')
     .eq('user_id', userId)
@@ -266,8 +285,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (reservationError || !reservationRow?.allowed) return responseError(res, 500, 'Could not reserve a routine generation.', used);
 
   const [{ data: globalExercises, error: globalExercisesError }, { data: customExercises, error: customExercisesError }] = await Promise.all([
-    supabase.from('exercises').select('id,name,type,target_sets,target_rep_min,target_rep_max').eq('user_id', CATALOG_OWNER_ID).order('name'),
-    supabase.from('exercises').select('id,name,type,target_sets,target_rep_min,target_rep_max').eq('user_id', userId).order('name'),
+    userSupabase.from('exercises').select('id,name,type,target_sets,target_rep_min,target_rep_max').eq('user_id', CATALOG_OWNER_ID).order('name'),
+    userSupabase.from('exercises').select('id,name,type,target_sets,target_rep_min,target_rep_max').eq('user_id', userId).order('name'),
   ]);
   // #region agent log
   console.info('[routine-debug] catalog lookup', {
@@ -318,7 +337,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { program, error } = buildProgram(generated, catalog, userId);
     if (error) return responseError(res, 422, error, used);
 
-    await supabase.from('ai_routine_generation_cache').upsert({
+    await userSupabase.from('ai_routine_generation_cache').upsert({
       user_id: userId,
       request_hash: requestHash,
       profile_snapshot: profileSnapshot,
