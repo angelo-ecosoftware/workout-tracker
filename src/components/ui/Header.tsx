@@ -5,7 +5,7 @@ import { Dumbbell, Settings, User, WifiOff, RefreshCw } from 'lucide-react';
 import { ProfileModal } from '../modals/ProfileModal.tsx';
 import { UserMetrics, Workout } from '../../models.ts';
 import { initializeUser, fetchWorkoutsData } from '../../lib/supabaseData.ts';
-import { readStoredJson } from '../../utils/safeStorage.ts';
+import { readStoredJson, removeStaleUserMetricCaches } from '../../utils/safeStorage.ts';
 
 interface HeaderProps {
   profileOpen?: boolean;
@@ -28,6 +28,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   useEffect(() => {
     if (!user || isAdmin) return;
+    removeStaleUserMetricCaches(user.id);
 
     // Load initial user metrics & active routines for frequency calculation
     const loadProfileData = async () => {

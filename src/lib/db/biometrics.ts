@@ -1,6 +1,7 @@
 import { supabase } from '../supabase.ts';
 import { BodyMeasurementLog } from '../../models.ts';
 import { DbBodyLogRow } from '../../types/supabase.ts';
+import { readStoredJson } from '../../utils/safeStorage.ts';
 
 export async function logDailyBodyWeight(
   userId: string,
@@ -33,8 +34,7 @@ export async function logDailyBodyWeight(
 
   try {
     const localKey = `body_logs_${userId}`;
-    const rawLogs = getLocalStorageItem(localKey);
-    const logs: BodyMeasurementLog[] = rawLogs ? JSON.parse(rawLogs) : [];
+    const logs = readStoredJson<BodyMeasurementLog[]>(localKey, []);
     const existingIndex = logs.findIndex((log) => log.logDate === payload.date);
     if (existingIndex >= 0) {
       logs[existingIndex] = { ...logs[existingIndex], ...logEntry, updatedAt: new Date() };
@@ -45,8 +45,7 @@ export async function logDailyBodyWeight(
     setLocalStorageItem(localKey, JSON.stringify(logs));
 
     const metricsKey = `user_metrics_${userId}`;
-    const rawMetrics = getLocalStorageItem(metricsKey);
-    const metrics = rawMetrics ? JSON.parse(rawMetrics) : {};
+    const metrics = readStoredJson<Record<string, unknown>>(metricsKey, {});
     metrics.weight = payload.weightKg;
     if (payload.heightCm) metrics.height = payload.heightCm;
     setLocalStorageItem(metricsKey, JSON.stringify(metrics));
