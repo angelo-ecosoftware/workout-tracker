@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Check, Loader2, Sparkles, X } from 'lucide-react';
 import { Exercise, Workout } from '../../models.ts';
 import { supabase } from '../../lib/supabase.ts';
-import { saveRoutineProgramToLibrary } from '../../lib/db/routineLibrary.ts';
+import { saveRoutineProgramToLibrary, setActiveRoutineProgram } from '../../lib/db/routineLibrary.ts';
+import { saveWorkoutsAndExercises } from '../../lib/supabaseData.ts';
 
 type GeneratedProgram = {
   title?: string;
@@ -22,6 +23,7 @@ interface RoutineGeneratorModalProps {
     trainingLocation?: string;
     injuriesNotes?: string;
   } | null;
+  onRoutineActivated?: (workouts: (Workout & { exercises: Exercise[] })[]) => void;
 }
 
 export const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
@@ -29,6 +31,7 @@ export const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   onClose,
   userId,
   profile,
+  onRoutineActivated,
 }) => {
   const [used, setUsed] = useState(0);
   const [program, setProgram] = useState<GeneratedProgram | null>(null);
@@ -96,12 +99,15 @@ export const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
     setIsSaving(true);
     setError('');
     try {
-      await saveRoutineProgramToLibrary(
+      const savedProgram = await saveRoutineProgramToLibrary(
         userId,
         program.title || 'AI-generated routine',
         { workouts: program.workouts },
         program.description || 'Generated from your saved profile preferences.',
       );
+      await setActiveRoutineProgram(userId, savedProgram.id);
+      await saveWorkoutsAndExercises(userId, program.workouts);
+      onRoutineActivated?.(program.workouts);
       setIsSaved(true);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Could not save this routine.');
