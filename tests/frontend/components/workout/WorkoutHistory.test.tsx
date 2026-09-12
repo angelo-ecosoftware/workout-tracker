@@ -249,4 +249,43 @@ describe('WorkoutHistory Component', () => {
       );
     });
   });
+
+  it('passes the active user id when deleting a session', async () => {
+    const user = userEvent.setup();
+    vi.mocked(SupabaseData.fetchWorkoutsData).mockResolvedValue({
+      workoutsList: [{
+        id: 'workout-delete',
+        userId: 'test-user-123',
+        name: 'Delete Day',
+        order: 2,
+        exerciseIds: [],
+        createdAt: new Date(),
+      }],
+      exercisesList: [],
+      workoutExercisesList: [],
+    } as any);
+    vi.mocked(SupabaseData.fetchWorkoutHistory).mockResolvedValue([{
+      id: 'session-delete',
+      userId: 'test-user-123',
+      workoutId: 'workout-delete',
+      status: 'completed',
+      startedAt: new Date('2026-09-03T09:00:00Z'),
+      completedAt: new Date('2026-09-03T10:00:00Z'),
+    } as Session]);
+    vi.mocked(SupabaseData.fetchSetsForSession).mockResolvedValue([]);
+    vi.mocked(SupabaseData.deleteSessions).mockResolvedValue(undefined);
+
+    render(<WorkoutHistory />);
+    await waitFor(() => expect(screen.getByText('Delete Day')).toBeInTheDocument());
+
+    await user.click(screen.getByTitle('Delete Sessions'));
+    await user.click(screen.getByText('Delete Day'));
+    await user.click(screen.getByRole('button', { name: 'Delete (1)' }));
+    const confirmDeleteButtons = screen.getAllByRole('button', { name: 'Delete' });
+    await user.click(confirmDeleteButtons[confirmDeleteButtons.length - 1]);
+
+    await waitFor(() => {
+      expect(SupabaseData.deleteSessions).toHaveBeenCalledWith(['session-delete'], 'test-user-123');
+    });
+  });
 });
