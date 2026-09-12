@@ -20,6 +20,7 @@ describe('canonical application routes', () => {
     ['/logbook', { kind: 'collection', collection: 'logbook' }],
     ['/logbook/s-1', { kind: 'logbook', logId: 's-1', mode: 'view' }],
     ['/logbook/s-1/edit', { kind: 'logbook', logId: 's-1', mode: 'edit' }],
+    ['/settings', { kind: 'section', section: 'settings' }],
   ])('parses %s', (path, expected) => {
     expect(parseCanonicalPath(path)).toEqual(expected);
   });

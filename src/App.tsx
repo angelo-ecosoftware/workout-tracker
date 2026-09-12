@@ -3,7 +3,11 @@ import { AuthProvider, useAuth } from './context/AuthContext.tsx';
 import { PWAProvider } from './context/PWAContext.tsx';
 import { ThemeProvider } from './context/ThemeContext.tsx';
 import { Header } from './components/ui/Header.tsx';
-import { SettingsModal } from './components/modals/SettingsModal.tsx';
+const LazySettingsModal = lazy(() =>
+  import('./components/modals/SettingsModal.tsx').then(({ SettingsModal }) => ({
+    default: SettingsModal,
+  }))
+);
 import { CoachViewAsBanner } from './components/coach/CoachViewAsBanner.tsx';
 import { CoachInviteAcceptModal } from './components/modals/CoachInviteAcceptModal.tsx';
 import { fetchInviteByCode } from './lib/db/roles.ts';
@@ -380,10 +384,12 @@ const GymAppContent: React.FC = () => {
           onProfileClose={closeProfile}
           onSettingsOpen={() => navigateToRoute('/settings')}
         />
-        <SettingsModal
-          isOpen={routeState.kind === 'section' && routeState.section === 'settings'}
-          onClose={() => navigateToRoute('/sessions')}
-        />
+        <Suspense fallback={null}>
+          <LazySettingsModal
+            isOpen={routeState.kind === 'section' && routeState.section === 'settings'}
+            onClose={() => navigateToRoute('/sessions')}
+          />
+        </Suspense>
         <main className="max-w-7xl mx-auto px-4 py-8">
           <Suspense fallback={loadingSpinner}>
             <AdminPortalView />
@@ -413,10 +419,12 @@ const GymAppContent: React.FC = () => {
         onProfileClose={closeProfile}
         onSettingsOpen={() => navigateToRoute('/settings')}
       />
-      <SettingsModal
-        isOpen={routeState.kind === 'section' && routeState.section === 'settings'}
-        onClose={() => navigateToRoute('/sessions')}
-      />
+      <Suspense fallback={null}>
+        <LazySettingsModal
+          isOpen={routeState.kind === 'section' && routeState.section === 'settings'}
+          onClose={() => navigateToRoute('/sessions')}
+        />
+      </Suspense>
       <OnboardingModal
         isOpen={showOnboarding || routeState.kind === 'onboarding'}
         userId={user.uid}
