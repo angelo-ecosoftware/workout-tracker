@@ -4,6 +4,7 @@ import { SessionEngine, SetLogger } from '../../engine.ts';
 import { initializeUser } from './users.ts';
 import { deleteWorkoutPhotos } from '../storage.ts';
 import { DbSessionRow, DbSetRow } from '../../types/supabase.ts';
+import { getWorkoutOrderFromSessionRow } from '../../utils/workoutOrder.ts';
 
 export async function updateSessionDate(
   sessionId: string,
@@ -138,10 +139,7 @@ export async function deleteSessions(sessionIds: string[], userId?: string) {
         .limit(1)
         .maybeSingle();
 
-      const newOrder =
-        (latestSession as any)?.workouts?.order ??
-        (latestSession as any)?.workout_order ??
-        0;
+      const newOrder = getWorkoutOrderFromSessionRow((latestSession || {}) as any);
 
       await supabase
         .from('users')

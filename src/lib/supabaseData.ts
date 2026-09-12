@@ -3,6 +3,7 @@ import { UserProfile, BodyMeasurementLog } from '../models.ts';
 import { initializeUser, saveUserMetrics } from './db/users.ts';
 import { logDailyBodyWeight, fetchBodyMeasurementLogs } from './db/biometrics.ts';
 import { seedTemplatesIfMissing as canonicalSeedTemplatesIfMissing } from './db/workouts.ts';
+import { getWorkoutOrderFromSessionRow } from '../utils/workoutOrder.ts';
 
 export async function getUserProgressState(userId: string) {
   const { data: authData } = await supabase.auth.getUser();
@@ -70,9 +71,7 @@ export async function getUserProgressState(userId: string) {
       // No completed sessions exist -> reset last completed order to 0
       verifiedLastCompletedOrder = 0;
     } else {
-      const order =
-        (latestSession as any)?.workouts?.order ??
-        (latestSession as any)?.workout_order;
+      const order = getWorkoutOrderFromSessionRow((latestSession || {}) as any);
       if (typeof order === 'number') {
         verifiedLastCompletedOrder = order;
       }
