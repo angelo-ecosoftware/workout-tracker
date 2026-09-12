@@ -5,6 +5,7 @@ import { Dumbbell, Settings, User, WifiOff, RefreshCw } from 'lucide-react';
 import { ProfileModal } from '../modals/ProfileModal.tsx';
 import { UserMetrics, Workout } from '../../models.ts';
 import { initializeUser, fetchWorkoutsData } from '../../lib/supabaseData.ts';
+import { readStoredJson } from '../../utils/safeStorage.ts';
 
 interface HeaderProps {
   profileOpen?: boolean;
@@ -53,8 +54,8 @@ export const Header: React.FC<HeaderProps> = ({
           setMetrics(resolvedMetrics);
           localStorage.setItem(`user_metrics_${user.id}`, JSON.stringify(resolvedMetrics));
         } else {
-          const cached = localStorage.getItem(`user_metrics_${user.id}`);
-          if (cached) setMetrics(JSON.parse(cached));
+          const cached = readStoredJson<UserMetrics | null>(`user_metrics_${user.id}`, null);
+          if (cached) setMetrics(cached);
         }
 
         const { workoutsList: userRoutines } = await fetchWorkoutsData(user.id);
