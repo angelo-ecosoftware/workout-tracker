@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import { usePWA } from '../../context/PWAContext.tsx';
 import { Dumbbell, Settings, User, WifiOff, RefreshCw } from 'lucide-react';
-import { SettingsModal } from '../modals/SettingsModal.tsx';
 import { ProfileModal } from '../modals/ProfileModal.tsx';
 import { UserMetrics, Workout } from '../../models.ts';
 import { initializeUser, fetchWorkoutsData } from '../../lib/supabaseData.ts';
@@ -11,16 +10,17 @@ interface HeaderProps {
   profileOpen?: boolean;
   onProfileOpen?: () => void;
   onProfileClose?: () => void;
+  onSettingsOpen?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   profileOpen = false,
   onProfileOpen = () => {},
   onProfileClose = () => {},
+  onSettingsOpen = () => {},
 }) => {
   const { user, isAdmin } = useAuth();
   const { isOnline, pendingSyncCount, triggerManualSync } = usePWA();
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [metrics, setMetrics] = useState<UserMetrics | undefined>(undefined);
   const [routines, setRoutines] = useState<Workout[]>([]);
@@ -159,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
 
             <button
-              onClick={() => setIsSettingsOpen(true)}
+              onClick={onSettingsOpen}
               title="Settings"
               className="w-8 h-8 flex items-center justify-center border border-[#333] hover:border-[#555] hover:bg-neutral-900 rounded-xl text-gray-400 transition-all duration-200 cursor-pointer"
             >
@@ -179,10 +179,6 @@ export const Header: React.FC<HeaderProps> = ({
         onMetricsUpdated={(newMetrics) => setMetrics(newMetrics)}
       />
 
-      <SettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
-      />
     </>
   );
 };

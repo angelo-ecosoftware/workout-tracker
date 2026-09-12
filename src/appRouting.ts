@@ -1,4 +1,4 @@
-export type AppSection = 'workouts' | 'routines' | 'exercises' | 'logbook' | 'dietary' | 'coach' | 'admin';
+export type AppSection = 'workouts' | 'routines' | 'exercises' | 'logbook' | 'dietary' | 'coach' | 'admin' | 'settings';
 
 export type CanonicalRoute =
   | { kind: 'collection'; collection: 'workouts' | 'routines' | 'exercises' | 'logbook' }
@@ -69,6 +69,7 @@ export function parseCanonicalPath(pathname: string): CanonicalRoute | null {
   if (path === '/dietary' || path === '/food') return { kind: 'section', section: 'dietary' };
   if (path === '/coach' || path === '/roster') return { kind: 'section', section: 'coach' };
   if (path === '/admin') return { kind: 'section', section: 'admin' };
+  if (path === '/settings') return { kind: 'section', section: 'settings' };
   if (path === '/profile') return { kind: 'profile' };
   if (path === '/onboarding') return { kind: 'onboarding' };
 
