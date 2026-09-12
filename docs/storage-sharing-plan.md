@@ -25,6 +25,8 @@ recommendations.
 - [ ] MUST make shared routines immutable published copies.
 - [ ] MUST prevent shared routines from exposing profile, bodyweight, history, or private notes.
 - [ ] MUST require explicit permission before sharing custom media.
+- [ ] MUST support shareable diet plans, meals, and recipes as immutable copies.
+- [ ] MUST provide dedicated food filters for meals and recipe discovery.
 - [ ] MUST test account switching for drafts, timers, GIFs, routines, and body logs.
 - [ ] MUST lock exercise inputs until `Start Workout` is pressed.
 - [ ] MUST make the missing-input reminder configurable in Settings.
@@ -466,6 +468,73 @@ Manual test:
 
 - Send, accept, reject, and revoke a friend connection.
 - Verify shared and private activity separately.
+
+### Plan item 15 — Shareable diet plans, meals, and recipes
+
+Change only:
+
+- Allow users to share a diet plan as an immutable published snapshot.
+- Allow individual meals and recipes to be shared independently.
+- Let recipients preview or copy shared content into their own private library.
+- Make copied plans, meals, and recipes independently editable.
+- Never expose the owner's private food logs, bodyweight, calorie history, or
+  personal nutrition notes.
+
+Recommended ownership model:
+
+```text
+diet_plan: private | published | copied
+meal: private | published | copied
+recipe: private | published | copied
+owner_user_id: <userId>
+source: user_created | catalog
+```
+
+Automatic test:
+
+- A recipient can copy a shared plan, meal, or recipe without gaining access
+  to the owner's private food logs.
+- Editing the copied content does not change the original.
+
+Manual test:
+
+1. Create a private diet plan with meals and recipes.
+2. Share the plan.
+3. Open it with another account.
+4. Copy the plan.
+5. Edit the copy.
+6. Confirm the original and private food logs remain unchanged.
+
+### Plan item 16 — Dedicated food and recipe filters
+
+Change only:
+
+- Add dedicated filters instead of mixing all foods into one search list.
+- Support filters for:
+  - Food products.
+  - Recipes.
+  - Meals.
+  - Diet plans.
+  - User-created items.
+  - Catalog items.
+  - Dietary preferences.
+  - Allergens and exclusions.
+  - Calories and macronutrient ranges.
+  - Preparation time.
+
+Automatic test:
+
+- Each filter returns only matching food, recipe, meal, or plan types.
+- User-created items remain scoped to the owner.
+
+Manual test:
+
+1. Open the food search.
+2. Filter by recipe.
+3. Filter by a dietary preference or allergen exclusion.
+4. Filter by calories or protein.
+5. Confirm only matching results appear.
+6. Switch accounts and confirm private food items are not visible.
 
 ## Required workflow for every item
 
