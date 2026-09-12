@@ -45,6 +45,25 @@ const getServiceClient = () => {
   return createClient(url, serviceRoleKey, { auth: { persistSession: false } });
 };
 
+const getAuthenticatedUserId = async (token: string) => {
+  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const apiKey = process.env.SUPABASE_ANON_KEY
+    || process.env.VITE_SUPABASE_ANON_KEY
+    || process.env.SUPABASE_PUBLISHABLE_KEY
+    || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !apiKey) throw new Error('Supabase auth configuration is missing');
+
+  const response = await fetch(`${url}/auth/v1/user`, {
+    headers: {
+      apikey: apiKey,
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  if (!response.ok) return null;
+  const user = await response.json() as { id?: string };
+  return user.id || null;
+};
+
 const getGeminiKey = () =>
   process.env.GEMINI_API_KEY
   || process.env.GEMINI_API_NAME
@@ -162,10 +181,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return responseError(res, 500, error instanceof Error ? error.message : 'Server configuration is missing');
   }
 
-  const { data: authData, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !authData.user) return responseError(res, 401, 'Your session is no longer valid.');
-
-  const userId = authData.user.id;
+  let userId: string | null;
+  try {
+    userId = await getAuthenticatedUserId(token);
+  } catch (error) {
+    return responseError(res, 500, error instanceof Error ? error.message : 'Supabase auth configuration is missing');
+  }
+  if (!userId) return responseError(res, 401, 'Your session is no longer valid.');
   const quotaDate = new Date().toISOString().slice(0, 10);
   const currentUsed = await getQuota(supabase, userId, quotaDate);
   if (req.method === 'GET') return res.status(200).json({ quota: { used: currentUsed, limit: DAILY_LIMIT } });
