@@ -39,7 +39,7 @@ const stableStringify = (value: unknown): string => {
 
 const getServiceClient = () => {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
   // #region agent log
   console.info('[routine-debug] service configuration', {
     hasUrl: Boolean(url),
