@@ -285,24 +285,26 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
         }}
       />
 
-      {/* Routine split selector */}
-      <RoutineSplitSelector
-        workouts={workouts}
-        activeWorkout={activeWorkout}
-        suggestedDay={suggestedDay}
-        lastSessionDay={lastSessionDay}
-        sessions={historySessions}
-        onSelectWorkout={(w) => {
-          setActiveWorkout(w);
-          setErrorMsg(null);
-        }}
-        onOpenRoutineEditor={() => {
-          setIsRoutineEditorOpen(true);
-          if (activeWorkout) {
-            onResourceRouteChange?.(`/workout/${encodeURIComponent(activeWorkout.id)}/edit`);
-          }
-        }}
-      />
+      {/* Keep the selected routine locked while a session is active. */}
+      {!isSessionActive && (
+        <RoutineSplitSelector
+          workouts={workouts}
+          activeWorkout={activeWorkout}
+          suggestedDay={suggestedDay}
+          lastSessionDay={lastSessionDay}
+          sessions={historySessions}
+          onSelectWorkout={(w) => {
+            setActiveWorkout(w);
+            setErrorMsg(null);
+          }}
+          onOpenRoutineEditor={() => {
+            setIsRoutineEditorOpen(true);
+            if (activeWorkout) {
+              onResourceRouteChange?.(`/workout/${encodeURIComponent(activeWorkout.id)}/edit`);
+            }
+          }}
+        />
+      )}
 
       {activeWorkout && (
         <div className="space-y-6">
