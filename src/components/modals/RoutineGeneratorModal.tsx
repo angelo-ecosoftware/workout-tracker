@@ -68,6 +68,9 @@ export const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) throw new Error('Please sign in again before generating a routine.');
+      // #region agent log
+      fetch('http://127.0.0.1:7357/ingest/5e455412-bd18-4aca-bdcb-15049feb542f',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'13ed83'},body:JSON.stringify({sessionId:'13ed83',runId:'pre-fix',hypothesisId:'H2-H3',location:'RoutineGeneratorModal.tsx:74',message:'routine generation request inputs',data:{hasToken:Boolean(token),hasProfile:Boolean(profile),goalsCount:profile?.goals?.length||0,trainingDaysCount:profile?.trainingDays?.length||0},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       const response = await fetch('/api/generate-routine', {
         method: 'POST',
         headers: {
@@ -81,6 +84,9 @@ export const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         error?: string;
         quota?: { used?: number; limit?: number | string };
       };
+      // #region agent log
+      fetch('http://127.0.0.1:7357/ingest/5e455412-bd18-4aca-bdcb-15049feb542f',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'13ed83'},body:JSON.stringify({sessionId:'13ed83',runId:'pre-fix',hypothesisId:'H1-H2-H4',location:'RoutineGeneratorModal.tsx:91',message:'routine generation response',data:{status:response.status,ok:response.ok,error:result.error||null,hasProgram:Boolean(result.program),used:result.quota?.used??null},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       setUsed(Number(result.quota?.used || used));
       if (!response.ok || !result.program) throw new Error(result.error || 'Could not generate a routine.');
       setProgram(result.program);
