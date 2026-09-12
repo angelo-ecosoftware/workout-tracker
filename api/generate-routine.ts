@@ -40,6 +40,14 @@ const stableStringify = (value: unknown): string => {
 const getServiceClient = () => {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // #region agent log
+  console.info('[routine-debug] service configuration', {
+    hasUrl: Boolean(url),
+    urlHost: url ? new URL(url).host : null,
+    hasSecretKey: Boolean(process.env.SUPABASE_SECRET_KEY),
+    hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+  });
+  // #endregion
   if (!url || !serviceRoleKey) throw new Error('Supabase server configuration is missing');
   return createClient(url, serviceRoleKey, { auth: { persistSession: false } });
 };
@@ -187,15 +195,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return responseError(res, 500, error instanceof Error ? error.message : 'Supabase auth configuration is missing');
   }
   if (!userId) return responseError(res, 401, 'Your session is no longer valid.');
+  // #region agent log
+  console.info('[routine-debug] authentication succeeded', { hasUserId: true });
+  // #endregion
   const quotaDate = new Date().toISOString().slice(0, 10);
   const currentUsed = await getQuota(supabase, userId, quotaDate);
   if (req.method === 'GET') return res.status(200).json({ quota: { used: currentUsed, limit: 'unlimited' } });
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('users')
     .select('fitness_level, goals, training_days, session_duration_minutes, training_location, injuries_notes')
     .eq('user_id', userId)
     .maybeSingle();
+  // #region agent log
+  console.info('[routine-debug] profile lookup', {
+    found: Boolean(profile),
+    errorCode: profileError?.code || null,
+    errorMessage: profileError?.message || null,
+  });
+  // #endregion
   const requestedProfile = req.body?.profile as Partial<ProfileSnapshot> | undefined;
   if (!profile && !requestedProfile) {
     return responseError(res, 400, 'Complete your profile before generating a routine.', currentUsed);
@@ -237,12 +255,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   });
   const reservationRow = Array.isArray(reservation) ? reservation[0] : reservation;
   const used = Number(reservationRow?.used_count || currentUsed);
+  // #region agent log
+  console.info('[routine-debug] quota reservation', {
+    hasReservationError: Boolean(reservationError),
+    reservationErrorCode: reservationError?.code || null,
+    reservationErrorMessage: reservationError?.message || null,
+    hasReservationRow: Boolean(reservationRow),
+  });
+  // #endregion
   if (reservationError || !reservationRow?.allowed) return responseError(res, 500, 'Could not reserve a routine generation.', used);
 
   const [{ data: globalExercises, error: globalExercisesError }, { data: customExercises, error: customExercisesError }] = await Promise.all([
     supabase.from('exercises').select('id,name,type,target_sets,target_rep_min,target_rep_max').eq('user_id', CATALOG_OWNER_ID).order('name'),
     supabase.from('exercises').select('id,name,type,target_sets,target_rep_min,target_rep_max').eq('user_id', userId).order('name'),
   ]);
+  // #region agent log
+  console.info('[routine-debug] catalog lookup', {
+    globalCount: globalExercises?.length || 0,
+    customCount: customExercises?.length || 0,
+    globalErrorCode: globalExercisesError?.code || null,
+    globalErrorMessage: globalExercisesError?.message || null,
+    customErrorCode: customExercisesError?.code || null,
+    customErrorMessage: customExercisesError?.message || null,
+  });
+  // #endregion
   if (globalExercisesError || customExercisesError) {
     return responseError(res, 500, 'The exercise catalog could not be read. Please try again shortly.', used);
   }
