@@ -26,6 +26,13 @@ recommendations.
 - [ ] MUST prevent shared routines from exposing profile, bodyweight, history, or private notes.
 - [ ] MUST require explicit permission before sharing custom media.
 - [ ] MUST test account switching for drafts, timers, GIFs, routines, and body logs.
+- [ ] MUST lock exercise inputs until `Start Workout` is pressed.
+- [ ] MUST make the missing-input reminder configurable in Settings.
+- [ ] MUST keep global exercise GIFs separate from private user exercise GIFs.
+- [ ] MUST make the rest timer disappear at zero and support wait, skip, and dismiss.
+- [ ] MUST restore the original exercise info route after returning from YouTube or TikTok.
+- [ ] MUST remove both workout and rest timers after the workout is finished.
+- [ ] MUST add Friends/Social Tracking only as a later, permission-based feature.
 - [ ] MUST complete each item using one change, one test, and one commit.
 
 An item may be checked only after its automatic test and manual test both pass.
@@ -274,6 +281,191 @@ Automatic test:
 Manual test:
 
 - Switch between two accounts repeatedly and verify each sees only its own data.
+
+### Plan item 8 — Lock exercise inputs before starting
+
+Change only:
+
+- Disable weight, reps, duration, and difficulty inputs until `Start Workout`
+  is pressed.
+- Keep exercise guides and routine viewing available.
+
+Automatic test:
+
+- Inputs are disabled before start and enabled after start.
+
+Manual test:
+
+1. Open a workout.
+2. Try changing an exercise input before starting.
+3. Confirm it cannot be edited.
+4. Start the workout.
+5. Confirm the inputs are editable.
+
+### Plan item 9 — Smart missing-input reminder
+
+Change only:
+
+- Track whether each completed set contains the required input.
+- Strength exercises require weight and reps.
+- Timed exercises require duration.
+- Bodyweight exercises require reps; weight may be optional.
+- Skipped sets do not trigger a warning.
+- After two consecutive completed sets with missing input, play one ping and
+  show a dismissible reminder.
+- Do not repeat the reminder until valid input is entered.
+
+Settings:
+
+- Default reminder delay: 20 seconds.
+- User options: 10 seconds, 20 seconds, 30 seconds, or Disabled.
+- The delay controls inactivity reminders; it does not replace missing-input
+  validation.
+
+Automatic test:
+
+- Two incomplete sets trigger one reminder.
+- A valid input clears the reminder.
+- Skipped sets do not trigger it.
+
+Manual test:
+
+1. Start a workout.
+2. Complete two sets without entering the required values.
+3. Confirm one ping and a dismissible reminder appear.
+4. Enter valid values.
+5. Confirm the reminder does not immediately repeat.
+
+### Plan item 10 — Rest timer lifecycle
+
+Change only:
+
+- Keep the next set locked while the rest timer runs.
+- Unlock it when the timer reaches zero.
+- Allow the user to wait, skip, or dismiss the timer.
+- Dismiss and skip unlock the next set immediately.
+- Record skipped rest as `rest_status: skipped`.
+- Remove the timer automatically at zero.
+- Remove the rest timer and workout timer after submission.
+
+Automatic test:
+
+- Timer reaches zero and closes.
+- Skip and dismiss unlock the next set.
+- Submission clears timer state.
+
+Manual test:
+
+1. Complete a set.
+2. Confirm the next set is locked during rest.
+3. Wait for zero and confirm it unlocks and the timer disappears.
+4. Repeat using Skip and Dismiss.
+5. Submit the workout and confirm no timer remains.
+
+### Plan item 11 — External exercise route continuity
+
+Change only:
+
+- Preserve the exercise info route and exact UI position before opening
+  YouTube or TikTok.
+- Restore that exercise info page when the user returns.
+
+Automatic test:
+
+- External navigation continuity restores the original exercise route.
+
+Manual test:
+
+1. Open an exercise info page.
+2. Open its YouTube or TikTok link.
+3. Return using browser navigation or the external app.
+4. Confirm the same exercise info page and position are restored.
+
+### Plan item 12 — Private user exercise GIFs
+
+Change only:
+
+- Allow GIF uploads for exercises only.
+- Save them in Supabase with `source: user_upload`.
+- Show them immediately to their owner.
+- Keep them private and separate from global exercise GIFs.
+- Do not reuse them in the global catalog yet.
+- Accept GIF files only in the first version; video conversion comes later.
+
+Recommended metadata:
+
+```text
+owner_user_id: <userId>
+exercise_id: <exerciseId>
+source: user_upload
+visibility: private
+approval_status: private
+```
+
+Future approval changes the status to `pending`; it must create a reviewed
+copy rather than modifying the private original.
+
+Automatic test:
+
+- A user can read their own exercise GIF.
+- Another user cannot read it.
+- The global exercise catalog is unchanged.
+
+Manual test:
+
+1. Upload a GIF for an exercise.
+2. Confirm it appears immediately in that user’s exercise guide.
+3. Switch accounts.
+4. Confirm the GIF is not visible.
+
+### Plan item 13 — Routine sharing
+
+Change only:
+
+- Share immutable routine versions.
+- Let another user preview or copy a routine.
+- Make the copied routine private and independently editable.
+- Keep profile, bodyweight, history, and private notes excluded.
+
+Automatic test:
+
+- A recipient can copy a shared routine but cannot edit the owner’s source.
+
+Manual test:
+
+1. Share a routine.
+2. Open it with another account.
+3. Copy it.
+4. Edit the copy.
+5. Confirm the original routine is unchanged.
+
+### Plan item 14 — Friends and social tracking (later)
+
+This is a future feature, not part of the initial sharing implementation.
+
+Possible scope:
+
+- Friend requests by username or invite link.
+- Accept or reject requests.
+- Share workout activity with explicit permission.
+- Share routines with friends.
+- Optional encouragement notifications.
+- Future challenges or leaderboards.
+
+Privacy requirements:
+
+- Bodyweight, private notes, and personal metrics remain private by default.
+- Social visibility is opt-in.
+- Friends cannot edit another user’s routines or sessions.
+
+Automatic test:
+
+- A user cannot view another user’s activity without permission.
+
+Manual test:
+
+- Send, accept, reject, and revoke a friend connection.
+- Verify shared and private activity separately.
 
 ## Required workflow for every item
 
