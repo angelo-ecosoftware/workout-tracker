@@ -536,6 +536,35 @@ Manual test:
 5. Confirm only matching results appear.
 6. Switch accounts and confirm private food items are not visible.
 
+### Plan item 17 — Catalog ingestion service with Crawlee
+
+This is a future backend ingestion task, not a browser-side feature.
+
+Change only:
+
+- Use official APIs first for food, recipe, and product catalog data.
+- Use Crawlee only where no suitable official API exists.
+- Keep crawlers separate from user-created recipes, meals, and diet plans.
+- Normalize imported data before storing it in Supabase.
+- Store the source URL, provider name, attribution, and import timestamp.
+- Detect duplicates before publishing imported catalog items.
+- Respect robots.txt, terms of service, copyright, and rate limits.
+- Never crawl private, authenticated, or user-only content.
+
+Automatic test:
+
+- Imported records retain their source and attribution metadata.
+- Duplicate source records are not published twice.
+- User-created content is never mixed into the catalog ingestion pipeline.
+
+Manual test:
+
+1. Run an ingestion job against an approved public source.
+2. Confirm normalized recipes or products appear in the staging dataset.
+3. Confirm source and attribution metadata are present.
+4. Run the same job again.
+5. Confirm duplicate records are not created.
+
 ## Required workflow for every item
 
 ```text
