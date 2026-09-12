@@ -3,12 +3,16 @@ import { Exercise, SavedRoutineProgram, Workout } from '../../models.ts';
 import { DbSavedRoutineProgramRow } from '../../types/supabase.ts';
 import { getLocalStorageItem, setLocalStorageItem } from './rolesStorage.ts';
 
+const isPersistedRoutineId = (id: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+
 export async function fetchSavedRoutinePrograms(userId: string): Promise<SavedRoutineProgram[]> {
   const localProgramsRaw = getLocalStorageItem(`saved_programs_${userId}`);
   let defaultPrograms: SavedRoutineProgram[] = [];
   if (localProgramsRaw) {
     try {
-      defaultPrograms = JSON.parse(localProgramsRaw);
+      defaultPrograms = (JSON.parse(localProgramsRaw) as SavedRoutineProgram[])
+        .filter((program) => isPersistedRoutineId(program.id));
     } catch {
       // ignore
     }
@@ -65,6 +69,16 @@ export async function fetchSavedRoutineProgramById(
   userId: string,
   programId: string
 ): Promise<SavedRoutineProgram | null> {
+  if (!isPersistedRoutineId(programId)) {
+    const localProgramsRaw = getLocalStorageItem(`saved_programs_${userId}`);
+    if (!localProgramsRaw) return null;
+    try {
+      return (JSON.parse(localProgramsRaw) as SavedRoutineProgram[])
+        .find((program) => program.id === programId) || null;
+    } catch {
+      return null;
+    }
+  }
   const { data, error } = await supabase
     .from('saved_routine_programs')
     .select('*')
@@ -102,28 +116,25 @@ export async function saveRoutineProgramToLibrary(
   sourceCoachId?: string,
   sourceCoachName?: string
 ): Promise<SavedRoutineProgram> {
-  let dbId = '';
-  try {
-    const { data } = await supabase
-      .from('saved_routine_programs')
-      .insert({
-        user_id: userId,
-        title,
-        description: description || null,
-        is_active: false,
-        source_coach_id: sourceCoachId || null,
-        source_coach_name: sourceCoachName || null,
-        program_data: programData,
-      })
-      .select()
-      .single();
-    if (data?.id) dbId = data.id;
-  } catch {
-    // ignore
+  const { data, error } = await supabase
+    .from('saved_routine_programs')
+    .insert({
+      user_id: userId,
+      title,
+      description: description || null,
+      is_active: false,
+      source_coach_id: sourceCoachId || null,
+      source_coach_name: sourceCoachName || null,
+      program_data: programData,
+    })
+    .select()
+    .single();
+  if (error || !data?.id) {
+    throw new Error(error?.message || 'Routine could not be saved. Check your connection and try again.');
   }
 
   const newProgram: SavedRoutineProgram = {
-    id: dbId || `prog_${Date.now()}`,
+    id: data.id,
     userId,
     title,
     description: description || null,
@@ -143,6 +154,9 @@ export async function saveRoutineProgramToLibrary(
 }
 
 export async function setActiveRoutineProgram(userId: string, programId: string): Promise<void> {
+  if (!isPersistedRoutineId(programId)) {
+    throw new Error('This routine is not saved in the database yet. Save it again before activating it.');
+  }
   const existing = await fetchSavedRoutinePrograms(userId);
   setLocalStorageItem(
     `saved_programs_${userId}`,
@@ -172,6 +186,9 @@ export async function updateSavedRoutineProgram(
   programId: string,
   programData: { workouts: (Workout & { exercises: Exercise[] })[] },
 ): Promise<void> {
+  if (!isPersistedRoutineId(programId)) {
+    throw new Error('This routine is not saved in the database yet. Save it again before editing it.');
+  }
   const existing = await fetchSavedRoutinePrograms(userId);
   const updatedAt = new Date();
   const updated = existing.map((program) =>
@@ -193,9 +210,12 @@ export async function deleteSavedRoutineProgram(userId: string, programId: strin
     `saved_programs_${userId}`,
     JSON.stringify(existing.filter((p) => p.id !== programId))
   );
-  try {
-    await supabase.from('saved_routine_programs').delete().eq('id', programId);
-  } catch {
-    // ignore
+  if (isPersistedRoutineId(programId)) {
+    const { error } = await supabase
+      .from('saved_routine_programs')
+      .delete()
+      .eq('id', programId)
+      .eq('user_id', userId);
+    if (error) throw new Error(error.message);
   }
 }
