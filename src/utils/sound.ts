@@ -3,6 +3,7 @@ let sharedAudioCtx: AudioContext | null = null;
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
+  if (window.navigator.userActivation && !window.navigator.userActivation.hasBeenActive) return null;
   const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
   if (!AudioCtxClass) return null;
 
