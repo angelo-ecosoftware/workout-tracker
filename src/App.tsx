@@ -384,12 +384,14 @@ const GymAppContent: React.FC = () => {
           onProfileClose={closeProfile}
           onSettingsOpen={() => navigateToRoute('/settings')}
         />
-        <Suspense fallback={null}>
-          <LazySettingsModal
-            isOpen={routeState.kind === 'section' && routeState.section === 'settings'}
-            onClose={() => navigateToRoute('/sessions')}
-          />
-        </Suspense>
+        {routeState.kind === 'section' && routeState.section === 'settings' && (
+          <Suspense fallback={null}>
+            <LazySettingsModal
+              isOpen={true}
+              onClose={() => navigateToRoute('/sessions')}
+            />
+          </Suspense>
+        )}
         <main className="max-w-7xl mx-auto px-4 py-8">
           <Suspense fallback={loadingSpinner}>
             <AdminPortalView />
@@ -419,12 +421,14 @@ const GymAppContent: React.FC = () => {
         onProfileClose={closeProfile}
         onSettingsOpen={() => navigateToRoute('/settings')}
       />
-      <Suspense fallback={null}>
-        <LazySettingsModal
-          isOpen={routeState.kind === 'section' && routeState.section === 'settings'}
-          onClose={() => navigateToRoute('/sessions')}
-        />
-      </Suspense>
+      {routeState.kind === 'section' && routeState.section === 'settings' && (
+        <Suspense fallback={null}>
+          <LazySettingsModal
+            isOpen={true}
+            onClose={() => navigateToRoute('/sessions')}
+          />
+        </Suspense>
+      )}
       <OnboardingModal
         isOpen={showOnboarding || routeState.kind === 'onboarding'}
         userId={user.uid}
