@@ -40,7 +40,7 @@ const stableStringify = (value: unknown): string => {
 
 const getServiceClient = () => {
   const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const serviceRoleKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !serviceRoleKey) throw new Error('Supabase server configuration is missing');
   return createClient(url, serviceRoleKey, { auth: { persistSession: false } });
 };
@@ -240,10 +240,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const used = Number(reservationRow?.used_count || currentUsed);
   if (reservationError || !reservationRow?.allowed) return responseError(res, 429, 'You have used all 3 routine generations for today.', used);
 
-  const [{ data: globalExercises }, { data: customExercises }] = await Promise.all([
+  const [{ data: globalExercises, error: globalExercisesError }, { data: customExercises, error: customExercisesError }] = await Promise.all([
     supabase.from('exercises').select('id,name,type,target_sets,target_rep_min,target_rep_max').eq('user_id', CATALOG_OWNER_ID).order('name'),
     supabase.from('exercises').select('id,name,type,target_sets,target_rep_min,target_rep_max').eq('user_id', userId).order('name'),
   ]);
+  if (globalExercisesError || customExercisesError) {
+    return responseError(res, 500, 'The exercise catalog could not be read. Please try again shortly.', used);
+  }
   const catalog = [...(globalExercises || []), ...(customExercises || [])] as CatalogExercise[];
   if (catalog.length === 0) return responseError(res, 500, 'The exercise catalog is unavailable.', used);
 
