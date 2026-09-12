@@ -98,14 +98,15 @@ export const SavedRoutinesLibraryModal: React.FC<SavedRoutinesLibraryModalProps>
   const handleActivateProgram = async (program: SavedRoutineProgram) => {
     try {
       setLoading(true);
-      await setActiveRoutineProgram(userId, program.id);
-
       // If program has workouts, sync them to active workouts table
       if (program.programData?.workouts && Array.isArray(program.programData.workouts)) {
-        await saveWorkoutsAndExercises(userId, program.programData.workouts);
+        const persistedWorkouts = await saveWorkoutsAndExercises(userId, program.programData.workouts);
+        await setActiveRoutineProgram(userId, program.id);
         if (onProgramActivated) {
-          onProgramActivated(program.programData.workouts);
+          onProgramActivated(persistedWorkouts);
         }
+      } else {
+        await setActiveRoutineProgram(userId, program.id);
       }
 
       setPrograms((prev) =>

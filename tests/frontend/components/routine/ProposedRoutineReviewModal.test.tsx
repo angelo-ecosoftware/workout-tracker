@@ -70,7 +70,7 @@ describe('ProposedRoutineReviewModal Component', () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    vi.mocked(SupabaseData.saveWorkoutsAndExercises).mockResolvedValue();
+    vi.mocked(SupabaseData.saveWorkoutsAndExercises).mockResolvedValue(mockProposal.programPayload.workouts);
     vi.mocked(SupabaseData.setActiveRoutineProgram).mockResolvedValue();
     vi.mocked(SupabaseData.updateRoutineProposalStatus).mockResolvedValue();
 

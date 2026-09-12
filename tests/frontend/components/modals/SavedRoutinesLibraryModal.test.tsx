@@ -126,7 +126,7 @@ describe('SavedRoutinesLibraryModal Component', () => {
     const user = userEvent.setup();
     const onProgramActivated = vi.fn();
     vi.mocked(SupabaseData.setActiveRoutineProgram).mockResolvedValue();
-    vi.mocked(SupabaseData.saveWorkoutsAndExercises).mockResolvedValue();
+    vi.mocked(SupabaseData.saveWorkoutsAndExercises).mockResolvedValue(mockWorkouts);
 
     render(
       <SavedRoutinesLibraryModal

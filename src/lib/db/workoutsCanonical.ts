@@ -6,6 +6,19 @@ import {
   DbWorkoutRow,
 } from '../../types/supabase.ts';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+const createDatabaseId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+    const random = Math.random() * 16 | 0;
+    const value = character === 'x' ? random : (random & 0x3 | 0x8);
+    return value.toString(16);
+  });
+};
+
 export async function seedTemplatesIfMissing(_userId?: string): Promise<void> {
   // Seeding is intentionally disabled; users manage routines directly.
 }
@@ -134,24 +147,29 @@ export async function fetchWorkoutById(userId: string, workoutId: string) {
 export async function saveWorkoutsAndExercises(
   userId: string,
   updatedWorkouts: (Workout & { exercises: Exercise[] })[]
-) {
+): Promise<(Workout & { exercises: Exercise[] })[]> {
   const exercises: Partial<DbExerciseRow>[] = [];
   const workouts: Partial<DbWorkoutRow>[] = [];
   const junctionRows: Partial<DbWorkoutExerciseRow>[] = [];
+  const normalizedWorkouts: (Workout & { exercises: Exercise[] })[] = [];
+  const workoutIds = new Map<string, string>();
+  const exerciseIdMap = new Map<string, string>();
 
   updatedWorkouts.forEach((workout, workoutIndex) => {
-    const workoutId = workout.id && !workout.id.startsWith('custom_w_')
-      ? workout.id
-      : `w_${Date.now()}_${workoutIndex}`;
+    const originalWorkoutId = String(workout.id || `workout-${workoutIndex}`);
+    const workoutId = workoutIds.get(originalWorkoutId) ||
+      (UUID_PATTERN.test(originalWorkoutId) ? originalWorkoutId : createDatabaseId());
+    workoutIds.set(originalWorkoutId, workoutId);
     const exerciseIds: string[] = [];
+    const normalizedExercises: Exercise[] = [];
 
     (workout.exercises || []).forEach((exercise, position) => {
-      const exerciseId = exercise.id &&
-        !exercise.id.startsWith('ex_') &&
-        !exercise.id.startsWith('custom_')
-        ? exercise.id
-        : `ex_${Date.now()}_${workoutIndex}_${position}`;
+      const originalExerciseId = String(exercise.id || `exercise-${workoutIndex}-${position}`);
+      const exerciseId = exerciseIdMap.get(originalExerciseId) ||
+        (UUID_PATTERN.test(originalExerciseId) ? originalExerciseId : createDatabaseId());
+      exerciseIdMap.set(originalExerciseId, exerciseId);
       exerciseIds.push(exerciseId);
+      normalizedExercises.push({ ...exercise, id: exerciseId });
       exercises.push({
         id: exerciseId,
         name: exercise.name,
@@ -177,37 +195,53 @@ export async function saveWorkoutsAndExercises(
       user_id: userId,
       exercise_ids: exerciseIds,
     });
+    normalizedWorkouts.push({
+      ...workout,
+      id: workoutId,
+      exerciseIds,
+      exercises: normalizedExercises,
+    });
   });
 
   if (exercises.length > 0) {
     const { error } = await supabase.from('exercises').upsert(exercises);
-    if (error) console.warn('Exercise upsert warning:', error);
+    if (error) throw new Error(`Failed to save exercises: ${error.message}`);
   }
 
   const activeWorkoutIds = workouts.map((workout) => workout.id);
+  if (workouts.length > 0) {
+    const { error } = await supabase.from('workouts').upsert(workouts);
+    if (error) throw new Error(`Failed to save workouts: ${error.message}`);
+  }
+
   if (activeWorkoutIds.length > 0) {
     const { error } = await supabase
       .from('workouts')
       .delete()
       .eq('user_id', userId)
       .not('id', 'in', `(${activeWorkoutIds.map((id) => `"${id}"`).join(',')})`);
-    if (error) console.warn('Workouts cleanup warning:', error);
+    if (error) throw new Error(`Failed to clean up old workouts: ${error.message}`);
   } else {
     const { error } = await supabase.from('workouts').delete().eq('user_id', userId);
-    if (error) console.warn('Workouts clear-all warning:', error);
+    if (error) throw new Error(`Failed to clear old workouts: ${error.message}`);
   }
 
-  if (workouts.length > 0) {
-    const { error } = await supabase.from('workouts').upsert(workouts);
-    if (error) throw new Error(`Failed to save workouts: ${error.message}`);
+  const { error: junctionDeleteError } = await supabase
+    .from('workout_exercises')
+    .delete()
+    .eq('user_id', userId);
+  if (junctionDeleteError) {
+    throw new Error(`Failed to clear workout exercise links: ${junctionDeleteError.message}`);
   }
 
-  try {
-    await supabase.from('workout_exercises').delete().eq('user_id', userId);
-    if (junctionRows.length > 0) {
-      await supabase.from('workout_exercises').insert(junctionRows);
+  if (junctionRows.length > 0) {
+    const { error: junctionInsertError } = await supabase
+      .from('workout_exercises')
+      .insert(junctionRows);
+    if (junctionInsertError) {
+      throw new Error(`Failed to save workout exercise links: ${junctionInsertError.message}`);
     }
-  } catch (error) {
-    console.warn('Junction table sync note:', error);
   }
+
+  return normalizedWorkouts;
 }

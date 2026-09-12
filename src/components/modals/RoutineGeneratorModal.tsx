@@ -105,9 +105,9 @@ export const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         { workouts: program.workouts },
         program.description || 'Generated from your saved profile preferences.',
       );
+      const persistedWorkouts = await saveWorkoutsAndExercises(userId, program.workouts);
       await setActiveRoutineProgram(userId, savedProgram.id);
-      await saveWorkoutsAndExercises(userId, program.workouts);
-      onRoutineActivated?.(program.workouts);
+      onRoutineActivated?.(persistedWorkouts);
       setIsSaved(true);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : 'Could not save this routine.');
