@@ -184,7 +184,7 @@ export function useWorkoutSession(
     return () => clearInterval(interval);
   }, [isSessionActive, sessionStartTime]);
 
-  const handleStartWorkout = () => {
+  const beginWorkout = () => {
     if (!activeWorkout) return;
     const now = Date.now();
     setIsSessionActive(true);
@@ -216,6 +216,21 @@ export function useWorkoutSession(
         return prev;
       });
     }
+  };
+
+  const handleStartWorkout = () => {
+    if (!activeWorkout) return;
+    if (hasCompletedSessionOnDate(historySessions, sessionDate)) {
+      setDuplicateSessionWarning({
+        isOpen: true,
+        onConfirm: () => {
+          setDuplicateSessionWarning((previous) => ({ ...previous, isOpen: false }));
+          beginWorkout();
+        },
+      });
+      return;
+    }
+    beginWorkout();
   };
 
   const handleCancelSession = () => {

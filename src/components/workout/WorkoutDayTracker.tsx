@@ -553,8 +553,8 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
           <ConfirmModal
             isOpen={duplicateSessionWarning.isOpen}
             title="Another Workout Today"
-            description="You already completed a workout today. Are you sure you want to save another session?"
-            confirmText="Yes, Save Another"
+            description="You already completed a workout today. Are you sure you want to start another session?"
+            confirmText="Yes, Start Another"
             cancelText="Keep Current Session"
             confirmVariant="primary"
             onConfirm={duplicateSessionWarning.onConfirm}

@@ -413,7 +413,7 @@ export const WorkoutHistory: React.FC<{
     setIsDeleteMode(false);
     setLoading(true);
     try {
-      await deleteSessions(Array.from(selectedIds));
+      await deleteSessions(Array.from(selectedIds), activeUserId);
       setSessions(s => s.filter(x => !selectedIds.has(x.id)));
       setSelectedIds(new Set());
     } catch (err: unknown) {
