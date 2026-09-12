@@ -177,10 +177,17 @@ describe('WorkoutDayTracker Component', () => {
     expect(submitBtns[0]).toBeDisabled();
 
     // Start the workout session using the single Start Workout button
+    expect(screen.getByText(/select routine/i)).toBeInTheDocument();
     await user.click(startBtns[0]);
 
     // Now workout is started: the single submit button becomes enabled and accessible
     expect(submitBtns[0]).toBeEnabled();
+    expect(screen.queryByText(/select routine/i)).not.toBeInTheDocument();
+
+    // Reset returns the routine selector so the user can choose another day.
+    await user.click(screen.getByRole('button', { name: /reset workout timer/i }));
+    expect(screen.getByText(/select routine/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /start workout/i }));
 
     // Ensure no duplicate submit/finish button was created in the header
     expect(screen.getAllByRole('button', { name: /submit workout/i })).toHaveLength(1);
