@@ -98,6 +98,7 @@ describe('WorkoutDayTracker Component', () => {
 
   it('renders active workout and allows editing exercise set weight, reps, notes, and submitting session', async () => {
     const user = userEvent.setup();
+    const routeChange = vi.fn();
     const mockWorkout = {
       id: 'w-push',
       userId: 'athlete-123',
@@ -127,15 +128,9 @@ describe('WorkoutDayTracker Component', () => {
       combinedWorkouts: [mockWorkout],
     } as any);
 
-    vi.mocked(SupabaseData.logSessionCompletion).mockResolvedValue({
-      session: {
-        id: 'session-logged-1',
-        userId: 'athlete-123',
-        workoutId: 'w-push',
-      },
-    } as any);
+    vi.mocked(SupabaseData.logSessionCompletion).mockResolvedValue('session-logged-1' as any);
 
-    render(<WorkoutDayTracker />);
+    render(<WorkoutDayTracker onResourceRouteChange={routeChange} />);
 
     await waitFor(() => {
       expect(screen.getAllByText(/day 1: push hypertrophy/i)[0]).toBeInTheDocument();
@@ -214,6 +209,9 @@ describe('WorkoutDayTracker Component', () => {
     await waitFor(() => {
       expect(SupabaseData.logSessionCompletion).toHaveBeenCalledTimes(1);
     });
+    expect(routeChange).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: /continue to logbook/i }));
+    expect(routeChange).toHaveBeenCalledWith('/logbook/session-logged-1');
 
     const [userId, workoutId, setsPayload, exercisesPayload, , notes] =
       vi.mocked(SupabaseData.logSessionCompletion).mock.calls[0];
