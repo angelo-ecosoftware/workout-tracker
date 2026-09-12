@@ -58,7 +58,11 @@ export default defineConfig(() => {
           navigateFallback: '/index.html',
           // Prevent Service Worker from hijacking SEO crawler endpoints
           navigateFallbackDenylist: [/^\/sitemap\.xml$/, /^\/robots\.txt$/],
-          globIgnores: ['**/sitemap.xml', '**/robots.txt']
+          globIgnores: [
+            '**/sitemap.xml',
+            '**/robots.txt',
+            '**/SettingsModal-*.js',
+          ]
         }
       })
     ],
