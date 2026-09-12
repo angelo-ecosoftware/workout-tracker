@@ -48,7 +48,7 @@ export const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!response.ok || cancelled) return;
-      const result = await response.json() as { quota?: { used?: number } };
+      const result = await response.json() as { quota?: { used?: number; limit?: number | string } };
       setUsed(Number(result.quota?.used || 0));
     };
     void loadQuota();
@@ -79,7 +79,7 @@ export const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       const result = await response.json() as {
         program?: GeneratedProgram;
         error?: string;
-        quota?: { used?: number };
+        quota?: { used?: number; limit?: number | string };
       };
       setUsed(Number(result.quota?.used || used));
       if (!response.ok || !result.program) throw new Error(result.error || 'Could not generate a routine.');
@@ -142,8 +142,8 @@ export const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
 
         <div className="mb-5 flex items-center justify-between rounded-xl border border-[#2b2b2b] bg-[#181818] px-4 py-3">
           <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Daily generations</span>
-          <span className={`font-mono text-sm font-bold ${used >= 3 ? 'text-red-300' : 'text-[#C0FF00]'}`}>
-            {used}/3 used
+          <span className="font-mono text-sm font-bold text-[#C0FF00]">
+            Unlimited testing
           </span>
         </div>
 
@@ -151,11 +151,11 @@ export const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
           <button
             type="button"
             onClick={() => void handleGenerate()}
-            disabled={isLoading || used >= 3}
+            disabled={isLoading}
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[#C0FF00] px-4 py-3 text-xs font-black uppercase tracking-wider text-black transition-colors hover:bg-[#a6dc00] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-            {isLoading ? 'Generating…' : used >= 3 ? 'Daily limit reached' : 'Generate routine'}
+            {isLoading ? 'Generating…' : 'Generate routine'}
           </button>
         )}
 

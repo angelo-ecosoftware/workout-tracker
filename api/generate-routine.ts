@@ -2,7 +2,6 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createHash, randomUUID } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 
-const DAILY_LIMIT = 3;
 const PROMPT_VERSION = 'routine-v1';
 const CATALOG_OWNER_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -78,11 +77,11 @@ const getQuota = async (supabase: ReturnType<typeof getServiceClient>, userId: s
     .eq('user_id', userId)
     .eq('quota_date', quotaDate)
     .maybeSingle();
-  return Math.min(Number(data?.used_count || 0), DAILY_LIMIT);
+  return Number(data?.used_count || 0);
 };
 
 const responseError = (res: VercelResponse, status: number, error: string, used = 0) =>
-  res.status(status).json({ error, quota: { used, limit: DAILY_LIMIT } });
+  res.status(status).json({ error, quota: { used, limit: 'unlimited' } });
 
 const getBearerToken = (req: VercelRequest) => {
   const header = req.headers.authorization || '';
@@ -190,7 +189,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!userId) return responseError(res, 401, 'Your session is no longer valid.');
   const quotaDate = new Date().toISOString().slice(0, 10);
   const currentUsed = await getQuota(supabase, userId, quotaDate);
-  if (req.method === 'GET') return res.status(200).json({ quota: { used: currentUsed, limit: DAILY_LIMIT } });
+  if (req.method === 'GET') return res.status(200).json({ quota: { used: currentUsed, limit: 'unlimited' } });
 
   const { data: profile } = await supabase
     .from('users')
@@ -228,7 +227,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       source: 'cache',
       program: cached.program_data,
-      quota: { used: currentUsed, limit: DAILY_LIMIT },
+      quota: { used: currentUsed, limit: 'unlimited' },
     });
   }
 
@@ -238,7 +237,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   });
   const reservationRow = Array.isArray(reservation) ? reservation[0] : reservation;
   const used = Number(reservationRow?.used_count || currentUsed);
-  if (reservationError || !reservationRow?.allowed) return responseError(res, 429, 'You have used all 3 routine generations for today.', used);
+  if (reservationError || !reservationRow?.allowed) return responseError(res, 500, 'Could not reserve a routine generation.', used);
 
   const [{ data: globalExercises, error: globalExercisesError }, { data: customExercises, error: customExercisesError }] = await Promise.all([
     supabase.from('exercises').select('id,name,type,target_sets,target_rep_min,target_rep_max').eq('user_id', CATALOG_OWNER_ID).order('name'),
@@ -292,7 +291,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       prompt_version: PROMPT_VERSION,
     }, { onConflict: 'user_id,request_hash' });
 
-    return res.status(200).json({ source: 'generated', program, quota: { used, limit: DAILY_LIMIT } });
+    return res.status(200).json({ source: 'generated', program, quota: { used, limit: 'unlimited' } });
   } catch (error) {
     return responseError(res, 502, error instanceof Error ? error.message : 'Could not generate a routine.', used);
   }
