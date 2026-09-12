@@ -5,12 +5,14 @@ import {
   fetchWorkoutsData,
   getUserProgressState,
   fetchWorkoutHistory,
+  saveWorkoutsAndExercises,
   logSessionCompletion,
   seedTemplatesIfMissing,
   logDailyBodyWeight,
 } from '../../../lib/supabaseData.ts';
 import { uploadWorkoutPhotos } from '../../../lib/storage.ts';
 import { compressWorkoutImage } from '../../../utils/imageCompressor.ts';
+import { fetchSavedRoutinePrograms } from '../../../lib/db/routineLibrary.ts';
 import { SessionEngine, ProgressionEngine } from '../../../engine.ts';
 import {
   saveDraftPhotosToStorage,
@@ -414,13 +416,25 @@ export function useWorkoutSession(user: AuthUser | null, requestedWorkoutId?: st
 
       await seedTemplatesIfMissing(user.uid);
 
-      const [wData, userProgress, historyLogs] = await Promise.all([
+      let [wData, userProgress, historyLogs] = await Promise.all([
         fetchWorkoutsData(user.uid),
         getUserProgressState(user.uid),
         fetchWorkoutHistory(user.uid).catch(() => []),
       ]);
 
       if (!isCurrentHydration()) return;
+      if (wData.combinedWorkouts.length === 0) {
+        const activeProgram = (await fetchSavedRoutinePrograms(user.uid))
+          .find((program) => program.isActive && program.programData?.workouts?.length);
+        if (activeProgram?.programData.workouts?.length) {
+          try {
+            await saveWorkoutsAndExercises(user.uid, activeProgram.programData.workouts);
+            wData = await fetchWorkoutsData(user.uid);
+          } catch (syncError) {
+            console.warn('Could not reconcile the active saved routine with Sessions:', syncError);
+          }
+        }
+      }
       if (!wData) {
         setWorkouts([]);
         setActiveWorkoutState(null);
