@@ -8,6 +8,7 @@ import {
   deleteSessions,
   updateSessionDate,
   updateSessionNotes,
+  updateSessionBodyWeight,
   updateSessionCoachNotes,
   updateSessionPhotos,
   markSessionAsReviewed,
@@ -199,6 +200,17 @@ export const WorkoutHistory: React.FC<{
   // Find logged bodyweight for the session's date
   const getSessionBodyLog = (session: PopulatedSession): BodyMeasurementLog | undefined => {
     const dateStr = getSessionDateString(session);
+    if (session.bodyWeightKg != null) {
+      return {
+        id: `session_weight_${session.id}`,
+        userId: session.userId,
+        logDate: dateStr,
+        weightKg: session.bodyWeightKg,
+        source: 'workout_session',
+        createdAt: session.completedAt || new Date(),
+        updatedAt: session.completedAt || new Date(),
+      };
+    }
     return bodyLogs.find(log => log.logDate === dateStr);
   };
 
@@ -226,6 +238,7 @@ export const WorkoutHistory: React.FC<{
       setIsSavingWeight(true);
       const sessionDateStr = getSessionDateString(session);
       const userHeight = userProfile?.heightCm || userProfile?.metrics?.height;
+      await updateSessionBodyWeight(user.uid, session.id, parsedWeight);
 
       const updatedLog = await logDailyBodyWeight(user.uid, {
         date: sessionDateStr,

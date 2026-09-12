@@ -174,6 +174,7 @@ export async function fetchWorkoutHistory(userId: string): Promise<Session[]> {
     workoutId: s.workout_id,
     status: s.status || 'in_progress',
     completedAt: s.completed_at ? new Date(s.completed_at) : null,
+    bodyWeightKg: s.body_weight_kg != null ? Number(s.body_weight_kg) : null,
     sleepHours: s.sleep_hours != null ? Number(s.sleep_hours) : undefined,
     energyScore: s.energy_score != null ? Number(s.energy_score) : undefined,
     notes: s.notes || undefined,
@@ -202,6 +203,7 @@ export async function fetchSessionById(userId: string, sessionId: string): Promi
     workoutId: s.workout_id,
     status: s.status || 'in_progress',
     completedAt: s.completed_at ? new Date(s.completed_at) : null,
+    bodyWeightKg: s.body_weight_kg != null ? Number(s.body_weight_kg) : null,
     sleepHours: s.sleep_hours != null ? Number(s.sleep_hours) : undefined,
     energyScore: s.energy_score != null ? Number(s.energy_score) : undefined,
     notes: s.notes || undefined,
@@ -279,7 +281,8 @@ export async function logSessionCompletion(
   sessionStartedAt?: Date,
   _idempotencyKey?: string,
   sleepHours?: number,
-  energyScore?: number
+  energyScore?: number,
+  bodyWeightKg?: number | null,
 ) {
   const { data: authData } = await supabase.auth.getUser();
   const authUser = authData?.user;
@@ -325,6 +328,7 @@ export async function logSessionCompletion(
     status: 'completed',
     started_at: startedTimestamp,
     completed_at: completedTimestamp,
+    body_weight_kg: bodyWeightKg ?? null,
   };
 
   if (sleepHours != null && !isNaN(sleepHours)) {
@@ -469,4 +473,17 @@ export async function logSessionCompletion(
     .eq('user_id', userId);
 
   return sessionId;
+}
+
+export async function updateSessionBodyWeight(
+  userId: string,
+  sessionId: string,
+  bodyWeightKg: number,
+): Promise<void> {
+  const { error } = await supabase
+    .from('sessions')
+    .update({ body_weight_kg: bodyWeightKg })
+    .eq('id', sessionId)
+    .eq('user_id', userId);
+  if (error) throw new Error(error.message);
 }

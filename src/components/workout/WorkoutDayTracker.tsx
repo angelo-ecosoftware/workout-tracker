@@ -86,6 +86,8 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
     toggleSetCompleted,
     unrealisticWarningConfig,
     setUnrealisticWarningConfig,
+    duplicateSessionWarning,
+    setDuplicateSessionWarning,
     celebrationSummary,
     setCelebrationSummary,
     autoRestTimer,
@@ -546,6 +548,17 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
             confirmVariant="primary"
             onConfirm={unrealisticWarningConfig.onConfirm}
             onCancel={() => setUnrealisticWarningConfig((prev) => ({ ...prev, isOpen: false }))}
+          />
+
+          <ConfirmModal
+            isOpen={duplicateSessionWarning.isOpen}
+            title="Another Workout Today"
+            description="You already completed a workout today. Are you sure you want to save another session?"
+            confirmText="Yes, Save Another"
+            cancelText="Keep Current Session"
+            confirmVariant="primary"
+            onConfirm={duplicateSessionWarning.onConfirm}
+            onCancel={() => setDuplicateSessionWarning((prev) => ({ ...prev, isOpen: false }))}
           />
 
           {/* P1.1: Workout Completion "PR Celebration" Modal */}

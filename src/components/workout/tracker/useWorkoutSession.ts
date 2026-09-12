@@ -13,6 +13,7 @@ import {
 import { uploadWorkoutPhotos } from '../../../lib/storage.ts';
 import { compressWorkoutImage } from '../../../utils/imageCompressor.ts';
 import { fetchSavedRoutinePrograms } from '../../../lib/db/routineLibrary.ts';
+import { hasCompletedSessionOnDate } from '../../../utils/sessionDate.ts';
 import { SessionEngine, ProgressionEngine } from '../../../engine.ts';
 import {
   saveDraftPhotosToStorage,
@@ -707,6 +708,13 @@ export function useWorkoutSession(
     warnings: [],
     onConfirm: () => {},
   });
+  const [duplicateSessionWarning, setDuplicateSessionWarning] = useState<{
+    isOpen: boolean;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    onConfirm: () => {},
+  });
 
   const executeSaveWorkout = async (
     finalSetsPayload: Array<{
@@ -748,6 +756,10 @@ export function useWorkoutSession(
 
       let uploadedPhotoUrls: string[] = [];
       let savedSessionId: string | undefined;
+      const parsedBodyWeight = parseFloat(bodyWeightKg);
+      const sessionBodyWeightKg = !isNaN(parsedBodyWeight) && parsedBodyWeight > 0
+        ? parsedBodyWeight
+        : null;
       if (selectedPhotos.length > 0 && user) {
         setIsUploadingPhotos(true);
         try {
@@ -771,15 +783,15 @@ export function useWorkoutSession(
           sessionStartedAtDate,
           undefined,
           sleepHours,
-          energyScore
+          energyScore,
+          sessionBodyWeightKg
         );
 
-        const parsedWeight = parseFloat(bodyWeightKg);
-        if (!isNaN(parsedWeight) && parsedWeight > 0) {
+        if (sessionBodyWeightKg != null) {
           const userHeight = userProfile?.heightCm || userProfile?.metrics?.height;
           await logDailyBodyWeight(user.uid, {
             date: sessionDate,
-            weightKg: parsedWeight,
+            weightKg: sessionBodyWeightKg,
             heightCm: userHeight,
             source: 'workout_session',
             notes: sessionNotes || undefined,
@@ -832,11 +844,22 @@ export function useWorkoutSession(
     }
   };
 
-  const handleLogWorkout = async () => {
+  const handleLogWorkout = async (allowDuplicate = false) => {
     if (!activeWorkout) return;
 
     if (!isSessionActive) {
       setErrorMsg('Please start the workout before submitting.');
+      return;
+    }
+
+    if (!allowDuplicate && hasCompletedSessionOnDate(historySessions, sessionDate)) {
+      setDuplicateSessionWarning({
+        isOpen: true,
+        onConfirm: () => {
+          setDuplicateSessionWarning((previous) => ({ ...previous, isOpen: false }));
+          void handleLogWorkout(true);
+        },
+      });
       return;
     }
 
@@ -1100,6 +1123,8 @@ export function useWorkoutSession(
     toggleSetCompleted,
     unrealisticWarningConfig,
     setUnrealisticWarningConfig,
+    duplicateSessionWarning,
+    setDuplicateSessionWarning,
     celebrationSummary,
     setCelebrationSummary,
     autoRestTimer,

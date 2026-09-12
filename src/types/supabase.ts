@@ -797,6 +797,7 @@ export interface DbSessionRow {
   is_completed?: boolean | null;
   started_at?: string | null;
   completed_at?: string | null;
+  body_weight_kg?: number | null;
   sleep_hours?: number | null;
   energy_score?: number | null;
   notes?: string | null;

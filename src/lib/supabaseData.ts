@@ -276,6 +276,7 @@ export {
   updateSessionCoachNotes,
   markSessionAsReviewed,
   updateSessionPhotos,
+  updateSessionBodyWeight,
   deleteSessions,
   fetchWorkoutHistory,
   fetchSessionById,
