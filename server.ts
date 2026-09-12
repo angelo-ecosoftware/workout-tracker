@@ -11,6 +11,7 @@ import reportMissingProductHandler from "./api/report-missing-product.js";
 import blockIpHandler from "./api/block-ip.js";
 import exerciseThumbnailHandler from "./api/exercise-thumbnail.js";
 import geminiHelloHandler from "./api/gemini-hello.js";
+import generateRoutineHandler from "./api/generate-routine.js";
 
 dotenv.config();
 
@@ -65,6 +66,11 @@ async function startServer() {
   // API 6c: Small Gemini connectivity test
   app.post("/api/gemini-hello", (req, res) => {
     return geminiHelloHandler(req as any, res as any);
+  });
+
+  // API 6d: Authenticated AI routine generation and user-scoped cache
+  app.all("/api/generate-routine", (req, res) => {
+    return generateRoutineHandler(req as any, res as any);
   });
 
   // API 7: Master Exercises Catalog Database Proxy
