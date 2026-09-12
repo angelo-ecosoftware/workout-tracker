@@ -221,6 +221,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
           isOpen={isGeminiModalOpen}
           onClose={() => setIsGeminiModalOpen(false)}
           userId={user?.id}
+          profile={userProfile}
         />
 
         {user && (

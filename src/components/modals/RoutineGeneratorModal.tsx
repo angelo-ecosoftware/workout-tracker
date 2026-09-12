@@ -14,12 +14,21 @@ interface RoutineGeneratorModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId?: string;
+  profile?: {
+    fitnessLevel?: string;
+    goals?: string[];
+    trainingDays?: string[];
+    sessionDurationMinutes?: number;
+    trainingLocation?: string;
+    injuriesNotes?: string;
+  } | null;
 }
 
 export const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
   isOpen,
   onClose,
   userId,
+  profile,
 }) => {
   const [used, setUsed] = useState(0);
   const [program, setProgram] = useState<GeneratedProgram | null>(null);
@@ -61,7 +70,11 @@ export const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
       if (!token) throw new Error('Please sign in again before generating a routine.');
       const response = await fetch('/api/generate-routine', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ profile }),
       });
       const result = await response.json() as {
         program?: GeneratedProgram;

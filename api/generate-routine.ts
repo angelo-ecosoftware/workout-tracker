@@ -197,16 +197,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     .select('fitness_level, goals, training_days, session_duration_minutes, training_location, injuries_notes')
     .eq('user_id', userId)
     .maybeSingle();
-  if (!profile) return responseError(res, 400, 'Complete your profile before generating a routine.', currentUsed);
+  const requestedProfile = req.body?.profile as Partial<ProfileSnapshot> | undefined;
+  if (!profile && !requestedProfile) {
+    return responseError(res, 400, 'Complete your profile before generating a routine.', currentUsed);
+  }
 
   const profileSnapshot: ProfileSnapshot = {
-    fitnessLevel: profile.fitness_level || null,
-    goals: Array.isArray(profile.goals) ? profile.goals : [],
-    trainingDays: Array.isArray(profile.training_days) ? profile.training_days : [],
-    sessionDurationMinutes: profile.session_duration_minutes || null,
-    trainingLocation: profile.training_location || null,
-    injuriesNotes: profile.injuries_notes || null,
+    fitnessLevel: profile?.fitness_level || requestedProfile?.fitnessLevel || null,
+    goals: Array.isArray(profile?.goals) && profile.goals.length > 0 ? profile.goals : (requestedProfile?.goals || []),
+    trainingDays: Array.isArray(profile?.training_days) && profile.training_days.length > 0 ? profile.training_days : (requestedProfile?.trainingDays || []),
+    sessionDurationMinutes: profile?.session_duration_minutes || requestedProfile?.sessionDurationMinutes || null,
+    trainingLocation: profile?.training_location || requestedProfile?.trainingLocation || null,
+    injuriesNotes: profile?.injuries_notes || requestedProfile?.injuriesNotes || null,
   };
+  if (profileSnapshot.goals.length === 0 || profileSnapshot.trainingDays.length === 0) {
+    return responseError(res, 400, 'Complete your fitness goals and training days before generating a routine.', currentUsed);
+  }
   const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
   const requestHash = createHash('sha256')
     .update(stableStringify({ profileSnapshot, model, promptVersion: PROMPT_VERSION, catalogVersion: 'v1' }))
