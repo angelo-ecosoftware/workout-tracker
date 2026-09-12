@@ -124,25 +124,6 @@ const GymAppContent: React.FC = () => {
 
   const [showLoginModal, setShowLoginModal] = useState<boolean>(() => isLoginRoute());
 
-  // #region agent log
-  useEffect(() => {
-    const logLayout = (event: string) => {
-      const selectors = ['header', 'nav', '[role="dialog"]', 'main'];
-      const boxes = Object.fromEntries(selectors.map((selector) => {
-        const element = document.querySelector(selector);
-        if (!element) return [selector, null];
-        const rect = element.getBoundingClientRect();
-        return [selector, { left: Math.round(rect.left), right: Math.round(rect.right), width: Math.round(rect.width) }];
-      }));
-      fetch('http://127.0.0.1:7357/ingest/5e455412-bd18-4aca-bdcb-15049feb542f', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '13ed83' }, body: JSON.stringify({ sessionId: '13ed83', runId: 'initial', hypothesisId: 'H1-H4', location: 'src/App.tsx:126', message: 'mobile layout dimensions', data: { event, innerWidth: window.innerWidth, clientWidth: document.documentElement.clientWidth, documentWidth: document.documentElement.scrollWidth, bodyWidth: document.body.scrollWidth, overflowX: getComputedStyle(document.documentElement).overflowX, boxes }, timestamp: Date.now() }) }).catch(() => {});
-    };
-    logLayout('mount');
-    const onResize = () => logLayout('resize');
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
-  }, [activeTab, routeState.kind, showOnboarding]);
-  // #endregion
-
   const navigateToRoute = (path: string) => {
     try {
       window.history.pushState(null, '', path);
