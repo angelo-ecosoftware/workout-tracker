@@ -2,6 +2,26 @@
 
 This document tracks identified architectural improvements, edge case handling, analytics features, and performance optimizations.
 
+## Master tracker rules
+
+This file is the master checklist for planned work. Detailed knowledge remains
+in supporting documents; nothing is deleted or moved as part of this structure.
+
+- Use this file for task status and priority.
+- Use supporting plans for requirements, design decisions, and test cases.
+- Every completed item should eventually reference its commit and test.
+- Do not duplicate a task in multiple active checklists.
+- When two documents overlap, this master tracker links to the more detailed
+  source instead of deleting historical knowledge.
+- New work follows: one change, one focused test, one commit.
+
+Supporting plans:
+
+- [Storage, custom content, sharing, diet, and ingestion plan](../storage-sharing-plan.md)
+- [Storage inventory](../storage-inventory.md)
+- [Architecture documentation](../architecture/ARCHITECTURE.md)
+- [Testing structure](../testing/TESTING_STRUCTURE.md)
+
 ---
 
 ## 1. Timing & Gym Tracking Edge Cases

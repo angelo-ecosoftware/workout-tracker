@@ -25,6 +25,7 @@ docs/
 │   └── frontend_test_implementation_plan.md # Frontend unit & component test plan
 │
 └── roadmap/                        # 🗺️ Product Backlog, Tasks & Planning
+    ├── README.md                   # Roadmap documentation index & rules
     ├── TODO.md                    # Active task list & milestones
     ├── IDEAS.md                   # Feature brainstorming & future enhancements
     ├── COACH.md                   # Coaching platform architecture & enhancements
@@ -41,3 +42,5 @@ docs/
 - **Testing Structure**: [docs/testing/TESTING_STRUCTURE.md](docs/testing/TESTING_STRUCTURE.md)
 - **ISO Compliance**: [docs/standards/FULL_ISO.md](docs/standards/FULL_ISO.md)
 - **Backlog & Roadmap**: [docs/roadmap/TODO.md](docs/roadmap/TODO.md)
+- **Roadmap Documentation Index**: [docs/roadmap/README.md](docs/roadmap/README.md)
+- **Storage & Sharing Plan**: [docs/storage-sharing-plan.md](docs/storage-sharing-plan.md)
