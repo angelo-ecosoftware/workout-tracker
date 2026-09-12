@@ -7,6 +7,10 @@ This document tracks identified architectural improvements, edge case handling, 
 This file is the master checklist for planned work. Detailed knowledge remains
 in supporting documents; nothing is deleted or moved as part of this structure.
 
+- **Status**: `[ ]` pending, `[x]` completed, and `BLOCKED` is written beside
+  an item only when an external dependency prevents progress.
+- **IDs**: Every tracked item has a stable ID. Supporting documents should link
+  to these IDs instead of creating duplicate active checkboxes.
 - Use this file for task status and priority.
 - Use supporting plans for requirements, design decisions, and test cases.
 - Every completed item should eventually reference its commit and test.
@@ -26,11 +30,11 @@ Supporting plans:
 
 ## 1. Timing & Gym Tracking Edge Cases
 
-- [x] **Wall-Clock Time Delta for Background/Locked Screen Resiliency**
+- [x] **TIM-001 — Wall-Clock Time Delta for Background/Locked Screen Resiliency**
   - **Issue**: Standard `setInterval` ticks throttle or pause when phone screens lock or users switch apps (e.g. Spotify).
   - **Action**: Refactor timers in `AssistedTimedTracker.tsx` to compute elapsed time using `Date.now()` target end times and `visibilitychange` listeners rather than naive tick counters.
 
-- [x] **Workout Session Auto-Save & Abandonment Recovery**
+- [x] **TIM-002 — Workout Session Auto-Save & Abandonment Recovery**
   - **Issue**: Accidental tab closures, reloads, or device crashes mid-workout lose in-progress sets and entry timestamps.
   - **Action**: Persist in-progress workout draft state to `localStorage` / `IndexedDB`.
   - **Action**: Implement a timeout threshold (e.g., auto-discard or prompt to restore sessions older than 3 hours).
@@ -39,7 +43,7 @@ Supporting plans:
 
 ## 2. Metric Calculations & Exercise Types
 
-- [x] **Bodyweight Exercises Volume Tracking**
+- [x] **MET-001 — Bodyweight Exercises Volume Tracking**
   - **Context**: Working sets for unweighted bodyweight movements (pull-ups, dips, push-ups) are logged with `0 kg` added weight.
   - **Action**: Track progression via **Total Reps** so users don't see $0\text{ kg}$ total volume on bodyweight days.
 
@@ -47,24 +51,24 @@ Supporting plans:
 
 ## 3. Insights & Analytics Roadmap
 
-- [x] **Per-Exercise Progressive Overload Curves**
+- [x] **INS-001 — Per-Exercise Progressive Overload Curves**
   - **Action**: Add individual exercise drill-down views showing estimated 1RM trajectory, max weight over time, and rep volume trends across 30/60/90 days.
 
-- [ ] **Muscle Group Fatigue & Weekly Set Distribution**
+- [ ] **INS-002 — Muscle Group Fatigue & Weekly Set Distribution**
   - **Action**: Categorize exercises by primary/secondary muscle groups (Chest, Back, Legs, Shoulders, Arms, Core) and visualize weekly set volume against standard hypertrophy targets (10–20 sets/week).
 
-- [x] **Rest Interval Discipline Analysis**
+- [x] **INS-003 — Rest Interval Discipline Analysis**
   - **Action**: Compare actual recorded rest times against target rest intervals to highlight pacing consistency and rest discipline.
 
 ---
 
 ## 4. Storage, PWA Offline Experience & Media Optimization
 
-- [x] **Client-Side Image Compression**
+- [x] **STO-001 — Client-Side Image Compression**
   - **Issue**: Modern mobile camera photos range from 3–8 MB, quickly consuming Supabase storage quotas and slowing down uploads on gym cellular networks.
   - **Action**: Compress images via HTML Canvas WebP with high-resolution $2160\text{p}$ bounds and muscle-definition edge preservation before uploading to Supabase `media` bucket.
 
-- [x] **Offline Sync & Queueing (PWA Resiliency)**
+- [x] **STO-002 — Offline Sync & Queueing (PWA Resiliency)**
   - **Issue**: Gym basements with poor cellular reception fail Supabase completion requests.
   - **Action**: Queue offline session completions and set logs in `IndexedDB` and trigger background sync once connectivity is restored via `navigator.onLine` and `window.addEventListener('online')`.
 
@@ -73,16 +77,16 @@ Supporting plans:
 ## 5. Backlog & Active Ideas
 *For expanded product ideas, anatomy guides, and role-based permissions, see [IDEAS.md](IDEAS.md).*
 
-- [ ] **Homepage & Landing Experience**
-- [ ] **Water Intake Tracking**
-- [ ] **Barcode Product Scanner (Albert Heijn / Open Food Facts Indexing)**
-- [ ] **WGER Exercise Library & Muscle Target Visuals (Red Target Anatomy)**
-- [ ] **1:1 Exercise Video & Form Guidance Links**
-- [ ] **S3 / Storage Image Compression Pipeline**
-- [ ] **Dietary Input Leading Zero (`0`) Input Bug Fix**
-- [ ] **Last Known Weight Set Auto-Population Review**
-- [ ] **Sleep Hours & Energy Level Persistence in Session History**
-- [ ] **Role-Based Access Control (Athlete / Coach / Admin)**
+- [ ] **BACK-001 — Homepage & Landing Experience**
+- [ ] **BACK-002 — Water Intake Tracking**
+- [ ] **BACK-003 — Barcode Product Scanner (Albert Heijn / Open Food Facts Indexing)**
+- [ ] **BACK-004 — WGER Exercise Library & Muscle Target Visuals (Red Target Anatomy)**
+- [ ] **BACK-005 — 1:1 Exercise Video & Form Guidance Links**
+- [ ] **BACK-006 — S3 / Storage Image Compression Pipeline**
+- [ ] **BACK-007 — Dietary Input Leading Zero (`0`) Input Bug Fix**
+- [ ] **BACK-008 — Last Known Weight Set Auto-Population Review**
+- [ ] **BACK-009 — Sleep Hours & Energy Level Persistence in Session History**
+- [ ] **BACK-010 — Role-Based Access Control (Athlete / Coach / Admin)**
 
 ---
 
@@ -93,39 +97,39 @@ session screen with explanatory content.
 
 ### Product TODOs
 
-- [ ] **Clear “What Do I Do Now?” Starting State**
+- [ ] **BEGIN-001 — Clear “What Do I Do Now?” Starting State**
   - Show the current workout, estimated duration, and a clear `Start Here`
     action.
   - Example: `Today's workout: Upper Body A · Estimated time: 45 minutes`.
 
-- [ ] **Beginner-Safe Defaults**
+- [ ] **BEGIN-002 — Beginner-Safe Defaults**
   - Provide a suggested starting weight.
   - Provide suggested reps and rest time.
   - Warn users not to increase weight too quickly.
   - Keep clear form and safety cues available from the exercise guide.
 
-- [ ] **Guided First Workout**
+- [ ] **BEGIN-003 — Guided First Workout**
   - Guide a new user through starting a workout, opening an exercise guide,
     entering weight and reps, completing a set, resting, and submitting.
   - Keep this guidance in onboarding or a coach-mark flow rather than the
     permanent session layout.
 
-- [ ] **Actionable Progression Explanations**
+- [ ] **BEGIN-004 — Actionable Progression Explanations**
   - Explain why progression is recommended.
   - Example: `You completed all target reps with good control. Next time, try
     adding 2.5 kg.`
   - Make clear that progression is recommended, not mandatory.
 
-- [ ] **Clear Recovery Guidance**
+- [ ] **BEGIN-005 — Clear Recovery Guidance**
   - Explain whether training is appropriate based on previous workouts, sleep,
     energy, soreness, and planned training days.
   - Keep detailed explanations behind a recovery help/info action.
 
-- [ ] **Beginner-Friendly Empty States**
+- [ ] **BEGIN-006 — Beginner-Friendly Empty States**
   - Replace empty messages with a clear next action.
   - Explain how to create a routine, log a first workout, or add a meal.
 
-- [ ] **Safety and Trust Information**
+- [ ] **BEGIN-007 — Safety and Trust Information**
   - Explain private data handling.
   - Explain custom GIF ownership.
   - Explain bodyweight visibility.
@@ -137,12 +141,12 @@ session screen with explanatory content.
 Only the basic terminology belongs in the FAQ instead of the active session
 page:
 
-- [ ] **What is a set?**
-- [ ] **What are reps?**
-- [ ] **What is rest time?**
-- [ ] **How heavy should I start?**
-- [ ] **When should I increase weight?**
-- [ ] **What does 1RM mean?**
+- [ ] **FAQ-001 — What is a set?**
+- [ ] **FAQ-002 — What are reps?**
+- [ ] **FAQ-003 — What is rest time?**
+- [ ] **FAQ-004 — How heavy should I start?**
+- [ ] **FAQ-005 — When should I increase weight?**
+- [ ] **FAQ-006 — What does 1RM mean?**
 
 FAQ rules:
 
