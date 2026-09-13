@@ -203,6 +203,15 @@ FAQ rules:
     from one workout or one day.
   - Keep bodyweight trends separate from estimates and never present this as
     medical advice.
+  - Define a consistent calorie-expenditure/TDEE calculation.
+  - Incorporate the user's primary goal: fat loss, muscle gain, recomposition,
+    weight maintenance, or athletic performance.
+  - Use explicit and reviewable activity assumptions.
+  - Require at least 2–4 weeks of trend data before giving interpretations.
+  - Track food-logging consistency and bodyweight-measurement consistency.
+  - Handle dates using the user's local timezone.
+  - Include confidence scoring for all estimates.
+  - Clearly separate estimated values from measured values.
 
   Automatic tests:
 
@@ -213,6 +222,11 @@ FAQ rules:
   - Daily and weekly estimates use the correct date and timezone.
   - Deleted sessions are excluded from recalculated estimates.
   - The result includes an uncertainty or estimation status.
+  - Goal-specific recommendations use the selected goal rather than a generic
+    weight-loss assumption.
+  - Estimates remain unavailable or explicitly low-confidence when less than
+    2–4 weeks of trend data exists.
+  - Measured values and estimated values remain distinguishable in the result.
 
   Manual test:
 
@@ -222,3 +236,33 @@ FAQ rules:
   4. Delete the workout and confirm it is removed from the recalculation.
   5. Switch accounts and confirm neither user's nutrition or workout data
      affects the other.
+
+---
+
+## 9. Theme and Visual Consistency
+
+- [ ] **UX-001 — Fix Black-and-White Theme Consistency**
+  - Audit light and dark theme tokens across the application.
+  - Ensure text, backgrounds, borders, icons, buttons, inputs, modals, charts,
+    empty states, and disabled states remain readable in both themes.
+  - Remove unintended black or white hard-coded colors where theme tokens are
+    required.
+  - Preserve intentional black-and-white branding where it is explicitly part
+    of the design.
+  - Test responsive and focused/hovered states on the main workout, dietary,
+    settings, logbook, and authentication screens.
+
+  Automatic tests:
+
+  - Theme changes apply consistently to shared UI components.
+  - Required text and controls meet the project's accessibility contrast target
+    in both themes.
+  - No major screen renders unreadable text, invisible borders, or incorrect
+    disabled-state colors after switching themes.
+
+  Manual test:
+
+  1. Open the workout, dietary, settings, logbook, and authentication screens.
+  2. Switch between light and dark themes.
+  3. Check cards, inputs, modals, buttons, charts, icons, and disabled controls.
+  4. Refresh the page and confirm the selected theme remains consistent.
