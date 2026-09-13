@@ -266,3 +266,34 @@ FAQ rules:
   2. Switch between light and dark themes.
   3. Check cards, inputs, modals, buttons, charts, icons, and disabled controls.
   4. Refresh the page and confirm the selected theme remains consistent.
+
+- [ ] **UX-002 — Create a Reusable Frictionless Animation System**
+  - Define shared animation primitives for page transitions, cards, lists,
+    modals, loading states, success feedback, and expand/collapse interactions.
+  - Make animation behavior dynamic based on the component state instead of
+    duplicating page-specific animation code.
+  - Keep transitions short, predictable, and supportive of the user's task.
+  - Prevent layout shifts and avoid animating expensive properties such as
+    large layout recalculations where possible.
+  - Respect `prefers-reduced-motion` and provide a reduced or static mode.
+  - Reuse the same motion language across sessions, dietary, settings,
+    logbook, dashboard, and authentication screens.
+  - Keep animation optional for critical actions so feedback never blocks
+    saving, navigation, or workout input.
+
+  Automatic tests:
+
+  - Shared animation primitives render correctly in their default states.
+  - State transitions do not remove or duplicate user content.
+  - Reduced-motion preferences disable or simplify non-essential animation.
+  - Critical actions remain usable while animations are running.
+  - Reusing a primitive across pages does not leak state between instances.
+
+  Manual test:
+
+  1. Navigate through sessions, dietary, settings, logbook, and dashboard.
+  2. Confirm page, card, modal, loading, and success transitions feel
+     consistent and do not delay interaction.
+  3. Trigger repeated transitions quickly and confirm there is no flicker or
+     stacked animation.
+  4. Enable reduced motion in the operating system and repeat the test.
