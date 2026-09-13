@@ -154,3 +154,35 @@ FAQ rules:
 - Link to the FAQ from relevant labels or help icons.
 - Use short contextual tooltips only when the user is likely to be confused.
 - Keep safety-critical form cues available directly in the exercise guide.
+
+---
+
+## 7. Authentication & Account Security
+
+- [ ] **AUTH-001 — Verified Email and Password Sign-In**
+  - Add email/password registration directly in the app alongside Google sign-in.
+  - Send a verification email before activating the account.
+  - Prevent unverified users from signing in to protected application areas.
+  - Provide safe resend-verification and expired-link recovery flows.
+  - Support password reset without revealing whether an email address exists.
+  - Rate-limit registration, login, resend, and password-reset attempts.
+  - Keep authentication errors clear for users but avoid account enumeration.
+  - Preserve the existing session, redirect, and account-isolation behavior.
+
+  Automatic tests:
+
+  - A verified email can sign in successfully.
+  - An unverified email cannot enter protected routes.
+  - Verification changes the account to an allowed sign-in state.
+  - Expired or reused verification links fail safely.
+  - Resend and reset responses do not reveal whether an account exists.
+  - Repeated authentication attempts are rate-limited.
+
+  Manual test:
+
+  1. Register with a new email address.
+  2. Confirm the verification email is received.
+  3. Try signing in before verification and confirm access is blocked.
+  4. Verify the address and sign in successfully.
+  5. Test resend verification, an expired link, password reset, and logout.
+  6. Confirm Google sign-in still works and no account data crosses users.
