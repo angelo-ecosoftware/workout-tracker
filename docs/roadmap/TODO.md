@@ -65,6 +65,8 @@ Make saved information durable, scoped, recoverable, and historically correct:
 
 - `STO-001` and `STO-002` — media handling and offline synchronization.
 - `DIET-001` — connect sessions, food logs, bodyweight, goals, and trend data.
+- `CATALOG-001` — import the licensed exercise catalog and remove runtime
+  exercise-provider dependencies.
 - Storage-plan items 1, 3, 4, 7, 12, and 15 — user-scoped storage, IndexedDB
   media, routine versions, account switching, GIFs, and diet sharing.
 - `BACK-009` — persist sleep and energy in session history.
@@ -380,6 +382,62 @@ users.
   2. Confirm the user can read, save, and revisit the accepted version.
   3. Change the terms in staging and confirm re-acceptance is required.
   4. Test cancellation, deletion, shared content, and AI disclaimer wording.
+
+---
+
+## 13. Owned Exercise Catalog and Media
+
+- [ ] **CATALOG-001 — Import Licensed Exercise Data and Disconnect External APIs**
+  - Obtain and record commercial licenses that explicitly permit Kinisia's
+    intended web, Android, and iOS use.
+  - Import all approved exercise metadata into the Kinisia-owned Supabase
+    catalog, including names, categories, target and secondary muscles,
+    equipment, exercise type, instructions, form cues, and relevant
+    identifiers.
+  - Import only GIFs whose licenses explicitly permit storage, serving,
+    caching, and commercial display.
+  - Match each exercise with the correct coherent GIF and reject mismatched,
+    missing, duplicate, or unverified media.
+  - Store source provider, source identifier, license, attribution, author,
+    import version, import timestamp, and takedown information with each
+    catalog record.
+  - Preserve historical exercise references so completed sessions remain
+    readable if catalog content is later updated.
+  - Replace runtime WGER and ExerciseDB exercise-data calls with the
+    Kinisia-owned catalog.
+  - Remove the ExerciseDB thumbnail proxy, external exercise-media CSP
+    entries, external exercise API fallback, and related runtime cache keys
+    after migration is verified.
+  - Keep the import pipeline repeatable, versioned, auditable, and capable of
+    removing revoked or expired licensed content.
+  - Keep food, recipes, user-created exercises, and private user GIFs in
+    separate ownership and licensing domains.
+
+  Automatic tests:
+
+  - Exercise detail pages load successfully with external exercise APIs blocked.
+  - Every published exercise has valid metadata, a compatible GIF reference,
+    and a recorded license status.
+  - Mismatched exercise/GIF pairs are rejected during import.
+  - No production exercise code calls WGER, ExerciseDB, or
+    `static.exercisedb.dev`.
+  - Completed sessions still render their historical exercise snapshot after a
+    catalog update.
+  - Revoked or expired media is excluded from new catalog responses.
+  - User-created exercises and private GIFs remain separate from the shared
+    licensed catalog.
+
+  Manual test:
+
+  1. Run the licensed import in staging.
+  2. Open the catalog, exercise guide, routine editor, sessions, and logbook
+     with external exercise domains blocked.
+  3. Confirm each exercise shows the correct GIF and detailed information.
+  4. Update one catalog record and confirm old completed sessions remain
+     historically correct.
+  5. Simulate a license revocation and confirm the affected media is removed
+     from new views without corrupting old session records.
+  6. Repeat the test on the Android and iOS builds.
 
 ---
 
