@@ -317,6 +317,72 @@ users.
 
 ---
 
+## 12. Legal Agreements and User Consent
+
+- [ ] **LEGAL-001 — Publish Privacy Agreement and Privacy Notice**
+  - Publish a clear GDPR/AVG privacy notice covering identity, workout,
+    nutrition, body measurements, photos, coaching, AI, logs, cookies,
+    storage, subprocessors, transfers, retention, and user rights.
+  - Explain the lawful basis and any explicit consent required for health or
+    health-related data.
+  - Identify the legal operator/controller and provide a privacy contact.
+  - Link the current subprocessor and data-source register.
+  - Provide access, correction, export, deletion, objection, restriction, and
+    consent-withdrawal instructions.
+  - Version the notice and record which version each user accepted.
+  - Keep consent separate from general account terms and make withdrawal
+    possible without dark patterns.
+
+  Automatic tests:
+
+  - The privacy notice is reachable before registration and from account
+    settings.
+  - Consent records contain user, purpose, notice version, timestamp, and
+    withdrawal state.
+  - Withdrawing optional consent stops the relevant processing.
+  - Account deletion and data export cover the data categories described in the
+    notice.
+
+  Manual test:
+
+  1. Register a test account and review the privacy notice before accepting.
+  2. Verify each optional consent choice is separate and understandable.
+  3. Withdraw consent and confirm the expected processing stops.
+  4. Request export and deletion and compare the result with the notice.
+
+- [ ] **LEGAL-002 — Publish User Agreement and Terms of Service**
+  - Publish terms covering account responsibility, acceptable use, user
+    content, custom GIF ownership, routine and diet sharing, coaching
+    relationships, AI-generated recommendations, third-party links, service
+    availability, deletion, suspension, intellectual property, liability
+    limits, support, governing law, and dispute/contact details.
+  - State clearly that Kinisia is a fitness and nutrition tracking product and
+    is not a doctor, dietitian, physiotherapist, or emergency service.
+  - Explain that calorie expenditure, progression, and body-recomposition
+    results are estimates and are not medical advice or guarantees.
+  - Add paid-plan pricing, renewal, cancellation, refund, and statutory
+    withdrawal terms if payments are introduced.
+  - Require affirmative acceptance before account activation and record the
+    accepted version and timestamp.
+  - Provide a change-notice process for material term updates.
+
+  Automatic tests:
+
+  - Protected features cannot be used until required terms are accepted.
+  - Acceptance records are immutable and tied to the correct user and version.
+  - Users cannot be silently migrated to materially changed terms.
+  - Account deletion and suspension preserve required legal records without
+    retaining unnecessary personal data.
+
+  Manual test:
+
+  1. Create a new account and confirm the terms are shown before activation.
+  2. Confirm the user can read, save, and revisit the accepted version.
+  3. Change the terms in staging and confirm re-acceptance is required.
+  4. Test cancellation, deletion, shared content, and AI disclaimer wording.
+
+---
+
 ## 1. Timing & Gym Tracking Edge Cases
 
 - [x] **TIM-001 — Wall-Clock Time Delta for Background/Locked Screen Resiliency**
