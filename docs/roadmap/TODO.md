@@ -186,3 +186,39 @@ FAQ rules:
   4. Verify the address and sign in successfully.
   5. Test resend verification, an expired link, password reset, and logout.
   6. Confirm Google sign-in still works and no account data crosses users.
+
+---
+
+## 8. Workout and Nutrition Connection
+
+- [ ] **DIET-001 — Estimate Calorie Balance from Sessions and Food Logs**
+  - Connect completed workout sessions with the user's food and meal logs.
+  - Estimate daily and weekly calorie intake from logged foods, meals, and
+    recipes.
+  - Estimate expenditure using profile data, activity, and completed sessions.
+  - Show an estimated calorie balance or range rather than presenting a single
+    number as fact.
+  - Clearly label missing food logs, missing profile data, and uncertainty.
+  - Use multi-day trends instead of deciding whether the user is in a deficit
+    from one workout or one day.
+  - Keep bodyweight trends separate from estimates and never present this as
+    medical advice.
+
+  Automatic tests:
+
+  - A completed session contributes to the correct user's estimate only.
+  - Food logs and workouts from different users never affect each other.
+  - Missing food, body metric, or session data produces an honest incomplete
+    state instead of a false deficit.
+  - Daily and weekly estimates use the correct date and timezone.
+  - Deleted sessions are excluded from recalculated estimates.
+  - The result includes an uncertainty or estimation status.
+
+  Manual test:
+
+  1. Log food for a day and complete a workout.
+  2. Confirm the estimate includes both sources.
+  3. Add another meal and confirm the estimate updates.
+  4. Delete the workout and confirm it is removed from the recalculation.
+  5. Switch accounts and confirm neither user's nutrition or workout data
+     affects the other.
