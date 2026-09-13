@@ -38,6 +38,10 @@ while a blocking issue remains in an earlier gate.
 Protect users and their data before expanding functionality:
 
 - `AUTH-001` — Verified email and password sign-in.
+- `SEC-001` through `SEC-005` — RLS, Storage, authentication abuse
+  protection, API validation, SSRF protection, and security monitoring.
+- `PERF-001` through `PERF-005` — Capacity testing, efficient login, database
+  performance, expensive-work queues, and operational monitoring.
 - Storage-plan items 1, 2, 5, 6, 7, 12, 13, 14, 15, and 17 — ownership,
   account isolation, sharing permissions, private media, and safe ingestion.
 - Backend RLS, Storage policies, authenticated boundaries, input validation,
@@ -84,6 +88,232 @@ Priority rules:
 - UI polish must not hide missing, estimated, or failed data.
 - Each item still follows one change, one focused automatic test, one manual
   test, and one commit.
+
+---
+
+## 10. Security and Performance Hardening
+
+These items are release gates for supporting a large public user base. They
+must be completed and tested before promising support for 1,000 simultaneous
+users.
+
+### Security
+
+- [ ] **SEC-001 — Verify Database and Storage Ownership Policies**
+  - Audit every user-owned table and Storage bucket.
+  - Prove that RLS and Storage policies enforce ownership server-side.
+  - Test direct REST and Storage access, not only application UI behavior.
+
+  Automatic tests:
+
+  - User A cannot read, insert, update, or delete User B's sessions, sets,
+    routines, diet logs, body logs, custom foods, or custom GIFs.
+  - Anonymous requests cannot access private records.
+  - Shared records expose only explicitly published fields.
+
+  Manual test:
+
+  - Use two accounts and direct database requests to attempt cross-account
+    reads and writes.
+
+- [ ] **SEC-002 — Protect Authentication and Account-Recovery Flows**
+  - Add rate limits for login, registration, verification resend, and password
+    reset.
+  - Add bot protection where abuse risk is high.
+  - Prevent account enumeration through generic responses.
+  - Configure session lifetime, refresh-token rotation, and reauthentication
+    for sensitive actions.
+
+  Automatic tests:
+
+  - Repeated authentication attempts are throttled.
+  - Unverified users cannot access protected data.
+  - Password-reset and verification responses do not reveal account existence.
+  - Expired and revoked sessions are rejected.
+
+  Manual test:
+
+  - Exercise login, registration, verification, reset, logout, and revoked
+    sessions from separate test accounts.
+
+- [ ] **SEC-003 — Harden Public API Boundaries**
+  - Add strict request validation, payload-size limits, safe error responses,
+    and per-IP/per-user rate limits.
+  - Review CORS per endpoint and remove wildcard access where it is not
+    required.
+  - Add idempotency handling to write operations that may be retried.
+
+  Automatic tests:
+
+  - Invalid methods, payloads, oversized requests, and malformed identifiers
+    receive safe 4xx responses.
+  - Rate limits activate without affecting unrelated users.
+  - Retrying an idempotent write does not duplicate data.
+
+  Manual test:
+
+  - Send malformed, oversized, repeated, and unauthenticated requests to every
+    public API in staging.
+
+- [ ] **SEC-004 — Secure Scrapers and External URL Integrations**
+  - Enforce an allowlist of approved hosts and protocols.
+  - Block private IP ranges, localhost, metadata endpoints, redirects to unsafe
+    targets, and authenticated/private content.
+  - Apply timeouts, response-size limits, concurrency limits, and attribution
+    rules.
+
+  Automatic tests:
+
+  - SSRF targets and unsafe redirects are rejected.
+  - Unsupported hosts and protocols are rejected.
+  - Timeouts and oversized responses fail safely.
+
+  Manual test:
+
+  - Test approved public URLs, localhost, private IPs, redirect chains, and
+    malformed URLs in staging.
+
+- [ ] **SEC-005 — Add Security Monitoring and Incident Response**
+  - Scan dependencies and committed/build-time secrets.
+  - Monitor authentication failures, RLS errors, rate-limit events, 5xx
+    responses, unusual traffic, and storage abuse.
+  - Define alerts, log retention, incident ownership, and key-rotation steps.
+
+  Automatic tests:
+
+  - Security and dependency scans run in CI.
+  - Alert thresholds trigger for simulated auth abuse and 5xx spikes.
+  - Logs do not contain passwords, access tokens, or private user data.
+
+  Manual test:
+
+  - Trigger test alerts and verify the documented response and credential
+    rotation procedure.
+
+### Performance and capacity
+
+- [ ] **PERF-001 — Establish a 1,000-Concurrent-User Load Test**
+  - Use a staging Vercel deployment and staging Supabase project.
+  - Ramp through 10, 100, 500, and 1,000 concurrent users.
+  - Test login spikes, session loading, set saves, diet logging, catalog
+    access, and routine generation separately.
+  - Record latency, error rate, database connections, CPU, bandwidth, function
+    duration, and provider rate-limit responses.
+
+  Automatic tests:
+
+  - The load test runs repeatably with seeded test accounts and data.
+  - Results fail the pipeline when defined latency or error budgets are
+    exceeded.
+
+  Manual test:
+
+  - Review the report for each scenario and confirm no data crosses users or
+    duplicates during retries.
+
+- [ ] **PERF-002 — Make Authentication and Initial Load Lightweight**
+  - Load only essential identity and profile data after sign-in.
+  - Defer dashboard, catalog, media, and analytics requests.
+  - Use loading states and independent failure boundaries for non-critical
+    sections.
+
+  Automatic tests:
+
+  - Login does not request the full catalog or unrelated user history.
+  - Non-critical request failures do not block authentication or navigation.
+
+  Manual test:
+
+  - Sign in on a throttled connection and confirm the core app becomes usable
+    before secondary data finishes loading.
+
+- [ ] **PERF-003 — Optimize Database Queries and Connections**
+  - Review query plans, indexes, pagination, RLS performance, and connection
+    pool usage for high-traffic paths.
+  - Remove repeated catalog and profile queries.
+  - Enforce bounded result sizes.
+
+  Automatic tests:
+
+  - High-traffic queries use bounded pagination and expected indexes.
+  - Query latency and database error budgets are checked in staging.
+
+  Manual test:
+
+  - Compare query and page performance before and after indexing under load.
+
+- [ ] **PERF-004 — Isolate Expensive AI, Scraping, and Media Work**
+  - Add quotas and concurrency limits for AI generation and scraping.
+  - Queue expensive work instead of blocking user requests.
+  - Cache safe shared catalog data and optimize media delivery.
+  - Provide a graceful fallback when a provider is unavailable.
+
+  Automatic tests:
+
+  - Provider failures return controlled fallback states.
+  - Quotas prevent one user from exhausting shared capacity.
+  - Queued jobs are idempotent and do not duplicate records.
+
+  Manual test:
+
+  - Simulate provider throttling and confirm workouts, sessions, and diet logs
+    remain usable.
+
+- [ ] **PERF-005 — Add Capacity Dashboards and Alerts**
+  - Track request volume, p95/p99 latency, error rate, auth failures,
+    database usage, storage bandwidth, queue depth, and provider limits.
+  - Define warning and critical thresholds before public scale-up.
+
+  Automatic tests:
+
+  - Metrics are emitted for successful, failed, throttled, and queued requests.
+  - Alert rules fire for simulated latency, error, and capacity spikes.
+
+  Manual test:
+
+  - Create a controlled spike and verify the dashboard, alert, and recovery
+    workflow.
+
+---
+
+## 11. Mobile Store Distribution
+
+- [ ] **RELEASE-001 — Publish Android and iOS Applications**
+  - Decide whether the existing web app will use a trusted PWA, Capacitor
+    wrapper, or a dedicated native shell for store distribution.
+  - Ensure the mobile build uses secure production configuration and never
+    includes server secrets.
+  - Configure Android signing, Play App Signing, package identity, and Google
+    Play release tracks.
+  - Configure Apple bundle identity, certificates, provisioning, and App Store
+    Connect release tracks.
+  - Prepare store listings, screenshots, icons, descriptions, age ratings,
+    support contact, and privacy-policy links.
+  - Document account deletion, data export, authentication, subscriptions, and
+    third-party service disclosures required by each store.
+  - Verify deep links, OAuth redirects, external exercise links, uploads,
+    offline behavior, notifications, and back navigation on real devices.
+  - Release to internal testers and TestFlight before public submission.
+  - Add crash reporting, version tracking, staged rollout, and rollback
+    procedures.
+
+  Automatic tests:
+
+  - Android and iOS production builds complete without development URLs,
+    test keys, debug logging, or server secrets.
+  - Authentication redirects return to the correct mobile route.
+  - Core workout and dietary flows work on supported mobile viewport sizes.
+  - App version and environment checks prevent accidental staging/production
+    mixing.
+
+  Manual test:
+
+  1. Install the Android internal-test build and the iOS TestFlight build.
+  2. Register, verify, sign in, and sign out on both platforms.
+  3. Create and complete a workout, save dietary data, and open the logbook.
+  4. Test offline recovery, external links, uploads, back navigation, and
+     account deletion.
+  5. Submit only after store review requirements and privacy disclosures pass.
 
 ---
 
