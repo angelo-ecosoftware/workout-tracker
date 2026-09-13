@@ -76,6 +76,7 @@ Make saved information durable, scoped, recoverable, and historically correct:
 Improve clarity and polish after the core behavior is safe and reliable:
 
 - `UX-001` and `UX-002` — theme consistency and reusable motion.
+- `PUBLIC-001` — public read-only exercise and diet catalog browsing.
 - `BEGIN-001` through `BEGIN-007` — beginner-friendly guidance and empty
   states.
 - `FAQ-001` through `FAQ-006` — terminology and help content.
@@ -438,6 +439,56 @@ users.
   5. Simulate a license revocation and confirm the affected media is removed
      from new views without corrupting old session records.
   6. Repeat the test on the Android and iOS builds.
+
+---
+
+## 14. Public Read-Only Catalog Discovery
+
+- [ ] **PUBLIC-001 — Browse Approved Exercises and Diet Content Without Login**
+  - Add a public, read-only catalog experience on the home page so visitors
+    can understand Kinisia's exercise and nutrition capabilities before
+    creating an account.
+  - Show only approved public catalog records and licensed media.
+  - Keep workout sessions, bodyweight, food logs, custom foods, custom
+    exercises, private GIFs, routines, coach data, and personal metrics
+    inaccessible to anonymous visitors.
+  - Provide exercise browsing, search, categories, equipment, muscle groups,
+    form guidance, and approved demonstrations.
+  - Provide separate read-only food, meal, recipe, and nutrition examples with
+    dedicated filters.
+  - Clearly label estimated nutrition values, example content, attribution,
+    and unavailable fields.
+  - Use bounded pagination, caching, abuse controls, and server-side
+    authorization rather than exposing the entire database.
+  - Keep the public catalog separate from authenticated user-created content.
+  - Ensure public pages do not imply that a visitor's data is being tracked or
+    stored before account creation.
+  - Make public content indexable only where the legal and licensing status
+    permits it, with accurate metadata and removal controls.
+
+  Automatic tests:
+
+  - Anonymous visitors can read approved public catalog records only.
+  - Anonymous requests cannot read user-owned sessions, sets, body logs, diet
+    logs, custom foods, private GIFs, routines, or coach records.
+  - Public responses contain no user IDs, emails, private notes, bodyweight,
+    history, or unpublished media.
+  - Exercise and diet filters return only approved matching content.
+  - Pagination and rate limits prevent unbounded catalog extraction.
+  - Public media uses only licensed Kinisia-owned or explicitly approved
+    sources.
+  - Public catalog pages do not create user records or tracking state.
+
+  Manual test:
+
+  1. Open the home page while logged out.
+  2. Browse exercises, demonstrations, foods, meals, and recipes.
+  3. Use search, category, muscle, equipment, dietary, and macro filters.
+  4. Confirm the visitor can read content without creating an account.
+  5. Attempt to access a private user URL and confirm it remains blocked.
+  6. Sign in and confirm private user features appear only after
+     authentication.
+  7. Confirm attribution, disclaimers, loading states, and mobile layouts.
 
 ---
 
