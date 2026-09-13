@@ -28,6 +28,65 @@ Supporting plans:
 
 ---
 
+## Priority order
+
+The roadmap follows four gates. A feature should not move to the next gate
+while a blocking issue remains in an earlier gate.
+
+### P0 — Make it secure
+
+Protect users and their data before expanding functionality:
+
+- `AUTH-001` — Verified email and password sign-in.
+- Storage-plan items 1, 2, 5, 6, 7, 12, 13, 14, 15, and 17 — ownership,
+  account isolation, sharing permissions, private media, and safe ingestion.
+- Backend RLS, Storage policies, authenticated boundaries, input validation,
+  rate limiting, and security tests.
+
+### P1 — Make it work
+
+Make the core user journeys correct and dependable:
+
+- `TIM-001`, `TIM-002`, and `MET-001` — reliable timers, session recovery, and
+  correct workout metrics.
+- `INS-001`, `INS-002`, and `INS-003` — trustworthy progress and training
+  analysis.
+- Storage-plan items 8, 9, 10, and 11 — input locking, reminders, rest timers,
+  and external-route continuity.
+- `BACK-007` and `BACK-008` — known dietary input and last-known-weight issues.
+
+### P2 — Make it store data
+
+Make saved information durable, scoped, recoverable, and historically correct:
+
+- `STO-001` and `STO-002` — media handling and offline synchronization.
+- `DIET-001` — connect sessions, food logs, bodyweight, goals, and trend data.
+- Storage-plan items 1, 3, 4, 7, 12, and 15 — user-scoped storage, IndexedDB
+  media, routine versions, account switching, GIFs, and diet sharing.
+- `BACK-009` — persist sleep and energy in session history.
+
+### P3 — Make it look good
+
+Improve clarity and polish after the core behavior is safe and reliable:
+
+- `UX-001` and `UX-002` — theme consistency and reusable motion.
+- `BEGIN-001` through `BEGIN-007` — beginner-friendly guidance and empty
+  states.
+- `FAQ-001` through `FAQ-006` — terminology and help content.
+- `BACK-001`, `BACK-002`, `BACK-003`, `BACK-004`, `BACK-005`, `BACK-006`, and
+  `BACK-010` — broader product and presentation improvements.
+
+Priority rules:
+
+- Security and ownership defects block release of the affected feature.
+- Correctness comes before optimization or visual polish.
+- Data storage decisions must preserve user ownership and historical records.
+- UI polish must not hide missing, estimated, or failed data.
+- Each item still follows one change, one focused automatic test, one manual
+  test, and one commit.
+
+---
+
 ## 1. Timing & Gym Tracking Edge Cases
 
 - [x] **TIM-001 — Wall-Clock Time Delta for Background/Locked Screen Resiliency**
