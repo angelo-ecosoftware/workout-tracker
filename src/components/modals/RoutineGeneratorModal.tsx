@@ -2,7 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { Check, Loader2, Sparkles, X } from 'lucide-react';
 import { Exercise, Workout } from '../../models.ts';
 import { supabase } from '../../lib/supabase.ts';
-import { saveRoutineProgramToLibrary, setActiveRoutineProgram } from '../../lib/db/routineLibrary.ts';
+import {
+  saveRoutineProgramToLibrary,
+  setActiveRoutineProgram,
+  updateSavedRoutineProgram,
+} from '../../lib/db/routineLibrary.ts';
 import { saveWorkoutsAndExercises } from '../../lib/supabaseData.ts';
 
 type GeneratedProgram = {
@@ -106,6 +110,7 @@ export const RoutineGeneratorModal: React.FC<RoutineGeneratorModalProps> = ({
         program.description || 'Generated from your saved profile preferences.',
       );
       const persistedWorkouts = await saveWorkoutsAndExercises(userId, program.workouts);
+      await updateSavedRoutineProgram(userId, savedProgram.id, { workouts: persistedWorkouts });
       await setActiveRoutineProgram(userId, savedProgram.id);
       onRoutineActivated?.(persistedWorkouts);
       setIsSaved(true);

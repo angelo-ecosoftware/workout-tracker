@@ -208,36 +208,34 @@ export async function saveWorkoutsAndExercises(
     if (error) throw new Error(`Failed to save exercises: ${error.message}`);
   }
 
-  const activeWorkoutIds = workouts.map((workout) => workout.id);
   if (workouts.length > 0) {
     const { error } = await supabase.from('workouts').upsert(workouts);
     if (error) throw new Error(`Failed to save workouts: ${error.message}`);
   }
 
-  if (activeWorkoutIds.length > 0) {
-    const { error } = await supabase
-      .from('workouts')
-      .delete()
-      .eq('user_id', userId)
-      .not('id', 'in', `(${activeWorkoutIds.map((id) => `"${id}"`).join(',')})`);
-    if (error) throw new Error(`Failed to clean up old workouts: ${error.message}`);
-  } else {
-    const { error } = await supabase.from('workouts').delete().eq('user_id', userId);
-    if (error) throw new Error(`Failed to clear old workouts: ${error.message}`);
-  }
-
-  const { error: junctionDeleteError } = await supabase
-    .from('workout_exercises')
-    .delete()
-    .eq('user_id', userId);
-  if (junctionDeleteError) {
-    throw new Error(`Failed to clear workout exercise links: ${junctionDeleteError.message}`);
-  }
-
   if (junctionRows.length > 0) {
+    const workoutIdsToLink = workouts.map((workout) => String(workout.id));
+    const { data: existingJunctionRows, error: existingJunctionError } = await supabase
+      .from('workout_exercises')
+      .select('workout_id, exercise_id')
+      .eq('user_id', userId)
+      .in('workout_id', workoutIdsToLink);
+    if (existingJunctionError) {
+      throw new Error(`Failed to inspect workout exercise links: ${existingJunctionError.message}`);
+    }
+
+    const existingKeys = new Set(
+      ((existingJunctionRows as Array<{ workout_id: string; exercise_id: string }> | null) || [])
+        .map((row) => `${row.workout_id}:${row.exercise_id}`)
+    );
+    const missingJunctionRows = junctionRows.filter((row) =>
+      row.workout_id && row.exercise_id && !existingKeys.has(`${row.workout_id}:${row.exercise_id}`)
+    );
+    if (missingJunctionRows.length === 0) return normalizedWorkouts;
+
     const { error: junctionInsertError } = await supabase
       .from('workout_exercises')
-      .insert(junctionRows);
+      .insert(missingJunctionRows);
     if (junctionInsertError) {
       throw new Error(`Failed to save workout exercise links: ${junctionInsertError.message}`);
     }

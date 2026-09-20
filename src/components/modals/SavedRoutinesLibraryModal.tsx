@@ -20,6 +20,7 @@ import {
   deleteSavedRoutineProgram,
   saveWorkoutsAndExercises,
 } from '../../lib/supabaseData.ts';
+import { updateSavedRoutineProgram } from '../../lib/db/routineLibrary.ts';
 
 interface SavedRoutinesLibraryModalProps {
   isOpen: boolean;
@@ -99,8 +100,9 @@ export const SavedRoutinesLibraryModal: React.FC<SavedRoutinesLibraryModalProps>
     try {
       setLoading(true);
       // If program has workouts, sync them to active workouts table
-      if (program.programData?.workouts && Array.isArray(program.programData.workouts)) {
+      if (program.programData?.workouts?.length) {
         const persistedWorkouts = await saveWorkoutsAndExercises(userId, program.programData.workouts);
+        await updateSavedRoutineProgram(userId, program.id, { workouts: persistedWorkouts });
         await setActiveRoutineProgram(userId, program.id);
         if (onProgramActivated) {
           onProgramActivated(persistedWorkouts);

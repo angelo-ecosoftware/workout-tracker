@@ -16,6 +16,7 @@ import {
   saveWorkoutsAndExercises,
   setActiveRoutineProgram,
 } from '../../lib/supabaseData.ts';
+import { updateSavedRoutineProgram } from '../../lib/db/routineLibrary.ts';
 
 interface ProposedRoutineReviewModalProps {
   isOpen: boolean;
@@ -54,7 +55,8 @@ export const ProposedRoutineReviewModal: React.FC<ProposedRoutineReviewModalProp
 
       // 2. Sync to active workouts
       if (workouts.length > 0) {
-        await saveWorkoutsAndExercises(userId, workouts);
+        const persistedWorkouts = await saveWorkoutsAndExercises(userId, workouts);
+        await updateSavedRoutineProgram(userId, savedProg.id, { workouts: persistedWorkouts });
         await setActiveRoutineProgram(userId, savedProg.id);
       }
 
