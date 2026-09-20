@@ -25,6 +25,12 @@ export async function fetchSavedRoutinePrograms(userId: string): Promise<SavedRo
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
     if (error || !data || data.length === 0) {
+      console.warn('[routine-library] using cached programs because database returned no programs', {
+        userId,
+        error: error?.message,
+        databaseProgramCount: data?.length ?? 0,
+        cachedProgramCount: defaultPrograms.length,
+      });
       return defaultPrograms;
     }
 
@@ -41,7 +47,12 @@ export async function fetchSavedRoutinePrograms(userId: string): Promise<SavedRo
     }));
     setLocalStorageItem(`saved_programs_${userId}`, JSON.stringify(resolved));
     return resolved;
-  } catch {
+  } catch (error) {
+    console.warn('[routine-library] using cached programs after database fetch failed', {
+      userId,
+      error: error instanceof Error ? error.message : String(error),
+      cachedProgramCount: defaultPrograms.length,
+    });
     return defaultPrograms;
   }
 }
