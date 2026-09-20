@@ -5,7 +5,6 @@ import {
   fetchWorkoutsData,
   getUserProgressState,
   fetchWorkoutHistory,
-  saveWorkoutsAndExercises,
   logSessionCompletion,
   seedTemplatesIfMissing,
   logDailyBodyWeight,
@@ -427,17 +426,23 @@ export function useWorkoutSession(
       ]);
 
       if (!isCurrentHydration()) return;
-      if (wData.combinedWorkouts.length === 0) {
-        const activeProgram = (await fetchSavedRoutinePrograms(user.uid))
-          .find((program) => program.isActive && program.programData?.workouts?.length);
-        if (activeProgram?.programData.workouts?.length) {
-          try {
-            await saveWorkoutsAndExercises(user.uid, activeProgram.programData.workouts);
-            wData = await fetchWorkoutsData(user.uid);
-          } catch (syncError) {
-            console.warn('Could not reconcile the active saved routine with Sessions:', syncError);
-          }
-        }
+      const activeProgram = (await fetchSavedRoutinePrograms(user.uid))
+        .find((program) => program.isActive && program.programData?.workouts?.length);
+      if (activeProgram?.programData.workouts?.length) {
+        // An active saved program is authoritative for the current session.
+        // Historical workout rows remain untouched so old logbook entries keep
+        // their original workout definitions.
+        const activeWorkouts = activeProgram.programData.workouts;
+        const activeExercises = activeWorkouts.flatMap((workout) => workout.exercises || []);
+        const normalizedActiveWorkouts = activeWorkouts.map((workout) => ({
+          ...workout,
+          exerciseIds: workout.exerciseIds || (workout.exercises || []).map((exercise) => exercise.id),
+        }));
+        wData = {
+          combinedWorkouts: normalizedActiveWorkouts,
+          workoutsList: normalizedActiveWorkouts,
+          exercisesList: activeExercises,
+        };
       }
       if (!wData) {
         setWorkouts([]);
