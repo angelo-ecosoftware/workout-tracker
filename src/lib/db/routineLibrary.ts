@@ -126,6 +126,12 @@ export async function saveRoutineProgramToLibrary(
     createdAt: new Date(),
     updatedAt: new Date(),
   };
+  console.info('[routine-library] program saved', {
+    userId,
+    programId: newProgram.id,
+    title: newProgram.title,
+    workoutDays: programData.workouts.length,
+  });
   const existing = await fetchSavedRoutinePrograms(userId);
   setLocalStorageItem(
     `saved_programs_${userId}`,
@@ -142,6 +148,11 @@ export async function setActiveRoutineProgram(userId: string, programId: string)
   if (!existing.some((program) => program.id === programId)) {
     throw new Error('The selected routine could not be found for this account.');
   }
+  console.info('[routine-library] activation requested', {
+    userId,
+    programId,
+    currentActiveProgramIds: existing.filter((program) => program.isActive).map((program) => program.id),
+  });
 
   try {
     // Activate the target first so a failed cleanup cannot leave zero active
@@ -157,6 +168,7 @@ export async function setActiveRoutineProgram(userId: string, programId: string)
     if (!activatedProgram || !activatedProgram.is_active) {
       throw new Error('Routine activation did not update a database row.');
     }
+    console.info('[routine-library] target activated', { userId, programId });
 
     const { error: deactivateError } = await supabase
       .from('saved_routine_programs')
@@ -164,6 +176,7 @@ export async function setActiveRoutineProgram(userId: string, programId: string)
       .eq('user_id', userId)
       .neq('id', programId);
     if (deactivateError) throw new Error(deactivateError.message);
+    console.info('[routine-library] other programs deactivated', { userId, programId });
 
     setLocalStorageItem(
       `saved_programs_${userId}`,
@@ -195,9 +208,15 @@ export async function updateSavedRoutineProgram(
     .eq('id', programId)
     .eq('user_id', userId);
   if (error) throw new Error(`Failed to update routine: ${error.message}`);
+  console.info('[routine-library] program data updated', {
+    userId,
+    programId,
+    workoutDays: programData.workouts.length,
+  });
 }
 
 export async function deleteSavedRoutineProgram(userId: string, programId: string): Promise<void> {
+  console.warn('[routine-library] delete requested', { userId, programId });
   const existing = await fetchSavedRoutinePrograms(userId);
   setLocalStorageItem(
     `saved_programs_${userId}`,
@@ -210,5 +229,6 @@ export async function deleteSavedRoutineProgram(userId: string, programId: strin
       .eq('id', programId)
       .eq('user_id', userId);
     if (error) throw new Error(error.message);
+    console.warn('[routine-library] program deleted', { userId, programId });
   }
 }
