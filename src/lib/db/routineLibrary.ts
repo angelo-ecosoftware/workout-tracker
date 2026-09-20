@@ -139,18 +139,13 @@ export async function setActiveRoutineProgram(userId: string, programId: string)
     throw new Error('This routine is not saved in the database yet. Save it again before activating it.');
   }
   const existing = await fetchSavedRoutinePrograms(userId);
-  setLocalStorageItem(
-    `saved_programs_${userId}`,
-    JSON.stringify(existing.map((p) => ({ ...p, isActive: p.id === programId })))
-  );
+  if (!existing.some((program) => program.id === programId)) {
+    throw new Error('The selected routine could not be found for this account.');
+  }
 
   try {
-    const { error: deactivateError } = await supabase
-      .from('saved_routine_programs')
-      .update({ is_active: false })
-      .eq('user_id', userId);
-    if (deactivateError) throw new Error(deactivateError.message);
-
+    // Activate the target first so a failed cleanup cannot leave zero active
+    // routines after the previous active routine has already been disabled.
     const { data: activatedProgram, error: activateError } = await supabase
       .from('saved_routine_programs')
       .update({ is_active: true, updated_at: new Date().toISOString() })
@@ -162,6 +157,18 @@ export async function setActiveRoutineProgram(userId: string, programId: string)
     if (!activatedProgram || !activatedProgram.is_active) {
       throw new Error('Routine activation did not update a database row.');
     }
+
+    const { error: deactivateError } = await supabase
+      .from('saved_routine_programs')
+      .update({ is_active: false })
+      .eq('user_id', userId)
+      .neq('id', programId);
+    if (deactivateError) throw new Error(deactivateError.message);
+
+    setLocalStorageItem(
+      `saved_programs_${userId}`,
+      JSON.stringify(existing.map((p) => ({ ...p, isActive: p.id === programId })))
+    );
   } catch (error) {
     throw error instanceof Error ? error : new Error('Failed to activate routine program.');
   }
