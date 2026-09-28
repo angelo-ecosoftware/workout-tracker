@@ -253,14 +253,16 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
                 <span>{isSkipped ? 'Skipped (Undo)' : 'Skip'}</span>
               </button>
 
-              {isExpanded ? (
-                <div className="p-2 sm:p-1.5 text-[#C0FF00] bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
-                  <ChevronUp className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
-                </div>
-              ) : (
-                <div className="p-2 sm:p-1.5 text-gray-400 bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
-                  <ChevronDown className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
-                </div>
+              {!isSequentialSetMode && (
+                isExpanded ? (
+                  <div className="p-2 sm:p-1.5 text-[#C0FF00] bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
+                    <ChevronUp className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
+                  </div>
+                ) : (
+                  <div className="p-2 sm:p-1.5 text-gray-400 bg-[#1a1a1a] rounded-lg border border-[#333] transition-colors pointer-events-none">
+                    <ChevronDown className="w-5 h-5 sm:w-4 sm:h-4" aria-hidden="true" />
+                  </div>
+                )
               )}
             </div>
           </div>
