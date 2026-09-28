@@ -20,6 +20,7 @@ interface ExerciseSetRowProps {
     durationSeconds?: string;
     difficulty?: string;
   };
+  isLocked?: boolean;
   isCurrent?: boolean;
   onUpdateInput: (
     key: string,
@@ -40,6 +41,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
   inputKey,
   values,
   placeholders,
+  isLocked = false,
   isCurrent = false,
   onUpdateInput,
   onTextInput,
@@ -61,6 +63,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
       <div className="col-span-2 flex items-center gap-1.5 min-w-0">
         <button
           type="button"
+          disabled={isLocked}
           role="checkbox"
           aria-checked={isCompleted}
           onClick={() => onToggleCompleted && onToggleCompleted(inputKey)}
@@ -93,6 +96,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
           <div className="col-span-5 flex items-stretch h-9 sm:h-10 bg-[#0d0d0d] border border-[#282828] focus-within:border-[#C0FF00] rounded-xl overflow-hidden">
             <button
               type="button"
+              disabled={isLocked}
               onClick={() => onUpdateInput(inputKey, 'durationSeconds', -5)}
               aria-label={`Decrease duration for set ${setNum} by 5 seconds`}
               className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
@@ -103,6 +107,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             <input
               type="text"
               inputMode="numeric"
+              disabled={isLocked}
               value={values.durationSeconds || ''}
               onFocus={(e) => e.target.select()}
               onChange={(e) => onTextInput(inputKey, 'durationSeconds', e.target.value)}
@@ -113,6 +118,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
 
             <button
               type="button"
+              disabled={isLocked}
               onClick={() => onUpdateInput(inputKey, 'durationSeconds', 5)}
               aria-label={`Increase duration for set ${setNum} by 5 seconds`}
               className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
@@ -125,6 +131,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
           <div className="col-span-5 flex items-stretch h-9 sm:h-10 bg-[#0d0d0d] border border-[#282828] focus-within:border-amber-400 rounded-xl overflow-hidden">
             <button
               type="button"
+              disabled={isLocked}
               onClick={() => onUpdateInput(inputKey, 'difficulty', -1)}
               aria-label={`Decrease difficulty for set ${setNum}`}
               className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
@@ -135,6 +142,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             <input
               type="text"
               inputMode="numeric"
+              disabled={isLocked}
               value={values.difficulty || ''}
               onFocus={(e) => e.target.select()}
               onChange={(e) => onTextInput(inputKey, 'difficulty', e.target.value)}
@@ -145,6 +153,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
 
             <button
               type="button"
+              disabled={isLocked}
               onClick={() => onUpdateInput(inputKey, 'difficulty', 1)}
               aria-label={`Increase difficulty for set ${setNum}`}
               className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
@@ -159,6 +168,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
           <div className="col-span-5 flex items-stretch h-9 sm:h-10 bg-[#0d0d0d] border border-[#282828] focus-within:border-[#C0FF00] rounded-xl overflow-hidden">
             <button
               type="button"
+              disabled={isLocked}
               onClick={() => onUpdateInput(inputKey, 'weight', -2.5)}
               aria-label={`Decrease weight for set ${setNum} by 2.5 kilograms`}
               className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 hover:text-white flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
@@ -170,6 +180,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             <input
               type="text"
               inputMode="decimal"
+              disabled={isLocked}
               value={values.weight || ''}
               onFocus={(e) => e.target.select()}
               onChange={(e) => onTextInput(inputKey, 'weight', e.target.value)}
@@ -180,6 +191,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
 
             <button
               type="button"
+              disabled={isLocked}
               onClick={() => onUpdateInput(inputKey, 'weight', 2.5)}
               aria-label={`Increase weight for set ${setNum} by 2.5 kilograms`}
               className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 hover:text-[#C0FF00] flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
@@ -193,6 +205,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
           <div className="col-span-5 flex items-stretch h-9 sm:h-10 bg-[#0d0d0d] border border-[#282828] focus-within:border-[#C0FF00] rounded-xl overflow-hidden">
             <button
               type="button"
+              disabled={isLocked}
               onClick={() => onUpdateInput(inputKey, 'reps', -1)}
               aria-label={`Decrease reps for set ${setNum}`}
               className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 hover:text-white flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"
@@ -204,6 +217,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
             <input
               type="text"
               inputMode="numeric"
+              disabled={isLocked}
               value={values.reps || ''}
               onFocus={(e) => e.target.select()}
               onChange={(e) => onTextInput(inputKey, 'reps', e.target.value)}
@@ -214,6 +228,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
 
             <button
               type="button"
+              disabled={isLocked}
               onClick={() => onUpdateInput(inputKey, 'reps', 1)}
               aria-label={`Increase reps for set ${setNum}`}
               className="w-8 sm:w-9 bg-[#1a1a1a] hover:bg-[#252525] active:bg-[#333] text-gray-300 hover:text-[#C0FF00] flex items-center justify-center font-mono font-bold cursor-pointer shrink-0 transition-colors"

@@ -153,14 +153,9 @@ describe('WorkoutDayTracker Component', () => {
     const weightInput = rowInputs[0] as HTMLInputElement;
     const repsInput = rowInputs[1] as HTMLInputElement;
 
-    // Edit weight to 100 kg and reps to 10
-    await user.clear(weightInput);
-    await user.type(weightInput, '100');
-    expect(weightInput).toHaveValue('100');
-
-    await user.clear(repsInput);
-    await user.type(repsInput, '10');
-    expect(repsInput).toHaveValue('10');
+    // Set inputs are locked until the workout is started.
+    expect(weightInput).toBeDisabled();
+    expect(repsInput).toBeDisabled();
 
     // Exactly 1 START WORKOUT button exists on the screen (in the header card)
     const startBtns = screen.getAllByRole('button', { name: /start workout/i });
@@ -178,6 +173,14 @@ describe('WorkoutDayTracker Component', () => {
     // Now workout is started: the single submit button becomes enabled and accessible
     expect(submitBtns[0]).toBeEnabled();
     expect(screen.queryByText(/select routine/i)).not.toBeInTheDocument();
+
+    // Entering set values is allowed only after START WORKOUT.
+    await user.clear(weightInput);
+    await user.type(weightInput, '100');
+    expect(weightInput).toHaveValue('100');
+    await user.clear(repsInput);
+    await user.type(repsInput, '10');
+    expect(repsInput).toHaveValue('10');
 
     // Reset returns the routine selector so the user can choose another day.
     await user.click(screen.getByRole('button', { name: /reset workout timer/i }));

@@ -442,6 +442,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
                     userProfile={userProfile}
                     inputs={inputs}
                     isExpanded={isExpanded}
+                    isSessionActive={isSessionActive}
                     isSkipped={skippedExerciseIds.has(ex.id)}
                     isSequentialSetMode={isSequentialSetMode}
                     routeExerciseId={routeExerciseId}

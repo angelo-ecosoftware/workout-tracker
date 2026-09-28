@@ -24,6 +24,7 @@ interface ExerciseCardProps {
     }
   >;
   isExpanded: boolean;
+  isSessionActive?: boolean;
   isSkipped?: boolean;
   isSequentialSetMode?: boolean;
   routeExerciseId?: string | null;
@@ -52,6 +53,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
   userProfile,
   inputs,
   isExpanded,
+  isSessionActive = false,
   isSkipped = false,
   isSequentialSetMode = false,
   routeExerciseId = null,
@@ -234,6 +236,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
             <div className="flex items-center gap-2 shrink-0 self-start ml-2">
               <button
                 type="button"
+                disabled={!isSessionActive}
                 onClick={(e) => {
                   e.stopPropagation();
                   onToggleSkip && onToggleSkip(exercise.id);
@@ -280,6 +283,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
           <span>Exercise marked as skipped for this workout session.</span>
           <button
             type="button"
+            disabled={!isSessionActive}
             onClick={() => onToggleSkip && onToggleSkip(exercise.id)}
             className="text-[#C0FF00] hover:underline font-bold text-xs cursor-pointer shrink-0"
           >
@@ -390,6 +394,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
                     inputKey={inputKey}
                     values={values}
                     placeholders={placeholders}
+                    isLocked={!isSessionActive}
                     isCurrent={isCurrent}
                     onUpdateInput={onUpdateInput}
                     onTextInput={onTextInput}
