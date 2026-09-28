@@ -10,6 +10,7 @@ interface ActiveWorkoutHeaderBarProps {
   isSessionActive: boolean;
   elapsedSeconds: number;
   isSequentialSetMode?: boolean;
+  showSequentialSetModeToggle?: boolean;
   onToggleSequentialSetMode?: () => void;
   onStartWorkout: () => void;
   onFinishWorkout?: () => void;
@@ -37,6 +38,7 @@ export const ActiveWorkoutHeaderBar: React.FC<ActiveWorkoutHeaderBarProps> = ({
   isSessionActive,
   elapsedSeconds,
   isSequentialSetMode = false,
+  showSequentialSetModeToggle = true,
   onToggleSequentialSetMode,
   onStartWorkout,
   onFinishWorkout,
@@ -80,7 +82,7 @@ export const ActiveWorkoutHeaderBar: React.FC<ActiveWorkoutHeaderBarProps> = ({
 
         <div className="flex items-center gap-3 self-stretch sm:self-auto shrink-0">
           {/* Toggle for Set(s) Tracked Mode in the Red Marked Zone */}
-          {onToggleSequentialSetMode && (
+          {onToggleSequentialSetMode && showSequentialSetModeToggle && (
             <button
               type="button"
               role="switch"
@@ -169,7 +171,7 @@ export const ActiveWorkoutHeaderBar: React.FC<ActiveWorkoutHeaderBarProps> = ({
 
         {/* Right: Actions (Reset timer & revert session to unstarted) */}
         <div className="flex items-center gap-2 shrink-0">
-          {onToggleSequentialSetMode && (
+          {onToggleSequentialSetMode && showSequentialSetModeToggle && (
             <button
               type="button"
               role="switch"

@@ -256,6 +256,16 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
     );
   }
 
+  const focusedSequentialExercise = isSequentialSetMode && activeWorkout
+    ? activeWorkout.exercises.find((exercise) => {
+        if (skippedExerciseIds.has(exercise.id)) return false;
+        return Array.from({ length: exercise.targetSets || 3 }, (_, index) => index + 1)
+          .some((setNumber) => !inputs[`${exercise.id}-${setNumber}`]?.completed);
+      }) || activeWorkout.exercises.find((exercise) => !skippedExerciseIds.has(exercise.id))
+    : null;
+  const showSequentialSetModeToggle =
+    !isSequentialSetMode || Boolean((focusedSequentialExercise?.targetSets || 0) > 1);
+
   return (
     <div
       className="w-full min-w-0 space-y-6"
@@ -401,6 +411,7 @@ export const WorkoutDayTracker: React.FC<WorkoutDayTrackerProps> = ({
             isSessionActive={isSessionActive}
             elapsedSeconds={elapsedSeconds}
             isSequentialSetMode={isSequentialSetMode}
+            showSequentialSetModeToggle={showSequentialSetModeToggle}
             onToggleSequentialSetMode={toggleSequentialSetMode}
             onStartWorkout={handleStartWorkout}
             onFinishWorkout={() => setIsFinishModalOpen(true)}
