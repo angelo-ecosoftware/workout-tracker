@@ -13,7 +13,7 @@ import { uploadWorkoutPhotos } from '../../../lib/storage.ts';
 import { compressWorkoutImage } from '../../../utils/imageCompressor.ts';
 import { fetchSavedRoutinePrograms } from '../../../lib/db/routineLibrary.ts';
 import { hasCompletedSessionOnDate } from '../../../utils/sessionDate.ts';
-import { SessionEngine, ProgressionEngine } from '../../../engine.ts';
+import { SessionEngine } from '../../../engine.ts';
 import {
   saveDraftPhotosToStorage,
   loadDraftPhotosFromStorage,
@@ -593,39 +593,16 @@ export function useWorkoutSession(
       > = {};
 
       activeWorkout.exercises.forEach((ex) => {
-        const cachedEx = ProgressionEngine.evaluateProgression(
-          ex.id,
-          userProfile.lastSetSummaryPerExercise
-        );
-
         for (let i = 1; i <= ex.targetSets; i++) {
-          if (ex.type === 'timed') {
-            const dsVal =
-              cachedEx && cachedEx.lastDurationSeconds != null
-                ? cachedEx.lastDurationSeconds.toString()
-                : ex.targetRepMin?.toString() || '60';
-
-            newInputs[`${ex.id}-${i}`] = {
-              weight: '',
-              reps: '',
-              durationSeconds: dsVal,
-              difficulty: '7',
-            };
-          } else {
-            const wtVal =
-              cachedEx && cachedEx.lastWeight != null ? cachedEx.lastWeight.toString() : '20';
-            const rpVal =
-              cachedEx && cachedEx.lastReps != null
-                ? cachedEx.lastReps.toString()
-                : ex.targetRepMin?.toString() || '10';
-
-            newInputs[`${ex.id}-${i}`] = {
-              weight: wtVal,
-              reps: rpVal,
-              durationSeconds: '',
-              difficulty: '',
-            };
-          }
+          // Keep every fresh set empty. Previous performance is displayed as
+          // a placeholder, and set 1 is mirrored into later placeholders by
+          // ExerciseCard without creating or submitting duplicate values.
+          newInputs[`${ex.id}-${i}`] = {
+            weight: '',
+            reps: '',
+            durationSeconds: '',
+            difficulty: '',
+          };
         }
       });
 

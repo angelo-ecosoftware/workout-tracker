@@ -236,6 +236,10 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
     // 2. Start workout: becomes active
     act(() => {
       result.current.handleStartWorkout();
+      for (const setNumber of [1, 2, 3]) {
+        result.current.handleTextChange(`ex_bench-${setNumber}`, 'weight', '20');
+        result.current.handleTextChange(`ex_bench-${setNumber}`, 'reps', '10');
+      }
     });
     expect(result.current.isSessionActive).toBe(true);
 
@@ -267,6 +271,10 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
 
     act(() => {
       result.current.handleStartWorkout();
+      for (const setNumber of [1, 2, 3]) {
+        result.current.handleTextChange(`ex_bench-${setNumber}`, 'weight', '20');
+        result.current.handleTextChange(`ex_bench-${setNumber}`, 'reps', '10');
+      }
       result.current.setSessionNotes('Solid workout session completed.');
     });
 
@@ -322,7 +330,7 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
     });
 
     // Day 2 must have its own fresh default inputs and NOT inherit Day 1's draft
-    expect(result.current.inputs['ex_pullup-1']?.weight).toBe('20');
+    expect(result.current.inputs['ex_pullup-1']?.weight).toBe('');
     expect(result.current.inputs['ex_bench-1']).toBeUndefined();
   });
 
@@ -353,11 +361,12 @@ describe('useWorkoutSession Hook (Dynamic Reactive State Machine)', () => {
       result.current.setActiveWorkout(timedWorkout);
     });
 
-    // Default difficulty is 7
-    expect(result.current.inputs['ex_plank-1']?.difficulty).toBe('7');
+    // Difficulty starts empty; 7 is shown as a placeholder in the row.
+    expect(result.current.inputs['ex_plank-1']?.difficulty).toBe('');
 
     // Step up past 10
     act(() => {
+      result.current.handleTextChange('ex_plank-1', 'difficulty', '7');
       result.current.updateInputValue('ex_plank-1', 'difficulty', 5);
     });
     expect(result.current.inputs['ex_plank-1']?.difficulty).toBe('10');

@@ -359,12 +359,27 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
 
               return setsToRender.map((setNum) => {
                 const inputKey = `${exercise.id}-${setNum}`;
-                const values = inputs[inputKey] || {
-                  weight: '20',
-                  reps: '10',
-                  durationSeconds: '30',
-                  difficulty: '7',
-                };
+                const values = inputs[inputKey] || {};
+                const firstSetValues = inputs[`${exercise.id}-1`] || {};
+                const placeholders = exercise.type === 'timed'
+                  ? {
+                      durationSeconds:
+                        firstSetValues.durationSeconds ||
+                        (cachedEx?.lastDurationSeconds != null
+                          ? String(cachedEx.lastDurationSeconds)
+                          : String(exercise.targetRepMin || 60)),
+                      difficulty: firstSetValues.difficulty || '7',
+                    }
+                  : {
+                      weight:
+                        firstSetValues.weight ||
+                        (cachedEx?.lastWeight != null ? String(cachedEx.lastWeight) : '0'),
+                      reps:
+                        firstSetValues.reps ||
+                        (cachedEx?.lastReps != null
+                          ? String(cachedEx.lastReps)
+                          : String(exercise.targetRepMin || 0)),
+                    };
                 const isCurrent = setNum === firstUncompletedIndex;
 
                 return (
@@ -374,6 +389,7 @@ export const ExerciseCard: React.FC<ExerciseCardProps> = React.memo(({
                     setNum={setNum}
                     inputKey={inputKey}
                     values={values}
+                    placeholders={placeholders}
                     isCurrent={isCurrent}
                     onUpdateInput={onUpdateInput}
                     onTextInput={onTextInput}

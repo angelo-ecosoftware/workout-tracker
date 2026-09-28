@@ -14,6 +14,12 @@ interface ExerciseSetRowProps {
     completed?: boolean;
     completedAt?: string;
   };
+  placeholders?: {
+    weight?: string;
+    reps?: string;
+    durationSeconds?: string;
+    difficulty?: string;
+  };
   isCurrent?: boolean;
   onUpdateInput: (
     key: string,
@@ -33,6 +39,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
   setNum,
   inputKey,
   values,
+  placeholders,
   isCurrent = false,
   onUpdateInput,
   onTextInput,
@@ -101,7 +108,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
               onChange={(e) => onTextInput(inputKey, 'durationSeconds', e.target.value)}
               aria-label={`Duration in seconds for set ${setNum}`}
               className="w-full min-w-0 bg-transparent py-1 px-0.5 text-center font-mono font-bold text-white text-xs sm:text-sm focus:outline-none"
-              placeholder="0"
+              placeholder={placeholders?.durationSeconds || '0'}
             />
 
             <button
@@ -133,7 +140,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
               onChange={(e) => onTextInput(inputKey, 'difficulty', e.target.value)}
               aria-label={`Difficulty out of 10 for set ${setNum}`}
               className="w-full min-w-0 bg-transparent py-1 px-0.5 text-center font-mono font-bold text-amber-400 text-xs sm:text-sm focus:outline-none"
-              placeholder="7"
+              placeholder={placeholders?.difficulty || '7'}
             />
 
             <button
@@ -168,7 +175,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
               onChange={(e) => onTextInput(inputKey, 'weight', e.target.value)}
               aria-label={`Weight in kilograms for set ${setNum}`}
               className="w-full min-w-0 bg-transparent py-1 px-0.5 text-center font-mono font-black text-white text-xs sm:text-sm focus:outline-none"
-              placeholder="0"
+              placeholder={placeholders?.weight || '0'}
             />
 
             <button
@@ -202,7 +209,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
               onChange={(e) => onTextInput(inputKey, 'reps', e.target.value)}
               aria-label={`Reps for set ${setNum}`}
               className="w-full min-w-0 bg-transparent py-1 px-0.5 text-center font-mono font-black text-[#C0FF00] text-xs sm:text-sm focus:outline-none"
-              placeholder="0"
+              placeholder={placeholders?.reps || '0'}
             />
 
             <button
