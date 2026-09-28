@@ -590,11 +590,51 @@ export const WorkoutHistory: React.FC<{
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between min-h-[32px]">
+      <div className="flex min-h-[32px] flex-col gap-3 sm:flex-row sm:items-center">
         <h2 className="text-xl font-display font-black text-white uppercase tracking-tight">
           Training History
         </h2>
-        
+
+        {!expandedSessionId && !isDeleteMode && (
+          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+            <span className="mr-1 text-[9px] font-mono font-bold uppercase tracking-wider text-gray-500">
+              Date range
+            </span>
+            <label htmlFor="history-date-from" className="sr-only">From date</label>
+            <input
+              id="history-date-from"
+              type="date"
+              value={dateFrom}
+              max={dateTo || undefined}
+              onChange={(event) => setDateFrom(event.target.value)}
+              className="h-9 w-[142px] rounded-lg border border-[#2b2b2b] bg-[#111] px-2.5 text-xs text-gray-300 outline-none transition-colors focus:border-[#C0FF00] focus:text-white"
+            />
+            <span className="text-xs text-gray-600">–</span>
+            <label htmlFor="history-date-to" className="sr-only">To date</label>
+            <input
+              id="history-date-to"
+              type="date"
+              value={dateTo}
+              min={dateFrom || undefined}
+              onChange={(event) => setDateTo(event.target.value)}
+              className="h-9 w-[142px] rounded-lg border border-[#2b2b2b] bg-[#111] px-2.5 text-xs text-gray-300 outline-none transition-colors focus:border-[#C0FF00] focus:text-white"
+            />
+            {(dateFrom || dateTo) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDateFrom('');
+                  setDateTo('');
+                }}
+                className="h-9 rounded-lg px-2 text-[10px] font-bold uppercase tracking-wider text-gray-500 transition-colors hover:bg-[#181818] hover:text-white"
+                aria-label="Clear date range"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        )}
+
         {!expandedSessionId && (
           !isDeleteMode ? (
             <button 
@@ -625,56 +665,6 @@ export const WorkoutHistory: React.FC<{
         )}
       </div>
 
-      {!expandedSessionId && (
-        <div className="rounded-2xl border border-[#252525] bg-[#111] p-3 sm:p-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <div className="flex-1">
-              <label htmlFor="history-date-from" className="mb-1.5 block text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400">
-                From
-              </label>
-              <input
-                id="history-date-from"
-                type="date"
-                value={dateFrom}
-                max={dateTo || undefined}
-                onChange={(event) => setDateFrom(event.target.value)}
-                className="w-full rounded-xl border border-[#333] bg-[#181818] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[#C0FF00]"
-              />
-            </div>
-            <div className="flex-1">
-              <label htmlFor="history-date-to" className="mb-1.5 block text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400">
-                To
-              </label>
-              <input
-                id="history-date-to"
-                type="date"
-                value={dateTo}
-                min={dateFrom || undefined}
-                onChange={(event) => setDateTo(event.target.value)}
-                className="w-full rounded-xl border border-[#333] bg-[#181818] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[#C0FF00]"
-              />
-            </div>
-            {(dateFrom || dateTo) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setDateFrom('');
-                  setDateTo('');
-                }}
-                className="rounded-xl border border-[#333] px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-300 transition-colors hover:border-[#C0FF00] hover:text-white"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-          {(dateFrom || dateTo) && (
-            <p className="mt-2 text-[11px] text-gray-500">
-              Showing {filteredSessions.length} of {sessions.length} sessions
-            </p>
-          )}
-        </div>
-      )}
-      
       {expandedSessionId ? (
         <div data-resource-type="logbook" data-resource-id={expandedSessionId}>
           <button 
