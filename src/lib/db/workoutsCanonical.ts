@@ -25,10 +25,11 @@ export async function seedTemplatesIfMissing(_userId?: string): Promise<void> {
 
 export async function fetchWorkoutsData(userId?: string) {
   let workoutsList: Workout[] = [];
+  let allWorkoutsList: Workout[] = [];
   let exercisesList: Exercise[] = [];
 
   if (!userId) {
-    return { combinedWorkouts: [], workoutsList, exercisesList };
+    return { combinedWorkouts: [], workoutsList, allWorkoutsList: [], exercisesList };
   }
 
   try {
@@ -39,13 +40,13 @@ export async function fetchWorkoutsData(userId?: string) {
       .eq('user_id', userId);
     if (error) console.warn('Error fetching workouts:', error);
 
-    const allWorkouts: Workout[] = ((data as DbWorkoutRow[]) || []).map((row) => ({
+    allWorkoutsList = ((data as DbWorkoutRow[]) || []).map((row) => ({
       id: String(row.id),
       name: row.name,
       order: row.order ?? row.day_number ?? 0,
       exerciseIds: Array.isArray(row.exercise_ids) ? row.exercise_ids : [],
     }));
-    workoutsList = allWorkouts.filter((workout, index, list) =>
+    workoutsList = allWorkoutsList.filter((workout, index, list) =>
       index === list.findIndex((candidate) => candidate.order === workout.order)
     );
   } catch (error) {
@@ -99,7 +100,7 @@ export async function fetchWorkoutsData(userId?: string) {
     };
   });
 
-  return { combinedWorkouts, workoutsList, exercisesList };
+  return { combinedWorkouts, workoutsList, allWorkoutsList, exercisesList };
 }
 
 export async function fetchWorkoutById(userId: string, workoutId: string) {

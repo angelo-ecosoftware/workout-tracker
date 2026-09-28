@@ -441,6 +441,7 @@ export function useWorkoutSession(
         wData = {
           combinedWorkouts: normalizedActiveWorkouts,
           workoutsList: normalizedActiveWorkouts,
+          allWorkoutsList: wData.allWorkoutsList,
           exercisesList: activeExercises,
         };
       }

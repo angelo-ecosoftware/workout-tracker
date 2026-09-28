@@ -19,7 +19,7 @@ import {
   initializeUser,
 } from '../../lib/supabaseData.ts';
 import { uploadWorkoutPhoto, deleteWorkoutPhoto } from '../../lib/storage.ts';
-import { BodyMeasurementLog, UserProfile } from '../../models.ts';
+import { BodyMeasurementLog, UserProfile, Workout } from '../../models.ts';
 import { Activity, Loader2, ChevronLeft, Trash2 } from 'lucide-react';
 import { ConfirmModal } from '../ui/ConfirmModal.tsx';
 import { PopulatedSession, SessionDetailCard } from './history/SessionDetailCard.tsx';
@@ -457,8 +457,13 @@ export const WorkoutHistory: React.FC<{
         const athleteReceiptsOn = athletePrivacy ? athletePrivacy.shareReviewReceipts !== false : true;
         setAllowReviewReceipts(viewerReceiptsOn && athleteReceiptsOn);
 
-        const { workoutsList, exercisesList } = workoutsData;
-        const workoutMap = new Map(workoutsList.map(w => [w.id, w]));
+        const { workoutsList, allWorkoutsList, exercisesList } = workoutsData;
+        // History must resolve by the session's workout ID. Do not use the
+        // day-deduplicated list here because archived routines can share the
+        // same order with the current routine.
+        const workoutMap = new Map<string, Workout>(
+          (allWorkoutsList || workoutsList).map((w: Workout) => [w.id, w])
+        );
         const exerciseMap = new Map(exercisesList.map(e => [e.id, e]));
 
         const promises = historySessions.map(async (session) => {
