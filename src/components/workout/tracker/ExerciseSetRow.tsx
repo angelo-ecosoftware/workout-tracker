@@ -57,7 +57,7 @@ export const ExerciseSetRow: React.FC<ExerciseSetRowProps> = ({
           : isCurrent
           ? 'bg-[#181818] border-[#C0FF00]/40 shadow-[0_0_12px_rgba(192,255,0,0.06)]'
           : 'bg-[#141414] border-[#202020] hover:border-[#2a2a2a]'
-      }`}
+      } ${isLocked ? 'opacity-50 grayscale' : ''}`}
     >
       {/* Col 1-2: Set Number & 1-Tap Check */}
       <div className="col-span-2 flex items-center gap-1.5 min-w-0">
