@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../context/AuthContext.tsx';
 import {
   fetchWorkoutHistory,
@@ -43,6 +43,8 @@ export const WorkoutHistory: React.FC<{
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [sessions, setSessions] = useState<PopulatedSession[]>([]);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
   const [isDeleteMode, setIsDeleteMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -196,6 +198,13 @@ export const WorkoutHistory: React.FC<{
     const d = session.completedAt;
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
+
+  const filteredSessions = useMemo(() => {
+    return sessions.filter((session) => {
+      const sessionDate = getSessionDateString(session);
+      return (!dateFrom || sessionDate >= dateFrom) && (!dateTo || sessionDate <= dateTo);
+    });
+  }, [sessions, dateFrom, dateTo]);
 
   // Find logged bodyweight for the session's date
   const getSessionBodyLog = (session: PopulatedSession): BodyMeasurementLog | undefined => {
@@ -615,6 +624,56 @@ export const WorkoutHistory: React.FC<{
           )
         )}
       </div>
+
+      {!expandedSessionId && (
+        <div className="rounded-2xl border border-[#252525] bg-[#111] p-3 sm:p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <div className="flex-1">
+              <label htmlFor="history-date-from" className="mb-1.5 block text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400">
+                From
+              </label>
+              <input
+                id="history-date-from"
+                type="date"
+                value={dateFrom}
+                max={dateTo || undefined}
+                onChange={(event) => setDateFrom(event.target.value)}
+                className="w-full rounded-xl border border-[#333] bg-[#181818] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[#C0FF00]"
+              />
+            </div>
+            <div className="flex-1">
+              <label htmlFor="history-date-to" className="mb-1.5 block text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400">
+                To
+              </label>
+              <input
+                id="history-date-to"
+                type="date"
+                value={dateTo}
+                min={dateFrom || undefined}
+                onChange={(event) => setDateTo(event.target.value)}
+                className="w-full rounded-xl border border-[#333] bg-[#181818] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[#C0FF00]"
+              />
+            </div>
+            {(dateFrom || dateTo) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setDateFrom('');
+                  setDateTo('');
+                }}
+                className="rounded-xl border border-[#333] px-4 py-2 text-xs font-bold uppercase tracking-wider text-gray-300 transition-colors hover:border-[#C0FF00] hover:text-white"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          {(dateFrom || dateTo) && (
+            <p className="mt-2 text-[11px] text-gray-500">
+              Showing {filteredSessions.length} of {sessions.length} sessions
+            </p>
+          )}
+        </div>
+      )}
       
       {expandedSessionId ? (
         <div data-resource-type="logbook" data-resource-id={expandedSessionId}>
@@ -681,7 +740,7 @@ export const WorkoutHistory: React.FC<{
       ) : (
         /* Global Grid Master View */
         <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-          {sessions.map(session => (
+          {filteredSessions.map(session => (
             <SessionGridCard
               key={session.id}
               session={session}
@@ -698,6 +757,13 @@ export const WorkoutHistory: React.FC<{
               }}
             />
           ))}
+          {filteredSessions.length === 0 && (
+            <div className="col-span-full rounded-2xl border border-[#252525] bg-[#111] p-8 text-center">
+              <Activity className="mx-auto mb-3 h-8 w-8 text-gray-600" />
+              <p className="text-sm font-bold text-white">No sessions in this date range</p>
+              <p className="mt-1 text-xs text-gray-500">Try widening the dates or clear the filter.</p>
+            </div>
+          )}
         </div>
       )}
 
